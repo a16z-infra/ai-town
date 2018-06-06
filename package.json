@@ -1,7 +1,7 @@
 {
   "scripts": {
     "build": "webpack -p",
-    "dev": "webpack-dev-server"
+    "start": "webpack-dev-server"
   },
   "dependencies": {
     "clean-webpack-plugin": "^0.1.19",
