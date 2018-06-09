@@ -6,6 +6,14 @@
          "height":100,
          "name":"background",
          "opacity":1,
+         "properties":
+            {
+             "collides":false
+            },
+         "propertytypes":
+            {
+             "collides":"bool"
+            },
          "type":"tilelayer",
          "visible":true,
          "width":100,
@@ -17,6 +25,14 @@
          "height":100,
          "name":"obstacles",
          "opacity":1,
+         "properties":
+            {
+             "collides":true
+            },
+         "propertytypes":
+            {
+             "collides":"bool"
+            },
          "type":"tilelayer",
          "visible":true,
          "width":100,
@@ -32,7 +48,7 @@
         {
          "columns":22,
          "firstgid":1,
-         "image":"..\/..\/..\/Downloads\/tiny-rpg-town-files\/tileset\/tileset.png",
+         "image":"tiles.png",
          "imageheight":288,
          "imagewidth":352,
          "margin":0,

@@ -19,7 +19,7 @@ class SceneA extends Phaser.Scene {
 
     const backgroundLayer = map.createStaticLayer('background', tileset, 0, 0);
     const obstaclesLayer = map.createStaticLayer('obstacles', tileset, 0, 0);
-    obstaclesLayer.setCollisionByProperty({ collides: true });
+    obstaclesLayer.setCollisionByExclusion([-1]);
 
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
@@ -27,10 +27,12 @@ class SceneA extends Phaser.Scene {
     player = this.physics.add.image(200, 300, 'player');
 
     player.setCollideWorldBounds(true);
+    this.physics.add.collider(player, obstaclesLayer);
 
     this.cameras.main.startFollow(player, true, 0.05, 0.05);
 
     cursors = this.input.keyboard.createCursorKeys();
+    this.add.graphics()
   }
 
   update() {
