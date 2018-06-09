@@ -1,4 +1,4 @@
-const CAMERA_LERP = 0.06;
+const CAMERA_LERP = 1;
 const PLAYER_SPEED = 100;
 
 class Main extends Phaser.Scene {
