@@ -20,9 +20,12 @@ class SceneA extends Phaser.Scene {
     const map = this.make.tilemap({ key: 'myworld' });
     const tileset = map.addTilesetImage('tileset', 'tiles', 16, 16, 0, 0);
 
-    const backgroundLayer = map.createStaticLayer('background', tileset, 0, 0);
-    const obstaclesLayer = map.createStaticLayer('obstacles', tileset, 0, 0);
-    obstaclesLayer.setCollisionByProperty({ collides: true });
+    const layers = {
+      background: map.createStaticLayer('background', tileset, 0, 0),
+      obstacles: map.createStaticLayer('obstacles', tileset, 0, 0),
+      obstaclesForeground: map.createStaticLayer('obstaclesForeground', tileset, 0, 0).setDepth(1),
+    }
+    layers.obstacles.setCollisionByProperty({ collides: true });
 
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
@@ -30,7 +33,7 @@ class SceneA extends Phaser.Scene {
     player = this.physics.add.image(800, 800, 'player');
 
     player.setCollideWorldBounds(true);
-    this.physics.add.collider(player, obstaclesLayer);
+    this.physics.add.collider(player, layers.obstacles);
 
     this.cameras.main.startFollow(player, true, CAMERA_LERP, CAMERA_LERP);
 
