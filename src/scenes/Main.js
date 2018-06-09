@@ -1,12 +1,11 @@
-let player;
-let cursors;
-
 const CAMERA_LERP = 0.06;
 const PLAYER_SPEED = 100;
 
 class Main extends Phaser.Scene {
   constructor() {
     super('Main');
+    this.player = null;
+    this.cursors = null;
   }
 
   preload() {
@@ -27,33 +26,32 @@ class Main extends Phaser.Scene {
     }
     layers.obstacles.setCollisionByProperty({ collides: true });
 
-    this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-    player = this.physics.add.image(800, 800, 'player');
+    this.player = this.physics.add.image(800, 800, 'player');
 
-    player.setCollideWorldBounds(true);
-    this.physics.add.collider(player, layers.obstacles);
+    this.player.setCollideWorldBounds(true);
+    this.physics.add.collider(this.player, layers.obstacles);
 
-    this.cameras.main.startFollow(player, true, CAMERA_LERP, CAMERA_LERP);
+    this.cameras.main.setRoundPixels(true);
+    this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+    this.cameras.main.startFollow(this.player, true, CAMERA_LERP, CAMERA_LERP);
 
-    cursors = this.input.keyboard.createCursorKeys();
-    this.add.graphics()
+    this.cursors = this.input.keyboard.createCursorKeys();
   }
 
   update() {
-    player.setVelocity(0);
+    this.player.setVelocity(0);
 
-    if (cursors.left.isDown) {
-      player.setVelocityX(-PLAYER_SPEED);
-    } else if (cursors.right.isDown) {
-      player.setVelocityX(PLAYER_SPEED);
+    if (this.cursors.left.isDown) {
+      this.player.setVelocityX(-PLAYER_SPEED);
+    } else if (this.cursors.right.isDown) {
+      this.player.setVelocityX(PLAYER_SPEED);
     }
 
-    if (cursors.up.isDown) {
-      player.setVelocityY(-PLAYER_SPEED);
-    } else if (cursors.down.isDown) {
-      player.setVelocityY(PLAYER_SPEED);
+    if (this.cursors.up.isDown) {
+      this.player.setVelocityY(-PLAYER_SPEED);
+    } else if (this.cursors.down.isDown) {
+      this.player.setVelocityY(PLAYER_SPEED);
     }
   }
 }
