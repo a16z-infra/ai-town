@@ -22,7 +22,7 @@ class SceneA extends Phaser.Scene {
 
     const backgroundLayer = map.createStaticLayer('background', tileset, 0, 0);
     const obstaclesLayer = map.createStaticLayer('obstacles', tileset, 0, 0);
-    obstaclesLayer.setCollisionByExclusion([-1]);
+    obstaclesLayer.setCollisionByProperty({ collides: true });
 
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
