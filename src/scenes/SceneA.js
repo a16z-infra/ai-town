@@ -17,9 +17,9 @@ class SceneA extends Phaser.Scene {
     const map = this.make.tilemap({ key: 'myworld' });
     const tileset = map.addTilesetImage('tileset', 'tiles', 16, 16, 0, 0);
 
-    const layer = map.createStaticLayer('background', tileset, 0, 0);
-    const layer2 = map.createStaticLayer('obstacles', tileset, 0, 0);
-    layer2.setCollisionByProperty({ collides: true });
+    const backgroundLayer = map.createStaticLayer('background', tileset, 0, 0);
+    const obstaclesLayer = map.createStaticLayer('obstacles', tileset, 0, 0);
+    obstaclesLayer.setCollisionByProperty({ collides: true });
 
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
@@ -33,7 +33,7 @@ class SceneA extends Phaser.Scene {
     cursors = this.input.keyboard.createCursorKeys();
   }
 
-  update(time, delta) {
+  update() {
     player.setVelocity(0);
 
     if (cursors.left.isDown) {
