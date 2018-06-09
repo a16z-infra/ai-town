@@ -1,4 +1,4 @@
-import "phaser";
+import 'phaser';
 import SceneA from './scenes/SceneA';
 
 class PhaserGame extends Phaser.Game {
@@ -9,9 +9,9 @@ class PhaserGame extends Phaser.Game {
       height: 600,
       pixelArt: true,
       physics: {
-        default: "arcade"
+        default: 'arcade',
       },
-      scene: [SceneA]
+      scene: [SceneA],
     };
     super(config);
   }
