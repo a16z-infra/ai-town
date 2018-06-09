@@ -12,7 +12,7 @@ class Main extends Phaser.Scene {
     this.load.image('logo', 'assets/logo.png');
     this.load.tilemapTiledJSON('myworld', 'assets/tilemap.json');
     this.load.image('tiles', 'assets/tiles.png');
-    this.load.image('player', 'assets/player.png');
+    this.load.spritesheet('player', 'assets/player.png', { frameWidth: 16, frameHeight: 16 });
   }
 
   create() {
@@ -27,7 +27,7 @@ class Main extends Phaser.Scene {
     layers.obstacles.setCollisionByProperty({ collides: true });
 
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-    this.player = this.physics.add.image(800, 800, 'player');
+    this.player = this.physics.add.image(800, 800, 'player', 7);
 
     this.player.setCollideWorldBounds(true);
     this.physics.add.collider(this.player, layers.obstacles);
