@@ -79,20 +79,28 @@ class Main extends Phaser.Scene {
       down: this.cursors.down.isDown,
     };
 
+    const isUpDownPressed = keyPressed.up || keyPressed.down;
+
     if (keyPressed.left) {
-      this.player.scaleX = 1;
-      this.player.play('left', true);
+      if (!isUpDownPressed) {
+        this.player.scaleX = 1;
+        this.player.play('left', true);
+      }
       this.player.setVelocityX(-PLAYER_SPEED);
     } else if (keyPressed.right) {
-      this.player.scaleX = -1;
-      this.player.play('right', true);
+      if (!isUpDownPressed) {
+        this.player.scaleX = -1;
+        this.player.play('right', true);
+      }
       this.player.setVelocityX(PLAYER_SPEED);
     }
 
     if (keyPressed.up) {
+      this.player.scaleX = 1;
       this.player.play('up', true);
       this.player.setVelocityY(-PLAYER_SPEED);
     } else if (keyPressed.down) {
+      this.player.scaleX = 1;
       this.player.play('down', true);
       this.player.setVelocityY(PLAYER_SPEED);
     }
