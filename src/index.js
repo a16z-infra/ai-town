@@ -1,3 +1,5 @@
+/// <reference path="../typings/phaser.d.ts" />
+
 import 'phaser';
 import SceneA from './scenes/SceneA';
 
