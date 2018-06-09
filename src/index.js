@@ -16,8 +16,6 @@ const config = {
 };
 
 const game = new Phaser.Game(config);
-console.log('game: ', game);
-let controls;
 let cursors;
 let player;
 
@@ -29,57 +27,24 @@ function preload() {
 }
 
 function create() {
-  console.log('this: ', this);
   const map = this.make.tilemap({ key: 'myworld' });
   const tileset = map.addTilesetImage('tileset', 'tiles', 16, 16, 0, 0);
 
   const layer = map.createStaticLayer('background', tileset, 0, 0);
   const layer2 = map.createStaticLayer('obstacles', tileset, 0, 0);
+  layer2.setCollisionByProperty({ collides: true });
 
   console.log('this.cameras.main: ', this.cameras.main);
   this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-  // this.cameras.main.width = 100;
-  player = this.physics.add.image(400, 300, 'player');
+
+  this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+  player = this.physics.add.image(200, 300, 'player');
 
   player.setCollideWorldBounds(true);
 
   this.cameras.main.startFollow(player, true, 0.05, 0.05);
 
   cursors = this.input.keyboard.createCursorKeys();
-  // var controlConfig = {
-  //   camera: this.cameras.main,
-  //   left: cursors.left,
-  //   right: cursors.right,
-  //   up: cursors.up,
-  //   down: cursors.down,
-  //   speed: 0.5,
-  // };
-  // controls = new Phaser.Cameras.Controls.Fixed(controlConfig);
-
-  var help = this.add.text(16, 16, 'Arrow keys to scroll', {
-    fontSize: '18px',
-    padding: { x: 10, y: 5 },
-    backgroundColor: '#000000',
-    fill: '#ffffff',
-  });
-  help.setScrollFactor(0);
-  // this.map.addTilesetImage('result', 'tiles')
-  // this.map.setCollisionBetween(1, 4)
-
-  // this.layer = this.map.createLayer('obstacles')
-
-  // this.layer.resizeWorld()
-
-  // const logo = this.add.image(300, 150, 'logo');
-
-  // this.tweens.add({
-  //   targets: logo,
-  //   y: 450,
-  //   duration: 2000,
-  //   ease: 'Power2',
-  //   yoyo: true,
-  //   loop: -1,
-  // });
 }
 
 function update(time, delta) {
@@ -96,5 +61,4 @@ function update(time, delta) {
   } else if (cursors.down.isDown) {
     player.setVelocityY(200);
   }
-  // controls.update(delta);
 }

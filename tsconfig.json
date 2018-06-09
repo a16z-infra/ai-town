@@ -1,0 +1,11 @@
+{
+	"compilerOptions": {
+		"target": "ES5",
+		"sourceMap": true
+	},
+	"exclude": [
+		"node_modules",
+		"bin",
+		"typings/phaser.d.ts"
+	]
+}
