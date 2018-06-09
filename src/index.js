@@ -1,7 +1,7 @@
 /// <reference path="../typings/phaser.d.ts" />
 
 import 'phaser';
-import SceneA from './scenes/SceneA';
+import Main from './scenes/Main';
 
 class PhaserGame extends Phaser.Game {
   constructor() {
@@ -14,7 +14,7 @@ class PhaserGame extends Phaser.Game {
       physics: {
         default: 'arcade',
       },
-      scene: [SceneA],
+      scene: [Main],
     };
     super(config);
   }

@@ -4,9 +4,9 @@ let cursors;
 const CAMERA_LERP = 0.06;
 const PLAYER_SPEED = 100;
 
-class SceneA extends Phaser.Scene {
+class Main extends Phaser.Scene {
   constructor() {
-    super('SceneA');
+    super('Main');
   }
 
   preload() {
@@ -58,4 +58,4 @@ class SceneA extends Phaser.Scene {
   }
 }
 
-export default SceneA;
+export default Main;
