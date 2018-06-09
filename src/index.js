@@ -7,8 +7,9 @@ class PhaserGame extends Phaser.Game {
   constructor() {
     const config = {
       type: Phaser.AUTO,
-      width: 600,
-      height: 600,
+      zoom: 3,
+      width: 400,
+      height: 250,
       pixelArt: true,
       physics: {
         default: 'arcade',
