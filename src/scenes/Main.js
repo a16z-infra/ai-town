@@ -26,7 +26,7 @@ class Main extends Phaser.Scene {
     this.player = {
       orientation: 'down',
       gameObject: null,
-      hp: 10,
+      hp: 3,
     }
     this.cursors = null;
     this.npc = {
@@ -36,6 +36,7 @@ class Main extends Phaser.Scene {
     };
     this.treant = null;
     this.hearts = [];
+    this.tomb = null;
   }
 
   preload() {
@@ -61,6 +62,7 @@ class Main extends Phaser.Scene {
     this.load.image('treant', 'assets/sprites/treant/idle/treant-idle-front.png');
     this.load.image('treantAttack', 'assets/environment/sliced-objects/trunk.png')
     this.load.image('heart', 'assets/heart.png')
+    this.load.image('tomb', 'assets/tomb.png')
   }
 
   helloNPC() {
@@ -83,7 +85,7 @@ class Main extends Phaser.Scene {
     this.player.lastTimeHit = (new Date()).getTime()
 
     this.hearts = Array(this.player.hp).fill().map((_, i) => {
-      return this.add.sprite((i + 1) * 15, 15, 'heart').setScrollFactor(0).setDepth(1);
+      return this.add.sprite((i + 1) * 15, 15, 'heart').setScrollFactor(0).setDepth(10);
     });
 
     this.npc.gameObject = this.physics.add.sprite(NPC_POS.x, NPC_POS.y, 'npcs', 0);
@@ -93,7 +95,7 @@ class Main extends Phaser.Scene {
     });
     this.npc.textGameObject.setAlpha(0);
 
-    this.treant = this.physics.add.sprite(200, 300, 'treant');
+    this.treant = this.physics.add.sprite(500, 500, 'treant').setDepth(5);
     this.treant.hp = 3;
     this.treant.setCollideWorldBounds(true);
     this.physics.add.collider(this.treant, layers.terrain);
@@ -420,6 +422,10 @@ class Main extends Phaser.Scene {
     }
 
     if (this.player.hp === 0) {
+      // Player dies
+      if (!this.tomb) {
+        this.tomb = this.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'tomb').setScale(0.1);
+      }
       this.player.gameObject.destroy();
     }
   }
@@ -431,7 +437,6 @@ class Main extends Phaser.Scene {
     this.arrow.destroy();
     if(this.treant.hp == 0) {
       this.treant.destroy();
-      
     }
   }
 
