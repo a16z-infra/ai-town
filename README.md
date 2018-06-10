@@ -2,7 +2,9 @@
 
 ## Prerequisites
 
+- Node 10
 - yarn
+- A recent browser (Chrome 67)
 
 ## Installation
 
