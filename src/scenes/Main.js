@@ -25,6 +25,7 @@ class Main extends Phaser.Scene {
     this.player = {
       orientation: 'down',
       gameObject: null,
+      hp: 10,
     }
     this.cursors = null;
     this.npc = {
@@ -33,6 +34,7 @@ class Main extends Phaser.Scene {
       isPlayerColliding: false,
     };
     this.treant = null;
+    this.hearts = [];
   }
 
   preload() {
@@ -57,6 +59,7 @@ class Main extends Phaser.Scene {
     this.load.spritesheet('npcs', 'assets/npc.png', { frameWidth: 16, frameHeight: 16 });
     this.load.image('treant', 'assets/sprites/treant/idle/treant-idle-front.png');
     this.load.image('treantAttack', 'assets/environment/sliced-objects/trunk.png')
+    this.load.image('heart', 'assets/heart.png')
   }
 
   helloNPC() {
@@ -75,12 +78,11 @@ class Main extends Phaser.Scene {
 
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
     this.player.gameObject = this.physics.add.sprite(PLAYER_INITIAL_POSITION.x, PLAYER_INITIAL_POSITION.y, 'idle-down', 0);
-    this.player.hp = 50;
     this.player.lastTimeHit = (new Date()).getTime()
-    this.player.textGameObject = this.add.text(15, 15, 'HP ' + this.player.hp, {
-      align: 'center',
-      fontSize: '10px',
-    }).setScrollFactor(0);
+
+    this.hearts = Array(this.player.hp).fill().map((_, i) => {
+      return this.add.sprite((i + 1) * 15, 15, 'heart').setScrollFactor(0);
+    });
 
     this.npc.gameObject = this.physics.add.sprite(NPC_POS.x, NPC_POS.y, 'npcs', 0);
     this.npc.textGameObject = this.add.text(NPC_POS.x - 35, NPC_POS.y - 20, 'Hello there!', {
@@ -375,11 +377,18 @@ class Main extends Phaser.Scene {
     }
 
   }
+  updateHearts() {
+    this.hearts.map((heart, index) => {
+      if (index >= this.player.hp) {
+        heart.setAlpha(0);
+      }
+    })
+  }
 
   playerLoseHp() {
     if ((new Date()).getTime() - this.player.lastTimeHit > hitDelay) {
       this.player.hp--;
-      this.player.textGameObject.setText('HP' + this.player.hp, { color: "#ff0000" })
+      this.updateHearts();
       treantAttack = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'treantAttack');
 
       this.player.lastTimeHit = new Date();
