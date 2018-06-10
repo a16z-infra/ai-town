@@ -1,5 +1,11 @@
 const CAMERA_LERP = 1;
 const PLAYER_SPEED = 100;
+const TREANT_SPEED = 500;
+var timedEvent;
+var treantX;
+var treantX2;
+var treantY;
+var treantY2;
 
 const NPC_POS = {
   x: 50,
@@ -19,6 +25,7 @@ class Main extends Phaser.Scene {
       gameObject: null,
       textGameObject: null,
     };
+    this.treant = null;
   }
 
   preload() {
@@ -36,6 +43,7 @@ class Main extends Phaser.Scene {
     this.load.spritesheet('attack-side', 'assets/spritesheets/hero/attack/hero-attack-side.png', { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet('player', 'assets/player.png', { frameWidth: 16, frameHeight: 16 });
     this.load.spritesheet('npcs', 'assets/npc.png', { frameWidth: 16, frameHeight: 16 });
+    this.load.image('treant', 'assets/sprites/treant/idle/treant-idle-front.png');
   }
 
   create() {
@@ -58,6 +66,12 @@ class Main extends Phaser.Scene {
       fontSize: '10px',
     });
     this.npc.textGameObject.setAlpha(0);
+
+    this.treant = this.physics.add.sprite(100,200, 'treant');
+    this.treant.setCollideWorldBounds(true);
+    this.physics.add.collider(this.treant, layers.terrain);
+    this.physics.add.collider(this.treant, layers.deco);
+    this.physics.add.collider(this.treant, this.player);
 
     this.player.setCollideWorldBounds(true);
     this.physics.add.collider(this.player, layers.terrain);
@@ -131,10 +145,20 @@ class Main extends Phaser.Scene {
       frameRate: 10,
       repeat: -1
     });
+
+    timedEvent = this.time.addEvent({
+      delay: 500, 
+      callback: this.moveTreant,
+      callbackScope: this,
+      repeat: Infinity,
+      startAt: 2000
+       });
   }
 
   update() {
     this.player.setVelocity(0);
+    this.treant.setVelocity(0);
+    this.treant.getCenter;
     const keyPressed = {
       left: this.cursors.left.isDown,
       right: this.cursors.right.isDown,
@@ -222,6 +246,52 @@ class Main extends Phaser.Scene {
         default:
       }
     }
+  }
+
+  moveTreant() {
+    var diffX = this.treant.x - this.player.x;
+    var diffY = this.treant.y - this.player.y;
+    if (treantX2 == treantX) {
+      if(diffY < 0) {
+        this.treant.scaleY = 1;
+        this.treant.setVelocityY(TREANT_SPEED);
+      } else {
+        this.treant.scaleY = 1;
+        this.treant.setVelocityY(-TREANT_SPEED);
+      }
+    } else {
+      if(diffX < 0) {
+        this.treant.scaleX = 1;
+        this.treant.setVelocityX(TREANT_SPEED);
+      } else {
+        this.treant.scaleX = 1;
+        this.treant.setVelocityX(-TREANT_SPEED);
+      }
+    }
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+      //Move according to X
+      if(diffX < 0) {
+        this.treant.scaleX = 1;
+        this.treant.setVelocityX(TREANT_SPEED);
+      } else {
+        this.treant.scaleX = 1;
+        this.treant.setVelocityX(-TREANT_SPEED);
+      }
+    } else{
+      //Move according to Y
+      if(diffY < 0) {
+        this.treant.scaleY = 1;
+        this.treant.setVelocityY(TREANT_SPEED);
+      } else {
+        this.treant.scaleY = 1;
+        this.treant.setVelocityY(-TREANT_SPEED);
+      }
+    }
+    treantX2 = treantX;
+    treantY2 = treantY;
+    treantY = this.treant.y;
+    treantX = this.treant.x;
+  
   }
 }
 
