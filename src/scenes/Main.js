@@ -42,8 +42,8 @@ class Main extends Phaser.Scene {
     this.load.image('logo', 'assets/logo.png');
     this.load.tilemapTiledJSON('myworld', 'assets/tilemap.json');
     this.load.image('tiles', 'assets/environment/tileset.png');
-    this.load.image('arrow-up', 'assets/spritesheets/misc/arrow-up.png', { frameWidth: 16, frameHeight: 32 });
-    this.load.image('arrow-side', 'assets/spritesheets/misc/arrow-side.png', { frameWidth: 32, frameHeight: 16 });
+    this.load.image('arrow-up', 'assets/spritesheets/misc/arrow-up.png');
+    this.load.image('arrow-side', 'assets/spritesheets/misc/arrow-side.png');
     this.load.spritesheet('idle-down', 'assets/spritesheets/hero/idle/hero-idle-front.png', { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet('idle-up', 'assets/spritesheets/hero/idle/hero-idle-back.png', { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet('idle-side', 'assets/spritesheets/hero/idle/hero-idle-side.png', { frameWidth: 32, frameHeight: 32 });
@@ -82,7 +82,7 @@ class Main extends Phaser.Scene {
     this.player.lastTimeHit = (new Date()).getTime()
 
     this.hearts = Array(this.player.hp).fill().map((_, i) => {
-      return this.add.sprite((i + 1) * 15, 15, 'heart').setScrollFactor(0);
+      return this.add.sprite((i + 1) * 15, 15, 'heart').setScrollFactor(0).setDepth(1);
     });
 
     this.npc.gameObject = this.physics.add.sprite(NPC_POS.x, NPC_POS.y, 'npcs', 0);
