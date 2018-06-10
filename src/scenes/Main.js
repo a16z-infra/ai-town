@@ -10,6 +10,7 @@ const PLAYER_INITIAL_POSITION = {
 };
 const hitDelay = 500; //0.5s
 const destroySpriteAttackDelay = 200;
+const treantOpacityDelay = 100;
 var timedEvent;
 var treantAttack = null;
 
@@ -198,6 +199,7 @@ class Main extends Phaser.Scene {
 
   update() {
     this.destroyTreantAttack();
+    this.checkTreantOpacity();
     this.player.gameObject.setVelocity(0);
     this.treant.setVelocity(0);
 
@@ -274,12 +276,14 @@ class Main extends Phaser.Scene {
           this.arrow.setVelocityY(ARROW_SPEED);
           this.player.scaleX = 1;
           this.player.gameObject.play('attack-weapon-down', true);
+          this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
           break;
         case 'up':
           this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-up', 0);
           this.arrow.setVelocityY(-ARROW_SPEED);
           this.player.scaleX = 1;
           this.player.gameObject.play('attack-weapon-up', true);
+          this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
           break;
         case 'left':
           this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-side', 0);
@@ -287,6 +291,7 @@ class Main extends Phaser.Scene {
           this.arrow.setVelocityX(-ARROW_SPEED);
           this.player.scaleX = -1;
           this.player.gameObject.play('attack-weapon-side', true);
+          this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
           break;
         case 'right':
           this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-side', 0);
@@ -294,6 +299,7 @@ class Main extends Phaser.Scene {
           this.arrow.setVelocityX(ARROW_SPEED);
           this.player.scaleX = 1;
           this.player.gameObject.play('attack-weapon-side', true);
+          this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
           break;
         default:
       }
@@ -321,6 +327,10 @@ class Main extends Phaser.Scene {
         default:
       }
     }
+  }
+
+  initiliazeTreant() {
+
   }
 
   moveTreant() {
@@ -352,6 +362,18 @@ class Main extends Phaser.Scene {
       treantAttack = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'treantAttack');
 
       this.player.lastTimeHit = new Date();
+    }
+  }
+
+  treantLoseHp() {
+    this.treant.hp--;
+    this.treant.alpha = 0.1;
+    this.treant.lastTimeHit = (new Date()).getTime();
+  }
+
+  checkTreantOpacity() {
+    if ((new Date()).getTime() - this.treant.lastTimeHit > treantOpacityDelay) {
+      this.treant.alpha = 1;
     }
   }
 
