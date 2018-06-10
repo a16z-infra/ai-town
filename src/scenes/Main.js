@@ -1,6 +1,11 @@
 const CAMERA_LERP = 1;
 const PLAYER_SPEED = 100;
 
+const NPC_POS = {
+  x: 50,
+  y: 150,
+};
+
 class Main extends Phaser.Scene {
   constructor() {
     super('Main');
@@ -10,6 +15,10 @@ class Main extends Phaser.Scene {
       orientation: 'down'
     }
     this.cursors = null;
+    this.npc = {
+      gameObject: null,
+      textGameObject: null,
+    };
   }
 
   preload() {
@@ -25,6 +34,8 @@ class Main extends Phaser.Scene {
     this.load.spritesheet('attack-down', 'assets/spritesheets/hero/attack/hero-attack-front.png', { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet('attack-up', 'assets/spritesheets/hero/attack/hero-attack-back.png', { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet('attack-side', 'assets/spritesheets/hero/attack/hero-attack-side.png', { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('player', 'assets/player.png', { frameWidth: 16, frameHeight: 16 });
+    this.load.spritesheet('npcs', 'assets/npc.png', { frameWidth: 16, frameHeight: 16 });
   }
 
   create() {
@@ -41,9 +52,18 @@ class Main extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
     this.player = this.physics.add.sprite(50, 200, 'idle-down', 0);
 
+    this.npc.gameObject = this.physics.add.sprite(NPC_POS.x, NPC_POS.y, 'npcs', 0);
+    this.npc.textGameObject = this.add.text(NPC_POS.x - 35, NPC_POS.y - 20, 'Hello there!', {
+      align: 'center',
+      fontSize: '10px',
+    });
+    this.npc.textGameObject.setAlpha(0);
+
     this.player.setCollideWorldBounds(true);
     this.physics.add.collider(this.player, layers.terrain);
     this.physics.add.collider(this.player, layers.deco);
+    this.physics.add.collider(this.player, this.npc.gameObject);
+    this.npc.gameObject.setImmovable(true);
 
     this.cameras.main.setRoundPixels(true);
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
@@ -120,7 +140,8 @@ class Main extends Phaser.Scene {
       right: this.cursors.right.isDown,
       up: this.cursors.up.isDown,
       down: this.cursors.down.isDown,
-      space: this.cursors.space.isDown
+      space: this.cursors.space.isDown,
+      shift: this.cursors.shift.isDown,
     };
 
     const isUpDownPressed = keyPressed.up || keyPressed.down;
@@ -139,6 +160,10 @@ class Main extends Phaser.Scene {
         this.player.play('right', true);
       }
       this.player.setVelocityX(PLAYER_SPEED);
+    }
+
+    if (keyPressed.shift && this.player.body) {
+      this.npc.textGameObject.setAlpha(1);
     }
 
     if (keyPressed.up) {
