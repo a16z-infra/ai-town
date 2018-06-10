@@ -1,6 +1,10 @@
 const CAMERA_LERP = 1;
 const PLAYER_SPEED = 100;
 const TREANT_SPEED = 500;
+const PLAYER_INITIAL_POSITION = {
+  x: 50,
+  y: 200,
+};
 var timedEvent;
 
 const NPC_POS = {
@@ -12,9 +16,8 @@ class Main extends Phaser.Scene {
   constructor() {
     super('Main');
     this.player = {
-      x: 50,
-      y: 200,
-      orientation: 'down'
+      orientation: 'down',
+      gameObject: null,
     }
     this.cursors = null;
     this.npc = {
@@ -58,7 +61,7 @@ class Main extends Phaser.Scene {
     layers.deco.setCollisionByProperty({ collides: true });
 
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-    this.player = this.physics.add.sprite(50, 200, 'idle-down', 0);
+    this.player.gameObject = this.physics.add.sprite(PLAYER_INITIAL_POSITION.x, PLAYER_INITIAL_POSITION.y, 'idle-down', 0);
 
     this.npc.gameObject = this.physics.add.sprite(NPC_POS.x, NPC_POS.y, 'npcs', 0);
     this.npc.textGameObject = this.add.text(NPC_POS.x - 35, NPC_POS.y - 20, 'Hello there!', {
@@ -71,17 +74,17 @@ class Main extends Phaser.Scene {
     this.treant.setCollideWorldBounds(true);
     this.physics.add.collider(this.treant, layers.terrain);
     this.physics.add.collider(this.treant, layers.deco);
-    this.physics.add.collider(this.treant, this.player);
+    this.physics.add.collider(this.treant, this.player.gameObject);
 
-    this.player.setCollideWorldBounds(true);
-    this.physics.add.collider(this.player, layers.terrain);
-    this.physics.add.collider(this.player, layers.deco);
-    this.physics.add.collider(this.player, this.npc.gameObject, this.helloNPC.bind(this));
+    this.player.gameObject.setCollideWorldBounds(true);
+    this.physics.add.collider(this.player.gameObject, layers.terrain);
+    this.physics.add.collider(this.player.gameObject, layers.deco);
+    this.physics.add.collider(this.player.gameObject, this.npc.gameObject, this.helloNPC.bind(this));
     this.npc.gameObject.setImmovable(true);
 
     this.cameras.main.setRoundPixels(true);
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-    this.cameras.main.startFollow(this.player, true, CAMERA_LERP, CAMERA_LERP);
+    this.cameras.main.startFollow(this.player.gameObject, true, CAMERA_LERP, CAMERA_LERP);
 
     this.cursors = this.input.keyboard.createCursorKeys();
 
@@ -156,7 +159,7 @@ class Main extends Phaser.Scene {
   }
 
   update() {
-    this.player.setVelocity(0);
+    this.player.gameObject.setVelocity(0);
     this.treant.setVelocity(0);
     this.treant.getCenter;
     const keyPressed = {
@@ -172,18 +175,18 @@ class Main extends Phaser.Scene {
 
     if (keyPressed.left) {
       if (!isUpDownPressed) {
-        this.player.scaleX = -1;
+        this.player.gameObject.scaleX = -1;
         this.player.orientation = 'left';
-        this.player.play('left', true);
+        this.player.gameObject.play('left', true);
       }
-      this.player.setVelocityX(-PLAYER_SPEED);
+      this.player.gameObject.setVelocityX(-PLAYER_SPEED);
     } else if (keyPressed.right) {
       if (!isUpDownPressed) {
-        this.player.scaleX = 1;
+        this.player.gameObject.scaleX = 1;
         this.player.orientation = 'right';
-        this.player.play('right', true);
+        this.player.gameObject.play('right', true);
       }
-      this.player.setVelocityX(PLAYER_SPEED);
+      this.player.gameObject.setVelocityX(PLAYER_SPEED);
     }
 
     if (this.npc.isPlayerColliding) {
@@ -191,34 +194,34 @@ class Main extends Phaser.Scene {
     }
 
     if (keyPressed.up) {
-      this.player.scaleX = 1;
+      this.player.gameObject.scaleX = 1;
       this.player.orientation = 'up';
-      this.player.play('up', true);
-      this.player.setVelocityY(-PLAYER_SPEED);
+      this.player.gameObject.play('up', true);
+      this.player.gameObject.setVelocityY(-PLAYER_SPEED);
     } else if (keyPressed.down) {
-      this.player.scaleX = 1;
+      this.player.gameObject.scaleX = 1;
       this.player.orientation = 'down';
-      this.player.play('down', true);
-      this.player.setVelocityY(PLAYER_SPEED);
+      this.player.gameObject.play('down', true);
+      this.player.gameObject.setVelocityY(PLAYER_SPEED);
     }
 
     if (keyPressed.space) {
       switch (this.player.orientation) {
         case 'down':
-          this.player.scaleX = 1;
-          this.player.play('attack-down', true);
+          this.player.gameObject.scaleX = 1;
+          this.player.gameObject.play('attack-down', true);
           break;
         case 'up':
-          this.player.scaleX = 1;
-          this.player.play('attack-up', true);
+          this.player.gameObject.scaleX = 1;
+          this.player.gameObject.play('attack-up', true);
           break;
         case 'left':
-          this.player.scaleX = -1;
-          this.player.play('attack-side', true);
+          this.player.gameObject.scaleX = -1;
+          this.player.gameObject.play('attack-side', true);
           break;
         case 'right':
-          this.player.scaleX = 1;
-          this.player.play('attack-side', true);
+          this.player.gameObject.scaleX = 1;
+          this.player.gameObject.play('attack-side', true);
           break;
         default:
       }
@@ -228,20 +231,20 @@ class Main extends Phaser.Scene {
     if (noKeyPressed) {
       switch (this.player.orientation) {
         case 'down':
-          this.player.scaleX = 1;
-          this.player.play('idle-down', true);
+          this.player.gameObject.scaleX = 1;
+          this.player.gameObject.play('idle-down', true);
           break;
         case 'up':
-          this.player.scaleX = 1;
-          this.player.play('idle-up', true);
+          this.player.gameObject.scaleX = 1;
+          this.player.gameObject.play('idle-up', true);
           break;
         case 'left':
-          this.player.scaleX = -1;
-          this.player.play('idle-side', true);
+          this.player.gameObject.scaleX = -1;
+          this.player.gameObject.play('idle-side', true);
           break;
         case 'right':
-          this.player.scaleX = 1;
-          this.player.play('idle-side', true);
+          this.player.gameObject.scaleX = 1;
+          this.player.gameObject.play('idle-side', true);
           break;
         default:
       }
@@ -249,8 +252,8 @@ class Main extends Phaser.Scene {
   }
 
   moveTreant() {
-    var diffX = this.treant.x - this.player.x;
-    var diffY = this.treant.y - this.player.y;
+    var diffX = this.treant.x - this.player.gameObject.x;
+    var diffY = this.treant.y - this.player.gameObject.y;
       //Move according to X
       if(diffX < 0) {
         this.treant.scaleX = 1;
