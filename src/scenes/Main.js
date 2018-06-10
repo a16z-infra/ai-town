@@ -12,7 +12,7 @@ const hitDelay = 500; //0.5s
 const destroySpriteAttackDelay = 200;
 var timedEvent;
 var treantAttack = null;
-
+var loading = false;
 
 const NPC_POS = {
   x: 50,
@@ -39,8 +39,8 @@ class Main extends Phaser.Scene {
     this.load.image('logo', 'assets/logo.png');
     this.load.tilemapTiledJSON('myworld', 'assets/tilemap.json');
     this.load.image('tiles', 'assets/environment/tileset.png');
-    this.load.image('arrow-up', 'assets/spritesheets/misc/arrow-up.png', { frameWidth: 32, frameHeight: 64 });
-    this.load.image('arrow-side', 'assets/spritesheets/misc/arrow-side.png', { frameWidth: 64, frameHeight: 32 });
+    this.load.image('arrow-up', 'assets/spritesheets/misc/arrow-up.png', { frameWidth: 16, frameHeight: 32 });
+    this.load.image('arrow-side', 'assets/spritesheets/misc/arrow-side.png', { frameWidth: 32, frameHeight: 16 });
     this.load.spritesheet('idle-down', 'assets/spritesheets/hero/idle/hero-idle-front.png', { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet('idle-up', 'assets/spritesheets/hero/idle/hero-idle-back.png', { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet('idle-side', 'assets/spritesheets/hero/idle/hero-idle-side.png', { frameWidth: 32, frameHeight: 32 });
@@ -267,35 +267,66 @@ class Main extends Phaser.Scene {
     }
 
     if (keyPressed.shift) {
-      switch (this.player.orientation) {
-        case 'down':
-          this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-up', 0);
-          this.arrow.scaleY = -1;
-          this.arrow.setVelocityY(ARROW_SPEED);
-          this.player.scaleX = 1;
-          this.player.gameObject.play('attack-weapon-down', true);
-          break;
-        case 'up':
-          this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-up', 0);
-          this.arrow.setVelocityY(-ARROW_SPEED);
-          this.player.scaleX = 1;
-          this.player.gameObject.play('attack-weapon-up', true);
-          break;
-        case 'left':
-          this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-side', 0);
-          this.arrow.scaleX = -1;
-          this.arrow.setVelocityX(-ARROW_SPEED);
-          this.player.scaleX = -1;
-          this.player.gameObject.play('attack-weapon-side', true);
-          break;
-        case 'right':
-          this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-side', 0);
-          this.arrow.scaleX = 1;
-          this.arrow.setVelocityX(ARROW_SPEED);
-          this.player.scaleX = 1;
-          this.player.gameObject.play('attack-weapon-side', true);
-          break;
-        default:
+      if (!loading) {
+        loading = true;
+        switch (this.player.orientation) {
+          case 'down':
+            this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-up', 0);
+            this.arrow.scaleY = -1;
+            this.arrow.setVelocityY(ARROW_SPEED);
+            this.player.scaleX = 1;
+            this.player.gameObject.play('attack-weapon-down', true);
+            this.time.addEvent({
+              delay: 500,
+              callback: () => {
+                loading = false;
+              },
+              callbackScope: this
+            });
+            break;
+          case 'up':
+            this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-up', 0);
+            this.arrow.setVelocityY(-ARROW_SPEED);
+            this.player.scaleX = 1;
+            this.player.gameObject.play('attack-weapon-up', true);
+            this.time.addEvent({
+              delay: 500,
+              callback: () => {
+                loading = false;
+              },
+              callbackScope: this
+            });
+            break;
+          case 'left':
+            this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-side', 0);
+            this.arrow.scaleX = -1;
+            this.arrow.setVelocityX(-ARROW_SPEED);
+            this.player.scaleX = -1;
+            this.player.gameObject.play('attack-weapon-side', true);
+            this.time.addEvent({
+              delay: 500,
+              callback: () => {
+                loading = false;
+              },
+              callbackScope: this
+            });
+            break;
+          case 'right':
+            this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-side', 0);
+            this.arrow.scaleX = 1;
+            this.arrow.setVelocityX(ARROW_SPEED);
+            this.player.scaleX = 1;
+            this.player.gameObject.play('attack-weapon-side', true);
+            this.time.addEvent({
+              delay: 500,
+              callback: () => {
+                loading = false;
+              },
+              callbackScope: this
+            });
+            break;
+          default:
+        }
       }
     }
 
