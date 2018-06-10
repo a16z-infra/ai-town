@@ -202,7 +202,9 @@ class Main extends Phaser.Scene {
   update() {
     this.destroyTreantAttack();
     this.checkTreantOpacity();
-    this.player.gameObject.setVelocity(0);
+    if (this.player.gameObject.active) {
+      this.player.gameObject.setVelocity(0);
+    }
     if(this.treant.active) {
       this.treant.setVelocity(0);
     }
@@ -224,14 +226,18 @@ class Main extends Phaser.Scene {
         this.player.orientation = 'left';
         this.player.gameObject.play('left', true);
       }
-      this.player.gameObject.setVelocityX(-PLAYER_SPEED);
+      if (this.player.gameObject.active) {
+        this.player.gameObject.setVelocityX(-PLAYER_SPEED);
+      }
     } else if (keyPressed.right) {
       if (!isUpDownPressed) {
         this.player.gameObject.scaleX = 1;
         this.player.orientation = 'right';
         this.player.gameObject.play('right', true);
       }
-      this.player.gameObject.setVelocityX(PLAYER_SPEED);
+      if (this.player.gameObject.active) {
+        this.player.gameObject.setVelocityX(PLAYER_SPEED);
+      }
     }
 
     if (this.npc.isPlayerColliding) {
@@ -242,12 +248,16 @@ class Main extends Phaser.Scene {
       this.player.gameObject.scaleX = 1;
       this.player.orientation = 'up';
       this.player.gameObject.play('up', true);
-      this.player.gameObject.setVelocityY(-PLAYER_SPEED);
+      if (this.player.gameObject.active) {
+        this.player.gameObject.setVelocityY(-PLAYER_SPEED);
+      }
     } else if (keyPressed.down) {
       this.player.gameObject.scaleX = 1;
       this.player.orientation = 'down';
       this.player.gameObject.play('down', true);
-      this.player.gameObject.setVelocityY(PLAYER_SPEED);
+      if (this.player.gameObject.active) {
+        this.player.gameObject.setVelocityY(PLAYER_SPEED);
+      }
     }
 
     if (keyPressed.space) {
@@ -406,6 +416,10 @@ class Main extends Phaser.Scene {
       treantAttack = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'treantAttack');
 
       this.player.lastTimeHit = new Date();
+    }
+
+    if (this.player.hp === 0) {
+      this.player.gameObject.destroy();
     }
   }
 
