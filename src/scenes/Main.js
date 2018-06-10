@@ -82,7 +82,7 @@ class Main extends Phaser.Scene {
       repeat: -1,
     });
     this.anims.create({
-      key: 'idle-up',
+      key: 'idle-down',
       frames: this.anims.generateFrameNumbers('idle-down', { start: 0, end: 0 }),
       frameRate: 10,
       repeat: -1,
