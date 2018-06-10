@@ -1,3 +1,5 @@
+import { Time } from "phaser";
+
 const CAMERA_LERP = 1;
 const PLAYER_SPEED = 100;
 const TREANT_SPEED = 500;
@@ -5,7 +7,9 @@ const PLAYER_INITIAL_POSITION = {
   x: 50,
   y: 200,
 };
+const hitDelay = 500; //0.5s
 var timedEvent;
+var a = true;
 
 const NPC_POS = {
   x: 50,
@@ -44,6 +48,7 @@ class Main extends Phaser.Scene {
     this.load.spritesheet('player', 'assets/player.png', { frameWidth: 16, frameHeight: 16 });
     this.load.spritesheet('npcs', 'assets/npc.png', { frameWidth: 16, frameHeight: 16 });
     this.load.image('treant', 'assets/sprites/treant/idle/treant-idle-front.png');
+    this.load.image('treantAttack', 'assets/environment/sliced-objects/trunk.png')
   }
 
   helloNPC() {
@@ -62,6 +67,12 @@ class Main extends Phaser.Scene {
 
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
     this.player.gameObject = this.physics.add.sprite(PLAYER_INITIAL_POSITION.x, PLAYER_INITIAL_POSITION.y, 'idle-down', 0);
+    this.player.hp = 50;
+    this.player.lastTimeHit = (new Date()).getTime()
+    this.player.textGameObject = this.add.text(this.player.gameObject.x - 35, this.player.gameObject.y - 20, 'HP' + this.player.hp, {
+      align: 'center',
+      fontSize: '10px',
+    });
 
     this.npc.gameObject = this.physics.add.sprite(NPC_POS.x, NPC_POS.y, 'npcs', 0);
     this.npc.textGameObject = this.add.text(NPC_POS.x - 35, NPC_POS.y - 20, 'Hello there!', {
@@ -70,11 +81,12 @@ class Main extends Phaser.Scene {
     });
     this.npc.textGameObject.setAlpha(0);
 
-    this.treant = this.physics.add.sprite(100,200, 'treant');
+    this.treant = this.physics.add.sprite(200,300, 'treant');
+    this.treant.hp = 3;
     this.treant.setCollideWorldBounds(true);
     this.physics.add.collider(this.treant, layers.terrain);
     this.physics.add.collider(this.treant, layers.deco);
-    this.physics.add.collider(this.treant, this.player.gameObject);
+    this.physics.add.collider(this.treant, this.player.gameObject, this.playerLoseHp.bind(this));
 
     this.player.gameObject.setCollideWorldBounds(true);
     this.physics.add.collider(this.player.gameObject, layers.terrain);
@@ -161,7 +173,6 @@ class Main extends Phaser.Scene {
   update() {
     this.player.gameObject.setVelocity(0);
     this.treant.setVelocity(0);
-    this.treant.getCenter;
     const keyPressed = {
       left: this.cursors.left.isDown,
       right: this.cursors.right.isDown,
@@ -271,6 +282,16 @@ class Main extends Phaser.Scene {
         this.treant.setVelocityY(-TREANT_SPEED);
       }
   
+  }
+
+  playerLoseHp () {
+    if((new Date()).getTime() - this.player.lastTimeHit > hitDelay) {
+    this.player.hp--;
+    this.player.textGameObject.setText('HP' + this.player.hp, {color: "#ff0000"})
+    this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'treantAttack');
+
+    this.player.lastTimeHit = new Date();
+    }
   }
 }
 
