@@ -73,6 +73,7 @@ class Main extends Phaser.Scene {
     const layers = {
       terrain: map.createStaticLayer('terrain', tileset, 0, 0),
       deco: map.createStaticLayer('deco', tileset, 0, 0),
+      bridge: map.createStaticLayer('bridge', tileset, 0, 0),
     };
     layers.terrain.setCollisionByProperty({ collides: true });
     layers.deco.setCollisionByProperty({ collides: true });
