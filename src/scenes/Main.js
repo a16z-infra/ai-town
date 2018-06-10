@@ -77,10 +77,10 @@ class Main extends Phaser.Scene {
     this.player.gameObject = this.physics.add.sprite(PLAYER_INITIAL_POSITION.x, PLAYER_INITIAL_POSITION.y, 'idle-down', 0);
     this.player.hp = 50;
     this.player.lastTimeHit = (new Date()).getTime()
-    this.player.textGameObject = this.add.text(this.player.gameObject.x - 35, this.player.gameObject.y - 20, 'HP' + this.player.hp, {
+    this.player.textGameObject = this.add.text(15, 15, 'HP ' + this.player.hp, {
       align: 'center',
       fontSize: '10px',
-    });
+    }).setScrollFactor(0);
 
     this.npc.gameObject = this.physics.add.sprite(NPC_POS.x, NPC_POS.y, 'npcs', 0);
     this.npc.textGameObject = this.add.text(NPC_POS.x - 35, NPC_POS.y - 20, 'Hello there!', {
