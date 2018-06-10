@@ -11,7 +11,7 @@ class Main extends Phaser.Scene {
   preload() {
     this.load.image('logo', 'assets/logo.png');
     this.load.tilemapTiledJSON('myworld', 'assets/tilemap.json');
-    this.load.image('tiles', 'assets/tiles.png');
+    this.load.image('tiles', 'assets/environment/tileset.png');
     this.load.spritesheet('player', 'assets/player.png', { frameWidth: 16, frameHeight: 16 });
   }
 
@@ -20,17 +20,18 @@ class Main extends Phaser.Scene {
     const tileset = map.addTilesetImage('tileset', 'tiles', 16, 16, 0, 0);
 
     const layers = {
-      background: map.createStaticLayer('background', tileset, 0, 0),
-      obstacles: map.createStaticLayer('obstacles', tileset, 0, 0),
-      obstaclesForeground: map.createStaticLayer('obstaclesForeground', tileset, 0, 0).setDepth(1),
+      terrain: map.createStaticLayer('terrain', tileset, 0, 0),
+      deco: map.createStaticLayer('deco', tileset, 0, 0),
     };
-    layers.obstacles.setCollisionByProperty({ collides: true });
+    layers.terrain.setCollisionByProperty({ collides: true });
+    layers.deco.setCollisionByProperty({ collides: true });
 
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-    this.player = this.physics.add.sprite(800, 800, 'player', 7);
+    this.player = this.physics.add.sprite(50, 200, 'player', 7);
 
     this.player.setCollideWorldBounds(true);
-    this.physics.add.collider(this.player, layers.obstacles);
+    this.physics.add.collider(this.player, layers.terrain);
+    this.physics.add.collider(this.player, layers.deco);
 
     this.cameras.main.setRoundPixels(true);
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
