@@ -8,8 +8,10 @@ const PLAYER_INITIAL_POSITION = {
   y: 200,
 };
 const hitDelay = 500; //0.5s
+const destroySpriteAttackDelay = 200;
 var timedEvent;
-var a = true;
+var treantAttack = null;
+
 
 const NPC_POS = {
   x: 50,
@@ -171,6 +173,7 @@ class Main extends Phaser.Scene {
   }
 
   update() {
+    this.destroyTreantAttack();
     this.player.gameObject.setVelocity(0);
     this.treant.setVelocity(0);
     const keyPressed = {
@@ -288,9 +291,15 @@ class Main extends Phaser.Scene {
     if((new Date()).getTime() - this.player.lastTimeHit > hitDelay) {
     this.player.hp--;
     this.player.textGameObject.setText('HP' + this.player.hp, {color: "#ff0000"})
-    this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'treantAttack');
+    treantAttack = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'treantAttack');
 
     this.player.lastTimeHit = new Date();
+    }
+  }
+
+  destroyTreantAttack() {
+    if (treantAttack != null && (new Date()).getTime() - this.player.lastTimeHit > destroySpriteAttackDelay) {
+      treantAttack.destroy();
     }
   }
 }
