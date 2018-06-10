@@ -13,7 +13,7 @@ const destroySpriteAttackDelay = 200;
 const treantOpacityDelay = 100;
 var timedEvent;
 var treantAttack = null;
-var loading = false;
+var loading = false; // loading arrows
 
 const NPC_POS = {
   x: 50,
@@ -287,11 +287,11 @@ class Main extends Phaser.Scene {
         loading = true;
         switch (this.player.orientation) {
           case 'down':
+            this.player.scaleX = 1;
+            this.player.gameObject.play('attack-weapon-down', true);
             this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-up', 0);
             this.arrow.scaleY = -1;
             this.arrow.setVelocityY(ARROW_SPEED);
-            this.player.scaleX = 1;
-            this.player.gameObject.play('attack-weapon-down', true);
             this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
             this.time.addEvent({
               delay: 500,
@@ -302,10 +302,10 @@ class Main extends Phaser.Scene {
             });
             break;
           case 'up':
-            this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-up', 0);
-            this.arrow.setVelocityY(-ARROW_SPEED);
             this.player.scaleX = 1;
             this.player.gameObject.play('attack-weapon-up', true);
+            this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-up', 0);
+            this.arrow.setVelocityY(-ARROW_SPEED);
             this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
             this.time.addEvent({
               delay: 500,
@@ -316,11 +316,11 @@ class Main extends Phaser.Scene {
             });
             break;
           case 'left':
+            this.player.scaleX = -1;
+            this.player.gameObject.play('attack-weapon-side', true);
             this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-side', 0);
             this.arrow.scaleX = -1;
             this.arrow.setVelocityX(-ARROW_SPEED);
-            this.player.scaleX = -1;
-            this.player.gameObject.play('attack-weapon-side', true);
             this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
             this.time.addEvent({
               delay: 500,
@@ -331,11 +331,11 @@ class Main extends Phaser.Scene {
             });
             break;
           case 'right':
+            this.player.scaleX = 1;
+            this.player.gameObject.play('attack-weapon-side', true);
             this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-side', 0);
             this.arrow.scaleX = 1;
             this.arrow.setVelocityX(ARROW_SPEED);
-            this.player.scaleX = 1;
-            this.player.gameObject.play('attack-weapon-side', true);
             this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
             this.time.addEvent({
               delay: 500,
@@ -351,7 +351,7 @@ class Main extends Phaser.Scene {
     }
 
     const noKeyPressed = Object.values(keyPressed).filter(x => x).length === 0;
-    if (noKeyPressed) {
+    if (noKeyPressed && !loading) {
       switch (this.player.orientation) {
         case 'down':
           this.player.gameObject.scaleX = 1;
