@@ -20,6 +20,7 @@ class Main extends Phaser.Scene {
     this.npc = {
       gameObject: null,
       textGameObject: null,
+      isPlayerColliding: false,
     };
     this.treant = null;
   }
@@ -42,6 +43,9 @@ class Main extends Phaser.Scene {
     this.load.image('treant', 'assets/sprites/treant/idle/treant-idle-front.png');
   }
 
+  helloNPC() {
+    this.npc.isPlayerColliding = true;
+  }
   create() {
     const map = this.make.tilemap({ key: 'myworld' });
     const tileset = map.addTilesetImage('tileset', 'tiles', 16, 16, 0, 0);
@@ -72,7 +76,7 @@ class Main extends Phaser.Scene {
     this.player.setCollideWorldBounds(true);
     this.physics.add.collider(this.player, layers.terrain);
     this.physics.add.collider(this.player, layers.deco);
-    this.physics.add.collider(this.player, this.npc.gameObject);
+    this.physics.add.collider(this.player, this.npc.gameObject, this.helloNPC.bind(this));
     this.npc.gameObject.setImmovable(true);
 
     this.cameras.main.setRoundPixels(true);
@@ -182,7 +186,7 @@ class Main extends Phaser.Scene {
       this.player.setVelocityX(PLAYER_SPEED);
     }
 
-    if (keyPressed.shift && this.player.body) {
+    if (this.npc.isPlayerColliding) {
       this.npc.textGameObject.setAlpha(1);
     }
 
