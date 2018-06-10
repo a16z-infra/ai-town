@@ -2,11 +2,6 @@ const CAMERA_LERP = 1;
 const PLAYER_SPEED = 100;
 const TREANT_SPEED = 500;
 var timedEvent;
-var treantX;
-var treantX2;
-var treantY;
-var treantY2;
-var isBlocked = false;
 
 const NPC_POS = {
   x: 50,
@@ -25,6 +20,7 @@ class Main extends Phaser.Scene {
     this.npc = {
       gameObject: null,
       textGameObject: null,
+      isPlayerColliding: false,
     };
     this.treant = null;
   }
@@ -50,6 +46,9 @@ class Main extends Phaser.Scene {
     this.load.image('treant', 'assets/sprites/treant/idle/treant-idle-front.png');
   }
 
+  helloNPC() {
+    this.npc.isPlayerColliding = true;
+  }
   create() {
     const map = this.make.tilemap({ key: 'myworld' });
     const tileset = map.addTilesetImage('tileset', 'tiles', 16, 16, 0, 0);
@@ -80,7 +79,7 @@ class Main extends Phaser.Scene {
     this.player.setCollideWorldBounds(true);
     this.physics.add.collider(this.player, layers.terrain);
     this.physics.add.collider(this.player, layers.deco);
-    this.physics.add.collider(this.player, this.npc.gameObject);
+    this.physics.add.collider(this.player, this.npc.gameObject, this.helloNPC.bind(this));
     this.npc.gameObject.setImmovable(true);
 
     this.cameras.main.setRoundPixels(true);
@@ -209,7 +208,7 @@ this.anims.create({
       this.player.setVelocityX(PLAYER_SPEED);
     }
 
-    if (keyPressed.shift && this.player.body) {
+    if (this.npc.isPlayerColliding) {
       this.npc.textGameObject.setAlpha(1);
     }
 
@@ -296,51 +295,23 @@ this.anims.create({
   moveTreant() {
     var diffX = this.treant.x - this.player.x;
     var diffY = this.treant.y - this.player.y;
-    if (Math.abs(treantX - this.treant.x) < 0.00000001) {
-      if(diffY < 0) {
-        this.treant.scaleY = 1;
-        this.treant.setVelocityY(TREANT_SPEED);
-        isBlocked = true;
-      } else {
-        this.treant.scaleY = 1;
-        this.treant.setVelocityY(-TREANT_SPEED);
-        isBlocked = true;
-      }
-    } else if (Math.abs(treantY - this.treant.y) < 0.00000001) {
+      //Move according to X
       if(diffX < 0) {
         this.treant.scaleX = 1;
         this.treant.setVelocityX(TREANT_SPEED);
-        isBlocked = true;
       } else {
         this.treant.scaleX = 1;
         this.treant.setVelocityX(-TREANT_SPEED);
-        isBlocked = true;
       }
-    }
-    if (!isBlocked) {
-      if ( Math.abs(diffX) > Math.abs(diffY)) {
-        //Move according to X
-        if(diffX < 0) {
-          this.treant.scaleX = 1;
-          this.treant.setVelocityX(TREANT_SPEED);
-        } else {
-          this.treant.scaleX = 1;
-          this.treant.setVelocityX(-TREANT_SPEED);
-        }
+      //Move according to Y
+      if(diffY < 0) {
+        this.treant.scaleY = 1;
+        this.treant.setVelocityY(TREANT_SPEED);
       } else {
-        //Move according to Y
-        if(diffY < 0) {
-          this.treant.scaleY = 1;
-          this.treant.setVelocityY(TREANT_SPEED);
-        } else {
-          this.treant.scaleY = 1;
-          this.treant.setVelocityY(-TREANT_SPEED);
-        }
+        this.treant.scaleY = 1;
+        this.treant.setVelocityY(-TREANT_SPEED);
       }
-    }
-    treantY = this.treant.y;
-    treantX = this.treant.x;
-    isBlocked = false;
+  
   }
 }
 
