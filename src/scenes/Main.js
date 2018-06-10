@@ -42,6 +42,9 @@ class Main extends Phaser.Scene {
     this.load.spritesheet('attack-down', 'assets/spritesheets/hero/attack/hero-attack-front.png', { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet('attack-up', 'assets/spritesheets/hero/attack/hero-attack-back.png', { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet('attack-side', 'assets/spritesheets/hero/attack/hero-attack-side.png', { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('attack-weapon-down', 'assets/spritesheets/hero/attack-weapon/hero-attack-front-weapon.png', { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('attack-weapon-up', 'assets/spritesheets/hero/attack-weapon/hero-attack-back-weapon.png', { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('attack-weapon-side', 'assets/spritesheets/hero/attack-weapon/hero-attack-side-weapon.png', { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet('player', 'assets/player.png', { frameWidth: 16, frameHeight: 16 });
     this.load.spritesheet('npcs', 'assets/npc.png', { frameWidth: 16, frameHeight: 16 });
     this.load.image('treant', 'assets/sprites/treant/idle/treant-idle-front.png');
@@ -146,6 +149,24 @@ class Main extends Phaser.Scene {
       frameRate: 10,
       repeat: -1
     });
+this.anims.create({
+      key: 'attack-weapon-down',
+      frames: this.anims.generateFrameNumbers('attack-weapon-down', { start: 0, end: 2 }),
+      frameRate: 10,
+      repeat: -1
+    });
+    this.anims.create({
+      key: 'attack-weapon-up',
+      frames: this.anims.generateFrameNumbers('attack-weapon-up', { start: 0, end: 2 }),
+      frameRate: 10,
+      repeat: -1
+    });
+    this.anims.create({
+      key: 'attack-weapon-side',
+      frames: this.anims.generateFrameNumbers('attack-weapon-side', { start: 0, end: 2 }),
+      frameRate: 10,
+      repeat: -1
+    });
 
     timedEvent = this.time.addEvent({
       delay: 500, 
@@ -160,13 +181,14 @@ class Main extends Phaser.Scene {
     this.player.setVelocity(0);
     this.treant.setVelocity(0);
     this.treant.getCenter;
+
     const keyPressed = {
       left: this.cursors.left.isDown,
       right: this.cursors.right.isDown,
       up: this.cursors.up.isDown,
       down: this.cursors.down.isDown,
       space: this.cursors.space.isDown,
-      shift: this.cursors.shift.isDown,
+      shift: this.cursors.shift.isDown
     };
 
     const isUpDownPressed = keyPressed.up || keyPressed.down;
@@ -220,6 +242,28 @@ class Main extends Phaser.Scene {
         case 'right':
           this.player.scaleX = 1;
           this.player.play('attack-side', true);
+          break;
+        default:
+      }
+    }
+
+    if (keyPressed.shift) {
+      switch (this.player.orientation) {
+        case 'down':
+          this.player.scaleX = 1;
+          this.player.play('attack-weapon-down', true);
+          break;
+        case 'up':
+          this.player.scaleX = 1;
+          this.player.play('attack-weapon-up', true);
+          break;
+        case 'left':
+          this.player.scaleX = -1;
+          this.player.play('attack-weapon-side', true);
+          break;
+        case 'right':
+          this.player.scaleX = 1;
+          this.player.play('attack-weapon-side', true);
           break;
         default:
       }
