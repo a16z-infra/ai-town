@@ -13,7 +13,7 @@ const destroySpriteAttackDelay = 200;
 const treantOpacityDelay = 100;
 var timedEvent;
 var treantAttack = null;
-
+var loading = false;
 
 const NPC_POS = {
   x: 50,
@@ -26,6 +26,7 @@ class Main extends Phaser.Scene {
     this.player = {
       orientation: 'down',
       gameObject: null,
+      hp: 10,
     }
     this.cursors = null;
     this.npc = {
@@ -34,14 +35,15 @@ class Main extends Phaser.Scene {
       isPlayerColliding: false,
     };
     this.treant = null;
+    this.hearts = [];
   }
 
   preload() {
     this.load.image('logo', 'assets/logo.png');
     this.load.tilemapTiledJSON('myworld', 'assets/tilemap.json');
     this.load.image('tiles', 'assets/environment/tileset.png');
-    this.load.image('arrow-up', 'assets/spritesheets/misc/arrow-up.png', { frameWidth: 32, frameHeight: 64 });
-    this.load.image('arrow-side', 'assets/spritesheets/misc/arrow-side.png', { frameWidth: 64, frameHeight: 32 });
+    this.load.image('arrow-up', 'assets/spritesheets/misc/arrow-up.png', { frameWidth: 16, frameHeight: 32 });
+    this.load.image('arrow-side', 'assets/spritesheets/misc/arrow-side.png', { frameWidth: 32, frameHeight: 16 });
     this.load.spritesheet('idle-down', 'assets/spritesheets/hero/idle/hero-idle-front.png', { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet('idle-up', 'assets/spritesheets/hero/idle/hero-idle-back.png', { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet('idle-side', 'assets/spritesheets/hero/idle/hero-idle-side.png', { frameWidth: 32, frameHeight: 32 });
@@ -58,6 +60,7 @@ class Main extends Phaser.Scene {
     this.load.spritesheet('npcs', 'assets/npc.png', { frameWidth: 16, frameHeight: 16 });
     this.load.image('treant', 'assets/sprites/treant/idle/treant-idle-front.png');
     this.load.image('treantAttack', 'assets/environment/sliced-objects/trunk.png')
+    this.load.image('heart', 'assets/heart.png')
   }
 
   helloNPC() {
@@ -76,11 +79,10 @@ class Main extends Phaser.Scene {
 
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
     this.player.gameObject = this.physics.add.sprite(PLAYER_INITIAL_POSITION.x, PLAYER_INITIAL_POSITION.y, 'idle-down', 0);
-    this.player.hp = 50;
     this.player.lastTimeHit = (new Date()).getTime()
-    this.player.textGameObject = this.add.text(this.player.gameObject.x - 35, this.player.gameObject.y - 20, 'HP' + this.player.hp, {
-      align: 'center',
-      fontSize: '10px',
+
+    this.hearts = Array(this.player.hp).fill().map((_, i) => {
+      return this.add.sprite((i + 1) * 15, 15, 'heart').setScrollFactor(0);
     });
 
     this.npc.gameObject = this.physics.add.sprite(NPC_POS.x, NPC_POS.y, 'npcs', 0);
@@ -201,7 +203,9 @@ class Main extends Phaser.Scene {
     this.destroyTreantAttack();
     this.checkTreantOpacity();
     this.player.gameObject.setVelocity(0);
-    this.treant.setVelocity(0);
+    if(this.treant.active) {
+      this.treant.setVelocity(0);
+    }
 
     const keyPressed = {
       left: this.cursors.left.isDown,
@@ -269,39 +273,70 @@ class Main extends Phaser.Scene {
     }
 
     if (keyPressed.shift) {
-      switch (this.player.orientation) {
-        case 'down':
-          this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-up', 0);
-          this.arrow.scaleY = -1;
-          this.arrow.setVelocityY(ARROW_SPEED);
-          this.player.scaleX = 1;
-          this.player.gameObject.play('attack-weapon-down', true);
-          this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
-          break;
-        case 'up':
-          this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-up', 0);
-          this.arrow.setVelocityY(-ARROW_SPEED);
-          this.player.scaleX = 1;
-          this.player.gameObject.play('attack-weapon-up', true);
-          this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
-          break;
-        case 'left':
-          this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-side', 0);
-          this.arrow.scaleX = -1;
-          this.arrow.setVelocityX(-ARROW_SPEED);
-          this.player.scaleX = -1;
-          this.player.gameObject.play('attack-weapon-side', true);
-          this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
-          break;
-        case 'right':
-          this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-side', 0);
-          this.arrow.scaleX = 1;
-          this.arrow.setVelocityX(ARROW_SPEED);
-          this.player.scaleX = 1;
-          this.player.gameObject.play('attack-weapon-side', true);
-          this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
-          break;
-        default:
+      if (!loading) {
+        loading = true;
+        switch (this.player.orientation) {
+          case 'down':
+            this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-up', 0);
+            this.arrow.scaleY = -1;
+            this.arrow.setVelocityY(ARROW_SPEED);
+            this.player.scaleX = 1;
+            this.player.gameObject.play('attack-weapon-down', true);
+            this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
+            this.time.addEvent({
+              delay: 500,
+              callback: () => {
+                loading = false;
+              },
+              callbackScope: this
+            });
+            break;
+          case 'up':
+            this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-up', 0);
+            this.arrow.setVelocityY(-ARROW_SPEED);
+            this.player.scaleX = 1;
+            this.player.gameObject.play('attack-weapon-up', true);
+            this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
+            this.time.addEvent({
+              delay: 500,
+              callback: () => {
+                loading = false;
+              },
+              callbackScope: this
+            });
+            break;
+          case 'left':
+            this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-side', 0);
+            this.arrow.scaleX = -1;
+            this.arrow.setVelocityX(-ARROW_SPEED);
+            this.player.scaleX = -1;
+            this.player.gameObject.play('attack-weapon-side', true);
+            this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
+            this.time.addEvent({
+              delay: 500,
+              callback: () => {
+                loading = false;
+              },
+              callbackScope: this
+            });
+            break;
+          case 'right':
+            this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-side', 0);
+            this.arrow.scaleX = 1;
+            this.arrow.setVelocityX(ARROW_SPEED);
+            this.player.scaleX = 1;
+            this.player.gameObject.play('attack-weapon-side', true);
+            this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
+            this.time.addEvent({
+              delay: 500,
+              callback: () => {
+                loading = false;
+              },
+              callbackScope: this
+            });
+            break;
+          default:
+        }
       }
     }
 
@@ -330,10 +365,11 @@ class Main extends Phaser.Scene {
   }
 
   initiliazeTreant() {
-
+    //TODO repop a treant if the previous one is dead after a certain delay.
   }
 
   moveTreant() {
+    if(this.treant.active) {
     var diffX = this.treant.x - this.player.gameObject.x;
     var diffY = this.treant.y - this.player.gameObject.y;
     //Move according to X
@@ -352,13 +388,21 @@ class Main extends Phaser.Scene {
       this.treant.scaleY = 1;
       this.treant.setVelocityY(-TREANT_SPEED);
     }
+  }
 
+  }
+  updateHearts() {
+    this.hearts.map((heart, index) => {
+      if (index >= this.player.hp) {
+        heart.setAlpha(0);
+      }
+    })
   }
 
   playerLoseHp() {
     if ((new Date()).getTime() - this.player.lastTimeHit > hitDelay) {
       this.player.hp--;
-      this.player.textGameObject.setText('HP' + this.player.hp, { color: "#ff0000" })
+      this.updateHearts();
       treantAttack = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'treantAttack');
 
       this.player.lastTimeHit = new Date();
@@ -369,6 +413,11 @@ class Main extends Phaser.Scene {
     this.treant.hp--;
     this.treant.alpha = 0.1;
     this.treant.lastTimeHit = (new Date()).getTime();
+    this.arrow.destroy();
+    if(this.treant.hp == 0) {
+      this.treant.destroy();
+      
+    }
   }
 
   checkTreantOpacity() {
