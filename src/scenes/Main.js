@@ -61,38 +61,58 @@ class Main extends Phaser.Scene {
     });
   }
 
-  create() {
-    this.createMapWithLayers();
-
-    this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
+  initPlayer() {
     this.player.gameObject = this.physics.add.sprite(PLAYER_INITIAL_POSITION.x, PLAYER_INITIAL_POSITION.y, 'idle-down', 0);
     this.player.lastTimeHit = (new Date()).getTime()
+    this.player.gameObject.setCollideWorldBounds(true);
+  }
 
-    this.initHearts()
+  initTreant() {
+    this.treant = this.physics.add.sprite(500, 500, 'treant').setDepth(5);
+    this.treant.hp = 3;
+    this.treant.setCollideWorldBounds(true);
+  }
 
+  initNpc() {
     this.npc.gameObject = this.physics.add.sprite(NPC_POS.x, NPC_POS.y, 'npcs', 0);
     this.npc.textGameObject = this.add.text(NPC_POS.x - 35, NPC_POS.y - 20, 'Hello there!', {
       align: 'center',
       fontSize: '10px',
     });
     this.npc.textGameObject.setAlpha(0);
+    this.npc.gameObject.setImmovable(true);
+  }
 
-    this.treant = this.physics.add.sprite(500, 500, 'treant').setDepth(5);
-    this.treant.hp = 3;
-    this.treant.setCollideWorldBounds(true);
+  addColliders() {
     this.physics.add.collider(this.treant, this.layers.terrain);
     this.physics.add.collider(this.treant, this.layers.deco);
     this.physics.add.collider(this.treant, this.player.gameObject, this.playerLoseHp.bind(this));
 
-    this.player.gameObject.setCollideWorldBounds(true);
     this.physics.add.collider(this.player.gameObject, this.layers.terrain);
     this.physics.add.collider(this.player.gameObject, this.layers.deco);
     this.physics.add.collider(this.player.gameObject, this.npc.gameObject, this.helloNPC.bind(this));
-    this.npc.gameObject.setImmovable(true);
+  }
 
+  initCamera() {
     this.cameras.main.setRoundPixels(true);
     this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
     this.cameras.main.startFollow(this.player.gameObject, true, CAMERA_LERP, CAMERA_LERP);
+  }
+
+  create() {
+    this.createMapWithLayers();
+
+    this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
+    this.initPlayer();
+
+    this.initHearts();
+
+    this.initNpc();
+    this.initTreant();
+
+    this.addColliders();
+
+    this.initCamera();
 
     this.cursors = this.input.keyboard.createCursorKeys();
 
