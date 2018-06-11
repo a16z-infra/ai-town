@@ -9,7 +9,6 @@ const PLAYER_INITIAL_POSITION = {
 const hitDelay = 500; //0.5s
 const destroySpriteAttackDelay = 200;
 const treantOpacityDelay = 100;
-let timedEvent = null;
 var treantAttack = null;
 var loading = false; // loading arrows
 
@@ -97,8 +96,7 @@ class Main extends Phaser.Scene {
 
     this.cursors = this.input.keyboard.createCursorKeys();
 
-
-    timedEvent = this.time.addEvent({
+    this.time.addEvent({
       delay: 500,
       callback: this.moveTreant,
       callbackScope: this,
