@@ -235,7 +235,7 @@ class Main extends Phaser.Scene {
               'arrow-up',
               0
             );
-            this.arrow.scaleY = -1;
+            this.arrow.setFlipY(true);
             this.arrow.setVelocityY(ARROW_SPEED);
             this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
             this.time.addEvent({
@@ -272,7 +272,7 @@ class Main extends Phaser.Scene {
               'arrow-side',
               0
             );
-            this.arrow.scaleX = -1;
+            this.arrow.setFlipX(true);
             this.arrow.setVelocityX(-ARROW_SPEED);
             this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
             this.time.addEvent({
@@ -292,7 +292,7 @@ class Main extends Phaser.Scene {
               'arrow-side',
               0
             );
-            this.arrow.scaleX = 1;
+            this.arrow.setFlipX(false);
             this.arrow.setVelocityX(ARROW_SPEED);
             this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
             this.time.addEvent({
