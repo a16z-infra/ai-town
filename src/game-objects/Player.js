@@ -20,6 +20,27 @@ class Player {
     this.lastTimeHit = new Date().getTime();
     this.gameObject.setCollideWorldBounds(true);
     this.loading = false;
+    this.hearts = [];
+    this.initHearts();
+  }
+
+  initHearts() {
+    this.hearts = Array(this.hp)
+      .fill()
+      .map((_, i) => {
+        return this.scene.add
+          .sprite((i + 1) * 15, 15, 'heart')
+          .setScrollFactor(0)
+          .setDepth(10);
+      });
+  }
+
+  updateHearts() {
+    this.hearts.map((heart, index) => {
+      if (index >= this.hp) {
+        heart.setAlpha(0);
+      }
+    });
   }
 
   reload() {

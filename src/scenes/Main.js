@@ -47,17 +47,6 @@ class Main extends Phaser.Scene {
     this.layers.deco.setCollisionByProperty({ collides: true });
   }
 
-  initHearts() {
-    this.hearts = Array(this.player.hp)
-      .fill()
-      .map((_, i) => {
-        return this.add
-          .sprite((i + 1) * 15, 15, 'heart')
-          .setScrollFactor(0)
-          .setDepth(10);
-      });
-  }
-
   initPlayer() {
     this.player = new Player(this);
   }
@@ -111,8 +100,6 @@ class Main extends Phaser.Scene {
 
     this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
     this.initPlayer();
-
-    this.initHearts();
 
     this.initNpc();
     this.initTreant();
@@ -183,18 +170,10 @@ class Main extends Phaser.Scene {
     }
   }
 
-  updateHearts() {
-    this.hearts.map((heart, index) => {
-      if (index >= this.player.hp) {
-        heart.setAlpha(0);
-      }
-    });
-  }
-
   playerLoseHp() {
     if (new Date().getTime() - this.player.lastTimeHit > hitDelay) {
       this.player.hp--;
-      this.updateHearts();
+      this.player.updateHearts();
       treantAttack = this.physics.add.sprite(
         this.player.gameObject.x,
         this.player.gameObject.y,
