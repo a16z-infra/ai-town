@@ -105,70 +105,39 @@ class Player {
   }
 
   punch() {
-    switch (this.orientation) {
-      case 'down':
-        this.gameObject.setFlipX(false);
-        this.gameObject.play('attack-down', true);
-        break;
-      case 'up':
-        this.gameObject.setFlipX(false);
-        this.gameObject.play('attack-up', true);
-        break;
-      case 'left':
-        this.gameObject.setFlipX(true);
-        this.gameObject.play('attack-side', true);
-        break;
-      case 'right':
-        this.gameObject.setFlipX(false);
-        this.gameObject.play('attack-side', true);
-        break;
-      default:
+    const animSwitch = {
+      down: { flip: false, anim: 'attack-down' },
+      up: { flip: false, anim: 'attack-up' },
+      left: { flip: true, anim: 'attack-side' },
+      right: { flip: false, anim: 'attack-side' },
     }
+
+    this.gameObject.setFlipX(animSwitch[this.orientation].flip);
+    this.gameObject.play(animSwitch[this.orientation].anim, true);
   }
 
   beIdle() {
-    switch (this.orientation) {
-      case 'down':
-        this.gameObject.setFlipX(false);
-        this.gameObject.play('idle-down', true);
-        break;
-      case 'up':
-        this.gameObject.setFlipX(false);
-        this.gameObject.play('idle-up', true);
-        break;
-      case 'left':
-        this.gameObject.setFlipX(true);
-        this.gameObject.play('idle-side', true);
-        break;
-      case 'right':
-        this.gameObject.setFlipX(false);
-        this.gameObject.play('idle-side', true);
-        break;
-      default:
+    const animSwitch = {
+      down: { flip: false, anim: 'idle-down' },
+      up: { flip: false, anim: 'idle-up' },
+      left: { flip: true, anim: 'idle-side' },
+      right: { flip: false, anim: 'idle-side' },
     }
+    this.gameObject.setFlipX(animSwitch[this.orientation].flip);
+    this.gameObject.play(animSwitch[this.orientation].anim, true);
   }
 
   shoot() {
-    let arrow;
-    switch (this.orientation) {
-      case 'down':
-        this.gameObject.play('attack-weapon-down', true);
-        arrow = new Arrow(this.scene, this, 'down');
-        break;
-      case 'up':
-        this.gameObject.play('attack-weapon-up', true);
-        arrow = new Arrow(this.scene, this, 'up');
-        break;
-      case 'left':
-        this.gameObject.play('attack-weapon-side', true);
-        arrow = new Arrow(this.scene, this, 'left');
-        break;
-      case 'right':
-        this.gameObject.play('attack-weapon-side', true);
-        arrow = new Arrow(this.scene, this, 'right');
-        break;
-      default:
+    const animSwitch = {
+      down: { anim: 'attack-weapon-down' },
+      up: { anim: 'attack-weapon-up' },
+      left: { anim: 'attack-weapon-side' },
+      right: { anim: 'attack-weapon-side' },
     }
+
+    this.gameObject.play(animSwitch[this.orientation].anim, true);
+    const arrow = new Arrow(this.scene, this, this.orientation);
+
     return arrow;
   }
 
