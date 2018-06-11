@@ -152,7 +152,6 @@ class Main extends Phaser.Scene {
       this.player.reload();
       switch (this.player.orientation) {
         case 'down':
-          this.player.scaleX = 1;
           this.player.gameObject.play('attack-weapon-down', true);
           this.arrow = new Arrow(this, this.player, 'down');
           this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
@@ -168,7 +167,6 @@ class Main extends Phaser.Scene {
           this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
           break;
         case 'right':
-          this.player.scaleX = 1;
           this.player.gameObject.play('attack-weapon-side', true);
           this.arrow = new Arrow(this, this.player, 'right');
           this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
