@@ -150,29 +150,29 @@ class Main extends Phaser.Scene {
         return;
       }
       this.player.reload();
+      let arrow;
+      let arrowGameObject;
       switch (this.player.orientation) {
         case 'down':
           this.player.gameObject.play('attack-weapon-down', true);
-          this.arrow = new Arrow(this, this.player, 'down');
-          this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
+          arrow = new Arrow(this, this.player, 'down');
           break;
         case 'up':
           this.player.gameObject.play('attack-weapon-up', true);
-          this.arrow = new Arrow(this, this.player, 'up');
-          this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
+          arrow = new Arrow(this, this.player, 'up');
           break;
         case 'left':
           this.player.gameObject.play('attack-weapon-side', true);
-          this.arrow = new Arrow(this, this.player, 'left');
-          this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
+          arrow = new Arrow(this, this.player, 'left');
           break;
         case 'right':
           this.player.gameObject.play('attack-weapon-side', true);
-          this.arrow = new Arrow(this, this.player, 'right');
-          this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
+          arrow = new Arrow(this, this.player, 'right');
           break;
         default:
       }
+      arrowGameObject = arrow.gameObject;
+      this.physics.add.collider(arrowGameObject, this.treant, this.treantLoseHp(arrowGameObject).bind(this));
     }
   }
 
@@ -231,13 +231,15 @@ class Main extends Phaser.Scene {
     }
   }
 
-  treantLoseHp() {
-    this.treant.hp--;
-    this.treant.alpha = 0.1;
-    this.treant.lastTimeHit = new Date().getTime();
-    this.arrow.destroy();
-    if (this.treant.hp == 0) {
-      this.treant.destroy();
+  treantLoseHp(arrow) {
+    return () => {
+      this.treant.hp--;
+      this.treant.alpha = 0.1;
+      this.treant.lastTimeHit = new Date().getTime();
+      arrow.destroy();
+      if (this.treant.hp == 0) {
+        this.treant.destroy();
+      }
     }
   }
 
