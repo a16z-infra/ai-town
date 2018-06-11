@@ -2,7 +2,7 @@
   "scripts": {
     "build": "webpack -p",
     "start": "webpack-dev-server",
-    "deploy": "gh-pages -d dist"
+    "deploy": "yarn build && gh-pages -d dist"
   },
   "dependencies": {
     "clean-webpack-plugin": "^0.1.19",
