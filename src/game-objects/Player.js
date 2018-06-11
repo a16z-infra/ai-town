@@ -1,4 +1,5 @@
 import Arrow from './Arrow';
+const HIT_DELAY = 500; //0.5s
 const PLAYER_INITIAL_POSITION = {
   x: 50,
   y: 200,
@@ -20,6 +21,8 @@ class Player {
     this.lastTimeHit = new Date().getTime();
     this.gameObject.setCollideWorldBounds(true);
     this.loading = false;
+    this.tomb = null;
+
     this.hearts = [];
     this.initHearts();
   }
@@ -153,6 +156,29 @@ class Player {
     if (noKeyPressed && !this.loading) {
       this.beIdle();
     }
+  }
+
+  loseHp() {
+    this.hp--;
+    this.updateHearts();
+
+    this.lastTimeHit = new Date();
+
+    if (this.hp > 0) {
+      return;
+    }
+
+    // Player dies
+    if (!this.tomb) {
+      this.tomb = this.scene.add
+        .sprite(this.gameObject.x, this.gameObject.y, 'tomb')
+        .setScale(0.1);
+    }
+    this.gameObject.destroy();
+  }
+
+  canGetHit() {
+    return new Date().getTime() - this.lastTimeHit > HIT_DELAY
   }
 }
 

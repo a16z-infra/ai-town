@@ -4,7 +4,6 @@ import Arrow from '../game-objects/Arrow';
 const CAMERA_LERP = 1;
 const ARROW_SPEED = 150;
 const TREANT_SPEED = 500;
-const hitDelay = 500; //0.5s
 const destroySpriteAttackDelay = 200;
 const treantOpacityDelay = 100;
 var treantAttack = null;
@@ -78,7 +77,7 @@ class Main extends Phaser.Scene {
   addColliders() {
     this.physics.add.collider(this.treant, this.layers.terrain);
     this.physics.add.collider(this.treant, this.layers.deco);
-    this.physics.add.collider(this.treant, this.player.gameObject, this.playerLoseHp.bind(this));
+    this.physics.add.collider(this.treant, this.player.gameObject, this.treantHit.bind(this));
 
     this.physics.add.collider(this.player.gameObject, this.layers.terrain);
     this.physics.add.collider(this.player.gameObject, this.layers.deco);
@@ -170,27 +169,14 @@ class Main extends Phaser.Scene {
     }
   }
 
-  playerLoseHp() {
-    if (new Date().getTime() - this.player.lastTimeHit > hitDelay) {
-      this.player.hp--;
-      this.player.updateHearts();
+  treantHit() {
+    if (this.player.canGetHit()) {
       treantAttack = this.physics.add.sprite(
         this.player.gameObject.x,
         this.player.gameObject.y,
         'treantAttack'
       );
-
-      this.player.lastTimeHit = new Date();
-    }
-
-    if (this.player.hp === 0) {
-      // Player dies
-      if (!this.tomb) {
-        this.tomb = this.add
-          .sprite(this.player.gameObject.x, this.player.gameObject.y, 'tomb')
-          .setScale(0.1);
-      }
-      this.player.gameObject.destroy();
+      this.player.loseHp();
     }
   }
 
