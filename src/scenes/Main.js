@@ -1,4 +1,5 @@
 import Player from '../game-objects/Player';
+import Arrow from '../game-objects/Arrow';
 
 const CAMERA_LERP = 1;
 const ARROW_SPEED = 150;
@@ -153,79 +154,24 @@ class Main extends Phaser.Scene {
         case 'down':
           this.player.scaleX = 1;
           this.player.gameObject.play('attack-weapon-down', true);
-          this.arrow = this.physics.add.sprite(
-            this.player.gameObject.x,
-            this.player.gameObject.y,
-            'arrow-up',
-            0
-          );
-          this.arrow.setFlipY(true);
-          this.arrow.setVelocityY(ARROW_SPEED);
+          this.arrow = new Arrow(this, this.player, 'down');
           this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
-          this.time.addEvent({
-            delay: 500,
-            callback: () => {
-              this.player.readyToFire();
-            },
-            callbackScope: this,
-          });
           break;
         case 'up':
           this.player.gameObject.play('attack-weapon-up', true);
-          this.arrow = this.physics.add.sprite(
-            this.player.gameObject.x,
-            this.player.gameObject.y,
-            'arrow-up',
-            0
-          );
-          this.arrow.setVelocityY(-ARROW_SPEED);
+          this.arrow = new Arrow(this, this.player, 'up');
           this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
-          this.time.addEvent({
-            delay: 500,
-            callback: () => {
-              this.player.readyToFire();
-            },
-            callbackScope: this,
-          });
           break;
         case 'left':
           this.player.gameObject.play('attack-weapon-side', true);
-          this.arrow = this.physics.add.sprite(
-            this.player.gameObject.x,
-            this.player.gameObject.y,
-            'arrow-side',
-            0
-          );
-          this.arrow.setFlipX(true);
-          this.arrow.setVelocityX(-ARROW_SPEED);
+          this.arrow = new Arrow(this, this.player, 'left');
           this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
-          this.time.addEvent({
-            delay: 500,
-            callback: () => {
-              this.player.readyToFire();
-            },
-            callbackScope: this,
-          });
           break;
         case 'right':
           this.player.scaleX = 1;
           this.player.gameObject.play('attack-weapon-side', true);
-          this.arrow = this.physics.add.sprite(
-            this.player.gameObject.x,
-            this.player.gameObject.y,
-            'arrow-side',
-            0
-          );
-          this.arrow.setFlipX(false);
-          this.arrow.setVelocityX(ARROW_SPEED);
+          this.arrow = new Arrow(this, this.player, 'right');
           this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
-          this.time.addEvent({
-            delay: 500,
-            callback: () => {
-              this.player.readyToFire();
-            },
-            callbackScope: this,
-          });
           break;
         default:
       }
