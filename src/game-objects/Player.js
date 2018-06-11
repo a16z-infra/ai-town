@@ -107,6 +107,29 @@ class Player {
         default:
       }
     }
+
+    const noKeyPressed = Object.values(keyPressed).filter(x => x).length === 0;
+    if (noKeyPressed && !this.loading) {
+      switch (this.orientation) {
+        case 'down':
+          this.gameObject.setFlipX(false);
+          this.gameObject.play('idle-down', true);
+          break;
+        case 'up':
+          this.gameObject.setFlipX(false);
+          this.gameObject.play('idle-up', true);
+          break;
+        case 'left':
+          this.gameObject.setFlipX(true);
+          this.gameObject.play('idle-side', true);
+          break;
+        case 'right':
+          this.gameObject.setFlipX(false);
+          this.gameObject.play('idle-side', true);
+          break;
+        default:
+      }
+    }
   }
 }
 

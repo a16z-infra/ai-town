@@ -174,29 +174,6 @@ class Main extends Phaser.Scene {
         default:
       }
     }
-
-    const noKeyPressed = Object.values(keyPressed).filter(x => x).length === 0;
-    if (noKeyPressed && !this.player.loading) {
-      switch (this.player.orientation) {
-        case 'down':
-          this.player.gameObject.setFlipX(false);
-          this.player.gameObject.play('idle-down', true);
-          break;
-        case 'up':
-          this.player.gameObject.setFlipX(false);
-          this.player.gameObject.play('idle-up', true);
-          break;
-        case 'left':
-          this.player.gameObject.setFlipX(true);
-          this.player.gameObject.play('idle-side', true);
-          break;
-        case 'right':
-          this.player.gameObject.setFlipX(false);
-          this.player.gameObject.play('idle-side', true);
-          break;
-        default:
-      }
-    }
   }
 
   moveTreant() {
