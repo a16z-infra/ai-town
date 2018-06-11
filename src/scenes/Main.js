@@ -18,16 +18,11 @@ const NPC_POS = {
 class Main extends Phaser.Scene {
   constructor() {
     super('Main');
-    this.player = {
-      orientation: 'down',
-      gameObject: null,
-      hp: 3,
-    };
+    this.player = null;
     this.cursors = null;
     this.npc = {
       gameObject: null,
       textGameObject: null,
-      isPlayerColliding: false,
     };
     this.treant = null;
     this.hearts = [];
@@ -37,7 +32,7 @@ class Main extends Phaser.Scene {
   }
 
   helloNPC() {
-    this.npc.isPlayerColliding = true;
+    this.npc.textGameObject.setAlpha(1);
   }
 
   createMapWithLayers() {
@@ -66,14 +61,6 @@ class Main extends Phaser.Scene {
 
   initPlayer() {
     this.player = new Player(this);
-    // this.player.gameObject = this.physics.add.sprite(
-    //   PLAYER_INITIAL_POSITION.x,
-    //   PLAYER_INITIAL_POSITION.y,
-    //   'idle-down',
-    //   0
-    // );
-    // this.player.lastTimeHit = new Date().getTime();
-    // this.player.gameObject.setCollideWorldBounds(true);
   }
 
   initTreant() {
@@ -177,10 +164,6 @@ class Main extends Phaser.Scene {
       if (this.player.gameObject.active) {
         this.player.gameObject.setVelocityX(PLAYER_SPEED);
       }
-    }
-
-    if (this.npc.isPlayerColliding) {
-      this.npc.textGameObject.setAlpha(1);
     }
 
     if (keyPressed.up) {
