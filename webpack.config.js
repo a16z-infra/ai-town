@@ -10,7 +10,8 @@ module.exports = {
   plugins: [
     new CleanWebpackPlugin(['dist']),
     new HtmlWebpackPlugin({
-      title: 'Development',
+      title: 'Phaser3 Simple RPG',
+      template: './src/index.html',
     }),
     new CopyWebpackPlugin([ { from: 'assets', to: 'assets' } ])
   ],
