@@ -162,7 +162,7 @@ class Main extends Phaser.Scene {
 
     if (keyPressed.left) {
       if (!isUpDownPressed) {
-        this.player.gameObject.scaleX = -1;
+        this.player.gameObject.setFlipX(true);
         this.player.orientation = 'left';
         this.player.gameObject.play('left', true);
       }
@@ -171,7 +171,7 @@ class Main extends Phaser.Scene {
       }
     } else if (keyPressed.right) {
       if (!isUpDownPressed) {
-        this.player.gameObject.scaleX = 1;
+        this.player.gameObject.setFlipX(false);
         this.player.orientation = 'right';
         this.player.gameObject.play('right', true);
       }
@@ -185,14 +185,14 @@ class Main extends Phaser.Scene {
     }
 
     if (keyPressed.up) {
-      this.player.gameObject.scaleX = 1;
+      this.player.gameObject.setFlipX(false);
       this.player.orientation = 'up';
       this.player.gameObject.play('up', true);
       if (this.player.gameObject.active) {
         this.player.gameObject.setVelocityY(-PLAYER_SPEED);
       }
     } else if (keyPressed.down) {
-      this.player.gameObject.scaleX = 1;
+      this.player.gameObject.setFlipX(false);
       this.player.orientation = 'down';
       this.player.gameObject.play('down', true);
       if (this.player.gameObject.active) {
@@ -203,19 +203,19 @@ class Main extends Phaser.Scene {
     if (keyPressed.space) {
       switch (this.player.orientation) {
         case 'down':
-          this.player.gameObject.scaleX = 1;
+          this.player.gameObject.setFlipX(false);
           this.player.gameObject.play('attack-down', true);
           break;
         case 'up':
-          this.player.gameObject.scaleX = 1;
+          this.player.gameObject.setFlipX(false);
           this.player.gameObject.play('attack-up', true);
           break;
         case 'left':
-          this.player.gameObject.scaleX = -1;
+          this.player.gameObject.setFlipX(true);
           this.player.gameObject.play('attack-side', true);
           break;
         case 'right':
-          this.player.gameObject.scaleX = 1;
+          this.player.gameObject.setFlipX(false);
           this.player.gameObject.play('attack-side', true);
           break;
         default:
@@ -247,7 +247,6 @@ class Main extends Phaser.Scene {
             });
             break;
           case 'up':
-            this.player.scaleX = 1;
             this.player.gameObject.play('attack-weapon-up', true);
             this.arrow = this.physics.add.sprite(
               this.player.gameObject.x,
@@ -266,7 +265,6 @@ class Main extends Phaser.Scene {
             });
             break;
           case 'left':
-            this.player.scaleX = -1;
             this.player.gameObject.play('attack-weapon-side', true);
             this.arrow = this.physics.add.sprite(
               this.player.gameObject.x,
@@ -314,19 +312,19 @@ class Main extends Phaser.Scene {
     if (noKeyPressed && !loading) {
       switch (this.player.orientation) {
         case 'down':
-          this.player.gameObject.scaleX = 1;
+          this.player.gameObject.setFlipX(false);
           this.player.gameObject.play('idle-down', true);
           break;
         case 'up':
-          this.player.gameObject.scaleX = 1;
+          this.player.gameObject.setFlipX(false);
           this.player.gameObject.play('idle-up', true);
           break;
         case 'left':
-          this.player.gameObject.scaleX = -1;
+          this.player.gameObject.setFlipX(true);
           this.player.gameObject.play('idle-side', true);
           break;
         case 'right':
-          this.player.gameObject.scaleX = 1;
+          this.player.gameObject.setFlipX(false);
           this.player.gameObject.play('idle-side', true);
           break;
         default:
