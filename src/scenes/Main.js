@@ -1,4 +1,4 @@
-import Player from '../game-objects/player';
+import Player from '../game-objects/Player';
 
 const CAMERA_LERP = 1;
 const ARROW_SPEED = 150;
