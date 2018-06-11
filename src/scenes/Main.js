@@ -24,7 +24,7 @@ class Main extends Phaser.Scene {
       orientation: 'down',
       gameObject: null,
       hp: 3,
-    }
+    };
     this.cursors = null;
     this.npc = {
       gameObject: null,
@@ -56,14 +56,24 @@ class Main extends Phaser.Scene {
   }
 
   initHearts() {
-    this.hearts = Array(this.player.hp).fill().map((_, i) => {
-      return this.add.sprite((i + 1) * 15, 15, 'heart').setScrollFactor(0).setDepth(10);
-    });
+    this.hearts = Array(this.player.hp)
+      .fill()
+      .map((_, i) => {
+        return this.add
+          .sprite((i + 1) * 15, 15, 'heart')
+          .setScrollFactor(0)
+          .setDepth(10);
+      });
   }
 
   initPlayer() {
-    this.player.gameObject = this.physics.add.sprite(PLAYER_INITIAL_POSITION.x, PLAYER_INITIAL_POSITION.y, 'idle-down', 0);
-    this.player.lastTimeHit = (new Date()).getTime()
+    this.player.gameObject = this.physics.add.sprite(
+      PLAYER_INITIAL_POSITION.x,
+      PLAYER_INITIAL_POSITION.y,
+      'idle-down',
+      0
+    );
+    this.player.lastTimeHit = new Date().getTime();
     this.player.gameObject.setCollideWorldBounds(true);
   }
 
@@ -77,7 +87,7 @@ class Main extends Phaser.Scene {
       callback: this.moveTreant,
       callbackScope: this,
       repeat: Infinity,
-      startAt: 2000
+      startAt: 2000,
     });
   }
 
@@ -98,7 +108,11 @@ class Main extends Phaser.Scene {
 
     this.physics.add.collider(this.player.gameObject, this.layers.terrain);
     this.physics.add.collider(this.player.gameObject, this.layers.deco);
-    this.physics.add.collider(this.player.gameObject, this.npc.gameObject, this.helloNPC.bind(this));
+    this.physics.add.collider(
+      this.player.gameObject,
+      this.npc.gameObject,
+      this.helloNPC.bind(this)
+    );
   }
 
   initCamera() {
@@ -131,7 +145,7 @@ class Main extends Phaser.Scene {
     if (this.player.gameObject.active) {
       this.player.gameObject.setVelocity(0);
     }
-    if(this.treant.active) {
+    if (this.treant.active) {
       this.treant.setVelocity(0);
     }
 
@@ -141,7 +155,7 @@ class Main extends Phaser.Scene {
       up: this.cursors.up.isDown,
       down: this.cursors.down.isDown,
       space: this.cursors.space.isDown,
-      shift: this.cursors.shift.isDown
+      shift: this.cursors.shift.isDown,
     };
 
     const isUpDownPressed = keyPressed.up || keyPressed.down;
@@ -215,7 +229,12 @@ class Main extends Phaser.Scene {
           case 'down':
             this.player.scaleX = 1;
             this.player.gameObject.play('attack-weapon-down', true);
-            this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-up', 0);
+            this.arrow = this.physics.add.sprite(
+              this.player.gameObject.x,
+              this.player.gameObject.y,
+              'arrow-up',
+              0
+            );
             this.arrow.scaleY = -1;
             this.arrow.setVelocityY(ARROW_SPEED);
             this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
@@ -224,13 +243,18 @@ class Main extends Phaser.Scene {
               callback: () => {
                 loading = false;
               },
-              callbackScope: this
+              callbackScope: this,
             });
             break;
           case 'up':
             this.player.scaleX = 1;
             this.player.gameObject.play('attack-weapon-up', true);
-            this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-up', 0);
+            this.arrow = this.physics.add.sprite(
+              this.player.gameObject.x,
+              this.player.gameObject.y,
+              'arrow-up',
+              0
+            );
             this.arrow.setVelocityY(-ARROW_SPEED);
             this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
             this.time.addEvent({
@@ -238,13 +262,18 @@ class Main extends Phaser.Scene {
               callback: () => {
                 loading = false;
               },
-              callbackScope: this
+              callbackScope: this,
             });
             break;
           case 'left':
             this.player.scaleX = -1;
             this.player.gameObject.play('attack-weapon-side', true);
-            this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-side', 0);
+            this.arrow = this.physics.add.sprite(
+              this.player.gameObject.x,
+              this.player.gameObject.y,
+              'arrow-side',
+              0
+            );
             this.arrow.scaleX = -1;
             this.arrow.setVelocityX(-ARROW_SPEED);
             this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
@@ -253,13 +282,18 @@ class Main extends Phaser.Scene {
               callback: () => {
                 loading = false;
               },
-              callbackScope: this
+              callbackScope: this,
             });
             break;
           case 'right':
             this.player.scaleX = 1;
             this.player.gameObject.play('attack-weapon-side', true);
-            this.arrow = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'arrow-side', 0);
+            this.arrow = this.physics.add.sprite(
+              this.player.gameObject.x,
+              this.player.gameObject.y,
+              'arrow-side',
+              0
+            );
             this.arrow.scaleX = 1;
             this.arrow.setVelocityX(ARROW_SPEED);
             this.physics.add.collider(this.arrow, this.treant, this.treantLoseHp.bind(this));
@@ -268,7 +302,7 @@ class Main extends Phaser.Scene {
               callback: () => {
                 loading = false;
               },
-              callbackScope: this
+              callbackScope: this,
             });
             break;
           default:
@@ -301,26 +335,26 @@ class Main extends Phaser.Scene {
   }
 
   moveTreant() {
-    if(this.treant.active) {
-    var diffX = this.treant.x - this.player.gameObject.x;
-    var diffY = this.treant.y - this.player.gameObject.y;
-    //Move according to X
-    if (diffX < 0) {
-      this.treant.scaleX = 1;
-      this.treant.setVelocityX(TREANT_SPEED);
-    } else {
-      this.treant.scaleX = 1;
-      this.treant.setVelocityX(-TREANT_SPEED);
+    if (this.treant.active) {
+      var diffX = this.treant.x - this.player.gameObject.x;
+      var diffY = this.treant.y - this.player.gameObject.y;
+      //Move according to X
+      if (diffX < 0) {
+        this.treant.scaleX = 1;
+        this.treant.setVelocityX(TREANT_SPEED);
+      } else {
+        this.treant.scaleX = 1;
+        this.treant.setVelocityX(-TREANT_SPEED);
+      }
+      //Move according to Y
+      if (diffY < 0) {
+        this.treant.scaleY = 1;
+        this.treant.setVelocityY(TREANT_SPEED);
+      } else {
+        this.treant.scaleY = 1;
+        this.treant.setVelocityY(-TREANT_SPEED);
+      }
     }
-    //Move according to Y
-    if (diffY < 0) {
-      this.treant.scaleY = 1;
-      this.treant.setVelocityY(TREANT_SPEED);
-    } else {
-      this.treant.scaleY = 1;
-      this.treant.setVelocityY(-TREANT_SPEED);
-    }
-  }
   }
 
   updateHearts() {
@@ -328,14 +362,18 @@ class Main extends Phaser.Scene {
       if (index >= this.player.hp) {
         heart.setAlpha(0);
       }
-    })
+    });
   }
 
   playerLoseHp() {
-    if ((new Date()).getTime() - this.player.lastTimeHit > hitDelay) {
+    if (new Date().getTime() - this.player.lastTimeHit > hitDelay) {
       this.player.hp--;
       this.updateHearts();
-      treantAttack = this.physics.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'treantAttack');
+      treantAttack = this.physics.add.sprite(
+        this.player.gameObject.x,
+        this.player.gameObject.y,
+        'treantAttack'
+      );
 
       this.player.lastTimeHit = new Date();
     }
@@ -343,7 +381,9 @@ class Main extends Phaser.Scene {
     if (this.player.hp === 0) {
       // Player dies
       if (!this.tomb) {
-        this.tomb = this.add.sprite(this.player.gameObject.x, this.player.gameObject.y, 'tomb').setScale(0.1);
+        this.tomb = this.add
+          .sprite(this.player.gameObject.x, this.player.gameObject.y, 'tomb')
+          .setScale(0.1);
       }
       this.player.gameObject.destroy();
     }
@@ -352,21 +392,24 @@ class Main extends Phaser.Scene {
   treantLoseHp() {
     this.treant.hp--;
     this.treant.alpha = 0.1;
-    this.treant.lastTimeHit = (new Date()).getTime();
+    this.treant.lastTimeHit = new Date().getTime();
     this.arrow.destroy();
-    if(this.treant.hp == 0) {
+    if (this.treant.hp == 0) {
       this.treant.destroy();
     }
   }
 
   checkTreantOpacity() {
-    if ((new Date()).getTime() - this.treant.lastTimeHit > treantOpacityDelay) {
+    if (new Date().getTime() - this.treant.lastTimeHit > treantOpacityDelay) {
       this.treant.alpha = 1;
     }
   }
 
   destroyTreantAttack() {
-    if (treantAttack != null && (new Date()).getTime() - this.player.lastTimeHit > destroySpriteAttackDelay) {
+    if (
+      treantAttack != null &&
+      new Date().getTime() - this.player.lastTimeHit > destroySpriteAttackDelay
+    ) {
       treantAttack.destroy();
     }
   }
