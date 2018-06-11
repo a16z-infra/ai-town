@@ -17,6 +17,15 @@ class Player {
     this.orientation = 'down';
     this.lastTimeHit = new Date().getTime();
     this.gameObject.setCollideWorldBounds(true);
+    this.loading = false;
+  }
+
+  reload() {
+    this.loading = true;
+  }
+
+  readyToFire() {
+    this.loading = false;
   }
 }
 

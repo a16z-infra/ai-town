@@ -8,7 +8,6 @@ const hitDelay = 500; //0.5s
 const destroySpriteAttackDelay = 200;
 const treantOpacityDelay = 100;
 var treantAttack = null;
-var loading = false; // loading arrows
 
 const NPC_POS = {
   x: 50,
@@ -205,8 +204,8 @@ class Main extends Phaser.Scene {
     }
 
     if (keyPressed.shift) {
-      if (!loading) {
-        loading = true;
+      if (!this.player.loading) {
+        this.player.reload();
         switch (this.player.orientation) {
           case 'down':
             this.player.scaleX = 1;
@@ -223,7 +222,7 @@ class Main extends Phaser.Scene {
             this.time.addEvent({
               delay: 500,
               callback: () => {
-                loading = false;
+                this.player.readyToFire();
               },
               callbackScope: this,
             });
@@ -241,7 +240,7 @@ class Main extends Phaser.Scene {
             this.time.addEvent({
               delay: 500,
               callback: () => {
-                loading = false;
+                this.player.readyToFire();
               },
               callbackScope: this,
             });
@@ -260,7 +259,7 @@ class Main extends Phaser.Scene {
             this.time.addEvent({
               delay: 500,
               callback: () => {
-                loading = false;
+                this.player.readyToFire();
               },
               callbackScope: this,
             });
@@ -280,7 +279,7 @@ class Main extends Phaser.Scene {
             this.time.addEvent({
               delay: 500,
               callback: () => {
-                loading = false;
+                this.player.readyToFire();
               },
               callbackScope: this,
             });
@@ -291,7 +290,7 @@ class Main extends Phaser.Scene {
     }
 
     const noKeyPressed = Object.values(keyPressed).filter(x => x).length === 0;
-    if (noKeyPressed && !loading) {
+    if (noKeyPressed && !this.player.loading) {
       switch (this.player.orientation) {
         case 'down':
           this.player.gameObject.setFlipX(false);
