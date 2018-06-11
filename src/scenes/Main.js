@@ -71,6 +71,14 @@ class Main extends Phaser.Scene {
     this.treant = this.physics.add.sprite(500, 500, 'treant').setDepth(5);
     this.treant.hp = 3;
     this.treant.setCollideWorldBounds(true);
+
+    this.time.addEvent({
+      delay: 500,
+      callback: this.moveTreant,
+      callbackScope: this,
+      repeat: Infinity,
+      startAt: 2000
+    });
   }
 
   initNpc() {
@@ -115,14 +123,6 @@ class Main extends Phaser.Scene {
     this.initCamera();
 
     this.cursors = this.input.keyboard.createCursorKeys();
-
-    this.time.addEvent({
-      delay: 500,
-      callback: this.moveTreant,
-      callbackScope: this,
-      repeat: Infinity,
-      startAt: 2000
-    });
   }
 
   update() {
@@ -300,10 +300,6 @@ class Main extends Phaser.Scene {
     }
   }
 
-  initiliazeTreant() {
-    //TODO repop a treant if the previous one is dead after a certain delay.
-  }
-
   moveTreant() {
     if(this.treant.active) {
     var diffX = this.treant.x - this.player.gameObject.x;
@@ -325,8 +321,8 @@ class Main extends Phaser.Scene {
       this.treant.setVelocityY(-TREANT_SPEED);
     }
   }
-
   }
+
   updateHearts() {
     this.hearts.map((heart, index) => {
       if (index >= this.player.hp) {
