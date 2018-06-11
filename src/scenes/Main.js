@@ -113,9 +113,6 @@ class Main extends Phaser.Scene {
   update() {
     this.destroyTreantAttack();
     this.checkTreantOpacity();
-    if (this.player.gameObject.active) {
-      this.player.gameObject.setVelocity(0);
-    }
     if (this.treant.active) {
       this.treant.setVelocity(0);
     }

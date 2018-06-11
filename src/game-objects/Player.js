@@ -55,10 +55,6 @@ class Player {
   }
 
   go(direction, shouldAnimate = true) {
-    if (!this.gameObject.active) {
-      return;
-    }
-
     switch (direction) {
       case 'left':
         this.gameObject.setVelocityX(-PLAYER_SPEED);
@@ -145,6 +141,10 @@ class Player {
   }
 
   update(keyPressed) {
+    if (!this.gameObject.active) {
+      return;
+    }
+    this.gameObject.setVelocity(0);
     this.handleHorizontalMovement(keyPressed);
     this.handleVerticalMovement(keyPressed);
 
