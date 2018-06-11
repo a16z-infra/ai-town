@@ -1,7 +1,6 @@
 import Player from '../game-objects/player';
 
 const CAMERA_LERP = 1;
-const PLAYER_SPEED = 100;
 const ARROW_SPEED = 150;
 const TREANT_SPEED = 500;
 const hitDelay = 500; //0.5s
@@ -143,65 +142,7 @@ class Main extends Phaser.Scene {
       shift: this.cursors.shift.isDown,
     };
 
-    const isUpDownPressed = keyPressed.up || keyPressed.down;
-
-    if (keyPressed.left) {
-      if (!isUpDownPressed) {
-        this.player.gameObject.setFlipX(true);
-        this.player.orientation = 'left';
-        this.player.gameObject.play('left', true);
-      }
-      if (this.player.gameObject.active) {
-        this.player.gameObject.setVelocityX(-PLAYER_SPEED);
-      }
-    } else if (keyPressed.right) {
-      if (!isUpDownPressed) {
-        this.player.gameObject.setFlipX(false);
-        this.player.orientation = 'right';
-        this.player.gameObject.play('right', true);
-      }
-      if (this.player.gameObject.active) {
-        this.player.gameObject.setVelocityX(PLAYER_SPEED);
-      }
-    }
-
-    if (keyPressed.up) {
-      this.player.gameObject.setFlipX(false);
-      this.player.orientation = 'up';
-      this.player.gameObject.play('up', true);
-      if (this.player.gameObject.active) {
-        this.player.gameObject.setVelocityY(-PLAYER_SPEED);
-      }
-    } else if (keyPressed.down) {
-      this.player.gameObject.setFlipX(false);
-      this.player.orientation = 'down';
-      this.player.gameObject.play('down', true);
-      if (this.player.gameObject.active) {
-        this.player.gameObject.setVelocityY(PLAYER_SPEED);
-      }
-    }
-
-    if (keyPressed.space) {
-      switch (this.player.orientation) {
-        case 'down':
-          this.player.gameObject.setFlipX(false);
-          this.player.gameObject.play('attack-down', true);
-          break;
-        case 'up':
-          this.player.gameObject.setFlipX(false);
-          this.player.gameObject.play('attack-up', true);
-          break;
-        case 'left':
-          this.player.gameObject.setFlipX(true);
-          this.player.gameObject.play('attack-side', true);
-          break;
-        case 'right':
-          this.player.gameObject.setFlipX(false);
-          this.player.gameObject.play('attack-side', true);
-          break;
-        default:
-      }
-    }
+    this.player.update(keyPressed);
 
     if (keyPressed.shift) {
       if (!this.player.loading) {
