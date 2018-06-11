@@ -29,44 +29,62 @@ class Player {
     this.loading = false;
   }
 
-  update(keyPressed) {
+  go(direction, shouldAnimate = true) {
+    if (!this.gameObject.active) {
+      return;
+    }
+
+    switch (direction) {
+      case 'left':
+        this.gameObject.setVelocityX(-PLAYER_SPEED);
+        break;
+      case 'right':
+        this.gameObject.setVelocityX(PLAYER_SPEED);
+        break;
+      case 'up':
+        this.gameObject.setVelocityY(-PLAYER_SPEED);
+        break;
+      case 'down':
+        this.gameObject.setVelocityY(PLAYER_SPEED);
+        break;
+      default:
+        break;
+    }
+
+    if (!shouldAnimate) {
+      return;
+    }
+
+    this.gameObject.setFlipX(direction === 'left');
+    this.orientation = direction;
+    this.gameObject.play(direction, true);
+  }
+
+  handleHorizontalMovement(keyPressed) {
     const isUpDownPressed = keyPressed.up || keyPressed.down;
 
     if (keyPressed.left) {
-      if (!isUpDownPressed) {
-        this.gameObject.setFlipX(true);
-        this.orientation = 'left';
-        this.gameObject.play('left', true);
-      }
-      if (this.gameObject.active) {
-        this.gameObject.setVelocityX(-PLAYER_SPEED);
-      }
-    } else if (keyPressed.right) {
-      if (!isUpDownPressed) {
-        this.gameObject.setFlipX(false);
-        this.orientation = 'right';
-        this.gameObject.play('right', true);
-      }
-      if (this.gameObject.active) {
-        this.gameObject.setVelocityX(PLAYER_SPEED);
-      }
+      this.go('left', !isUpDownPressed);
+      return;
     }
 
-    if (keyPressed.up) {
-      this.gameObject.setFlipX(false);
-      this.orientation = 'up';
-      this.gameObject.play('up', true);
-      if (this.gameObject.active) {
-        this.gameObject.setVelocityY(-PLAYER_SPEED);
-      }
-    } else if (keyPressed.down) {
-      this.gameObject.setFlipX(false);
-      this.orientation = 'down';
-      this.gameObject.play('down', true);
-      if (this.gameObject.active) {
-        this.gameObject.setVelocityY(PLAYER_SPEED);
-      }
+    if (keyPressed.right) {
+      this.go('right', !isUpDownPressed);
+      return;
     }
+  }
+
+  handleVerticalMovement(keyPressed) {
+    if (keyPressed.up) {
+      this.go('up');
+    } else if (keyPressed.down) {
+      this.go('down');
+    }
+  }
+
+  update(keyPressed) {
+    this.handleHorizontalMovement(keyPressed);
+    this.handleVerticalMovement(keyPressed);
 
     if (keyPressed.space) {
       switch (this.orientation) {
