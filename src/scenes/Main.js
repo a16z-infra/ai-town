@@ -1,5 +1,3 @@
-import { Time } from "phaser";
-
 const CAMERA_LERP = 1;
 const PLAYER_SPEED = 100;
 const ARROW_SPEED = 150;
@@ -11,7 +9,7 @@ const PLAYER_INITIAL_POSITION = {
 const hitDelay = 500; //0.5s
 const destroySpriteAttackDelay = 200;
 const treantOpacityDelay = 100;
-var timedEvent;
+let timedEvent = null;
 var treantAttack = null;
 var loading = false; // loading arrows
 
@@ -37,30 +35,41 @@ class Main extends Phaser.Scene {
     this.treant = null;
     this.hearts = [];
     this.tomb = null;
+    this.map = null;
+    this.layers = null;
   }
 
   helloNPC() {
     this.npc.isPlayerColliding = true;
   }
-  create() {
-    const map = this.make.tilemap({ key: 'myworld' });
-    const tileset = map.addTilesetImage('tileset', 'tiles', 16, 16, 0, 0);
 
-    const layers = {
-      terrain: map.createStaticLayer('terrain', tileset, 0, 0),
-      deco: map.createStaticLayer('deco', tileset, 0, 0),
-      bridge: map.createStaticLayer('bridge', tileset, 0, 0),
+  createMapWithLayers() {
+    this.map = this.make.tilemap({ key: 'myworld' });
+    const tileset = this.map.addTilesetImage('tileset', 'tiles', 16, 16, 0, 0);
+
+    this.layers = {
+      terrain: this.map.createStaticLayer('terrain', tileset, 0, 0),
+      deco: this.map.createStaticLayer('deco', tileset, 0, 0),
+      bridge: this.map.createStaticLayer('bridge', tileset, 0, 0),
     };
-    layers.terrain.setCollisionByProperty({ collides: true });
-    layers.deco.setCollisionByProperty({ collides: true });
+    this.layers.terrain.setCollisionByProperty({ collides: true });
+    this.layers.deco.setCollisionByProperty({ collides: true });
+  }
 
-    this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-    this.player.gameObject = this.physics.add.sprite(PLAYER_INITIAL_POSITION.x, PLAYER_INITIAL_POSITION.y, 'idle-down', 0);
-    this.player.lastTimeHit = (new Date()).getTime()
-
+  initHearts() {
     this.hearts = Array(this.player.hp).fill().map((_, i) => {
       return this.add.sprite((i + 1) * 15, 15, 'heart').setScrollFactor(0).setDepth(10);
     });
+  }
+
+  create() {
+    this.createMapWithLayers();
+
+    this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
+    this.player.gameObject = this.physics.add.sprite(PLAYER_INITIAL_POSITION.x, PLAYER_INITIAL_POSITION.y, 'idle-down', 0);
+    this.player.lastTimeHit = (new Date()).getTime()
+
+    this.initHearts()
 
     this.npc.gameObject = this.physics.add.sprite(NPC_POS.x, NPC_POS.y, 'npcs', 0);
     this.npc.textGameObject = this.add.text(NPC_POS.x - 35, NPC_POS.y - 20, 'Hello there!', {
@@ -72,18 +81,18 @@ class Main extends Phaser.Scene {
     this.treant = this.physics.add.sprite(500, 500, 'treant').setDepth(5);
     this.treant.hp = 3;
     this.treant.setCollideWorldBounds(true);
-    this.physics.add.collider(this.treant, layers.terrain);
-    this.physics.add.collider(this.treant, layers.deco);
+    this.physics.add.collider(this.treant, this.layers.terrain);
+    this.physics.add.collider(this.treant, this.layers.deco);
     this.physics.add.collider(this.treant, this.player.gameObject, this.playerLoseHp.bind(this));
 
     this.player.gameObject.setCollideWorldBounds(true);
-    this.physics.add.collider(this.player.gameObject, layers.terrain);
-    this.physics.add.collider(this.player.gameObject, layers.deco);
+    this.physics.add.collider(this.player.gameObject, this.layers.terrain);
+    this.physics.add.collider(this.player.gameObject, this.layers.deco);
     this.physics.add.collider(this.player.gameObject, this.npc.gameObject, this.helloNPC.bind(this));
     this.npc.gameObject.setImmovable(true);
 
     this.cameras.main.setRoundPixels(true);
-    this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+    this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
     this.cameras.main.startFollow(this.player.gameObject, true, CAMERA_LERP, CAMERA_LERP);
 
     this.cursors = this.input.keyboard.createCursorKeys();
