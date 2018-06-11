@@ -1,5 +1,5 @@
 class Preloader extends Phaser.Scene {
-  preload() {
+  loadAssets() {
     this.load.image('logo', 'assets/logo.png');
     this.load.tilemapTiledJSON('myworld', 'assets/tilemap.json');
     this.load.image('tiles', 'assets/environment/tileset.png');
@@ -25,7 +25,93 @@ class Preloader extends Phaser.Scene {
     this.load.image('tomb', 'assets/tomb.png')
   }
 
+  createAnimations() {
+    this.anims.create({
+      key: 'left',
+      frames: this.anims.generateFrameNumbers('walk-side', { start: 0, end: 2 }),
+      framerate: 10,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: 'right',
+      frames: this.anims.generateFrameNumbers('walk-side', { start: 0, end: 2 }),
+      framerate: 10,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: 'up',
+      frames: this.anims.generateFrameNumbers('walk-up', { start: 0, end: 2 }),
+      frameRate: 10,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: 'down',
+      frames: this.anims.generateFrameNumbers('walk-down', { start: 0, end: 2 }),
+      frameRate: 10,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: 'idle-up',
+      frames: this.anims.generateFrameNumbers('idle-up', { start: 0, end: 0 }),
+      frameRate: 10,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: 'idle-down',
+      frames: this.anims.generateFrameNumbers('idle-down', { start: 0, end: 0 }),
+      frameRate: 10,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: 'idle-side',
+      frames: this.anims.generateFrameNumbers('idle-side', { start: 0, end: 0 }),
+      frameRate: 10,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: 'attack-down',
+      frames: this.anims.generateFrameNumbers('attack-down', { start: 0, end: 2 }),
+      frameRate: 10,
+      repeat: -1
+    });
+    this.anims.create({
+      key: 'attack-up',
+      frames: this.anims.generateFrameNumbers('attack-up', { start: 0, end: 2 }),
+      frameRate: 10,
+      repeat: -1
+    });
+    this.anims.create({
+      key: 'attack-side',
+      frames: this.anims.generateFrameNumbers('attack-side', { start: 0, end: 2 }),
+      frameRate: 10,
+      repeat: -1
+    });
+    this.anims.create({
+      key: 'attack-weapon-down',
+      frames: this.anims.generateFrameNumbers('attack-weapon-down', { start: 0, end: 2 }),
+      frameRate: 10,
+      repeat: -1
+    });
+    this.anims.create({
+      key: 'attack-weapon-up',
+      frames: this.anims.generateFrameNumbers('attack-weapon-up', { start: 0, end: 2 }),
+      frameRate: 10,
+      repeat: -1
+    });
+    this.anims.create({
+      key: 'attack-weapon-side',
+      frames: this.anims.generateFrameNumbers('attack-weapon-side', { start: 0, end: 2 }),
+      frameRate: 10,
+      repeat: -1
+    });
+  }
+
+  preload() {
+    this.loadAssets();
+  }
+
   create() {
+    this.createAnimations();
     this.scene.launch('Main');
   }
 }
