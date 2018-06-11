@@ -1,11 +1,9 @@
+import Player from '../game-objects/player';
+
 const CAMERA_LERP = 1;
 const PLAYER_SPEED = 100;
 const ARROW_SPEED = 150;
 const TREANT_SPEED = 500;
-const PLAYER_INITIAL_POSITION = {
-  x: 50,
-  y: 200,
-};
 const hitDelay = 500; //0.5s
 const destroySpriteAttackDelay = 200;
 const treantOpacityDelay = 100;
@@ -67,14 +65,15 @@ class Main extends Phaser.Scene {
   }
 
   initPlayer() {
-    this.player.gameObject = this.physics.add.sprite(
-      PLAYER_INITIAL_POSITION.x,
-      PLAYER_INITIAL_POSITION.y,
-      'idle-down',
-      0
-    );
-    this.player.lastTimeHit = new Date().getTime();
-    this.player.gameObject.setCollideWorldBounds(true);
+    this.player = new Player(this);
+    // this.player.gameObject = this.physics.add.sprite(
+    //   PLAYER_INITIAL_POSITION.x,
+    //   PLAYER_INITIAL_POSITION.y,
+    //   'idle-down',
+    //   0
+    // );
+    // this.player.lastTimeHit = new Date().getTime();
+    // this.player.gameObject.setCollideWorldBounds(true);
   }
 
   initTreant() {
