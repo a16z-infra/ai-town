@@ -1,3 +1,4 @@
+import Arrow from './Arrow';
 const PLAYER_INITIAL_POSITION = {
   x: 50,
   y: 200,
@@ -124,6 +125,30 @@ class Player {
         break;
       default:
     }
+  }
+
+  shoot() {
+    let arrow;
+    switch (this.orientation) {
+      case 'down':
+        this.gameObject.play('attack-weapon-down', true);
+        arrow = new Arrow(this.scene, this, 'down');
+        break;
+      case 'up':
+        this.gameObject.play('attack-weapon-up', true);
+        arrow = new Arrow(this.scene, this, 'up');
+        break;
+      case 'left':
+        this.gameObject.play('attack-weapon-side', true);
+        arrow = new Arrow(this.scene, this, 'left');
+        break;
+      case 'right':
+        this.gameObject.play('attack-weapon-side', true);
+        arrow = new Arrow(this.scene, this, 'right');
+        break;
+      default:
+    }
+    return arrow;
   }
 
   update(keyPressed) {

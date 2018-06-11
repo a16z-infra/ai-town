@@ -150,29 +150,13 @@ class Main extends Phaser.Scene {
         return;
       }
       this.player.reload();
-      let arrow;
-      let arrowGameObject;
-      switch (this.player.orientation) {
-        case 'down':
-          this.player.gameObject.play('attack-weapon-down', true);
-          arrow = new Arrow(this, this.player, 'down');
-          break;
-        case 'up':
-          this.player.gameObject.play('attack-weapon-up', true);
-          arrow = new Arrow(this, this.player, 'up');
-          break;
-        case 'left':
-          this.player.gameObject.play('attack-weapon-side', true);
-          arrow = new Arrow(this, this.player, 'left');
-          break;
-        case 'right':
-          this.player.gameObject.play('attack-weapon-side', true);
-          arrow = new Arrow(this, this.player, 'right');
-          break;
-        default:
-      }
-      arrowGameObject = arrow.gameObject;
-      this.physics.add.collider(arrowGameObject, this.treant, this.treantLoseHp(arrowGameObject).bind(this));
+      const arrow = this.player.shoot();
+      const arrowGameObject = arrow.gameObject;
+      this.physics.add.collider(
+        arrowGameObject,
+        this.treant,
+        this.treantLoseHp(arrowGameObject).bind(this)
+      );
     }
   }
 
@@ -240,7 +224,7 @@ class Main extends Phaser.Scene {
       if (this.treant.hp == 0) {
         this.treant.destroy();
       }
-    }
+    };
   }
 
   checkTreantOpacity() {
