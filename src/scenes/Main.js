@@ -127,20 +127,6 @@ class Main extends Phaser.Scene {
     };
 
     this.player.update(keyPressed);
-
-    if (keyPressed.shift) {
-      if (this.player.loading) {
-        return;
-      }
-      this.player.reload();
-      const arrow = this.player.shoot();
-      const arrowGameObject = arrow.gameObject;
-      this.physics.add.collider(
-        arrowGameObject,
-        this.treant,
-        this.treantLoseHp(arrowGameObject).bind(this)
-      );
-    }
   }
 
   moveTreant() {

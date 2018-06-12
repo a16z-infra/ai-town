@@ -109,7 +109,7 @@ class Player {
       up: { flip: false, anim: 'attack-up' },
       left: { flip: true, anim: 'attack-side' },
       right: { flip: false, anim: 'attack-side' },
-    }
+    };
 
     this.gameObject.setFlipX(animSwitch[this.orientation].flip);
     this.gameObject.play(animSwitch[this.orientation].anim, true);
@@ -121,7 +121,7 @@ class Player {
       up: { flip: false, anim: 'idle-up' },
       left: { flip: true, anim: 'idle-side' },
       right: { flip: false, anim: 'idle-side' },
-    }
+    };
     this.gameObject.setFlipX(animSwitch[this.orientation].flip);
     this.gameObject.play(animSwitch[this.orientation].anim, true);
   }
@@ -132,12 +132,28 @@ class Player {
       up: { anim: 'attack-weapon-up' },
       left: { anim: 'attack-weapon-side' },
       right: { anim: 'attack-weapon-side' },
-    }
+    };
 
     this.gameObject.play(animSwitch[this.orientation].anim, true);
     const arrow = new Arrow(this.scene, this, this.orientation);
 
     return arrow;
+  }
+
+  handleShootKey(keyPressed) {
+    if (keyPressed.shift) {
+      if (this.loading) {
+        return;
+      }
+      this.reload();
+      const arrow = this.shoot();
+      const arrowGameObject = arrow.gameObject;
+      this.scene.physics.add.collider(
+        arrowGameObject,
+        this.scene.treant,
+        this.scene.treantLoseHp(arrowGameObject).bind(this)
+      );
+    }
   }
 
   update(keyPressed) {
@@ -156,6 +172,8 @@ class Player {
     if (noKeyPressed && !this.loading) {
       this.beIdle();
     }
+
+    this.handleShootKey(keyPressed);
   }
 
   loseHp() {
@@ -170,15 +188,13 @@ class Player {
 
     // Player dies
     if (!this.tomb) {
-      this.tomb = this.scene.add
-        .sprite(this.gameObject.x, this.gameObject.y, 'tomb')
-        .setScale(0.1);
+      this.tomb = this.scene.add.sprite(this.gameObject.x, this.gameObject.y, 'tomb').setScale(0.1);
     }
     this.gameObject.destroy();
   }
 
   canGetHit() {
-    return new Date().getTime() - this.lastTimeHit > HIT_DELAY
+    return new Date().getTime() - this.lastTimeHit > HIT_DELAY;
   }
 }
 
