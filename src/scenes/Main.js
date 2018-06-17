@@ -1,6 +1,7 @@
 import Player from '../game-objects/Player';
 import Arrow from '../game-objects/Arrow';
 import Treant from '../game-objects/Treant';
+import Npc from '../game-objects/Npc';
 
 const CAMERA_LERP = 1;
 const ARROW_SPEED = 150;
@@ -9,29 +10,17 @@ const destroySpriteAttackDelay = 200;
 const treantOpacityDelay = 100;
 var treantAttack = null;
 
-const NPC_POS = {
-  x: 50,
-  y: 150,
-};
-
 class Main extends Phaser.Scene {
   constructor() {
     super('Main');
     this.player = null;
     this.cursors = null;
-    this.npc = {
-      gameObject: null,
-      textGameObject: null,
-    };
+    this.npc = null;
     this.treant = null;
     this.hearts = [];
     this.tomb = null;
     this.map = null;
     this.layers = null;
-  }
-
-  helloNPC() {
-    this.npc.textGameObject.setAlpha(1);
   }
 
   createMapWithLayers() {
@@ -47,16 +36,6 @@ class Main extends Phaser.Scene {
     this.layers.deco.setCollisionByProperty({ collides: true });
   }
 
-  initNpc() {
-    this.npc.gameObject = this.physics.add.sprite(NPC_POS.x, NPC_POS.y, 'npcs', 0);
-    this.npc.textGameObject = this.add.text(NPC_POS.x - 35, NPC_POS.y - 20, 'Hello there!', {
-      align: 'center',
-      fontSize: '10px',
-    });
-    this.npc.textGameObject.setAlpha(0);
-    this.npc.gameObject.setImmovable(true);
-  }
-
   addColliders() {
     this.physics.add.collider(this.treant.gameObject, this.layers.terrain);
     this.physics.add.collider(this.treant.gameObject, this.layers.deco);
@@ -67,7 +46,7 @@ class Main extends Phaser.Scene {
     this.physics.add.collider(
       this.player.gameObject,
       this.npc.gameObject,
-      this.helloNPC.bind(this)
+      this.npc.helloNPC.bind(this)
     );
   }
 
@@ -83,7 +62,7 @@ class Main extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
     this.player = new Player(this);
 
-    this.initNpc();
+    this.npc = new Npc(this);
     this.treant = new Treant(this);
 
     this.addColliders();
