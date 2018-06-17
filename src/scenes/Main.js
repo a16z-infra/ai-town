@@ -4,11 +4,6 @@ import Treant from '../game-objects/Treant';
 import Npc from '../game-objects/Npc';
 
 const CAMERA_LERP = 1;
-const ARROW_SPEED = 150;
-const TREANT_SPEED = 500;
-const destroySpriteAttackDelay = 200;
-const treantOpacityDelay = 100;
-var treantAttack = null;
 
 class Main extends Phaser.Scene {
   constructor() {
@@ -60,8 +55,8 @@ class Main extends Phaser.Scene {
     this.createMapWithLayers();
 
     this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
-    this.player = new Player(this);
 
+    this.player = new Player(this);
     this.npc = new Npc(this);
     this.treant = new Treant(this);
 
