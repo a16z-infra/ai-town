@@ -150,8 +150,8 @@ class Player {
       const arrowGameObject = arrow.gameObject;
       this.scene.physics.add.collider(
         arrowGameObject,
-        this.scene.treant,
-        this.scene.treantLoseHp(arrowGameObject).bind(this)
+        this.scene.treant.gameObject,
+        this.scene.treant.treantLoseHp(arrowGameObject).bind(this)
       );
     }
   }
