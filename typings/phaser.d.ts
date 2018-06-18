@@ -1,3 +1,5 @@
+declare interface ActiveXObject {}
+
 declare type CallCallback = (item: Phaser.GameObjects.GameObject)=>void;
 
 declare type GridAlignConfig = {

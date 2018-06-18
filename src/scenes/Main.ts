@@ -1,11 +1,20 @@
+import Arrow from '../game-objects/Arrow';
 import Player from '../game-objects/Player';
-import Arrow from '../game-objects/Arrow.ts';
-import Treant from '../game-objects/Treant';
-import Npc from '../game-objects/Npc';
+import Treant from '../game-objects/Treant.js';
+import Npc from '../game-objects/Npc.js';
 
 const CAMERA_LERP = 1;
 
 class Main extends Phaser.Scene {
+  player: any;
+  cursors: any;
+  npc: any;
+  treant: any;
+  hearts: any;
+  tomb: any;
+  map: any;
+  layers: any;
+
   constructor() {
     super('Main');
     this.player = null;

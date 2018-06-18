@@ -1,9 +1,11 @@
+import Player from './Player';
+
 const ARROW_SPEED = 150;
 
 class Arrow {
   scene: Phaser.Scene;
-  player: any;
-  gameObject: any;
+  player: Player;
+  gameObject: Phaser.Physics.Arcade.Sprite;
 
   constructor(scene: Phaser.Scene, player, direction) {
     this.scene = scene;

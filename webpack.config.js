@@ -10,9 +10,8 @@ module.exports = {
   devtool: 'source-map',
   module: {
     rules: [
-      // All files with a '.ts' or '.tsx' extension will be handled by 'awesome-typescript-loader'.
-      { enforce: 'pre', test: /\.js$/, loader: 'source-map-loader' },
       { test: /\.tsx?$/, loader: 'awesome-typescript-loader' },
+      { enforce: 'pre', test: /\.js$/, loader: 'source-map-loader' },
     ],
   },
   plugins: [
@@ -26,5 +25,8 @@ module.exports = {
   output: {
     filename: 'bundle.js',
     path: path.resolve(__dirname, 'dist'),
+  },
+  resolve: {
+    extensions: ['.ts', '.js', '.json'],
   },
 };

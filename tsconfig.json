@@ -2,7 +2,8 @@
   "compilerOptions": {
     "outDir": "./built",
     "allowJs": true,
-    "target": "ES5",
+    "target": "ES6",
+    "lib": ["es2017", "dom"],
     "sourceMap": true
   },
   "include": ["./src/**/*"],

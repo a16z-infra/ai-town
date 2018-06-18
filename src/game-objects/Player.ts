@@ -1,4 +1,6 @@
-import Arrow from './Arrow.ts';
+import Arrow from './Arrow';
+import Main from '../scenes/Main';
+
 const HIT_DELAY = 500; //0.5s
 const PLAYER_INITIAL_POSITION = {
   x: 50,
@@ -7,7 +9,16 @@ const PLAYER_INITIAL_POSITION = {
 const PLAYER_SPEED = 100;
 
 class Player {
-  constructor(scene) {
+  scene: Main;
+  hp: number;
+  gameObject: Phaser.Physics.Arcade.Sprite;
+  orientation: 'up' | 'down' | 'left' | 'right';
+  lastTimeHit: number;
+  loading: boolean;
+  tomb: Phaser.GameObjects.Sprite;
+  hearts: Array<Phaser.GameObjects.Sprite>;
+
+  constructor(scene: Main) {
     this.scene = scene;
 
     this.hp = 3;
@@ -29,7 +40,7 @@ class Player {
 
   initHearts() {
     this.hearts = Array(this.hp)
-      .fill()
+      .fill(0)
       .map((_, i) => {
         return this.scene.add
           .sprite((i + 1) * 15, 15, 'heart')
@@ -180,7 +191,7 @@ class Player {
     this.hp--;
     this.updateHearts();
 
-    this.lastTimeHit = new Date();
+    this.lastTimeHit = new Date().getTime();
 
     if (this.hp > 0) {
       return;
@@ -197,5 +208,4 @@ class Player {
     return new Date().getTime() - this.lastTimeHit > HIT_DELAY;
   }
 }
-
 export default Player;
