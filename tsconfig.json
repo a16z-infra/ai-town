@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
+    "outDir": "./built",
+    "allowJs": true,
     "target": "ES5",
     "sourceMap": true
   },
+  "include": ["./src/**/*"],
   "exclude": ["node_modules", "bin", "typings/phaser.d.ts"]
 }
