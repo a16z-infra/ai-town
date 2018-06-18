@@ -1,8 +1,8 @@
 /// <reference path="../typings/phaser.d.ts" />
 
 import 'phaser';
-import Main from './scenes/Main.ts';
-import Preloader from './scenes/Preloader.ts';
+import Main from './scenes/Main';
+import Preloader from './scenes/Preloader';
 
 class PhaserGame extends Phaser.Game {
   constructor() {
