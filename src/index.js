@@ -2,7 +2,7 @@
 
 import 'phaser';
 import Main from './scenes/Main.ts';
-import Preloader from './scenes/Preloader';
+import Preloader from './scenes/Preloader.ts';
 
 class PhaserGame extends Phaser.Game {
   constructor() {

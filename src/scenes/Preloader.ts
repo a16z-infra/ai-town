@@ -72,13 +72,13 @@ class Preloader extends Phaser.Scene {
     this.anims.create({
       key: 'left',
       frames: this.anims.generateFrameNumbers('walk-side', { start: 0, end: 2 }),
-      framerate: 10,
+      frameRate: 10,
       repeat: -1,
     });
     this.anims.create({
       key: 'right',
       frames: this.anims.generateFrameNumbers('walk-side', { start: 0, end: 2 }),
-      framerate: 10,
+      frameRate: 10,
       repeat: -1,
     });
     this.anims.create({
