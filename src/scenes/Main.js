@@ -1,5 +1,5 @@
 import Player from '../game-objects/Player';
-import Arrow from '../game-objects/Arrow';
+import Arrow from '../game-objects/Arrow.ts';
 import Treant from '../game-objects/Treant';
 import Npc from '../game-objects/Npc';
 

@@ -1,7 +1,11 @@
 const ARROW_SPEED = 150;
 
 class Arrow {
-  constructor(scene, player, direction) {
+  scene: Phaser.Scene;
+  player: any;
+  gameObject: any;
+
+  constructor(scene: Phaser.Scene, player, direction) {
     this.scene = scene;
     this.player = player;
 

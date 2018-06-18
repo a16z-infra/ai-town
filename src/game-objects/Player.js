@@ -1,4 +1,4 @@
-import Arrow from './Arrow';
+import Arrow from './Arrow.ts';
 const HIT_DELAY = 500; //0.5s
 const PLAYER_INITIAL_POSITION = {
   x: 50,
