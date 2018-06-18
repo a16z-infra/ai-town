@@ -6,14 +6,16 @@ import Npc from '../game-objects/Npc';
 const CAMERA_LERP = 1;
 
 class Main extends Phaser.Scene {
-  player: any;
-  cursors: any;
-  npc: any;
-  treant: any;
-  hearts: any;
-  tomb: any;
-  map: any;
-  layers: any;
+  player: Player;
+  cursors: CursorKeys;
+  npc: Npc;
+  treant: Treant;
+  map: Phaser.Tilemaps.Tilemap;
+  layers: {
+    terrain: Phaser.Tilemaps.StaticTilemapLayer
+    deco: Phaser.Tilemaps.StaticTilemapLayer
+    bridge: Phaser.Tilemaps.StaticTilemapLayer
+  };
 
   constructor() {
     super('Main');
@@ -21,8 +23,6 @@ class Main extends Phaser.Scene {
     this.cursors = null;
     this.npc = null;
     this.treant = null;
-    this.hearts = [];
-    this.tomb = null;
     this.map = null;
     this.layers = null;
   }
