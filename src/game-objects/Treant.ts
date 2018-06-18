@@ -1,9 +1,14 @@
+import Main from '../scenes/Main';
 const TREANT_SPEED = 500;
 const treantOpacityDelay = 100;
 const destroySpriteAttackDelay = 200;
 var treantAttack = null;
 
 class Treant {
+  scene: Main;
+  gameObject: Phaser.Physics.Arcade.Sprite;
+  lastTimeHit: number;
+  hp: number;
 
   constructor(scene) {
     this.scene = scene;
@@ -54,7 +59,6 @@ class Treant {
     if (this.gameObject.active) {
       this.gameObject.setVelocity(0);
     }
-
   }
 
   treantHit() {
