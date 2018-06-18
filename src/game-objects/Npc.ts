@@ -1,9 +1,15 @@
+import Main from '../scenes/Main';
+
 const NPC_POS = {
   x: 50,
   y: 150,
 };
 
 class Npc {
+  scene: Main;
+  gameObject: Phaser.Physics.Arcade.Sprite;
+  textGameObject: Phaser.GameObjects.Text;
+
   constructor(scene) {
     this.scene = scene;
     this.gameObject = this.scene.physics.add.sprite(NPC_POS.x, NPC_POS.y, 'npcs', 0);
@@ -16,7 +22,7 @@ class Npc {
   }
 
   helloNPC() {
-    this.npc.textGameObject.setAlpha(1);
+    this.textGameObject.setAlpha(1);
   }
 }
 

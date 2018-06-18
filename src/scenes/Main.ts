@@ -1,7 +1,7 @@
 import Arrow from '../game-objects/Arrow';
 import Player from '../game-objects/Player';
 import Treant from '../game-objects/Treant.js';
-import Npc from '../game-objects/Npc.js';
+import Npc from '../game-objects/Npc';
 
 const CAMERA_LERP = 1;
 
