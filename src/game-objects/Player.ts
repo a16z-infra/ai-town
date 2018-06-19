@@ -162,7 +162,7 @@ class Player {
       this.scene.physics.add.collider(
         arrowGameObject,
         this.scene.treant.gameObject,
-        this.scene.treant.treantLoseHp(arrowGameObject).bind(this)
+        this.scene.treant.treantLoseHp(arrowGameObject)
       );
     }
   }

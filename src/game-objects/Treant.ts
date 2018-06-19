@@ -26,8 +26,6 @@ class Treant {
       repeat: Infinity,
       startAt: 2000,
     });
-
-    this.treantHit = this.treantHit.bind(this);
   }
 
   moveTreant() {
@@ -61,7 +59,7 @@ class Treant {
     }
   }
 
-  treantHit() {
+  treantHit = () => {
     if (this.scene.player.canGetHit()) {
       treantAttack = this.scene.physics.add.sprite(
         this.scene.player.gameObject.x,
@@ -72,7 +70,7 @@ class Treant {
     }
   }
 
-  treantLoseHp(arrow) {
+  treantLoseHp = (arrow) => {
     return () => {
       this.hp--;
       this.gameObject.alpha = 0.1;
