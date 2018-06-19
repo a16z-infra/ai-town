@@ -19,6 +19,8 @@ class Npc {
     });
     this.textGameObject.setAlpha(0);
     this.gameObject.setImmovable(true);
+
+    this.helloNPC = this.helloNPC.bind(this);
   }
 
   helloNPC() {

@@ -12,9 +12,9 @@ class Main extends Phaser.Scene {
   treant: Treant;
   map: Phaser.Tilemaps.Tilemap;
   layers: {
-    terrain: Phaser.Tilemaps.StaticTilemapLayer
-    deco: Phaser.Tilemaps.StaticTilemapLayer
-    bridge: Phaser.Tilemaps.StaticTilemapLayer
+    terrain: Phaser.Tilemaps.StaticTilemapLayer;
+    deco: Phaser.Tilemaps.StaticTilemapLayer;
+    bridge: Phaser.Tilemaps.StaticTilemapLayer;
   };
 
   constructor() {
@@ -43,15 +43,15 @@ class Main extends Phaser.Scene {
   addColliders() {
     this.physics.add.collider(this.treant.gameObject, this.layers.terrain);
     this.physics.add.collider(this.treant.gameObject, this.layers.deco);
-    this.physics.add.collider(this.treant.gameObject, this.player.gameObject, this.treant.treantHit);
+    this.physics.add.collider(
+      this.treant.gameObject,
+      this.player.gameObject,
+      this.treant.treantHit
+    );
 
     this.physics.add.collider(this.player.gameObject, this.layers.terrain);
     this.physics.add.collider(this.player.gameObject, this.layers.deco);
-    this.physics.add.collider(
-      this.player.gameObject,
-      this.npc.gameObject,
-      this.npc.helloNPC.bind(this)
-    );
+    this.physics.add.collider(this.player.gameObject, this.npc.gameObject, this.npc.helloNPC);
   }
 
   initCamera() {
