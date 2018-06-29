@@ -11,13 +11,13 @@ class Treant {
   hp: number;
   chasingPlayerTimerEvent: Phaser.Time.TimerEvent;
 
-  constructor(scene) {
+  constructor(scene, x: number = 400, y: number = 400) {
     this.scene = scene;
     this.gameObject = null;
     this.lastTimeHit = null;
     this.hp = 3;
 
-    this.gameObject = this.scene.physics.add.sprite(400, 400, 'treant').setDepth(5);
+    this.gameObject = this.scene.physics.add.sprite(x, y, 'treant').setDepth(5);
     this.gameObject.setCollideWorldBounds(true);
     this.gameObject.setImmovable(true);
   }
