@@ -159,10 +159,13 @@ class Player {
       this.reload();
       const arrow = this.shoot();
       const arrowGameObject = arrow.gameObject;
-      this.scene.physics.add.collider(
-        arrowGameObject,
-        this.scene.treant.gameObject,
-        this.scene.treant.treantLoseHp(arrowGameObject)
+      // TODO refactor this for performance
+      this.scene.treants.map(treant =>
+        this.scene.physics.add.collider(
+          arrowGameObject,
+          treant.gameObject,
+          treant.treantLoseHp(arrowGameObject)
+        )
       );
     }
   }

@@ -9,8 +9,9 @@ class Main extends Phaser.Scene {
   player: Player;
   cursors: CursorKeys;
   npc: Npc;
-  treant: Treant;
+  treants: Treant[];
   map: Phaser.Tilemaps.Tilemap;
+  treantGroup: Phaser.Physics.Arcade.Group;
   layers: {
     terrain: Phaser.Tilemaps.StaticTilemapLayer;
     deco: Phaser.Tilemaps.StaticTilemapLayer;
@@ -22,7 +23,8 @@ class Main extends Phaser.Scene {
     this.player = null;
     this.cursors = null;
     this.npc = null;
-    this.treant = null;
+    this.treants = [];
+    this.treantGroup = null;
     this.map = null;
     this.layers = null;
   }
@@ -41,12 +43,12 @@ class Main extends Phaser.Scene {
   }
 
   addColliders() {
-    this.physics.add.collider(this.treant.gameObject, this.layers.terrain);
-    this.physics.add.collider(this.treant.gameObject, this.layers.deco);
-    this.physics.add.collider(
-      this.treant.gameObject,
-      this.player.gameObject,
-      this.treant.treantHit
+    this.treantGroup = this.physics.add.group(this.treants.map(treant => treant.gameObject));
+    this.physics.add.collider(this.treantGroup, this.layers.terrain);
+    this.physics.add.collider(this.treantGroup, this.layers.deco);
+    // TODO refactor this for performance
+    this.treants.map(treant =>
+      this.physics.add.collider(treant.gameObject, this.player.gameObject, treant.treantHit)
     );
 
     this.physics.add.collider(this.player.gameObject, this.layers.terrain);
@@ -67,7 +69,8 @@ class Main extends Phaser.Scene {
 
     this.player = new Player(this);
     this.npc = new Npc(this);
-    this.treant = new Treant(this);
+    this.treants.push(new Treant(this));
+    this.treants.push(new Treant(this, 400, 300));
 
     this.addColliders();
 
@@ -86,7 +89,7 @@ class Main extends Phaser.Scene {
       shift: this.cursors.shift.isDown,
     };
 
-    this.treant.update();
+    this.treants.map(treant => treant.update())
     this.player.update(keyPressed);
   }
 }
