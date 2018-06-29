@@ -9,6 +9,7 @@ class Treant {
   gameObject: Phaser.Physics.Arcade.Sprite;
   lastTimeHit: number;
   hp: number;
+  chasingPlayerTimerEvent: Phaser.Time.TimerEvent;
 
   constructor(scene) {
     this.scene = scene;
@@ -16,23 +17,33 @@ class Treant {
     this.lastTimeHit = null;
     this.hp = 3;
 
-    this.gameObject = this.scene.physics.add.sprite(500, 500, 'treant').setDepth(5);
+    this.gameObject = this.scene.physics.add.sprite(400, 400, 'treant').setDepth(5);
     this.gameObject.setCollideWorldBounds(true);
     this.gameObject.setImmovable(true);
-
-    this.scene.time.addEvent({
-      delay: 500,
-      callback: this.moveTreant,
-      callbackScope: this,
-      repeat: Infinity,
-      startAt: 2000,
-    });
   }
+
+  computeDistanceWith = (
+    otherGameObject: Phaser.Physics.Arcade.Sprite
+  ): { diffX: number; diffY: number } => {
+    var diffX = this.gameObject.x - otherGameObject.x;
+    var diffY = this.gameObject.y - otherGameObject.y;
+    return { diffX, diffY };
+  };
+
+  shouldChase = () => {
+    const { diffX, diffY } = this.computeDistanceWith(this.scene.player.gameObject);
+    const distance = Math.sqrt(diffX ** 2 + diffY ** 2);
+
+    if (distance < 100) {
+      return true;
+    }
+
+    return false;
+  };
 
   moveTreant() {
     if (this.gameObject.active) {
-      var diffX = this.gameObject.x - this.scene.player.gameObject.x;
-      var diffY = this.gameObject.y - this.scene.player.gameObject.y;
+      const { diffX, diffY } = this.computeDistanceWith(this.scene.player.gameObject);
       //Move according to X
       if (diffX < 0) {
         this.gameObject.setVelocityX(TREANT_SPEED);
@@ -48,9 +59,37 @@ class Treant {
     }
   }
 
+  startChasing() {
+    this.chasingPlayerTimerEvent = this.scene.time.addEvent({
+      delay: 500,
+      callback: this.moveTreant,
+      callbackScope: this,
+      repeat: Infinity,
+      startAt: 2000,
+    });
+  }
+
+  stopChasing() {
+    this.gameObject.setVelocity(0);
+    this.chasingPlayerTimerEvent.destroy();
+    this.chasingPlayerTimerEvent = null;
+  }
+
+  handleChase() {
+    if (!this.chasingPlayerTimerEvent && this.shouldChase()) {
+      this.startChasing();
+    }
+
+    if (this.chasingPlayerTimerEvent && !this.shouldChase()) {
+      this.stopChasing();
+    }
+  }
+
   update() {
     this.destroyTreantAttack();
     this.checkTreantOpacity();
+
+    this.handleChase();
   }
 
   treantHit = () => {
@@ -62,7 +101,7 @@ class Treant {
       );
       this.scene.player.loseHp();
     }
-  }
+  };
 
   treantLoseHp = (projectile: Phaser.Physics.Arcade.Sprite) => {
     return () => {
@@ -74,7 +113,7 @@ class Treant {
         this.gameObject.destroy();
       }
     };
-  }
+  };
 
   checkTreantOpacity() {
     if (new Date().getTime() - this.lastTimeHit > treantOpacityDelay) {
