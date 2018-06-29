@@ -1,5 +1,5 @@
 import Main from '../scenes/Main';
-const TREANT_SPEED = 500;
+const TREANT_SPEED = 20;
 const treantOpacityDelay = 100;
 const destroySpriteAttackDelay = 200;
 var treantAttack = null;
@@ -18,6 +18,7 @@ class Treant {
 
     this.gameObject = this.scene.physics.add.sprite(500, 500, 'treant').setDepth(5);
     this.gameObject.setCollideWorldBounds(true);
+    this.gameObject.setImmovable(true);
 
     this.scene.time.addEvent({
       delay: 500,
@@ -34,18 +35,14 @@ class Treant {
       var diffY = this.gameObject.y - this.scene.player.gameObject.y;
       //Move according to X
       if (diffX < 0) {
-        this.gameObject.scaleX = 1;
         this.gameObject.setVelocityX(TREANT_SPEED);
       } else {
-        this.gameObject.scaleX = 1;
         this.gameObject.setVelocityX(-TREANT_SPEED);
       }
       //Move according to Y
       if (diffY < 0) {
-        this.gameObject.scaleY = 1;
         this.gameObject.setVelocityY(TREANT_SPEED);
       } else {
-        this.gameObject.scaleY = 1;
         this.gameObject.setVelocityY(-TREANT_SPEED);
       }
     }
@@ -54,9 +51,6 @@ class Treant {
   update() {
     this.destroyTreantAttack();
     this.checkTreantOpacity();
-    if (this.gameObject.active) {
-      this.gameObject.setVelocity(0);
-    }
   }
 
   treantHit = () => {
