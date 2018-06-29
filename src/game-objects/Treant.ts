@@ -64,12 +64,12 @@ class Treant {
     }
   }
 
-  treantLoseHp = (arrow) => {
+  treantLoseHp = (projectile: Phaser.Physics.Arcade.Sprite) => {
     return () => {
       this.hp--;
       this.gameObject.alpha = 0.1;
       this.lastTimeHit = new Date().getTime();
-      arrow.destroy();
+      projectile.destroy();
       if (this.hp == 0) {
         this.gameObject.destroy();
       }
