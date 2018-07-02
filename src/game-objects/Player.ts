@@ -13,6 +13,7 @@ const PLAYER_RELOAD = 500;
 class Player {
   scene: Main;
   hp: number;
+  maxHp: number;
   gameObject: Phaser.Physics.Arcade.Sprite;
   orientation: 'up' | 'down' | 'left' | 'right';
   lastTimeHit: number;
@@ -43,13 +44,22 @@ class Player {
   }
 
   initHearts() {
+    Array(this.hp)
+      .fill(0)
+      .map((_, i) => {
+        return this.scene.add
+          .sprite((i + 1) * DISTANCE_BETWEEN_HEARTS, DISTANCE_BETWEEN_HEARTS, 'heart-empty')
+          .setScrollFactor(0)
+          .setDepth(50);
+      });
+
     this.hearts = Array(this.hp)
       .fill(0)
       .map((_, i) => {
         return this.scene.add
           .sprite((i + 1) * DISTANCE_BETWEEN_HEARTS, DISTANCE_BETWEEN_HEARTS, 'heart')
           .setScrollFactor(0)
-          .setDepth(10);
+          .setDepth(100);
       });
   }
 

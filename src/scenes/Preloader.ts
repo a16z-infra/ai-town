@@ -10,6 +10,7 @@ class Preloader extends Phaser.Scene {
     this.load.image('treant', 'assets/sprites/treant/idle/treant-idle-front.png');
     this.load.image('treantAttack', 'assets/environment/sliced-objects/trunk.png');
     this.load.image('heart', 'assets/heart.png');
+    this.load.image('heart-empty', 'assets/heart-empty.png');
     this.load.image('tomb', 'assets/tomb.png');
 
     // Spritesheets
