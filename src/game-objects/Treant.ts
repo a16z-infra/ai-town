@@ -1,4 +1,6 @@
 import Main from '../scenes/Main';
+import { toVector2 } from '../utils/game-objects-math';
+
 const TREANT_SPEED = 20;
 const TREANT_HIT_DELAY = 100;
 const DESTROY_SPRITE_ATTACK_DELAY = 200;
@@ -20,17 +22,10 @@ class Treant {
     this.gameObject.setImmovable(true);
   }
 
-  computeDistanceWith = (
-    otherGameObject: Phaser.Physics.Arcade.Sprite
-  ): { diffX: number; diffY: number } => {
-    var diffX = this.gameObject.x - otherGameObject.x;
-    var diffY = this.gameObject.y - otherGameObject.y;
-    return { diffX, diffY };
-  };
-
   shouldChase = () => {
-    const { diffX, diffY } = this.computeDistanceWith(this.scene.player.gameObject);
-    const distance = Math.sqrt(diffX ** 2 + diffY ** 2);
+    const playerPoint = toVector2(this.scene.player.gameObject)
+    const treantPoint = toVector2(this.gameObject);
+    const distance = treantPoint.distance(playerPoint)
 
     if (distance < 100) {
       return true;
@@ -41,15 +36,18 @@ class Treant {
 
   moveTreant() {
     if (this.gameObject.active) {
-      const { diffX, diffY } = this.computeDistanceWith(this.scene.player.gameObject);
+      const playerPoint = toVector2(this.scene.player.gameObject)
+      const treantPoint = toVector2(this.gameObject);
+      const { x, y } = treantPoint.subtract(playerPoint)
+
       //Move according to X
-      if (diffX < 0) {
+      if (x < 0) {
         this.gameObject.setVelocityX(TREANT_SPEED);
       } else {
         this.gameObject.setVelocityX(-TREANT_SPEED);
       }
       //Move according to Y
-      if (diffY < 0) {
+      if (y < 0) {
         this.gameObject.setVelocityY(TREANT_SPEED);
       } else {
         this.gameObject.setVelocityY(-TREANT_SPEED);
@@ -99,7 +97,7 @@ class Treant {
       this.scene.player.loseHp();
       this.scene.time.addEvent({
         delay: DESTROY_SPRITE_ATTACK_DELAY,
-        callback: () => treantAttack ? treantAttack.destroy() : null,
+        callback: () => (treantAttack ? treantAttack.destroy() : null),
         callbackScope: this,
       });
     }
