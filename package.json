@@ -9,7 +9,7 @@
     "clean-webpack-plugin": "^0.1.19",
     "gh-pages": "^1.2.0",
     "html-webpack-plugin": "^3.2.0",
-    "phaser": "^3.9.0"
+    "phaser": "3.10.1"
   },
   "devDependencies": {
     "copy-webpack-plugin": "4.5.1",
