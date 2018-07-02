@@ -108,7 +108,7 @@ class Treant {
   treantLoseHp = (projectile: Phaser.Physics.Arcade.Sprite) => {
     return () => {
       this.hp--;
-      this.gameObject.alpha = 0.1;
+      this.gameObject.setTint(0xff0000);
       this.lastTimeHit = new Date().getTime();
       projectile.destroy();
       if (this.hp == 0) {
@@ -119,7 +119,7 @@ class Treant {
 
   checkTreantOpacity() {
     if (new Date().getTime() - this.lastTimeHit > treantOpacityDelay) {
-      this.gameObject.alpha = 1;
+      this.gameObject.clearTint();
     }
   }
 
