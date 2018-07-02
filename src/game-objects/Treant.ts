@@ -113,7 +113,7 @@ class Treant {
         callbackScope: this,
       });
       projectile.destroy();
-      if (this.hp == 0) {
+      if (this.hp === 0) {
         this.gameObject.destroy();
       }
     };
