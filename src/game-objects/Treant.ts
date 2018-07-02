@@ -4,7 +4,6 @@ import { toVector2 } from '../utils/game-objects-math';
 const TREANT_SPEED = 20;
 const TREANT_HIT_DELAY = 100;
 const DESTROY_SPRITE_ATTACK_DELAY = 200;
-var treantAttack = null;
 
 class Treant {
   scene: Main;
@@ -88,19 +87,21 @@ class Treant {
   }
 
   treantHit = () => {
-    if (this.scene.player.canGetHit()) {
-      treantAttack = this.scene.physics.add.sprite(
-        this.scene.player.gameObject.x,
-        this.scene.player.gameObject.y,
-        'treantAttack'
-      );
-      this.scene.player.loseHp();
-      this.scene.time.addEvent({
-        delay: DESTROY_SPRITE_ATTACK_DELAY,
-        callback: () => (treantAttack ? treantAttack.destroy() : null),
-        callbackScope: this,
-      });
+    if (!this.scene.player.canGetHit()) {
+      return
     }
+
+    const treantAttack = this.scene.physics.add.sprite(
+      this.scene.player.gameObject.x,
+      this.scene.player.gameObject.y,
+      'treantAttack'
+    );
+    this.scene.player.loseHp();
+    this.scene.time.addEvent({
+      delay: DESTROY_SPRITE_ATTACK_DELAY,
+      callback: () => (treantAttack ? treantAttack.destroy() : null),
+      callbackScope: this,
+    });
   };
 
   treantLoseHp = (projectile: Phaser.Physics.Arcade.Sprite) => {
