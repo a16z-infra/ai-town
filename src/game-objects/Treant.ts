@@ -41,9 +41,7 @@ class Treant {
     const treantPoint = this.gameObject.getCenter();
     const { x, y } = playerPoint.subtract(treantPoint);
 
-    //Move according to X
     this.gameObject.setVelocityX(Math.sign(x) * TREANT_SPEED);
-    //Move according to Y
     this.gameObject.setVelocityY(Math.sign(y) * TREANT_SPEED);
   }
 
