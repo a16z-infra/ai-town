@@ -1,5 +1,4 @@
 import Main from '../scenes/Main';
-import { toVector2 } from '../utils/game-objects-math';
 
 const TREANT_SPEED = 20;
 const TREANT_HIT_DELAY = 100;
@@ -22,8 +21,8 @@ class Treant {
   }
 
   shouldChase = () => {
-    const playerPoint = toVector2(this.scene.player.gameObject);
-    const treantPoint = toVector2(this.gameObject);
+    const playerPoint = this.scene.player.gameObject.getCenter();
+    const treantPoint = this.gameObject.getCenter();
     const distance = treantPoint.distance(playerPoint);
 
     if (distance < 100) {
@@ -38,8 +37,8 @@ class Treant {
       return;
     }
 
-    const playerPoint = toVector2(this.scene.player.gameObject);
-    const treantPoint = toVector2(this.gameObject);
+    const playerPoint = this.scene.player.gameObject.getCenter();
+    const treantPoint = this.gameObject.getCenter();
     const { x, y } = playerPoint.subtract(treantPoint);
 
     //Move according to X
