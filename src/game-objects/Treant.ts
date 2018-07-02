@@ -1,20 +1,18 @@
 import Main from '../scenes/Main';
 const TREANT_SPEED = 20;
-const treantOpacityDelay = 100;
+const TREANT_HIT_DELAY = 100;
 const destroySpriteAttackDelay = 200;
 var treantAttack = null;
 
 class Treant {
   scene: Main;
   gameObject: Phaser.Physics.Arcade.Sprite;
-  lastTimeHit: number;
   hp: number;
   chasingPlayerTimerEvent: Phaser.Time.TimerEvent;
 
   constructor(scene, x: number = 400, y: number = 400) {
     this.scene = scene;
     this.gameObject = null;
-    this.lastTimeHit = null;
     this.hp = 3;
 
     this.gameObject = this.scene.physics.add.sprite(x, y, 'treant').setDepth(5);
@@ -89,8 +87,6 @@ class Treant {
 
   update() {
     this.destroyTreantAttack();
-    this.checkTreantOpacity();
-
     this.handleChase();
   }
 
@@ -109,19 +105,17 @@ class Treant {
     return () => {
       this.hp--;
       this.gameObject.setTint(0xff0000);
-      this.lastTimeHit = new Date().getTime();
+      this.scene.time.addEvent({
+        delay: TREANT_HIT_DELAY,
+        callback: () => this.gameObject.clearTint(),
+        callbackScope: this,
+      });
       projectile.destroy();
       if (this.hp == 0) {
         this.gameObject.destroy();
       }
     };
   };
-
-  checkTreantOpacity() {
-    if (new Date().getTime() - this.lastTimeHit > treantOpacityDelay) {
-      this.gameObject.clearTint();
-    }
-  }
 
   destroyTreantAttack() {
     if (
