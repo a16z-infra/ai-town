@@ -37,22 +37,15 @@ class Treant {
     if (!this.gameObject.active) {
       return;
     }
+
     const playerPoint = toVector2(this.scene.player.gameObject);
     const treantPoint = toVector2(this.gameObject);
-    const { x, y } = treantPoint.subtract(playerPoint);
+    const { x, y } = playerPoint.subtract(treantPoint);
 
     //Move according to X
-    if (x < 0) {
-      this.gameObject.setVelocityX(TREANT_SPEED);
-    } else {
-      this.gameObject.setVelocityX(-TREANT_SPEED);
-    }
+    this.gameObject.setVelocityX(Math.sign(x) * TREANT_SPEED);
     //Move according to Y
-    if (y < 0) {
-      this.gameObject.setVelocityY(TREANT_SPEED);
-    } else {
-      this.gameObject.setVelocityY(-TREANT_SPEED);
-    }
+    this.gameObject.setVelocityY(Math.sign(y) * TREANT_SPEED);
   }
 
   startChasing() {
