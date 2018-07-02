@@ -8,6 +8,7 @@ const PLAYER_INITIAL_POSITION = {
 };
 const PLAYER_SPEED = 100;
 const DISTANCE_BETWEEN_HEARTS = 15;
+const PLAYER_RELOAD = 500;
 
 class Player {
   scene: Main;
@@ -60,6 +61,11 @@ class Player {
 
   reload() {
     this.loading = true;
+    this.scene.time.addEvent({
+      delay: PLAYER_RELOAD,
+      callback: this.readyToFire,
+      callbackScope: this,
+    });
   }
 
   readyToFire() {
@@ -160,6 +166,7 @@ class Player {
       this.reload();
       const arrow = this.shoot();
       const arrowGameObject = arrow.gameObject;
+
       // TODO refactor this for performance
       this.scene.treants.map(treant =>
         this.scene.physics.add.collider(

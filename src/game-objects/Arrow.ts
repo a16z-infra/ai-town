@@ -45,14 +45,6 @@ class Arrow {
       default:
         break;
     }
-
-    this.scene.time.addEvent({
-      delay: 500,
-      callback: () => {
-        this.player.readyToFire();
-      },
-      callbackScope: this,
-    });
   }
 }
 
