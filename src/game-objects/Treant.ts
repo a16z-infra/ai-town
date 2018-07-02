@@ -1,7 +1,7 @@
 import Main from '../scenes/Main';
 const TREANT_SPEED = 20;
 const TREANT_HIT_DELAY = 100;
-const destroySpriteAttackDelay = 200;
+const DESTROY_SPRITE_ATTACK_DELAY = 200;
 var treantAttack = null;
 
 class Treant {
@@ -86,7 +86,6 @@ class Treant {
   }
 
   update() {
-    this.destroyTreantAttack();
     this.handleChase();
   }
 
@@ -98,6 +97,11 @@ class Treant {
         'treantAttack'
       );
       this.scene.player.loseHp();
+      this.scene.time.addEvent({
+        delay: DESTROY_SPRITE_ATTACK_DELAY,
+        callback: () => treantAttack ? treantAttack.destroy() : null,
+        callbackScope: this,
+      });
     }
   };
 
@@ -116,15 +120,6 @@ class Treant {
       }
     };
   };
-
-  destroyTreantAttack() {
-    if (
-      treantAttack != null &&
-      new Date().getTime() - this.scene.player.lastTimeHit > destroySpriteAttackDelay
-    ) {
-      treantAttack.destroy();
-    }
-  }
 }
 
 export default Treant;
