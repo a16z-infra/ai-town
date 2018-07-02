@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.0" tiledversion="1.1.5" orientation="orthogonal" renderorder="right-down" width="40" height="40" tilewidth="16" tileheight="16" infinite="0" nextobjectid="1">
+<map version="1.0" tiledversion="1.1.5" orientation="orthogonal" renderorder="right-down" width="40" height="40" tilewidth="16" tileheight="16" infinite="0" nextobjectid="6">
  <tileset firstgid="1" name="tileset" tilewidth="16" tileheight="16" tilecount="1088" columns="34">
   <image source="environment/tileset.png" width="544" height="512"/>
   <terraintypes>
@@ -5581,4 +5581,12 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,492,0,0,0,0,483,483,0,0,0,0,0,0,0,0
 </data>
  </layer>
+ <objectgroup name="treants">
+  <object id="1" name="treant" x="499.279" y="174.332">
+   <point/>
+  </object>
+  <object id="5" name="treant" x="359.13" y="56.3341">
+   <point/>
+  </object>
+ </objectgroup>
 </map>

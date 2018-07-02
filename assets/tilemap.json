@@ -33,8 +33,42 @@
          "width":40,
          "x":0,
          "y":0
+        }, 
+        {
+         "draworder":"topdown",
+         "name":"treants",
+         "objects":[
+                {
+                 "height":0,
+                 "id":1,
+                 "name":"treant",
+                 "point":true,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":499.27887830019,
+                 "y":174.331953622597
+                }, 
+                {
+                 "height":0,
+                 "id":5,
+                 "name":"treant",
+                 "point":true,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":359.129638757834,
+                 "y":56.3340609816211
+                }],
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "x":0,
+         "y":0
         }],
- "nextobjectid":1,
+ "nextobjectid":6,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.1.5",

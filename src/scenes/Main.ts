@@ -69,8 +69,13 @@ class Main extends Phaser.Scene {
 
     this.player = new Player(this);
     this.npc = new Npc(this);
-    this.treants.push(new Treant(this));
-    this.treants.push(new Treant(this, 400, 300));
+
+    const treantsMapObjects = this.map.objects.find(o => o.name === 'treants');
+    const treants: any = treantsMapObjects ? treantsMapObjects.objects : [];
+
+    this.treants = treants.map(treant => {
+      return new Treant(this, treant.x, treant.y)
+    })
 
     this.addColliders();
 
