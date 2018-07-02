@@ -34,6 +34,15 @@ class Npc {
 
   helloNPC = () => {
     this.textGameObject.setAlpha(1);
+    this.scene.time.addEvent({
+      delay: 3000,
+      callback: this.hideText,
+      callbackScope: this,
+    });
+  };
+
+  hideText = () => {
+    this.textGameObject.setAlpha(0);
   };
 }
 
