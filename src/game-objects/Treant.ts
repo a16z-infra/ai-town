@@ -70,7 +70,9 @@ class Treant {
   }
 
   stopChasing() {
-    this.gameObject.setVelocity(0);
+    if (this.gameObject.active) {
+      this.gameObject.setVelocity(0);
+    }
     this.chasingPlayerTimerEvent.destroy();
     this.chasingPlayerTimerEvent = null;
   }
