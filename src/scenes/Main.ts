@@ -68,7 +68,7 @@ class Main extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
 
     this.player = new Player(this);
-    this.npc = new Npc(this);
+    this.npc = new Npc(this, 80, 150, 'Hello there! Watch out for those dangerous treants!');
 
     const treantsMapObjects = this.map.objects.find(o => o.name === 'treants');
     const treants: any = treantsMapObjects ? treantsMapObjects.objects : [];
