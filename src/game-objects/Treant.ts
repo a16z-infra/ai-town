@@ -22,9 +22,9 @@ class Treant {
   }
 
   shouldChase = () => {
-    const playerPoint = toVector2(this.scene.player.gameObject)
+    const playerPoint = toVector2(this.scene.player.gameObject);
     const treantPoint = toVector2(this.gameObject);
-    const distance = treantPoint.distance(playerPoint)
+    const distance = treantPoint.distance(playerPoint);
 
     if (distance < 100) {
       return true;
@@ -34,23 +34,24 @@ class Treant {
   };
 
   moveTreant() {
-    if (this.gameObject.active) {
-      const playerPoint = toVector2(this.scene.player.gameObject)
-      const treantPoint = toVector2(this.gameObject);
-      const { x, y } = treantPoint.subtract(playerPoint)
+    if (!this.gameObject.active) {
+      return;
+    }
+    const playerPoint = toVector2(this.scene.player.gameObject);
+    const treantPoint = toVector2(this.gameObject);
+    const { x, y } = treantPoint.subtract(playerPoint);
 
-      //Move according to X
-      if (x < 0) {
-        this.gameObject.setVelocityX(TREANT_SPEED);
-      } else {
-        this.gameObject.setVelocityX(-TREANT_SPEED);
-      }
-      //Move according to Y
-      if (y < 0) {
-        this.gameObject.setVelocityY(TREANT_SPEED);
-      } else {
-        this.gameObject.setVelocityY(-TREANT_SPEED);
-      }
+    //Move according to X
+    if (x < 0) {
+      this.gameObject.setVelocityX(TREANT_SPEED);
+    } else {
+      this.gameObject.setVelocityX(-TREANT_SPEED);
+    }
+    //Move according to Y
+    if (y < 0) {
+      this.gameObject.setVelocityY(TREANT_SPEED);
+    } else {
+      this.gameObject.setVelocityY(-TREANT_SPEED);
     }
   }
 
@@ -88,7 +89,7 @@ class Treant {
 
   treantHit = () => {
     if (!this.scene.player.canGetHit()) {
-      return
+      return;
     }
 
     const treantAttack = this.scene.physics.add.sprite(
