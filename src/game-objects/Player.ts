@@ -7,6 +7,7 @@ const PLAYER_INITIAL_POSITION = {
   y: 200,
 };
 const PLAYER_SPEED = 100;
+const DISTANCE_BETWEEN_HEARTS = 15;
 
 class Player {
   scene: Main;
@@ -43,7 +44,7 @@ class Player {
       .fill(0)
       .map((_, i) => {
         return this.scene.add
-          .sprite((i + 1) * 15, 15, 'heart')
+          .sprite((i + 1) * DISTANCE_BETWEEN_HEARTS, DISTANCE_BETWEEN_HEARTS, 'heart')
           .setScrollFactor(0)
           .setDepth(10);
       });
