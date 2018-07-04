@@ -34,8 +34,8 @@ class Player {
     this.orientation = 'down';
     this.lastTimeHit = new Date().getTime();
     this.gameObject.setCollideWorldBounds(true);
-    this.gameObject.setOrigin(0.5, 0.6)
-    this.gameObject.setSize(10, 22)
+    this.gameObject.setOrigin(0.5, 0.7)
+    this.gameObject.setSize(10, 10)
     this.loading = false;
     this.tomb = null;
 
