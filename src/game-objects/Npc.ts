@@ -20,7 +20,7 @@ class Npc {
     this.gameObject.setImmovable(true);
   }
 
-  helloNPC = () => {
+  talk = () => {
     this.textGameObject.setAlpha(1);
     this.scene.time.addEvent({
       delay: 3000,

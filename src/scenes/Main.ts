@@ -8,7 +8,7 @@ const CAMERA_LERP = 1;
 class Main extends Phaser.Scene {
   player: Player;
   cursors: CursorKeys;
-  npc: Npc;
+  npcs: Npc[];
   treants: Treant[];
   map: Phaser.Tilemaps.Tilemap;
   treantGroup: Phaser.Physics.Arcade.Group;
@@ -22,7 +22,7 @@ class Main extends Phaser.Scene {
     super('Main');
     this.player = null;
     this.cursors = null;
-    this.npc = null;
+    this.npcs = [];
     this.treants = [];
     this.treantGroup = null;
     this.map = null;
@@ -53,7 +53,9 @@ class Main extends Phaser.Scene {
 
     this.physics.add.collider(this.player.gameObject, this.layers.terrain);
     this.physics.add.collider(this.player.gameObject, this.layers.deco);
-    this.physics.add.collider(this.player.gameObject, this.npc.gameObject, this.npc.helloNPC);
+    this.npcs.map(npc =>
+      this.physics.add.collider(npc.gameObject, this.player.gameObject, npc.talk)
+    );
   }
 
   initCamera() {
@@ -68,14 +70,17 @@ class Main extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
 
     this.player = new Player(this);
-    this.npc = new Npc(this, 80, 150, 'Hello there! Watch out for those dangerous treants!');
+    this.npcs = [
+      new Npc(this, 80, 150, 'Hello there! Watch out for those dangerous treants!'),
+      new Npc(this, 300, 170, 'Wow this is a dangerous treant!'),
+    ];
 
     const treantsMapObjects = this.map.objects.find(o => o.name === 'treants');
     const treants: any = treantsMapObjects ? treantsMapObjects.objects : [];
 
     this.treants = treants.map(treant => {
-      return new Treant(this, treant.x, treant.y)
-    })
+      return new Treant(this, treant.x, treant.y);
+    });
 
     this.addColliders();
 
@@ -94,7 +99,7 @@ class Main extends Phaser.Scene {
       shift: this.cursors.shift.isDown,
     };
 
-    this.treants.map(treant => treant.update())
+    this.treants.map(treant => treant.update());
     this.player.update(keyPressed);
   }
 }
