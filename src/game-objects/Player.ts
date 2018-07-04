@@ -36,6 +36,7 @@ class Player {
     this.gameObject.setCollideWorldBounds(true);
     this.gameObject.setOrigin(0.5, 0.7)
     this.gameObject.setSize(10, 10)
+    this.gameObject.setDepth(10)
     this.loading = false;
     this.tomb = null;
 
