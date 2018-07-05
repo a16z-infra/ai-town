@@ -67,8 +67,58 @@
          "visible":true,
          "x":0,
          "y":0
+        }, 
+        {
+         "draworder":"topdown",
+         "name":"npcs",
+         "objects":[
+                {
+                 "height":0,
+                 "id":6,
+                 "name":"npc",
+                 "point":true,
+                 "properties":
+                    {
+                     "message":"Hello! Watch out of the dangerous treants!"
+                    },
+                 "propertytypes":
+                    {
+                     "message":"string"
+                    },
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":58.2322910019145,
+                 "y":146.777281429483
+                }, 
+                {
+                 "height":0,
+                 "id":7,
+                 "name":"npc",
+                 "point":true,
+                 "properties":
+                    {
+                     "message":"Hello! You are doing fine :)"
+                    },
+                 "propertytypes":
+                    {
+                     "message":"string"
+                    },
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":445.118059987237,
+                 "y":308.710912571793
+                }],
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "x":0,
+         "y":0
         }],
- "nextobjectid":6,
+ "nextobjectid":11,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.1.5",
