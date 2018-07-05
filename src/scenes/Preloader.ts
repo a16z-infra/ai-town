@@ -1,6 +1,7 @@
 class Preloader extends Phaser.Scene {
   loadAssets() {
     this.load.tilemapTiledJSON('myworld', 'assets/tilemap.json');
+    this.load.tilemapTiledJSON('second', 'assets/second-map.json');
 
     // Images
     this.load.image('logo', 'assets/logo.png');

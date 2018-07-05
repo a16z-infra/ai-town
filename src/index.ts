@@ -2,6 +2,7 @@
 
 import 'phaser';
 import Main from './scenes/Main';
+import Second from './scenes/Second';
 import Preloader from './scenes/Preloader';
 
 class PhaserGame extends Phaser.Game {
@@ -15,7 +16,7 @@ class PhaserGame extends Phaser.Game {
       physics: {
         default: 'arcade',
       },
-      scene: [Preloader, Main],
+      scene: [Preloader, Main, Second],
     };
     super(config);
   }
