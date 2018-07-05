@@ -1,13 +1,13 @@
-import Main from '../scenes/Main';
+import AbstractScene from '../scenes/AbstractScene';
 
 const TEXT_VERTICAL_SHIFT = 10;
 
 class Npc {
-  scene: Main;
+  scene: AbstractScene;
   gameObject: Phaser.Physics.Arcade.Sprite;
   textGameObject: Phaser.GameObjects.Text;
 
-  constructor(scene: Main, x: number, y: number, text: string) {
+  constructor(scene: AbstractScene, x: number, y: number, text: string) {
     this.scene = scene;
     this.gameObject = this.scene.physics.add.sprite(x, y, 'npcs', 0).setDepth(5);
     this.textGameObject = this.scene.add.text(0, 0, text, { align: 'center', fontSize: '10px' });

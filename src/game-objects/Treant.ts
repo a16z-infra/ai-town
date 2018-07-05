@@ -1,11 +1,11 @@
-import Main from '../scenes/Main';
+import AbstractScene from '../scenes/AbstractScene';
 
 const TREANT_SPEED = 20;
 const TREANT_HIT_DELAY = 100;
 const DESTROY_SPRITE_ATTACK_DELAY = 200;
 
 class Treant {
-  scene: Main;
+  scene: AbstractScene;
   gameObject: Phaser.Physics.Arcade.Sprite;
   hp: number;
   chasingPlayerTimerEvent: Phaser.Time.TimerEvent;

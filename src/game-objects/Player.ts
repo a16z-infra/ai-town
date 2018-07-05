@@ -1,5 +1,5 @@
 import Arrow from './Arrow';
-import Main from '../scenes/Main';
+import AbstractScene from '../scenes/AbstractScene';
 
 const HIT_DELAY = 500; //0.5s
 const PLAYER_INITIAL_POSITION = {
@@ -11,7 +11,7 @@ const DISTANCE_BETWEEN_HEARTS = 15;
 const PLAYER_RELOAD = 500;
 
 class Player {
-  scene: Main;
+  scene: AbstractScene;
   hp: number;
   maxHp: number;
   gameObject: Phaser.Physics.Arcade.Sprite;
@@ -21,7 +21,7 @@ class Player {
   tomb: Phaser.GameObjects.Sprite;
   hearts: Array<Phaser.GameObjects.Sprite>;
 
-  constructor(scene: Main) {
+  constructor(scene: AbstractScene) {
     this.scene = scene;
 
     this.hp = 3;
