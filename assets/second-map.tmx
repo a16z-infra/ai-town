@@ -5582,10 +5582,10 @@
 </data>
  </layer>
  <objectgroup name="treants">
-  <object id="1" name="treant" x="499.279" y="174.332">
+  <object id="1" name="treant" x="366.063" y="232.564">
    <point/>
   </object>
-  <object id="5" name="treant" x="359.13" y="56.3341">
+  <object id="5" name="treant" x="144.548" y="343.507">
    <point/>
   </object>
  </objectgroup>
