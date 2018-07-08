@@ -6,6 +6,10 @@ import scenes from '../constants/scenes';
 import mapContentKeys from '../constants/map-content-keys';
 
 const CAMERA_LERP = 1;
+const PLAYER_INITIAL_POSITION = {
+  x: 50,
+  y: 200,
+};
 
 abstract class AbstractScene extends Phaser.Scene {
   player: Player;
@@ -70,12 +74,27 @@ abstract class AbstractScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.player.gameObject, true, CAMERA_LERP, CAMERA_LERP);
   }
 
-  init() {
+  init(data) {
     this.createMapWithLayers();
 
     this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
 
-    this.player = new Player(this);
+    const levelChangerObjectLayer = this.map.objects.find(
+      o => o.name === mapContentKeys.objects.ZONES
+    );
+
+    let playerX = PLAYER_INITIAL_POSITION.x;
+    let playerY = PLAYER_INITIAL_POSITION.y;
+
+    if (data && data.comesFrom) {
+      const levelChanger: any = levelChangerObjectLayer.objects.find((o: any) => {
+        return scenes[o.properties.scene] === data.comesFrom;
+      });
+
+      playerX = levelChanger.x + 50;
+      playerY = levelChanger.y;
+    }
+    this.player = new Player(this, playerX, playerY);
 
     const npcsMapObjects = this.map.objects.find(o => o.name === mapContentKeys.objects.NPCS);
     const npcs: any = npcsMapObjects ? npcsMapObjects.objects : [];
@@ -89,16 +108,12 @@ abstract class AbstractScene extends Phaser.Scene {
     this.treants = treants.map(treant => {
       return new Treant(this, treant.x, treant.y);
     });
-
-    const levelChangerObjectLayer = this.map.objects.find(
-      o => o.name === mapContentKeys.objects.ZONES
-    );
     if (levelChangerObjectLayer) {
       const levelChanger = levelChangerObjectLayer.objects.map((o: any) => {
         const zone = this.add.zone(o.x, o.y, o.width, o.height);
         this.physics.add.existing(zone);
         this.physics.add.overlap(zone, this.player.gameObject, () => {
-          this.scene.start(scenes[o.properties.scene]);
+          this.scene.start(scenes[o.properties.scene], { comesFrom: this.scene.key });
         });
       });
     }

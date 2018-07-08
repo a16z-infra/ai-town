@@ -3,10 +3,6 @@ import AbstractScene from '../scenes/AbstractScene';
 import REGISTRY_KEYS from '../constants/registry';
 
 const HIT_DELAY = 500; //0.5s
-const PLAYER_INITIAL_POSITION = {
-  x: 50,
-  y: 200,
-};
 const PLAYER_SPEED = 100;
 const DISTANCE_BETWEEN_HEARTS = 15;
 const PLAYER_RELOAD = 500;
@@ -22,7 +18,7 @@ class Player {
   tomb: Phaser.GameObjects.Sprite;
   hearts: Array<Phaser.GameObjects.Sprite>;
 
-  constructor(scene: AbstractScene) {
+  constructor(scene: AbstractScene, x: number, y: number) {
     this.scene = scene;
 
     const registryHp = this.scene.registry.get(REGISTRY_KEYS.PLAYER.HP);
@@ -30,18 +26,13 @@ class Player {
       this.scene.registry.set(REGISTRY_KEYS.PLAYER.HP, MAX_HP);
     }
 
-    this.gameObject = scene.physics.add.sprite(
-      PLAYER_INITIAL_POSITION.x,
-      PLAYER_INITIAL_POSITION.y,
-      'idle-down',
-      0
-    );
+    this.gameObject = scene.physics.add.sprite(x, y, 'idle-down', 0);
     this.orientation = 'down';
     this.lastTimeHit = new Date().getTime();
     this.gameObject.setCollideWorldBounds(true);
-    this.gameObject.setOrigin(0.5, 0.7)
-    this.gameObject.setSize(10, 10)
-    this.gameObject.setDepth(10)
+    this.gameObject.setOrigin(0.5, 0.7);
+    this.gameObject.setSize(10, 10);
+    this.gameObject.setDepth(10);
     this.loading = false;
     this.tomb = null;
 
@@ -59,7 +50,7 @@ class Player {
 
   addHp(hpToAdd: number) {
     const hp = this.scene.registry.get(REGISTRY_KEYS.PLAYER.HP);
-    this.setHp(hp + hpToAdd)
+    this.setHp(hp + hpToAdd);
   }
 
   initHearts() {

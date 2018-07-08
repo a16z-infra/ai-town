@@ -123,7 +123,7 @@
          "name":"zones",
          "objects":[
                 {
-                 "height":103,
+                 "height":47,
                  "id":11,
                  "name":"",
                  "properties":
@@ -137,9 +137,9 @@
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":36,
-                 "x":176,
-                 "y":4
+                 "width":16,
+                 "x":2,
+                 "y":280
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -147,7 +147,7 @@
          "x":0,
          "y":0
         }],
- "nextobjectid":12,
+ "nextobjectid":13,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.1.5",
