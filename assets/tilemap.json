@@ -120,7 +120,7 @@
         }, 
         {
          "draworder":"topdown",
-         "name":"zone-change",
+         "name":"zones",
          "objects":[
                 {
                  "height":44.6713465220166,
@@ -128,11 +128,13 @@
                  "name":"",
                  "properties":
                     {
-                     "scene":"second"
+                     "scene":"second",
+                     "type":"CHANGE_SCENE"
                     },
                  "propertytypes":
                     {
-                     "scene":"string"
+                     "scene":"string",
+                     "type":"string"
                     },
                  "rotation":0,
                  "type":"",

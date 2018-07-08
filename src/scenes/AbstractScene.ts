@@ -88,12 +88,14 @@ abstract class AbstractScene extends Phaser.Scene {
       return new Treant(this, treant.x, treant.y);
     });
 
-    const levelChangerObjectLayer = this.map.objects.find(o => o.name === 'zone-change');
-    const levelChanger = levelChangerObjectLayer.objects.map((o: any) => {
-      const zone = this.add.zone(o.x, o.y, o.width, o.height);
-      this.physics.add.existing(zone)
-      this.physics.add.overlap(zone, this.player.gameObject, () => console.log('inside!'))
-    })
+    const levelChangerObjectLayer = this.map.objects.find(o => o.name === 'zones');
+    if (levelChangerObjectLayer) {
+      const levelChanger = levelChangerObjectLayer.objects.map((o: any) => {
+        const zone = this.add.zone(o.x, o.y, o.width, o.height);
+        this.physics.add.existing(zone);
+        this.physics.add.overlap(zone, this.player.gameObject, () => this.scene.start('Second'));
+      });
+    }
 
     this.addColliders();
 
