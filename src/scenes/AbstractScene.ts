@@ -67,6 +67,25 @@ abstract class AbstractScene extends Phaser.Scene {
     );
   }
 
+  getPlayerInitialPosition(
+    levelChangerObjectLayer: Phaser.Tilemaps.ObjectLayer,
+    data: any
+  ): { x: number; y: number } {
+    let playerX = PLAYER_INITIAL_POSITION.x;
+    let playerY = PLAYER_INITIAL_POSITION.y;
+
+    if (data && data.comesFrom) {
+      const levelChanger: any = levelChangerObjectLayer.objects.find((o: any) => {
+        return o.properties.scene === data.comesFrom;
+      });
+
+      playerX = levelChanger.x + 50;
+      playerY = levelChanger.y;
+    }
+
+    return { x: playerX, y: playerY };
+  }
+
   initCamera() {
     this.cameras.main.setRoundPixels(true);
     this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
@@ -82,18 +101,8 @@ abstract class AbstractScene extends Phaser.Scene {
       o => o.name === mapContentKeys.objects.ZONES
     );
 
-    let playerX = PLAYER_INITIAL_POSITION.x;
-    let playerY = PLAYER_INITIAL_POSITION.y;
-
-    if (data && data.comesFrom) {
-      const levelChanger: any = levelChangerObjectLayer.objects.find((o: any) => {
-        return o.properties.scene === data.comesFrom;
-      });
-
-      playerX = levelChanger.x + 50;
-      playerY = levelChanger.y;
-    }
-    this.player = new Player(this, playerX, playerY);
+    const playerInitialPosition = this.getPlayerInitialPosition(levelChangerObjectLayer, data);
+    this.player = new Player(this, playerInitialPosition.x, playerInitialPosition.y);
 
     const npcsMapObjects = this.map.objects.find(o => o.name === mapContentKeys.objects.NPCS);
     const npcs: any = npcsMapObjects ? npcsMapObjects.objects : [];
