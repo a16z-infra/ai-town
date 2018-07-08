@@ -10,6 +10,10 @@ const PLAYER_INITIAL_POSITION = {
   y: 200,
 };
 
+type InterSceneData = {
+  comesFrom: string,
+}
+
 abstract class AbstractScene extends Phaser.Scene {
   player: Player;
   cursors: CursorKeys;
@@ -69,7 +73,7 @@ abstract class AbstractScene extends Phaser.Scene {
 
   getPlayerInitialPosition(
     levelChangerObjectLayer: Phaser.Tilemaps.ObjectLayer,
-    data: any
+    data: InterSceneData
   ): { x: number; y: number } {
     let playerX = PLAYER_INITIAL_POSITION.x;
     let playerY = PLAYER_INITIAL_POSITION.y;
@@ -92,7 +96,7 @@ abstract class AbstractScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.player.gameObject, true, CAMERA_LERP, CAMERA_LERP);
   }
 
-  init(data) {
+  init(data: InterSceneData) {
     this.createMapWithLayers();
 
     this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
