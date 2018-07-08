@@ -96,7 +96,7 @@ abstract class AbstractScene extends Phaser.Scene {
         const zone = this.add.zone(o.x, o.y, o.width, o.height);
         this.physics.add.existing(zone);
         this.physics.add.overlap(zone, this.player.gameObject, () =>
-          this.scene.start(scenes.SECOND)
+          this.scene.start(scenes[o.properties.scene])
         );
       });
     }

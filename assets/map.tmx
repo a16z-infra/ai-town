@@ -5606,7 +5606,7 @@
  <objectgroup name="zones">
   <object id="11" x="355.775" y="408.424" width="27.1219" height="44.6713">
    <properties>
-    <property name="scene" value="second"/>
+    <property name="scene" value="SECOND"/>
     <property name="type" value="CHANGE_SCENE"/>
    </properties>
   </object>
