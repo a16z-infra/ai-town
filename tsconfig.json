@@ -6,6 +6,11 @@
     "lib": ["es2017", "dom"],
     "sourceMap": true
   },
+  "jest": {
+    "globals": {
+      "require": true
+    }
+  },
   "include": ["./src/**/*"],
   "exclude": ["node_modules", "bin", "typings/phaser.d.ts"]
 }
