@@ -4,12 +4,13 @@ import Player from '../game-objects/Player';
 import Treant from '../game-objects/Treant';
 import Npc from '../game-objects/Npc';
 import scenes from '../constants/scenes';
+import maps from '../constants/maps';
 
 const CAMERA_LERP = 1;
 
 class Second extends AbstractScene {
   constructor() {
-    super(scenes.SECOND, 'second');
+    super(scenes.SECOND, maps.second.key);
   }
 }
 

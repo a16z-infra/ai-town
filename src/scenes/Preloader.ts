@@ -1,7 +1,9 @@
+import maps from '../constants/maps';
+
 class Preloader extends Phaser.Scene {
   loadAssets() {
-    this.load.tilemapTiledJSON('myworld', 'assets/tilemap.json');
-    this.load.tilemapTiledJSON('second', 'assets/second-map.json');
+    this.load.tilemapTiledJSON(maps.main.key, `assets/${maps.main.file}`);
+    this.load.tilemapTiledJSON(maps.second.key, `assets/${maps.second.file}`);
 
     // Images
     this.load.image('logo', 'assets/logo.png');
