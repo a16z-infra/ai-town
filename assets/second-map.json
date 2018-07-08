@@ -128,10 +128,12 @@
                  "name":"",
                  "properties":
                     {
+                     "comesBackFrom":"right",
                      "scene":"Main"
                     },
                  "propertytypes":
                     {
+                     "comesBackFrom":"string",
                      "scene":"string"
                     },
                  "rotation":0,

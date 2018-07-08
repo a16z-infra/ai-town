@@ -11,8 +11,8 @@ const PLAYER_INITIAL_POSITION = {
 };
 
 type InterSceneData = {
-  comesFrom: string,
-}
+  comesFrom: string;
+};
 
 abstract class AbstractScene extends Phaser.Scene {
   player: Player;
@@ -83,8 +83,32 @@ abstract class AbstractScene extends Phaser.Scene {
         return o.properties.scene === data.comesFrom;
       });
 
-      playerX = levelChanger.x + 50;
-      playerY = levelChanger.y;
+      let xShift = 0;
+      let yShift = 0;
+      const SHIFT_VALUE = 50;
+      switch (levelChanger.properties.comesBackFrom) {
+        case 'right':
+          xShift = SHIFT_VALUE;
+          yShift = 0;
+          break;
+        case 'left':
+          xShift = -SHIFT_VALUE;
+          yShift = 0;
+          break;
+        case 'up':
+          xShift = 0;
+          yShift = -SHIFT_VALUE;
+          break;
+        case 'down':
+          xShift = 0;
+          yShift = SHIFT_VALUE;
+          break;
+        default:
+          break;
+      }
+
+      playerX = levelChanger.x + levelChanger.width / 2 + xShift;
+      playerY = levelChanger.y + levelChanger.height / 2 + yShift;
     }
 
     return { x: playerX, y: playerY };

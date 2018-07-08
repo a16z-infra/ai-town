@@ -123,25 +123,27 @@
          "name":"zones",
          "objects":[
                 {
-                 "height":44.6713465220166,
+                 "height":44.6713,
                  "id":11,
                  "name":"",
                  "properties":
                     {
+                     "comesBackFrom":"right",
                      "scene":"Second",
                      "type":"CHANGE_SCENE"
                     },
                  "propertytypes":
                     {
+                     "comesBackFrom":"string",
                      "scene":"string",
                      "type":"string"
                     },
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":27.1218889597957,
-                 "x":355.775366943204,
-                 "y":408.423739629866
+                 "width":13.5609,
+                 "x":355.775,
+                 "y":408.424
                 }],
          "opacity":1,
          "type":"objectgroup",
