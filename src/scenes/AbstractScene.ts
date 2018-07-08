@@ -70,7 +70,7 @@ abstract class AbstractScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.player.gameObject, true, CAMERA_LERP, CAMERA_LERP);
   }
 
-  create() {
+  init() {
     this.createMapWithLayers();
 
     this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
@@ -90,14 +90,16 @@ abstract class AbstractScene extends Phaser.Scene {
       return new Treant(this, treant.x, treant.y);
     });
 
-    const levelChangerObjectLayer = this.map.objects.find(o => o.name === mapContentKeys.objects.ZONES);
+    const levelChangerObjectLayer = this.map.objects.find(
+      o => o.name === mapContentKeys.objects.ZONES
+    );
     if (levelChangerObjectLayer) {
       const levelChanger = levelChangerObjectLayer.objects.map((o: any) => {
         const zone = this.add.zone(o.x, o.y, o.width, o.height);
         this.physics.add.existing(zone);
-        this.physics.add.overlap(zone, this.player.gameObject, () =>
-          this.scene.start(scenes[o.properties.scene])
-        );
+        this.physics.add.overlap(zone, this.player.gameObject, () => {
+          this.scene.start(scenes[o.properties.scene]);
+        });
       });
     }
 

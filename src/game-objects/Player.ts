@@ -1,5 +1,6 @@
 import Arrow from './Arrow';
 import AbstractScene from '../scenes/AbstractScene';
+import REGISTRY_KEYS from '../constants/registry';
 
 const HIT_DELAY = 500; //0.5s
 const PLAYER_INITIAL_POSITION = {
@@ -9,10 +10,10 @@ const PLAYER_INITIAL_POSITION = {
 const PLAYER_SPEED = 100;
 const DISTANCE_BETWEEN_HEARTS = 15;
 const PLAYER_RELOAD = 500;
+const MAX_HP = 3;
 
 class Player {
   scene: AbstractScene;
-  hp: number;
   maxHp: number;
   gameObject: Phaser.Physics.Arcade.Sprite;
   orientation: 'up' | 'down' | 'left' | 'right';
@@ -24,7 +25,11 @@ class Player {
   constructor(scene: AbstractScene) {
     this.scene = scene;
 
-    this.hp = 3;
+    const registryHp = this.scene.registry.get(REGISTRY_KEYS.PLAYER.HP);
+    if (!registryHp) {
+      this.scene.registry.set(REGISTRY_KEYS.PLAYER.HP, MAX_HP);
+    }
+
     this.gameObject = scene.physics.add.sprite(
       PLAYER_INITIAL_POSITION.x,
       PLAYER_INITIAL_POSITION.y,
@@ -44,8 +49,21 @@ class Player {
     this.initHearts();
   }
 
+  getHp(): number {
+    return this.scene.registry.get(REGISTRY_KEYS.PLAYER.HP);
+  }
+
+  setHp(newHp: number) {
+    this.scene.registry.set(REGISTRY_KEYS.PLAYER.HP, newHp);
+  }
+
+  addHp(hpToAdd: number) {
+    const hp = this.scene.registry.get(REGISTRY_KEYS.PLAYER.HP);
+    this.setHp(hp + hpToAdd)
+  }
+
   initHearts() {
-    Array(this.hp)
+    Array(MAX_HP)
       .fill(0)
       .map((_, i) => {
         return this.scene.add
@@ -54,7 +72,7 @@ class Player {
           .setDepth(50);
       });
 
-    this.hearts = Array(this.hp)
+    this.hearts = Array(this.getHp())
       .fill(0)
       .map((_, i) => {
         return this.scene.add
@@ -66,7 +84,7 @@ class Player {
 
   updateHearts() {
     this.hearts.map((heart, index) => {
-      if (index >= this.hp) {
+      if (index >= this.getHp()) {
         heart.setAlpha(0);
       }
     });
@@ -212,12 +230,12 @@ class Player {
   }
 
   loseHp() {
-    this.hp--;
+    this.addHp(-1);
     this.updateHearts();
 
     this.lastTimeHit = new Date().getTime();
 
-    if (this.hp > 0) {
+    if (this.getHp() > 0) {
       return;
     }
 
