@@ -3,6 +3,7 @@ const scenes = require('../src/constants/scenes').default;
 const sceneNames = Object.values(scenes);
 
 const MANDATORY_LAYERS = ['terrain', 'deco', 'bridge', 'treants', 'npcs', 'zones'];
+const COMES_BACK_FROM_ENUM = ['up', 'down', 'left', 'right'];
 
 describe('map', () => {
   Object.keys(maps).map(mapInfoKey => {
@@ -22,6 +23,24 @@ describe('map', () => {
             const destination = zone.properties.scene;
             const isDestinationInScenes = sceneNames.includes(destination);
             expect(isDestinationInScenes).toEqual(true);
+          });
+        });
+        it('should have a propery "comesBackFrom" that is an enum', () => {
+          const zonesLayer = map.layers.find(o => o.name === 'zones');
+          zonesLayer.objects.map(zone => {
+            const comesBackFrom = zone.properties.comesBackFrom;
+            const isComesBackFromInEnum = COMES_BACK_FROM_ENUM.includes(comesBackFrom);
+            expect(isComesBackFromInEnum).toEqual(true);
+          });
+        });
+      });
+
+      describe('npcs', () => {
+        it('should have a propery "message"', () => {
+          const npcsLayer = map.layers.find(o => o.name === 'npcs');
+          npcsLayer.objects.map(npc => {
+            const npcMessage = npc.properties.message;
+            expect(npcMessage).toBeDefined();
           });
         });
       });
