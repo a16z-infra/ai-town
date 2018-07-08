@@ -13,10 +13,16 @@
   },
   "devDependencies": {
     "copy-webpack-plugin": "4.5.1",
+    "jest": "23.3.0",
     "source-map-loader": "^0.2.3",
     "typescript": "^2.9.2",
     "webpack": "4.10.2",
     "webpack-cli": "3.0.2",
     "webpack-dev-server": "3.1.4"
+  },
+  "jest": {
+    "testMatch": [
+      "**/tests/**/*.js"
+    ]
   }
 }
