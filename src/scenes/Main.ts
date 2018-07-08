@@ -3,10 +3,11 @@ import Arrow from '../game-objects/Arrow';
 import Player from '../game-objects/Player';
 import Treant from '../game-objects/Treant';
 import Npc from '../game-objects/Npc';
+import scenes from '../constants/scenes';
 
 class Main extends AbstractScene {
   constructor() {
-    super('Main', 'myworld');
+    super(scenes.MAIN, 'myworld');
   }
 }
 

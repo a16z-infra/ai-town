@@ -2,6 +2,8 @@ import Arrow from '../game-objects/Arrow';
 import Player from '../game-objects/Player';
 import Treant from '../game-objects/Treant';
 import Npc from '../game-objects/Npc';
+import scenes from '../constants/scenes';
+import mapContentKeys from '../constants/map-content-keys';
 
 const CAMERA_LERP = 1;
 
@@ -38,9 +40,9 @@ abstract class AbstractScene extends Phaser.Scene {
     const tileset = this.map.addTilesetImage('tileset', 'tiles', 16, 16, 0, 0);
 
     this.layers = {
-      terrain: this.map.createStaticLayer('terrain', tileset, 0, 0),
-      deco: this.map.createStaticLayer('deco', tileset, 0, 0),
-      bridge: this.map.createStaticLayer('bridge', tileset, 0, 0),
+      terrain: this.map.createStaticLayer(mapContentKeys.layers.BACKGROUND, tileset, 0, 0),
+      deco: this.map.createStaticLayer(mapContentKeys.layers.DECORATION, tileset, 0, 0),
+      bridge: this.map.createStaticLayer(mapContentKeys.layers.BRIDGE, tileset, 0, 0),
     };
     this.layers.terrain.setCollisionByProperty({ collides: true });
     this.layers.deco.setCollisionByProperty({ collides: true });
@@ -75,25 +77,27 @@ abstract class AbstractScene extends Phaser.Scene {
 
     this.player = new Player(this);
 
-    const npcsMapObjects = this.map.objects.find(o => o.name === 'npcs');
+    const npcsMapObjects = this.map.objects.find(o => o.name === mapContentKeys.objects.NPCS);
     const npcs: any = npcsMapObjects ? npcsMapObjects.objects : [];
     this.npcs = npcs.map(npc => {
       return new Npc(this, npc.x, npc.y, npc.properties.message);
     });
 
-    const treantsMapObjects = this.map.objects.find(o => o.name === 'treants');
+    const treantsMapObjects = this.map.objects.find(o => o.name === mapContentKeys.objects.TREANTS);
     const treants: any = treantsMapObjects ? treantsMapObjects.objects : [];
 
     this.treants = treants.map(treant => {
       return new Treant(this, treant.x, treant.y);
     });
 
-    const levelChangerObjectLayer = this.map.objects.find(o => o.name === 'zones');
+    const levelChangerObjectLayer = this.map.objects.find(o => o.name === mapContentKeys.objects.ZONES);
     if (levelChangerObjectLayer) {
       const levelChanger = levelChangerObjectLayer.objects.map((o: any) => {
         const zone = this.add.zone(o.x, o.y, o.width, o.height);
         this.physics.add.existing(zone);
-        this.physics.add.overlap(zone, this.player.gameObject, () => this.scene.start('Second'));
+        this.physics.add.overlap(zone, this.player.gameObject, () =>
+          this.scene.start(scenes.SECOND)
+        );
       });
     }
 
