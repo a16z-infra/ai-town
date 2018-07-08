@@ -79,7 +79,7 @@
                  "point":true,
                  "properties":
                     {
-                     "message":"Hello! Watch out of the dangerous treants!"
+                     "message":"Hello! Watch out for the dangerous treants!"
                     },
                  "propertytypes":
                     {
@@ -89,8 +89,8 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":58.2322910019145,
-                 "y":146.777281429483
+                 "x":58.2323,
+                 "y":146.777
                 }, 
                 {
                  "height":0,
@@ -109,8 +109,8 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":445.118059987237,
-                 "y":308.710912571793
+                 "x":445.118,
+                 "y":308.711
                 }],
          "opacity":1,
          "type":"objectgroup",

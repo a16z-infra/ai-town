@@ -5592,7 +5592,7 @@
  <objectgroup name="npcs">
   <object id="6" name="npc" x="58.2323" y="146.777">
    <properties>
-    <property name="message" value="Hello! Watch out of the dangerous treants!"/>
+    <property name="message" value="Hello! Watch out for the dangerous treants!"/>
    </properties>
    <point/>
   </object>
