@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.0" tiledversion="1.1.5" orientation="orthogonal" renderorder="right-down" width="40" height="40" tilewidth="16" tileheight="16" infinite="0" nextobjectid="11">
+<map version="1.0" tiledversion="1.1.5" orientation="orthogonal" renderorder="right-down" width="40" height="40" tilewidth="16" tileheight="16" infinite="0" nextobjectid="13">
  <tileset firstgid="1" name="tileset" tilewidth="16" tileheight="16" tilecount="1088" columns="34">
   <image source="environment/tileset.png" width="544" height="512"/>
   <terraintypes>
@@ -5601,6 +5601,13 @@
     <property name="message" value="Hello! You are doing fine :)"/>
    </properties>
    <point/>
+  </object>
+ </objectgroup>
+ <objectgroup name="zone-change">
+  <object id="11" x="355.775" y="408.424" width="27.1219" height="44.6713">
+   <properties>
+    <property name="scene" value="second"/>
+   </properties>
   </object>
  </objectgroup>
 </map>
