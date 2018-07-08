@@ -128,7 +128,7 @@
                  "name":"",
                  "properties":
                     {
-                     "scene":"SECOND",
+                     "scene":"Second",
                      "type":"CHANGE_SCENE"
                     },
                  "propertytypes":

@@ -2,7 +2,6 @@ import Arrow from '../game-objects/Arrow';
 import Player from '../game-objects/Player';
 import Treant from '../game-objects/Treant';
 import Npc from '../game-objects/Npc';
-import scenes from '../constants/scenes';
 import mapContentKeys from '../constants/map-content-keys';
 
 const CAMERA_LERP = 1;
@@ -88,7 +87,7 @@ abstract class AbstractScene extends Phaser.Scene {
 
     if (data && data.comesFrom) {
       const levelChanger: any = levelChangerObjectLayer.objects.find((o: any) => {
-        return scenes[o.properties.scene] === data.comesFrom;
+        return o.properties.scene === data.comesFrom;
       });
 
       playerX = levelChanger.x + 50;
@@ -113,7 +112,7 @@ abstract class AbstractScene extends Phaser.Scene {
         const zone = this.add.zone(o.x, o.y, o.width, o.height);
         this.physics.add.existing(zone);
         this.physics.add.overlap(zone, this.player.gameObject, () => {
-          this.scene.start(scenes[o.properties.scene], { comesFrom: this.scene.key });
+          this.scene.start(o.properties.scene, { comesFrom: this.scene.key });
         });
       });
     }
