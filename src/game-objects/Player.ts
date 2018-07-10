@@ -4,6 +4,7 @@ import REGISTRY_KEYS from '../constants/registry';
 
 const HIT_DELAY = 500; //0.5s
 const PLAYER_SPEED = 100;
+const PLAYER_SHOOTING_TIME = 300;
 const DISTANCE_BETWEEN_HEARTS = 15;
 const PLAYER_RELOAD = 500;
 const MAX_HP = 3;
@@ -14,7 +15,8 @@ class Player {
   gameObject: Phaser.Physics.Arcade.Sprite;
   orientation: 'up' | 'down' | 'left' | 'right';
   lastTimeHit: number;
-  loading: boolean;
+  isLoading: boolean;
+  isShooting: boolean;
   tomb: Phaser.GameObjects.Sprite;
   hearts: Array<Phaser.GameObjects.Sprite>;
 
@@ -33,7 +35,8 @@ class Player {
     this.gameObject.setOrigin(0.5, 0.7);
     this.gameObject.setSize(10, 10);
     this.gameObject.setDepth(10);
-    this.loading = false;
+    this.isLoading = false;
+    this.isShooting = false;
     this.tomb = null;
 
     this.hearts = [];
@@ -82,7 +85,7 @@ class Player {
   }
 
   reload() {
-    this.loading = true;
+    this.isLoading = true;
     this.scene.time.addEvent({
       delay: PLAYER_RELOAD,
       callback: this.readyToFire,
@@ -91,7 +94,7 @@ class Player {
   }
 
   readyToFire() {
-    this.loading = false;
+    this.isLoading = false;
   }
 
   go(direction, shouldAnimate = true) {
@@ -143,6 +146,14 @@ class Player {
     }
   }
 
+  handleMovement(keyPressed) {
+    if (this.isShooting) {
+      return;
+    }
+    this.handleHorizontalMovement(keyPressed);
+    this.handleVerticalMovement(keyPressed);
+  }
+
   punch() {
     const animSwitch = {
       down: { flip: false, anim: 'attack-down' },
@@ -166,7 +177,18 @@ class Player {
     this.gameObject.play(animSwitch[this.orientation].anim, true);
   }
 
+	endShoot = () => {
+    this.isShooting = false;
+	}
+
   shoot() {
+    this.isShooting = true;
+    this.scene.time.addEvent({
+      delay: PLAYER_SHOOTING_TIME,
+      callback: this.endShoot,
+      callbackScope: this,
+    });
+
     const animSwitch = {
       down: { anim: 'attack-weapon-down' },
       up: { anim: 'attack-weapon-up' },
@@ -182,7 +204,7 @@ class Player {
 
   handleShootKey(keyPressed) {
     if (keyPressed.shift) {
-      if (this.loading) {
+      if (this.isLoading) {
         return;
       }
       this.reload();
@@ -205,15 +227,14 @@ class Player {
       return;
     }
     this.gameObject.setVelocity(0);
-    this.handleHorizontalMovement(keyPressed);
-    this.handleVerticalMovement(keyPressed);
+    this.handleMovement(keyPressed);
 
     if (keyPressed.space) {
       this.punch();
     }
 
     const noKeyPressed = Object.values(keyPressed).filter(x => x).length === 0;
-    if (noKeyPressed && !this.loading) {
+    if (noKeyPressed && !this.isLoading) {
       this.beIdle();
     }
 

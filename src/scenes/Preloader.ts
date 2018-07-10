@@ -136,19 +136,19 @@ class Preloader extends Phaser.Scene {
     this.anims.create({
       key: 'attack-weapon-down',
       frames: this.anims.generateFrameNumbers('attack-weapon-down', { start: 0, end: 2 }),
-      frameRate: 10,
+      frameRate: 7,
       repeat: -1,
     });
     this.anims.create({
       key: 'attack-weapon-up',
       frames: this.anims.generateFrameNumbers('attack-weapon-up', { start: 0, end: 2 }),
-      frameRate: 10,
+      frameRate: 7,
       repeat: -1,
     });
     this.anims.create({
       key: 'attack-weapon-side',
       frames: this.anims.generateFrameNumbers('attack-weapon-side', { start: 0, end: 2 }),
-      frameRate: 10,
+      frameRate: 7,
       repeat: -1,
     });
   }
