@@ -5,6 +5,8 @@
   "rules": {
     "quotemark": [true, "single"],
     "ordered-imports": [false],
+    "no-reference-import": [false],
+    "arrow-parens": [true, "ban-single-arg-parens"],
     "object-literal-sort-keys": [false]
   },
   "rulesDirectory": []

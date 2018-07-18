@@ -5,10 +5,10 @@ const TREANT_HIT_DELAY = 100;
 const DESTROY_SPRITE_ATTACK_DELAY = 200;
 
 export class Treant {
-  scene: AbstractScene;
-  gameObject: Phaser.Physics.Arcade.Sprite;
-  hp: number;
-  chasingPlayerTimerEvent: Phaser.Time.TimerEvent;
+  public scene: AbstractScene;
+  public gameObject: Phaser.Physics.Arcade.Sprite;
+  private hp: number;
+  private chasingPlayerTimerEvent: Phaser.Time.TimerEvent;
 
   constructor(scene, x: number = 400, y: number = 400) {
     this.scene = scene;
@@ -20,64 +20,11 @@ export class Treant {
     this.gameObject.setImmovable(true);
   }
 
-  shouldChase = () => {
-    const playerPoint = this.scene.player.gameObject.getCenter();
-    const treantPoint = this.gameObject.getCenter();
-    const distance = treantPoint.distance(playerPoint);
-
-    if (distance < 100) {
-      return true;
-    }
-
-    return false;
-  };
-
-  moveTreant() {
-    if (!this.gameObject.active) {
-      return;
-    }
-
-    const playerPoint = this.scene.player.gameObject.getCenter();
-    const treantPoint = this.gameObject.getCenter();
-    const { x, y } = playerPoint.subtract(treantPoint);
-
-    this.gameObject.setVelocityX(Math.sign(x) * TREANT_SPEED);
-    this.gameObject.setVelocityY(Math.sign(y) * TREANT_SPEED);
-  }
-
-  startChasing() {
-    this.chasingPlayerTimerEvent = this.scene.time.addEvent({
-      delay: 500,
-      callback: this.moveTreant,
-      callbackScope: this,
-      repeat: Infinity,
-      startAt: 2000,
-    });
-  }
-
-  stopChasing() {
-    if (this.gameObject.active) {
-      this.gameObject.setVelocity(0);
-    }
-    this.chasingPlayerTimerEvent.destroy();
-    this.chasingPlayerTimerEvent = null;
-  }
-
-  handleChase() {
-    if (!this.chasingPlayerTimerEvent && this.shouldChase()) {
-      this.startChasing();
-    }
-
-    if (this.chasingPlayerTimerEvent && !this.shouldChase()) {
-      this.stopChasing();
-    }
-  }
-
-  update() {
+  public update() {
     this.handleChase();
   }
 
-  treantHit = () => {
+  public treantHit = () => {
     if (!this.scene.player.canGetHit()) {
       return;
     }
@@ -85,7 +32,7 @@ export class Treant {
     const treantAttack = this.scene.physics.add.sprite(
       this.scene.player.gameObject.x,
       this.scene.player.gameObject.y,
-      'treantAttack'
+      'treantAttack',
     );
     this.scene.player.loseHp();
     this.scene.time.addEvent({
@@ -93,9 +40,9 @@ export class Treant {
       callback: () => (treantAttack ? treantAttack.destroy() : null),
       callbackScope: this,
     });
-  };
+  }
 
-  treantLoseHp = (projectile: Phaser.Physics.Arcade.Sprite) => {
+  public treantLoseHp = (projectile: Phaser.Physics.Arcade.Sprite) => {
     return () => {
       this.hp--;
       this.gameObject.setTint(0xff0000);
@@ -109,5 +56,58 @@ export class Treant {
         this.gameObject.destroy();
       }
     };
-  };
+  }
+
+  private shouldChase = () => {
+    const playerPoint = this.scene.player.gameObject.getCenter();
+    const treantPoint = this.gameObject.getCenter();
+    const distance = treantPoint.distance(playerPoint);
+
+    if (distance < 100) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private moveTreant() {
+    if (!this.gameObject.active) {
+      return;
+    }
+
+    const playerPoint = this.scene.player.gameObject.getCenter();
+    const treantPoint = this.gameObject.getCenter();
+    const { x, y } = playerPoint.subtract(treantPoint);
+
+    this.gameObject.setVelocityX(Math.sign(x) * TREANT_SPEED);
+    this.gameObject.setVelocityY(Math.sign(y) * TREANT_SPEED);
+  }
+
+  private startChasing() {
+    this.chasingPlayerTimerEvent = this.scene.time.addEvent({
+      delay: 500,
+      callback: this.moveTreant,
+      callbackScope: this,
+      repeat: Infinity,
+      startAt: 2000,
+    });
+  }
+
+  private stopChasing() {
+    if (this.gameObject.active) {
+      this.gameObject.setVelocity(0);
+    }
+    this.chasingPlayerTimerEvent.destroy();
+    this.chasingPlayerTimerEvent = null;
+  }
+
+  private handleChase() {
+    if (!this.chasingPlayerTimerEvent && this.shouldChase()) {
+      this.startChasing();
+    }
+
+    if (this.chasingPlayerTimerEvent && !this.shouldChase()) {
+      this.stopChasing();
+    }
+  }
 }

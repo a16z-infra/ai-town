@@ -3,9 +3,9 @@ import { AbstractScene } from '../scenes/AbstractScene';
 const TEXT_VERTICAL_SHIFT = 10;
 
 export class Npc {
-  scene: AbstractScene;
-  gameObject: Phaser.Physics.Arcade.Sprite;
-  textGameObject: Phaser.GameObjects.Text;
+  public gameObject: Phaser.Physics.Arcade.Sprite;
+  private scene: AbstractScene;
+  private textGameObject: Phaser.GameObjects.Text;
 
   constructor(scene: AbstractScene, x: number, y: number, text: string) {
     this.scene = scene;
@@ -14,22 +14,22 @@ export class Npc {
     this.textGameObject.setWordWrapWidth(150);
     this.textGameObject.setPosition(
       this.gameObject.x + (this.gameObject.width - this.textGameObject.width) / 2,
-      this.gameObject.y - this.textGameObject.height - TEXT_VERTICAL_SHIFT
+      this.gameObject.y - this.textGameObject.height - TEXT_VERTICAL_SHIFT,
     );
     this.textGameObject.setAlpha(0);
     this.gameObject.setImmovable(true);
   }
 
-  talk = () => {
+  public talk = () => {
     this.textGameObject.setAlpha(1);
     this.scene.time.addEvent({
       delay: 3000,
       callback: this.hideText,
       callbackScope: this,
     });
-  };
+  }
 
-  hideText = () => {
+  private hideText = () => {
     this.textGameObject.setAlpha(0);
-  };
+  }
 }

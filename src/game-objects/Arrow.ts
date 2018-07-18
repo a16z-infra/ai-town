@@ -3,9 +3,9 @@ import { Player } from './Player';
 const ARROW_SPEED = 150;
 
 export class Arrow {
-  scene: Phaser.Scene;
-  player: Player;
-  gameObject: Phaser.Physics.Arcade.Sprite;
+  public gameObject: Phaser.Physics.Arcade.Sprite;
+  private scene: Phaser.Scene;
+  private player: Player;
 
   constructor(scene: Phaser.Scene, player, direction) {
     this.scene = scene;
@@ -24,7 +24,7 @@ export class Arrow {
       player.gameObject.x,
       player.gameObject.y,
       spriteName,
-      0
+      0,
     );
 
     switch (direction) {

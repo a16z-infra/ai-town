@@ -2,7 +2,7 @@ import { Arrow } from './Arrow';
 import { AbstractScene } from '../scenes/AbstractScene';
 import { registry as REGISTRY_KEYS } from '../constants/registry';
 
-const HIT_DELAY = 500; //0.5s
+const HIT_DELAY = 500;
 const PLAYER_SPEED = 100;
 const PLAYER_SHOOTING_TIME = 300;
 const DISTANCE_BETWEEN_HEARTS = 15;
@@ -10,15 +10,15 @@ const PLAYER_RELOAD = 500;
 const MAX_HP = 3;
 
 export class Player {
-  scene: AbstractScene;
-  maxHp: number;
-  gameObject: Phaser.Physics.Arcade.Sprite;
-  orientation: 'up' | 'down' | 'left' | 'right';
-  lastTimeHit: number;
-  isLoading: boolean;
-  isShooting: boolean;
-  tomb: Phaser.GameObjects.Sprite;
-  hearts: Array<Phaser.GameObjects.Sprite>;
+  public gameObject: Phaser.Physics.Arcade.Sprite;
+  private scene: AbstractScene;
+  private maxHp: number;
+  private orientation: 'up' | 'down' | 'left' | 'right';
+  private lastTimeHit: number;
+  private isLoading: boolean;
+  private isShooting: boolean;
+  private tomb: Phaser.GameObjects.Sprite;
+  private hearts: Phaser.GameObjects.Sprite[];
 
   constructor(scene: AbstractScene, x: number, y: number) {
     this.scene = scene;
@@ -43,20 +43,60 @@ export class Player {
     this.initHearts();
   }
 
-  getHp(): number {
+  public update(keyPressed) {
+    if (!this.gameObject.active) {
+      return;
+    }
+    this.gameObject.setVelocity(0);
+    this.handleMovement(keyPressed);
+
+    if (keyPressed.space) {
+      this.punch();
+    }
+
+    const noKeyPressed = Object.values(keyPressed).filter(x => x).length === 0;
+    if (noKeyPressed && !this.isLoading) {
+      this.beIdle();
+    }
+
+    this.handleShootKey(keyPressed);
+  }
+
+  public canGetHit() {
+    return new Date().getTime() - this.lastTimeHit > HIT_DELAY;
+  }
+
+  public loseHp() {
+    this.addHp(-1);
+    this.updateHearts();
+
+    this.lastTimeHit = new Date().getTime();
+
+    if (this.getHp() > 0) {
+      return;
+    }
+
+    // Player dies
+    if (!this.tomb) {
+      this.tomb = this.scene.add.sprite(this.gameObject.x, this.gameObject.y, 'tomb').setScale(0.1);
+    }
+    this.gameObject.destroy();
+  }
+
+  private getHp(): number {
     return this.scene.registry.get(REGISTRY_KEYS.PLAYER.HP);
   }
 
-  setHp(newHp: number) {
+  private setHp(newHp: number) {
     this.scene.registry.set(REGISTRY_KEYS.PLAYER.HP, newHp);
   }
 
-  addHp(hpToAdd: number) {
+  private addHp(hpToAdd: number) {
     const hp = this.scene.registry.get(REGISTRY_KEYS.PLAYER.HP);
     this.setHp(hp + hpToAdd);
   }
 
-  initHearts() {
+  private initHearts() {
     Array(MAX_HP)
       .fill(0)
       .map((_, i) => {
@@ -76,7 +116,7 @@ export class Player {
       });
   }
 
-  updateHearts() {
+  private updateHearts() {
     this.hearts.map((heart, index) => {
       if (index >= this.getHp()) {
         heart.setAlpha(0);
@@ -84,7 +124,7 @@ export class Player {
     });
   }
 
-  reload() {
+  private reload() {
     this.isLoading = true;
     this.scene.time.addEvent({
       delay: PLAYER_RELOAD,
@@ -93,11 +133,11 @@ export class Player {
     });
   }
 
-  readyToFire() {
+  private readyToFire() {
     this.isLoading = false;
   }
 
-  go(direction, shouldAnimate = true) {
+  private go(direction, shouldAnimate = true) {
     switch (direction) {
       case 'left':
         this.gameObject.setVelocityX(-PLAYER_SPEED);
@@ -124,7 +164,7 @@ export class Player {
     this.gameObject.play(direction, true);
   }
 
-  handleHorizontalMovement(keyPressed) {
+  private handleHorizontalMovement(keyPressed) {
     const isUpDownPressed = keyPressed.up || keyPressed.down;
 
     if (keyPressed.left) {
@@ -138,7 +178,7 @@ export class Player {
     }
   }
 
-  handleVerticalMovement(keyPressed) {
+  private handleVerticalMovement(keyPressed) {
     if (keyPressed.up) {
       this.go('up');
     } else if (keyPressed.down) {
@@ -146,7 +186,7 @@ export class Player {
     }
   }
 
-  handleMovement(keyPressed) {
+  private handleMovement(keyPressed) {
     if (this.isShooting) {
       return;
     }
@@ -154,7 +194,7 @@ export class Player {
     this.handleVerticalMovement(keyPressed);
   }
 
-  punch() {
+  private punch() {
     const animSwitch = {
       down: { flip: false, anim: 'attack-down' },
       up: { flip: false, anim: 'attack-up' },
@@ -166,7 +206,7 @@ export class Player {
     this.gameObject.play(animSwitch[this.orientation].anim, true);
   }
 
-  beIdle() {
+  private beIdle() {
     const animSwitch = {
       down: { flip: false, anim: 'idle-down' },
       up: { flip: false, anim: 'idle-up' },
@@ -177,11 +217,11 @@ export class Player {
     this.gameObject.play(animSwitch[this.orientation].anim, true);
   }
 
-	endShoot = () => {
+  private endShoot = () => {
     this.isShooting = false;
-	}
+  }
 
-  shoot() {
+  private shoot() {
     this.isShooting = true;
     this.scene.time.addEvent({
       delay: PLAYER_SHOOTING_TIME,
@@ -202,7 +242,7 @@ export class Player {
     return arrow;
   }
 
-  handleShootKey(keyPressed) {
+  private handleShootKey(keyPressed) {
     if (keyPressed.shift) {
       if (this.isLoading) {
         return;
@@ -216,49 +256,9 @@ export class Player {
         this.scene.physics.add.collider(
           arrowGameObject,
           treant.gameObject,
-          treant.treantLoseHp(arrowGameObject)
-        )
+          treant.treantLoseHp(arrowGameObject),
+        ),
       );
     }
-  }
-
-  update(keyPressed) {
-    if (!this.gameObject.active) {
-      return;
-    }
-    this.gameObject.setVelocity(0);
-    this.handleMovement(keyPressed);
-
-    if (keyPressed.space) {
-      this.punch();
-    }
-
-    const noKeyPressed = Object.values(keyPressed).filter(x => x).length === 0;
-    if (noKeyPressed && !this.isLoading) {
-      this.beIdle();
-    }
-
-    this.handleShootKey(keyPressed);
-  }
-
-  loseHp() {
-    this.addHp(-1);
-    this.updateHearts();
-
-    this.lastTimeHit = new Date().getTime();
-
-    if (this.getHp() > 0) {
-      return;
-    }
-
-    // Player dies
-    if (!this.tomb) {
-      this.tomb = this.scene.add.sprite(this.gameObject.x, this.gameObject.y, 'tomb').setScale(0.1);
-    }
-    this.gameObject.destroy();
-  }
-
-  canGetHit() {
-    return new Date().getTime() - this.lastTimeHit > HIT_DELAY;
   }
 }

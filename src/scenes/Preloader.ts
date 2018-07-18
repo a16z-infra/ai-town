@@ -1,7 +1,7 @@
 import { maps } from '../constants/maps';
 
 export class Preloader extends Phaser.Scene {
-  loadAssets() {
+  private loadAssets() {
     this.load.tilemapTiledJSON(maps.main.key, `assets/${maps.main.file}`);
     this.load.tilemapTiledJSON(maps.second.key, `assets/${maps.second.file}`);
 
@@ -56,23 +56,23 @@ export class Preloader extends Phaser.Scene {
     this.load.spritesheet(
       'attack-weapon-down',
       'assets/spritesheets/hero/attack-weapon/hero-attack-front-weapon.png',
-      { frameWidth: 32, frameHeight: 32 }
+      { frameWidth: 32, frameHeight: 32 },
     );
     this.load.spritesheet(
       'attack-weapon-up',
       'assets/spritesheets/hero/attack-weapon/hero-attack-back-weapon.png',
-      { frameWidth: 32, frameHeight: 32 }
+      { frameWidth: 32, frameHeight: 32 },
     );
     this.load.spritesheet(
       'attack-weapon-side',
       'assets/spritesheets/hero/attack-weapon/hero-attack-side-weapon.png',
-      { frameWidth: 32, frameHeight: 32 }
+      { frameWidth: 32, frameHeight: 32 },
     );
     this.load.spritesheet('player', 'assets/player.png', { frameWidth: 16, frameHeight: 16 });
     this.load.spritesheet('npcs', 'assets/npc.png', { frameWidth: 16, frameHeight: 16 });
   }
 
-  createAnimations() {
+  private createAnimations() {
     this.anims.create({
       key: 'left',
       frames: this.anims.generateFrameNumbers('walk-side', { start: 0, end: 2 }),
@@ -153,11 +153,11 @@ export class Preloader extends Phaser.Scene {
     });
   }
 
-  preload() {
+  private preload() {
     this.loadAssets();
   }
 
-  create() {
+  private create() {
     this.createAnimations();
     this.scene.launch('Main');
   }

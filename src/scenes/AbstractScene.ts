@@ -10,23 +10,23 @@ const PLAYER_INITIAL_POSITION = {
   y: 200,
 };
 
-type InterSceneData = {
+interface InterSceneData {
   comesFrom: string;
-};
+}
 
 export abstract class AbstractScene extends Phaser.Scene {
-  player: Player;
-  cursors: CursorKeys;
-  npcs: Npc[];
-  treants: Treant[];
-  map: Phaser.Tilemaps.Tilemap;
-  treantGroup: Phaser.Physics.Arcade.Group;
-  layers: {
+  public player: Player;
+  public cursors: CursorKeys;
+  public npcs: Npc[];
+  public treants: Treant[];
+  public map: Phaser.Tilemaps.Tilemap;
+  public treantGroup: Phaser.Physics.Arcade.Group;
+  public layers: {
     terrain: Phaser.Tilemaps.StaticTilemapLayer;
     deco: Phaser.Tilemaps.StaticTilemapLayer;
     bridge: Phaser.Tilemaps.StaticTilemapLayer;
   };
-  mapKey: string;
+  public mapKey: string;
 
   constructor(key: string, mapKey: string) {
     super(key);
@@ -42,7 +42,21 @@ export abstract class AbstractScene extends Phaser.Scene {
     this.layers = null;
   }
 
-  createMapWithLayers() {
+  public update() {
+    const keyPressed = {
+      left: this.cursors.left.isDown,
+      right: this.cursors.right.isDown,
+      up: this.cursors.up.isDown,
+      down: this.cursors.down.isDown,
+      space: this.cursors.space.isDown,
+      shift: this.cursors.shift.isDown,
+    };
+
+    this.treants.map(treant => treant.update());
+    this.player.update(keyPressed);
+  }
+
+  private createMapWithLayers() {
     this.map = this.make.tilemap({ key: this.mapKey });
     const tileset = this.map.addTilesetImage('tileset', 'tiles', 16, 16, 0, 0);
 
@@ -55,25 +69,25 @@ export abstract class AbstractScene extends Phaser.Scene {
     this.layers.deco.setCollisionByProperty({ collides: true });
   }
 
-  addColliders() {
+  private addColliders() {
     this.treantGroup = this.physics.add.group(this.treants.map(treant => treant.gameObject));
     this.physics.add.collider(this.treantGroup, this.layers.terrain);
     this.physics.add.collider(this.treantGroup, this.layers.deco);
     // TODO refactor this for performance
     this.treants.map(treant =>
-      this.physics.add.collider(treant.gameObject, this.player.gameObject, treant.treantHit)
+      this.physics.add.collider(treant.gameObject, this.player.gameObject, treant.treantHit),
     );
 
     this.physics.add.collider(this.player.gameObject, this.layers.terrain);
     this.physics.add.collider(this.player.gameObject, this.layers.deco);
     this.npcs.map(npc =>
-      this.physics.add.collider(npc.gameObject, this.player.gameObject, npc.talk)
+      this.physics.add.collider(npc.gameObject, this.player.gameObject, npc.talk),
     );
   }
 
-  getPlayerInitialPosition(
+  private getPlayerInitialPosition(
     levelChangerObjectLayer: Phaser.Tilemaps.ObjectLayer,
-    data: InterSceneData
+    data: InterSceneData,
   ): { x: number; y: number } {
     let playerX = PLAYER_INITIAL_POSITION.x;
     let playerY = PLAYER_INITIAL_POSITION.y;
@@ -114,19 +128,19 @@ export abstract class AbstractScene extends Phaser.Scene {
     return { x: playerX, y: playerY };
   }
 
-  initCamera() {
+  private initCamera() {
     this.cameras.main.setRoundPixels(true);
     this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
     this.cameras.main.startFollow(this.player.gameObject, true, CAMERA_LERP, CAMERA_LERP);
   }
 
-  init(data: InterSceneData) {
+  private init(data: InterSceneData) {
     this.createMapWithLayers();
 
     this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
 
     const levelChangerObjectLayer = this.map.objects.find(
-      o => o.name === mapContentKeys.objects.ZONES
+      o => o.name === mapContentKeys.objects.ZONES,
     );
 
     const playerInitialPosition = this.getPlayerInitialPosition(levelChangerObjectLayer, data);
@@ -159,19 +173,5 @@ export abstract class AbstractScene extends Phaser.Scene {
     this.initCamera();
 
     this.cursors = this.input.keyboard.createCursorKeys();
-  }
-
-  update() {
-    const keyPressed = {
-      left: this.cursors.left.isDown,
-      right: this.cursors.right.isDown,
-      up: this.cursors.up.isDown,
-      down: this.cursors.down.isDown,
-      space: this.cursors.space.isDown,
-      shift: this.cursors.shift.isDown,
-    };
-
-    this.treants.map(treant => treant.update());
-    this.player.update(keyPressed);
   }
 }

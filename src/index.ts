@@ -1,6 +1,3 @@
-/// <reference path="../typings/phaser.d.ts" />
-/// <reference path="../typings/typings.d.ts" />
-
 import 'phaser';
 import { Main } from './scenes/Main';
 import { Second } from './scenes/Second';

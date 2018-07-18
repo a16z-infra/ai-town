@@ -8,5 +8,5 @@ export const mapContentKeys = {
     NPCS: 'npcs',
     TREANTS: 'treants',
     ZONES: 'zones',
-  }
-}
+  },
+};

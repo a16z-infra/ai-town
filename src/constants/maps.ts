@@ -6,5 +6,5 @@ export const maps = {
   second: {
     file: 'second-map.json',
     key: 'second',
-  }
-}
+  },
+};
