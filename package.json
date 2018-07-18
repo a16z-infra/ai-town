@@ -2,6 +2,7 @@
   "scripts": {
     "build": "webpack -p",
     "start": "webpack-dev-server",
+    "pretest": "yarn lint",
     "test": "jest",
     "lint": "tslint -c tslint.json 'src/**/*.ts'",
     "deploy": "yarn build && gh-pages -d dist"
