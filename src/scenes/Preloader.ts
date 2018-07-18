@@ -1,6 +1,6 @@
-import maps from '../constants/maps';
+import { maps } from '../constants/maps';
 
-class Preloader extends Phaser.Scene {
+export class Preloader extends Phaser.Scene {
   loadAssets() {
     this.load.tilemapTiledJSON(maps.main.key, `assets/${maps.main.file}`);
     this.load.tilemapTiledJSON(maps.second.key, `assets/${maps.second.file}`);
@@ -162,5 +162,3 @@ class Preloader extends Phaser.Scene {
     this.scene.launch('Main');
   }
 }
-
-export default Preloader;

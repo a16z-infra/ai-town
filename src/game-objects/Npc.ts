@@ -1,8 +1,8 @@
-import AbstractScene from '../scenes/AbstractScene';
+import { AbstractScene } from '../scenes/AbstractScene';
 
 const TEXT_VERTICAL_SHIFT = 10;
 
-class Npc {
+export class Npc {
   scene: AbstractScene;
   gameObject: Phaser.Physics.Arcade.Sprite;
   textGameObject: Phaser.GameObjects.Text;
@@ -33,5 +33,3 @@ class Npc {
     this.textGameObject.setAlpha(0);
   };
 }
-
-export default Npc;

@@ -1,4 +1,4 @@
-export default {
+export const maps = {
   main: {
     file: 'tilemap.json',
     key: 'main',

@@ -1,10 +1,10 @@
-import AbstractScene from '../scenes/AbstractScene';
+import { AbstractScene } from '../scenes/AbstractScene';
 
 const TREANT_SPEED = 20;
 const TREANT_HIT_DELAY = 100;
 const DESTROY_SPRITE_ATTACK_DELAY = 200;
 
-class Treant {
+export class Treant {
   scene: AbstractScene;
   gameObject: Phaser.Physics.Arcade.Sprite;
   hp: number;
@@ -111,5 +111,3 @@ class Treant {
     };
   };
 }
-
-export default Treant;

@@ -1,6 +1,6 @@
-import Arrow from './Arrow';
-import AbstractScene from '../scenes/AbstractScene';
-import REGISTRY_KEYS from '../constants/registry';
+import { Arrow } from './Arrow';
+import { AbstractScene } from '../scenes/AbstractScene';
+import { registry as REGISTRY_KEYS } from '../constants/registry';
 
 const HIT_DELAY = 500; //0.5s
 const PLAYER_SPEED = 100;
@@ -9,7 +9,7 @@ const DISTANCE_BETWEEN_HEARTS = 15;
 const PLAYER_RELOAD = 500;
 const MAX_HP = 3;
 
-class Player {
+export class Player {
   scene: AbstractScene;
   maxHp: number;
   gameObject: Phaser.Physics.Arcade.Sprite;
@@ -262,4 +262,3 @@ class Player {
     return new Date().getTime() - this.lastTimeHit > HIT_DELAY;
   }
 }
-export default Player;

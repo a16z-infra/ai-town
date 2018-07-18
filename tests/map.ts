@@ -1,5 +1,5 @@
-const maps = require('../src/constants/maps').default;
-const scenes = require('../src/constants/scenes').default;
+const maps = require('../src/constants/maps').maps;
+const scenes = require('../src/constants/scenes').scenes;
 const sceneNames = Object.values(scenes);
 
 const MANDATORY_LAYERS = ['terrain', 'deco', 'bridge', 'treants', 'npcs', 'zones'];

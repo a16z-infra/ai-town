@@ -2,9 +2,9 @@
 /// <reference path="../typings/typings.d.ts" />
 
 import 'phaser';
-import Main from './scenes/Main';
-import Second from './scenes/Second';
-import Preloader from './scenes/Preloader';
+import { Main } from './scenes/Main';
+import { Second } from './scenes/Second';
+import { Preloader } from './scenes/Preloader';
 
 class PhaserGame extends Phaser.Game {
   constructor() {

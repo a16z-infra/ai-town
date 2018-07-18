@@ -1,8 +1,8 @@
-import Player from './Player';
+import { Player } from './Player';
 
 const ARROW_SPEED = 150;
 
-class Arrow {
+export class Arrow {
   scene: Phaser.Scene;
   player: Player;
   gameObject: Phaser.Physics.Arcade.Sprite;
@@ -47,5 +47,3 @@ class Arrow {
     }
   }
 }
-
-export default Arrow;

@@ -1,8 +1,8 @@
-import Arrow from '../game-objects/Arrow';
-import Player from '../game-objects/Player';
-import Treant from '../game-objects/Treant';
-import Npc from '../game-objects/Npc';
-import mapContentKeys from '../constants/map-content-keys';
+import { Arrow } from '../game-objects/Arrow';
+import { Player } from '../game-objects/Player';
+import { Treant } from '../game-objects/Treant';
+import { Npc } from '../game-objects/Npc';
+import { mapContentKeys } from '../constants/map-content-keys';
 
 const CAMERA_LERP = 1;
 const PLAYER_INITIAL_POSITION = {
@@ -14,7 +14,7 @@ type InterSceneData = {
   comesFrom: string;
 };
 
-abstract class AbstractScene extends Phaser.Scene {
+export abstract class AbstractScene extends Phaser.Scene {
   player: Player;
   cursors: CursorKeys;
   npcs: Npc[];
@@ -175,5 +175,3 @@ abstract class AbstractScene extends Phaser.Scene {
     this.player.update(keyPressed);
   }
 }
-
-export default AbstractScene;
