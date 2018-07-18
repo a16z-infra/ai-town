@@ -1,5 +1,7 @@
 # phaser3-simple-rpg
 
+[![Build Status](https://travis-ci.org/pierpo/phaser3-simple-rpg.svg?branch=master)](https://travis-ci.org/pierpo/phaser3-simple-rpg)
+
 ## Prerequisites
 
 - Node 10
