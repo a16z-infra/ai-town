@@ -3,6 +3,7 @@
     "build": "webpack -p",
     "start": "webpack-dev-server",
     "test": "jest",
+    "lint": "tslint -c tslint.json 'src/**/*.ts'",
     "deploy": "yarn build && gh-pages -d dist"
   },
   "dependencies": {
@@ -21,6 +22,7 @@
     "jest": "23.3.0",
     "source-map-loader": "^0.2.3",
     "ts-jest": "23.0.0",
+    "tslint": "5.11.0",
     "typescript": "^2.9.2",
     "webpack": "4.10.2",
     "webpack-cli": "3.0.2",
