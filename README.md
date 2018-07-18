@@ -5,6 +5,7 @@
 - Node 10
 - yarn
 - A recent browser (Chrome 67)
+- [Tiled](https://www.mapeditor.org/) for map edition
 
 ## Installation
 
