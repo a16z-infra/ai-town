@@ -1,0 +1,9 @@
+language: node_js
+node_js:
+  - '10.4'
+cache:
+  yarn: true
+  directories:
+    - jest/tmp
+    - node_modules
+script: yarn test
