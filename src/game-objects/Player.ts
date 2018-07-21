@@ -28,7 +28,7 @@ export class Player {
       this.scene.registry.set(REGISTRY_KEYS.PLAYER.HP, MAX_HP);
     }
 
-    this.gameObject = scene.physics.add.sprite(x, y, 'idle-down', 0);
+    this.gameObject = scene.physics.add.sprite(x, y, 'player-idle-down', 0);
     this.orientation = 'down';
     this.lastTimeHit = new Date().getTime();
     this.gameObject.setCollideWorldBounds(true);
@@ -161,7 +161,7 @@ export class Player {
 
     this.gameObject.setFlipX(direction === 'left');
     this.orientation = direction;
-    this.gameObject.play(direction, true);
+    this.gameObject.play(`player-move-${direction}`, true);
   }
 
   private handleHorizontalMovement(keyPressed) {
@@ -196,10 +196,10 @@ export class Player {
 
   private punch() {
     const animSwitch = {
-      down: { flip: false, anim: 'attack-down' },
-      up: { flip: false, anim: 'attack-up' },
-      left: { flip: true, anim: 'attack-side' },
-      right: { flip: false, anim: 'attack-side' },
+      down: { flip: false, anim: 'player-attack-down' },
+      up: { flip: false, anim: 'player-attack-up' },
+      left: { flip: true, anim: 'player-attack-side' },
+      right: { flip: false, anim: 'player-attack-side' },
     };
 
     this.gameObject.setFlipX(animSwitch[this.orientation].flip);
@@ -208,10 +208,10 @@ export class Player {
 
   private beIdle() {
     const animSwitch = {
-      down: { flip: false, anim: 'idle-down' },
-      up: { flip: false, anim: 'idle-up' },
-      left: { flip: true, anim: 'idle-side' },
-      right: { flip: false, anim: 'idle-side' },
+      down: { flip: false, anim: 'player-idle-down' },
+      up: { flip: false, anim: 'player-idle-up' },
+      left: { flip: true, anim: 'player-idle-side' },
+      right: { flip: false, anim: 'player-idle-side' },
     };
     this.gameObject.setFlipX(animSwitch[this.orientation].flip);
     this.gameObject.play(animSwitch[this.orientation].anim, true);
@@ -230,10 +230,10 @@ export class Player {
     });
 
     const animSwitch = {
-      down: { anim: 'attack-weapon-down' },
-      up: { anim: 'attack-weapon-up' },
-      left: { anim: 'attack-weapon-side' },
-      right: { anim: 'attack-weapon-side' },
+      down: { anim: 'player-attack-weapon-down' },
+      up: { anim: 'player-attack-weapon-up' },
+      left: { anim: 'player-attack-weapon-side' },
+      right: { anim: 'player-attack-weapon-side' },
     };
 
     this.gameObject.play(animSwitch[this.orientation].anim, true);

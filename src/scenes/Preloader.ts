@@ -17,54 +17,54 @@ export class Preloader extends Phaser.Scene {
     this.load.image('tomb', 'assets/tomb.png');
 
     // Spritesheets
-    this.load.spritesheet('idle-down', 'assets/spritesheets/hero/idle/hero-idle-front.png', {
+    this.load.spritesheet('player-idle-down', 'assets/spritesheets/hero/idle/hero-idle-front.png', {
       frameWidth: 32,
       frameHeight: 32,
     });
-    this.load.spritesheet('idle-up', 'assets/spritesheets/hero/idle/hero-idle-back.png', {
+    this.load.spritesheet('player-idle-up', 'assets/spritesheets/hero/idle/hero-idle-back.png', {
       frameWidth: 32,
       frameHeight: 32,
     });
-    this.load.spritesheet('idle-side', 'assets/spritesheets/hero/idle/hero-idle-side.png', {
+    this.load.spritesheet('player-idle-side', 'assets/spritesheets/hero/idle/hero-idle-side.png', {
       frameWidth: 32,
       frameHeight: 32,
     });
-    this.load.spritesheet('walk-down', 'assets/spritesheets/hero/walk/hero-walk-front.png', {
+    this.load.spritesheet('player-walk-down', 'assets/spritesheets/hero/walk/hero-walk-front.png', {
       frameWidth: 32,
       frameHeight: 32,
     });
-    this.load.spritesheet('walk-up', 'assets/spritesheets/hero/walk/hero-walk-back.png', {
+    this.load.spritesheet('player-walk-up', 'assets/spritesheets/hero/walk/hero-walk-back.png', {
       frameWidth: 32,
       frameHeight: 32,
     });
-    this.load.spritesheet('walk-side', 'assets/spritesheets/hero/walk/hero-walk-side.png', {
+    this.load.spritesheet('player-walk-side', 'assets/spritesheets/hero/walk/hero-walk-side.png', {
       frameWidth: 32,
       frameHeight: 32,
     });
-    this.load.spritesheet('attack-down', 'assets/spritesheets/hero/attack/hero-attack-front.png', {
+    this.load.spritesheet('player-attack-down', 'assets/spritesheets/hero/attack/hero-attack-front.png', {
       frameWidth: 32,
       frameHeight: 32,
     });
-    this.load.spritesheet('attack-up', 'assets/spritesheets/hero/attack/hero-attack-back.png', {
+    this.load.spritesheet('player-attack-up', 'assets/spritesheets/hero/attack/hero-attack-back.png', {
       frameWidth: 32,
       frameHeight: 32,
     });
-    this.load.spritesheet('attack-side', 'assets/spritesheets/hero/attack/hero-attack-side.png', {
+    this.load.spritesheet('player-attack-side', 'assets/spritesheets/hero/attack/hero-attack-side.png', {
       frameWidth: 32,
       frameHeight: 32,
     });
     this.load.spritesheet(
-      'attack-weapon-down',
+      'player-attack-weapon-down',
       'assets/spritesheets/hero/attack-weapon/hero-attack-front-weapon.png',
       { frameWidth: 32, frameHeight: 32 },
     );
     this.load.spritesheet(
-      'attack-weapon-up',
+      'player-attack-weapon-up',
       'assets/spritesheets/hero/attack-weapon/hero-attack-back-weapon.png',
       { frameWidth: 32, frameHeight: 32 },
     );
     this.load.spritesheet(
-      'attack-weapon-side',
+      'player-attack-weapon-side',
       'assets/spritesheets/hero/attack-weapon/hero-attack-side-weapon.png',
       { frameWidth: 32, frameHeight: 32 },
     );
@@ -74,80 +74,80 @@ export class Preloader extends Phaser.Scene {
 
   private createAnimations() {
     this.anims.create({
-      key: 'left',
-      frames: this.anims.generateFrameNumbers('walk-side', { start: 0, end: 2 }),
+      key: 'player-move-left',
+      frames: this.anims.generateFrameNumbers('player-walk-side', { start: 0, end: 2 }),
       frameRate: 10,
       repeat: -1,
     });
     this.anims.create({
-      key: 'right',
-      frames: this.anims.generateFrameNumbers('walk-side', { start: 0, end: 2 }),
+      key: 'player-move-right',
+      frames: this.anims.generateFrameNumbers('player-walk-side', { start: 0, end: 2 }),
       frameRate: 10,
       repeat: -1,
     });
     this.anims.create({
-      key: 'up',
-      frames: this.anims.generateFrameNumbers('walk-up', { start: 0, end: 2 }),
+      key: 'player-move-up',
+      frames: this.anims.generateFrameNumbers('player-walk-up', { start: 0, end: 2 }),
       frameRate: 10,
       repeat: -1,
     });
     this.anims.create({
-      key: 'down',
-      frames: this.anims.generateFrameNumbers('walk-down', { start: 0, end: 2 }),
+      key: 'player-move-down',
+      frames: this.anims.generateFrameNumbers('player-walk-down', { start: 0, end: 2 }),
       frameRate: 10,
       repeat: -1,
     });
     this.anims.create({
-      key: 'idle-up',
-      frames: this.anims.generateFrameNumbers('idle-up', { start: 0, end: 0 }),
+      key: 'player-idle-up',
+      frames: this.anims.generateFrameNumbers('player-idle-up', { start: 0, end: 0 }),
       frameRate: 10,
       repeat: -1,
     });
     this.anims.create({
-      key: 'idle-down',
-      frames: this.anims.generateFrameNumbers('idle-down', { start: 0, end: 0 }),
+      key: 'player-idle-down',
+      frames: this.anims.generateFrameNumbers('player-idle-down', { start: 0, end: 0 }),
       frameRate: 10,
       repeat: -1,
     });
     this.anims.create({
-      key: 'idle-side',
-      frames: this.anims.generateFrameNumbers('idle-side', { start: 0, end: 0 }),
+      key: 'player-idle-side',
+      frames: this.anims.generateFrameNumbers('player-idle-side', { start: 0, end: 0 }),
       frameRate: 10,
       repeat: -1,
     });
     this.anims.create({
-      key: 'attack-down',
-      frames: this.anims.generateFrameNumbers('attack-down', { start: 0, end: 2 }),
+      key: 'player-attack-down',
+      frames: this.anims.generateFrameNumbers('player-attack-down', { start: 0, end: 2 }),
       frameRate: 10,
       repeat: -1,
     });
     this.anims.create({
-      key: 'attack-up',
-      frames: this.anims.generateFrameNumbers('attack-up', { start: 0, end: 2 }),
+      key: 'player-attack-up',
+      frames: this.anims.generateFrameNumbers('player-attack-up', { start: 0, end: 2 }),
       frameRate: 10,
       repeat: -1,
     });
     this.anims.create({
-      key: 'attack-side',
-      frames: this.anims.generateFrameNumbers('attack-side', { start: 0, end: 2 }),
+      key: 'player-attack-side',
+      frames: this.anims.generateFrameNumbers('player-attack-side', { start: 0, end: 2 }),
       frameRate: 10,
       repeat: -1,
     });
     this.anims.create({
-      key: 'attack-weapon-down',
-      frames: this.anims.generateFrameNumbers('attack-weapon-down', { start: 0, end: 2 }),
+      key: 'player-attack-weapon-down',
+      frames: this.anims.generateFrameNumbers('player-attack-weapon-down', { start: 0, end: 2 }),
       frameRate: 7,
       repeat: -1,
     });
     this.anims.create({
-      key: 'attack-weapon-up',
-      frames: this.anims.generateFrameNumbers('attack-weapon-up', { start: 0, end: 2 }),
+      key: 'player-attack-weapon-up',
+      frames: this.anims.generateFrameNumbers('player-attack-weapon-up', { start: 0, end: 2 }),
       frameRate: 7,
       repeat: -1,
     });
     this.anims.create({
-      key: 'attack-weapon-side',
-      frames: this.anims.generateFrameNumbers('attack-weapon-side', { start: 0, end: 2 }),
+      key: 'player-attack-weapon-side',
+      frames: this.anims.generateFrameNumbers('player-attack-weapon-side', { start: 0, end: 2 }),
       frameRate: 7,
       repeat: -1,
     });
