@@ -17,42 +17,78 @@ export class Preloader extends Phaser.Scene {
     this.load.image(ASSETS.IMAGES.TOMB, 'assets/tomb.png');
 
     // Spritesheets
-    this.load.spritesheet(ASSETS.IMAGES.PLAYER_IDLE_DOWN, 'assets/spritesheets/hero/idle/hero-idle-front.png', {
-      frameWidth: 32,
-      frameHeight: 32,
-    });
-    this.load.spritesheet(ASSETS.IMAGES.PLAYER_IDLE_UP, 'assets/spritesheets/hero/idle/hero-idle-back.png', {
-      frameWidth: 32,
-      frameHeight: 32,
-    });
-    this.load.spritesheet(ASSETS.IMAGES.PLAYER_IDLE_SIDE, 'assets/spritesheets/hero/idle/hero-idle-side.png', {
-      frameWidth: 32,
-      frameHeight: 32,
-    });
-    this.load.spritesheet(ASSETS.IMAGES.PLAYER_WALK_DOWN, 'assets/spritesheets/hero/walk/hero-walk-front.png', {
-      frameWidth: 32,
-      frameHeight: 32,
-    });
-    this.load.spritesheet(ASSETS.IMAGES.PLAYER_WALK_UP, 'assets/spritesheets/hero/walk/hero-walk-back.png', {
-      frameWidth: 32,
-      frameHeight: 32,
-    });
-    this.load.spritesheet(ASSETS.IMAGES.PLAYER_WALK_SIDE, 'assets/spritesheets/hero/walk/hero-walk-side.png', {
-      frameWidth: 32,
-      frameHeight: 32,
-    });
-    this.load.spritesheet(ASSETS.IMAGES.PLAYER_ATTACK_DOWN, 'assets/spritesheets/hero/attack/hero-attack-front.png', {
-      frameWidth: 32,
-      frameHeight: 32,
-    });
-    this.load.spritesheet(ASSETS.IMAGES.PLAYER_ATTACK_UP, 'assets/spritesheets/hero/attack/hero-attack-back.png', {
-      frameWidth: 32,
-      frameHeight: 32,
-    });
-    this.load.spritesheet(ASSETS.IMAGES.PLAYER_ATTACK_SIDE, 'assets/spritesheets/hero/attack/hero-attack-side.png', {
-      frameWidth: 32,
-      frameHeight: 32,
-    });
+    this.load.spritesheet(
+      ASSETS.IMAGES.PLAYER_IDLE_DOWN,
+      'assets/spritesheets/hero/idle/hero-idle-front.png',
+      {
+        frameWidth: 32,
+        frameHeight: 32,
+      },
+    );
+    this.load.spritesheet(
+      ASSETS.IMAGES.PLAYER_IDLE_UP,
+      'assets/spritesheets/hero/idle/hero-idle-back.png',
+      {
+        frameWidth: 32,
+        frameHeight: 32,
+      },
+    );
+    this.load.spritesheet(
+      ASSETS.IMAGES.PLAYER_IDLE_SIDE,
+      'assets/spritesheets/hero/idle/hero-idle-side.png',
+      {
+        frameWidth: 32,
+        frameHeight: 32,
+      },
+    );
+    this.load.spritesheet(
+      ASSETS.IMAGES.PLAYER_WALK_DOWN,
+      'assets/spritesheets/hero/walk/hero-walk-front.png',
+      {
+        frameWidth: 32,
+        frameHeight: 32,
+      },
+    );
+    this.load.spritesheet(
+      ASSETS.IMAGES.PLAYER_WALK_UP,
+      'assets/spritesheets/hero/walk/hero-walk-back.png',
+      {
+        frameWidth: 32,
+        frameHeight: 32,
+      },
+    );
+    this.load.spritesheet(
+      ASSETS.IMAGES.PLAYER_WALK_SIDE,
+      'assets/spritesheets/hero/walk/hero-walk-side.png',
+      {
+        frameWidth: 32,
+        frameHeight: 32,
+      },
+    );
+    this.load.spritesheet(
+      ASSETS.IMAGES.PLAYER_ATTACK_DOWN,
+      'assets/spritesheets/hero/attack/hero-attack-front.png',
+      {
+        frameWidth: 32,
+        frameHeight: 32,
+      },
+    );
+    this.load.spritesheet(
+      ASSETS.IMAGES.PLAYER_ATTACK_UP,
+      'assets/spritesheets/hero/attack/hero-attack-back.png',
+      {
+        frameWidth: 32,
+        frameHeight: 32,
+      },
+    );
+    this.load.spritesheet(
+      ASSETS.IMAGES.PLAYER_ATTACK_SIDE,
+      'assets/spritesheets/hero/attack/hero-attack-side.png',
+      {
+        frameWidth: 32,
+        frameHeight: 32,
+      },
+    );
     this.load.spritesheet(
       ASSETS.IMAGES.PLAYER_ATTACK_WEAPON_DOWN,
       'assets/spritesheets/hero/attack-weapon/hero-attack-front-weapon.png',
@@ -88,8 +124,14 @@ export class Preloader extends Phaser.Scene {
       'assets/spritesheets/treant/walk/treant-walk-front.png',
       { frameWidth: 31, frameHeight: 35 },
     );
-    this.load.spritesheet(ASSETS.IMAGES.PLAYER, 'assets/player.png', { frameWidth: 16, frameHeight: 16 });
-    this.load.spritesheet(ASSETS.IMAGES.NPCS, 'assets/npc.png', { frameWidth: 16, frameHeight: 16 });
+    this.load.spritesheet(ASSETS.IMAGES.PLAYER, 'assets/player.png', {
+      frameWidth: 16,
+      frameHeight: 16,
+    });
+    this.load.spritesheet(ASSETS.IMAGES.NPCS, 'assets/npc.png', {
+      frameWidth: 16,
+      frameHeight: 16,
+    });
   }
 
   private createAnimations() {
@@ -137,7 +179,10 @@ export class Preloader extends Phaser.Scene {
     });
     this.anims.create({
       key: ASSETS.ANIMATIONS.PLAYER_ATTACK_DOWN,
-      frames: this.anims.generateFrameNumbers(ASSETS.IMAGES.PLAYER_ATTACK_DOWN, { start: 0, end: 2 }),
+      frames: this.anims.generateFrameNumbers(ASSETS.IMAGES.PLAYER_ATTACK_DOWN, {
+        start: 0,
+        end: 2,
+      }),
       frameRate: 10,
       repeat: -1,
     });
@@ -149,25 +194,37 @@ export class Preloader extends Phaser.Scene {
     });
     this.anims.create({
       key: ASSETS.ANIMATIONS.PLAYER_ATTACK_SIDE,
-      frames: this.anims.generateFrameNumbers(ASSETS.IMAGES.PLAYER_ATTACK_SIDE, { start: 0, end: 2 }),
+      frames: this.anims.generateFrameNumbers(ASSETS.IMAGES.PLAYER_ATTACK_SIDE, {
+        start: 0,
+        end: 2,
+      }),
       frameRate: 10,
       repeat: -1,
     });
     this.anims.create({
       key: ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_DOWN,
-      frames: this.anims.generateFrameNumbers(ASSETS.IMAGES.PLAYER_ATTACK_WEAPON_DOWN, { start: 0, end: 2 }),
+      frames: this.anims.generateFrameNumbers(ASSETS.IMAGES.PLAYER_ATTACK_WEAPON_DOWN, {
+        start: 0,
+        end: 2,
+      }),
       frameRate: 7,
       repeat: -1,
     });
     this.anims.create({
       key: ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_UP,
-      frames: this.anims.generateFrameNumbers(ASSETS.IMAGES.PLAYER_ATTACK_WEAPON_UP, { start: 0, end: 2 }),
+      frames: this.anims.generateFrameNumbers(ASSETS.IMAGES.PLAYER_ATTACK_WEAPON_UP, {
+        start: 0,
+        end: 2,
+      }),
       frameRate: 7,
       repeat: -1,
     });
     this.anims.create({
       key: ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_SIDE,
-      frames: this.anims.generateFrameNumbers(ASSETS.IMAGES.PLAYER_ATTACK_WEAPON_SIDE, { start: 0, end: 2 }),
+      frames: this.anims.generateFrameNumbers(ASSETS.IMAGES.PLAYER_ATTACK_WEAPON_SIDE, {
+        start: 0,
+        end: 2,
+      }),
       frameRate: 7,
       repeat: -1,
     });

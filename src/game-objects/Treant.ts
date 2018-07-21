@@ -16,7 +16,9 @@ export class Treant {
     this.gameObject = null;
     this.hp = 3;
 
-    this.gameObject = this.scene.physics.add.sprite(x, y, ASSETS.IMAGES.TREANT_IDLE_DOWN, 0).setDepth(5);
+    this.gameObject = this.scene.physics.add
+      .sprite(x, y, ASSETS.IMAGES.TREANT_IDLE_DOWN, 0)
+      .setDepth(5);
     this.gameObject.setCollideWorldBounds(true);
     this.gameObject.setImmovable(true);
   }

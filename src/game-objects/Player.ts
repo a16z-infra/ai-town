@@ -79,7 +79,9 @@ export class Player {
 
     // Player dies
     if (!this.tomb) {
-      this.tomb = this.scene.add.sprite(this.gameObject.x, this.gameObject.y, ASSETS.IMAGES.TOMB).setScale(0.1);
+      this.tomb = this.scene.add
+        .sprite(this.gameObject.x, this.gameObject.y, ASSETS.IMAGES.TOMB)
+        .setScale(0.1);
     }
     this.gameObject.destroy();
   }
@@ -102,7 +104,11 @@ export class Player {
       .fill(0)
       .map((_, i) => {
         return this.scene.add
-          .sprite((i + 1) * DISTANCE_BETWEEN_HEARTS, DISTANCE_BETWEEN_HEARTS, ASSETS.IMAGES.HEART_EMPTY)
+          .sprite(
+            (i + 1) * DISTANCE_BETWEEN_HEARTS,
+            DISTANCE_BETWEEN_HEARTS,
+            ASSETS.IMAGES.HEART_EMPTY,
+          )
           .setScrollFactor(0)
           .setDepth(50);
       });
