@@ -3,6 +3,7 @@ import { Player } from '../game-objects/Player';
 import { Treant } from '../game-objects/Treant';
 import { Npc } from '../game-objects/Npc';
 import { mapContentKeys } from '../constants/map-content-keys';
+import { ASSETS } from '../constants/assets';
 
 const CAMERA_LERP = 1;
 const PLAYER_INITIAL_POSITION = {
@@ -58,7 +59,7 @@ export abstract class AbstractScene extends Phaser.Scene {
 
   private createMapWithLayers() {
     this.map = this.make.tilemap({ key: this.mapKey });
-    const tileset = this.map.addTilesetImage('tileset', 'tiles', 16, 16, 0, 0);
+    const tileset = this.map.addTilesetImage(ASSETS.TILESET, ASSETS.IMAGES.TILES, 16, 16, 0, 0);
 
     this.layers = {
       terrain: this.map.createStaticLayer(mapContentKeys.layers.BACKGROUND, tileset, 0, 0),

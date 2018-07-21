@@ -1,4 +1,5 @@
 import { AbstractScene } from '../scenes/AbstractScene';
+import { ASSETS } from '../constants/assets';
 
 const TREANT_SPEED = 20;
 const TREANT_HIT_DELAY = 100;
@@ -15,7 +16,7 @@ export class Treant {
     this.gameObject = null;
     this.hp = 3;
 
-    this.gameObject = this.scene.physics.add.sprite(x, y, 'treant-idle-down', 0).setDepth(5);
+    this.gameObject = this.scene.physics.add.sprite(x, y, ASSETS.IMAGES.TREANT_IDLE_DOWN, 0).setDepth(5);
     this.gameObject.setCollideWorldBounds(true);
     this.gameObject.setImmovable(true);
   }
@@ -32,7 +33,7 @@ export class Treant {
     const treantAttack = this.scene.physics.add.sprite(
       this.scene.player.gameObject.x,
       this.scene.player.gameObject.y,
-      'treantAttack',
+      ASSETS.IMAGES.TREANT_ATTACK,
     );
     this.scene.player.loseHp();
     this.scene.time.addEvent({
@@ -93,10 +94,10 @@ export class Treant {
     const orientation = this.getOrientationFromTargettedPosition(x, y);
 
     const animSwitch = {
-      down: { flip: false, anim: 'treant-walk-down' },
-      up: { flip: false, anim: 'treant-walk-up' },
-      left: { flip: true, anim: 'treant-walk-side' },
-      right: { flip: false, anim: 'treant-walk-side' },
+      down: { flip: false, anim: ASSETS.ANIMATIONS.TREANT_WALK_DOWN },
+      up: { flip: false, anim: ASSETS.ANIMATIONS.TREANT_WALK_UP },
+      left: { flip: true, anim: ASSETS.ANIMATIONS.TREANT_WALK_SIDE },
+      right: { flip: false, anim: ASSETS.ANIMATIONS.TREANT_WALK_SIDE },
     };
     this.gameObject.setFlipX(animSwitch[orientation].flip);
     this.gameObject.play(animSwitch[orientation].anim, true);
@@ -113,7 +114,7 @@ export class Treant {
   }
 
   private beIdle() {
-    this.gameObject.play('treant-idle-down', true);
+    this.gameObject.play(ASSETS.ANIMATIONS.TREANT_IDLE_DOWN, true);
   }
 
   private stopChasing() {
