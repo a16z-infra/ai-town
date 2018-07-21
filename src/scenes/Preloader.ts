@@ -10,7 +10,6 @@ export class Preloader extends Phaser.Scene {
     this.load.image('tiles', 'assets/environment/tileset.png');
     this.load.image('arrow-up', 'assets/spritesheets/misc/arrow-up.png');
     this.load.image('arrow-side', 'assets/spritesheets/misc/arrow-side.png');
-    this.load.image('treant', 'assets/sprites/treant/idle/treant-idle-front.png');
     this.load.image('treantAttack', 'assets/environment/sliced-objects/trunk.png');
     this.load.image('heart', 'assets/heart.png');
     this.load.image('heart-empty', 'assets/heart-empty.png');
@@ -67,6 +66,26 @@ export class Preloader extends Phaser.Scene {
       'player-attack-weapon-side',
       'assets/spritesheets/hero/attack-weapon/hero-attack-side-weapon.png',
       { frameWidth: 32, frameHeight: 32 },
+    );
+    this.load.spritesheet(
+      'treant-idle-down',
+      'assets/spritesheets/treant/idle/treant-idle-front.png',
+      { frameWidth: 31, frameHeight: 35 },
+    );
+    this.load.spritesheet(
+      'treant-walk-side',
+      'assets/spritesheets/treant/walk/treant-walk-side.png',
+      { frameWidth: 31, frameHeight: 35 },
+    );
+    this.load.spritesheet(
+      'treant-walk-up',
+      'assets/spritesheets/treant/walk/treant-walk-back.png',
+      { frameWidth: 31, frameHeight: 35 },
+    );
+    this.load.spritesheet(
+      'treant-walk-down',
+      'assets/spritesheets/treant/walk/treant-walk-front.png',
+      { frameWidth: 31, frameHeight: 35 },
     );
     this.load.spritesheet('player', 'assets/player.png', { frameWidth: 16, frameHeight: 16 });
     this.load.spritesheet('npcs', 'assets/npc.png', { frameWidth: 16, frameHeight: 16 });
@@ -148,6 +167,30 @@ export class Preloader extends Phaser.Scene {
     this.anims.create({
       key: 'player-attack-weapon-side',
       frames: this.anims.generateFrameNumbers('player-attack-weapon-side', { start: 0, end: 2 }),
+      frameRate: 7,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: 'treant-idle-down',
+      frames: this.anims.generateFrameNumbers('treant-idle-down', { start: 0, end: 0 }),
+      frameRate: 10,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: 'treant-walk-side',
+      frames: this.anims.generateFrameNumbers('treant-walk-side', { start: 0, end: 3 }),
+      frameRate: 7,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: 'treant-walk-down',
+      frames: this.anims.generateFrameNumbers('treant-walk-down', { start: 0, end: 3 }),
+      frameRate: 7,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: 'treant-walk-up',
+      frames: this.anims.generateFrameNumbers('treant-walk-up', { start: 0, end: 3 }),
       frameRate: 7,
       repeat: -1,
     });

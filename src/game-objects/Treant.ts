@@ -15,7 +15,7 @@ export class Treant {
     this.gameObject = null;
     this.hp = 3;
 
-    this.gameObject = this.scene.physics.add.sprite(x, y, 'treant').setDepth(5);
+    this.gameObject = this.scene.physics.add.sprite(x, y, 'treant-idle-down', 0).setDepth(5);
     this.gameObject.setCollideWorldBounds(true);
     this.gameObject.setImmovable(true);
   }
@@ -70,6 +70,14 @@ export class Treant {
     return false;
   }
 
+  private getOrientationFromTargettedPosition(x: number, y: number) {
+    if (Math.abs(y) > Math.abs(x)) {
+      return y < 0 ? 'up' : 'down';
+    }
+
+    return x < 0 ? 'left' : 'right';
+  }
+
   private moveTreant() {
     if (!this.gameObject.active) {
       return;
@@ -81,6 +89,17 @@ export class Treant {
 
     this.gameObject.setVelocityX(Math.sign(x) * TREANT_SPEED);
     this.gameObject.setVelocityY(Math.sign(y) * TREANT_SPEED);
+
+    const orientation = this.getOrientationFromTargettedPosition(x, y);
+
+    const animSwitch = {
+      down: { flip: false, anim: 'treant-walk-down' },
+      up: { flip: false, anim: 'treant-walk-up' },
+      left: { flip: true, anim: 'treant-walk-side' },
+      right: { flip: false, anim: 'treant-walk-side' },
+    };
+    this.gameObject.setFlipX(animSwitch[orientation].flip);
+    this.gameObject.play(animSwitch[orientation].anim, true);
   }
 
   private startChasing() {
@@ -93,9 +112,14 @@ export class Treant {
     });
   }
 
+  private beIdle() {
+    this.gameObject.play('treant-idle-down', true);
+  }
+
   private stopChasing() {
     if (this.gameObject.active) {
       this.gameObject.setVelocity(0);
+      this.beIdle();
     }
     this.chasingPlayerTimerEvent.destroy();
     this.chasingPlayerTimerEvent = null;
