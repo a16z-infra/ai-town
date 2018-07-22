@@ -1,5 +1,4 @@
 import { Character } from './Character';
-import { AbstractScene } from '../scenes/AbstractScene';
 import { ASSETS } from '../constants/assets';
 
 const TREANT_SPEED = 20;

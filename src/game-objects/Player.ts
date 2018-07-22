@@ -40,7 +40,6 @@ export class Player extends Character {
     right: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_SIDE },
   };
 
-  private maxHp: number;
   private orientation: 'up' | 'down' | 'left' | 'right';
   private lastTimeHit: number;
   private isLoading: boolean;

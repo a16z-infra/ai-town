@@ -23,4 +23,4 @@ class PhaserGame extends Phaser.Game {
   }
 }
 
-const game = new PhaserGame();
+new PhaserGame();

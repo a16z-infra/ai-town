@@ -1,4 +1,3 @@
-import { Arrow } from '../game-objects/Arrow';
 import { Player } from '../game-objects/Player';
 import { Treant } from '../game-objects/Treant';
 import { Npc } from '../game-objects/Npc';
@@ -160,7 +159,7 @@ export abstract class AbstractScene extends Phaser.Scene {
       return new Treant(this, treant.x, treant.y);
     });
     if (levelChangerObjectLayer) {
-      const levelChanger = levelChangerObjectLayer.objects.map((o: any) => {
+      levelChangerObjectLayer.objects.map((o: any) => {
         const zone = this.add.zone(o.x, o.y, o.width, o.height);
         this.physics.add.existing(zone);
         this.physics.add.overlap(zone, this.player.gameObject, () => {

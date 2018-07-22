@@ -20,9 +20,9 @@ export class Arrow {
       spriteName = 'arrow-side';
     }
 
-    this.gameObject = scene.physics.add.sprite(
-      player.gameObject.x,
-      player.gameObject.y,
+    this.gameObject = this.scene.physics.add.sprite(
+      this.player.gameObject.x,
+      this.player.gameObject.y,
       spriteName,
       0,
     );
