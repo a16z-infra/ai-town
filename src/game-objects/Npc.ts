@@ -16,7 +16,7 @@ export class Npc {
       this.gameObject.x + (this.gameObject.width - this.textGameObject.width) / 2,
       this.gameObject.y - this.textGameObject.height - TEXT_VERTICAL_SHIFT,
     );
-    this.textGameObject.setAlpha(0);
+    this.textGameObject.setAlpha(0).setDepth(1000);
     this.gameObject.setImmovable(true);
   }
 
