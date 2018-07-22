@@ -1,3 +1,4 @@
+import { Character } from './Character';
 import { AbstractScene } from '../scenes/AbstractScene';
 import { ASSETS } from '../constants/assets';
 
@@ -5,7 +6,7 @@ const TREANT_SPEED = 20;
 const TREANT_HIT_DELAY = 100;
 const DESTROY_SPRITE_ATTACK_DELAY = 200;
 
-export class Treant {
+export class Treant extends Character {
   private static WALK_ANIMATION = {
     down: { flip: false, anim: ASSETS.ANIMATIONS.TREANT_WALK_DOWN },
     up: { flip: false, anim: ASSETS.ANIMATIONS.TREANT_WALK_UP },
@@ -13,16 +14,13 @@ export class Treant {
     right: { flip: false, anim: ASSETS.ANIMATIONS.TREANT_WALK_SIDE },
   };
 
-  public scene: AbstractScene;
-  public gameObject: Phaser.Physics.Arcade.Sprite;
   private hp: number;
   private chasingPlayerTimerEvent: Phaser.Time.TimerEvent;
 
   constructor(scene, x: number = 400, y: number = 400) {
-    this.scene = scene;
-    this.gameObject = null;
-    this.hp = 3;
+    super(scene);
 
+    this.hp = 3;
     this.gameObject = this.scene.physics.add
       .sprite(x, y, ASSETS.IMAGES.TREANT_IDLE_DOWN, 0)
       .setDepth(5);
@@ -102,8 +100,7 @@ export class Treant {
 
     const orientation = this.getOrientationFromTargettedPosition(x, y);
 
-    this.gameObject.setFlipX(Treant.WALK_ANIMATION[orientation].flip);
-    this.gameObject.play(Treant.WALK_ANIMATION[orientation].anim, true);
+    this.animate(Treant.WALK_ANIMATION, orientation);
   }
 
   private startChasing() {

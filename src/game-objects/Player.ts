@@ -1,3 +1,4 @@
+import { Character } from './Character';
 import { Arrow } from './Arrow';
 import { AbstractScene } from '../scenes/AbstractScene';
 import { registry as REGISTRY_KEYS } from '../constants/registry';
@@ -10,7 +11,7 @@ const DISTANCE_BETWEEN_HEARTS = 15;
 const PLAYER_RELOAD = 500;
 const MAX_HP = 3;
 
-export class Player {
+export class Player extends Character {
   private static MOVE_ANIMATION = {
     down: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_MOVE_DOWN },
     up: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_MOVE_UP },
@@ -33,15 +34,12 @@ export class Player {
   };
 
   private static SHOOT_ANIMATION = {
-    down: { anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_DOWN },
-    up: { anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_UP },
-    left: { anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_SIDE },
-    right: { anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_SIDE },
+    down: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_DOWN },
+    up: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_UP },
+    left: { flip: true, anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_SIDE },
+    right: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_SIDE },
   };
 
-  public gameObject: Phaser.Physics.Arcade.Sprite;
-
-  private scene: AbstractScene;
   private maxHp: number;
   private orientation: 'up' | 'down' | 'left' | 'right';
   private lastTimeHit: number;
@@ -51,7 +49,7 @@ export class Player {
   private hearts: Phaser.GameObjects.Sprite[];
 
   constructor(scene: AbstractScene, x: number, y: number) {
-    this.scene = scene;
+    super(scene);
 
     const registryHp = this.scene.registry.get(REGISTRY_KEYS.PLAYER.HP);
     if (!registryHp) {
@@ -197,8 +195,7 @@ export class Player {
 
     this.orientation = direction;
 
-    this.gameObject.setFlipX(Player.MOVE_ANIMATION[this.orientation].flip);
-    this.gameObject.play(Player.MOVE_ANIMATION[this.orientation].anim, true);
+    this.animate(Player.MOVE_ANIMATION, this.orientation);
   }
 
   private handleHorizontalMovement(keyPressed) {
@@ -232,13 +229,11 @@ export class Player {
   }
 
   private punch() {
-    this.gameObject.setFlipX(Player.PUNCH_ANIMATION[this.orientation].flip);
-    this.gameObject.play(Player.PUNCH_ANIMATION[this.orientation].anim, true);
+    this.animate(Player.PUNCH_ANIMATION, this.orientation);
   }
 
   private beIdle() {
-    this.gameObject.setFlipX(Player.IDLE_ANIMATION[this.orientation].flip);
-    this.gameObject.play(Player.IDLE_ANIMATION[this.orientation].anim, true);
+    this.animate(Player.IDLE_ANIMATION, this.orientation);
   }
 
   private endShoot = () => {
@@ -253,7 +248,7 @@ export class Player {
       callbackScope: this,
     });
 
-    this.gameObject.play(Player.SHOOT_ANIMATION[this.orientation].anim, true);
+    this.animate(Player.SHOOT_ANIMATION, this.orientation);
     const arrow = new Arrow(this.scene, this, this.orientation);
 
     return arrow;
