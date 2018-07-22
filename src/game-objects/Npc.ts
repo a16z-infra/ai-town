@@ -1,4 +1,5 @@
 import { AbstractScene } from '../scenes/AbstractScene';
+import { ASSETS } from '../constants/assets';
 
 const TEXT_VERTICAL_SHIFT = 10;
 
@@ -9,7 +10,7 @@ export class Npc {
 
   constructor(scene: AbstractScene, x: number, y: number, text: string) {
     this.scene = scene;
-    this.gameObject = this.scene.physics.add.sprite(x, y, 'npcs', 0).setDepth(5);
+    this.gameObject = this.scene.physics.add.sprite(x, y, ASSETS.IMAGES.NPCS, 0).setDepth(5);
     this.textGameObject = this.scene.add.text(0, 0, text, { align: 'center', fontSize: '10px' });
     this.textGameObject.setWordWrapWidth(150);
     this.textGameObject.setPosition(
