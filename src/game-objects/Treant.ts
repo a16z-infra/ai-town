@@ -6,6 +6,13 @@ const TREANT_HIT_DELAY = 100;
 const DESTROY_SPRITE_ATTACK_DELAY = 200;
 
 export class Treant {
+  private static WALK_ANIMATION = {
+    down: { flip: false, anim: ASSETS.ANIMATIONS.TREANT_WALK_DOWN },
+    up: { flip: false, anim: ASSETS.ANIMATIONS.TREANT_WALK_UP },
+    left: { flip: true, anim: ASSETS.ANIMATIONS.TREANT_WALK_SIDE },
+    right: { flip: false, anim: ASSETS.ANIMATIONS.TREANT_WALK_SIDE },
+  };
+
   public scene: AbstractScene;
   public gameObject: Phaser.Physics.Arcade.Sprite;
   private hp: number;
@@ -95,14 +102,8 @@ export class Treant {
 
     const orientation = this.getOrientationFromTargettedPosition(x, y);
 
-    const animSwitch = {
-      down: { flip: false, anim: ASSETS.ANIMATIONS.TREANT_WALK_DOWN },
-      up: { flip: false, anim: ASSETS.ANIMATIONS.TREANT_WALK_UP },
-      left: { flip: true, anim: ASSETS.ANIMATIONS.TREANT_WALK_SIDE },
-      right: { flip: false, anim: ASSETS.ANIMATIONS.TREANT_WALK_SIDE },
-    };
-    this.gameObject.setFlipX(animSwitch[orientation].flip);
-    this.gameObject.play(animSwitch[orientation].anim, true);
+    this.gameObject.setFlipX(Treant.WALK_ANIMATION[orientation].flip);
+    this.gameObject.play(Treant.WALK_ANIMATION[orientation].anim, true);
   }
 
   private startChasing() {

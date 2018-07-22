@@ -11,7 +11,36 @@ const PLAYER_RELOAD = 500;
 const MAX_HP = 3;
 
 export class Player {
+  private static MOVE_ANIMATION = {
+    down: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_MOVE_DOWN },
+    up: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_MOVE_UP },
+    left: { flip: true, anim: ASSETS.ANIMATIONS.PLAYER_MOVE_LEFT },
+    right: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_MOVE_RIGHT },
+  };
+
+  private static PUNCH_ANIMATION = {
+    down: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_DOWN },
+    up: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_UP },
+    left: { flip: true, anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_SIDE },
+    right: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_SIDE },
+  };
+
+  private static IDLE_ANIMATION = {
+    down: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_IDLE_DOWN },
+    up: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_IDLE_UP },
+    left: { flip: true, anim: ASSETS.ANIMATIONS.PLAYER_IDLE_SIDE },
+    right: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_IDLE_SIDE },
+  };
+
+  private static SHOOT_ANIMATION = {
+    down: { anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_DOWN },
+    up: { anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_UP },
+    left: { anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_SIDE },
+    right: { anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_SIDE },
+  };
+
   public gameObject: Phaser.Physics.Arcade.Sprite;
+
   private scene: AbstractScene;
   private maxHp: number;
   private orientation: 'up' | 'down' | 'left' | 'right';
@@ -168,14 +197,8 @@ export class Player {
 
     this.orientation = direction;
 
-    const animSwitch = {
-      down: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_MOVE_DOWN },
-      up: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_MOVE_UP },
-      left: { flip: true, anim: ASSETS.ANIMATIONS.PLAYER_MOVE_LEFT },
-      right: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_MOVE_RIGHT },
-    };
-    this.gameObject.setFlipX(animSwitch[this.orientation].flip);
-    this.gameObject.play(animSwitch[this.orientation].anim, true);
+    this.gameObject.setFlipX(Player.MOVE_ANIMATION[this.orientation].flip);
+    this.gameObject.play(Player.MOVE_ANIMATION[this.orientation].anim, true);
   }
 
   private handleHorizontalMovement(keyPressed) {
@@ -209,26 +232,13 @@ export class Player {
   }
 
   private punch() {
-    const animSwitch = {
-      down: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_DOWN },
-      up: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_UP },
-      left: { flip: true, anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_SIDE },
-      right: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_SIDE },
-    };
-
-    this.gameObject.setFlipX(animSwitch[this.orientation].flip);
-    this.gameObject.play(animSwitch[this.orientation].anim, true);
+    this.gameObject.setFlipX(Player.PUNCH_ANIMATION[this.orientation].flip);
+    this.gameObject.play(Player.PUNCH_ANIMATION[this.orientation].anim, true);
   }
 
   private beIdle() {
-    const animSwitch = {
-      down: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_IDLE_DOWN },
-      up: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_IDLE_UP },
-      left: { flip: true, anim: ASSETS.ANIMATIONS.PLAYER_IDLE_SIDE },
-      right: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_IDLE_SIDE },
-    };
-    this.gameObject.setFlipX(animSwitch[this.orientation].flip);
-    this.gameObject.play(animSwitch[this.orientation].anim, true);
+    this.gameObject.setFlipX(Player.IDLE_ANIMATION[this.orientation].flip);
+    this.gameObject.play(Player.IDLE_ANIMATION[this.orientation].anim, true);
   }
 
   private endShoot = () => {
@@ -243,14 +253,7 @@ export class Player {
       callbackScope: this,
     });
 
-    const animSwitch = {
-      down: { anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_DOWN },
-      up: { anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_UP },
-      left: { anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_SIDE },
-      right: { anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_SIDE },
-    };
-
-    this.gameObject.play(animSwitch[this.orientation].anim, true);
+    this.gameObject.play(Player.SHOOT_ANIMATION[this.orientation].anim, true);
     const arrow = new Arrow(this.scene, this, this.orientation);
 
     return arrow;
