@@ -70,6 +70,28 @@
         }, 
         {
          "draworder":"topdown",
+         "name":"moles",
+         "objects":[
+                {
+                 "height":0,
+                 "id":13,
+                 "name":"mole",
+                 "point":true,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":384.053264046768,
+                 "y":175.381617408249
+                }],
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "x":0,
+         "y":0
+        }, 
+        {
+         "draworder":"topdown",
          "name":"npcs",
          "objects":[
                 {
@@ -151,7 +173,7 @@
          "x":0,
          "y":0
         }],
- "nextobjectid":13,
+ "nextobjectid":14,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.1.5",

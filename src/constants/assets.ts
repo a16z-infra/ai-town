@@ -27,6 +27,11 @@ export const ASSETS = {
     TREANT_WALK_DOWN: 'treant-walk-down',
     NPCS: 'npcs',
     PLAYER: 'player',
+    MOLE: 'mole',
+    MOLE_IDLE_DOWN: 'mole-idle-down',
+    MOLE_WALK_SIDE: 'mole-walk-side',
+    MOLE_WALK_UP: 'mole-walk-up',
+    MOLE_WALK_DOWN: 'mole-walk-down',
   },
   ANIMATIONS: {
     PLAYER_MOVE_LEFT: 'player-move-left',
@@ -46,5 +51,9 @@ export const ASSETS = {
     TREANT_WALK_SIDE: 'treant-walk-side',
     TREANT_WALK_DOWN: 'treant-walk-down',
     TREANT_WALK_UP: 'treant-walk-up',
+    MOLE_IDLE_DOWN: 'mole-idle-down',
+    MOLE_WALK_SIDE: 'mole-walk-side',
+    MOLE_WALK_UP: 'mole-walk-up',
+    MOLE_WALK_DOWN: 'mole-walk-down',
   },
 };

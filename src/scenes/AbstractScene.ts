@@ -1,5 +1,6 @@
 import { Player } from '../game-objects/Player';
 import { Treant } from '../game-objects/Treant';
+import { Mole } from '../game-objects/Mole';
 import { Npc } from '../game-objects/Npc';
 import { mapContentKeys } from '../constants/map-content-keys';
 import { ASSETS } from '../constants/assets';
@@ -19,8 +20,10 @@ export abstract class AbstractScene extends Phaser.Scene {
   public cursors: CursorKeys;
   public npcs: Npc[];
   public treants: Treant[];
+  public moles: Mole[];
   public map: Phaser.Tilemaps.Tilemap;
   public treantGroup: Phaser.Physics.Arcade.Group;
+  public moleGroup: Phaser.Physics.Arcade.Group;
   public layers: {
     terrain: Phaser.Tilemaps.StaticTilemapLayer;
     deco: Phaser.Tilemaps.StaticTilemapLayer;
@@ -38,6 +41,8 @@ export abstract class AbstractScene extends Phaser.Scene {
     this.npcs = [];
     this.treants = [];
     this.treantGroup = null;
+    this.moles = [];
+    this.moleGroup = null;
     this.map = null;
     this.layers = null;
   }
@@ -53,6 +58,7 @@ export abstract class AbstractScene extends Phaser.Scene {
     };
 
     this.treants.map(treant => treant.update());
+    this.moles.map(mole => mole.update());
     this.player.update(keyPressed);
   }
 
@@ -71,11 +77,17 @@ export abstract class AbstractScene extends Phaser.Scene {
 
   private addColliders() {
     this.treantGroup = this.physics.add.group(this.treants.map(treant => treant.gameObject));
+    this.moleGroup = this.physics.add.group(this.moles.map(mole => mole.gameObject));
     this.physics.add.collider(this.treantGroup, this.layers.terrain);
+    this.physics.add.collider(this.moleGroup, this.layers.terrain);
     this.physics.add.collider(this.treantGroup, this.layers.deco);
+    this.physics.add.collider(this.moleGroup, this.layers.deco);
     // TODO refactor this for performance
     this.treants.map(treant =>
       this.physics.add.collider(treant.gameObject, this.player.gameObject, treant.treantHit),
+    );
+    this.moles.map(mole =>
+      this.physics.add.collider(mole.gameObject, this.player.gameObject, mole.moleHit),
     );
 
     this.physics.add.collider(this.player.gameObject, this.layers.terrain);
@@ -153,10 +165,15 @@ export abstract class AbstractScene extends Phaser.Scene {
     });
 
     const treantsMapObjects = this.map.objects.find(o => o.name === mapContentKeys.objects.TREANTS);
+    const molesMapObjects = this.map.objects.find(o => o.name === mapContentKeys.objects.MOLES);
     const treants: any = treantsMapObjects ? treantsMapObjects.objects : [];
+    const moles: any = molesMapObjects ? molesMapObjects.objects : [];
 
     this.treants = treants.map(treant => {
       return new Treant(this, treant.x, treant.y);
+    });
+    this.moles = moles.map(mole => {
+      return new Mole(this, mole.x, mole.y);
     });
     if (levelChangerObjectLayer) {
       levelChangerObjectLayer.objects.map((o: any) => {

@@ -124,6 +124,26 @@ export class Preloader extends Phaser.Scene {
       'assets/spritesheets/treant/walk/treant-walk-front.png',
       { frameWidth: 31, frameHeight: 35 },
     );
+    this.load.spritesheet(
+      ASSETS.IMAGES.MOLE_IDLE_DOWN,
+      'assets/spritesheets/mole/idle/mole-idle-front.png',
+      { frameWidth: 24, frameHeight: 24 },
+    );
+    this.load.spritesheet(
+      ASSETS.IMAGES.MOLE_WALK_SIDE,
+      'assets/spritesheets/mole/walk/mole-walk-side.png',
+      { frameWidth: 24, frameHeight: 24 },
+    );
+    this.load.spritesheet(
+      ASSETS.IMAGES.MOLE_WALK_UP,
+      'assets/spritesheets/mole/walk/mole-walk-back.png',
+      { frameWidth: 24, frameHeight: 24 },
+    );
+    this.load.spritesheet(
+      ASSETS.IMAGES.MOLE_WALK_DOWN,
+      'assets/spritesheets/mole/walk/mole-walk-front.png',
+      { frameWidth: 24, frameHeight: 24 },
+    );
     this.load.spritesheet(ASSETS.IMAGES.PLAYER, 'assets/player.png', {
       frameWidth: 16,
       frameHeight: 16,
@@ -249,6 +269,30 @@ export class Preloader extends Phaser.Scene {
     this.anims.create({
       key: ASSETS.ANIMATIONS.TREANT_WALK_UP,
       frames: this.anims.generateFrameNumbers(ASSETS.IMAGES.TREANT_WALK_UP, { start: 0, end: 3 }),
+      frameRate: 7,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: ASSETS.ANIMATIONS.MOLE_IDLE_DOWN,
+      frames: this.anims.generateFrameNumbers(ASSETS.IMAGES.MOLE_IDLE_DOWN, { start: 0, end: 0 }),
+      frameRate: 10,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: ASSETS.ANIMATIONS.MOLE_WALK_SIDE,
+      frames: this.anims.generateFrameNumbers(ASSETS.IMAGES.MOLE_WALK_SIDE, { start: 0, end: 3 }),
+      frameRate: 7,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: ASSETS.ANIMATIONS.MOLE_WALK_DOWN,
+      frames: this.anims.generateFrameNumbers(ASSETS.IMAGES.MOLE_WALK_DOWN, { start: 0, end: 3 }),
+      frameRate: 7,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: ASSETS.ANIMATIONS.MOLE_WALK_UP,
+      frames: this.anims.generateFrameNumbers(ASSETS.IMAGES.MOLE_WALK_UP, { start: 0, end: 3 }),
       frameRate: 7,
       repeat: -1,
     });

@@ -270,6 +270,13 @@ export class Player extends Character {
           treant.treantLoseHp(arrowGameObject),
         ),
       );
+      this.scene.moles.map(mole =>
+        this.scene.physics.add.collider(
+          arrowGameObject,
+          mole.gameObject,
+          mole.moleLoseHp(arrowGameObject),
+        ),
+      );
     }
   }
 }

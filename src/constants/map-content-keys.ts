@@ -7,6 +7,7 @@ export const mapContentKeys = {
   objects: {
     NPCS: 'npcs',
     TREANTS: 'treants',
+    MOLES: 'moles',
     ZONES: 'zones',
   },
 };
