@@ -1,5 +1,6 @@
 import { Player } from '../game-objects/Player';
 import { Treant } from '../game-objects/Treant';
+import { Monster } from '../game-objects/Monster';
 import { Mole } from '../game-objects/Mole';
 import { Npc } from '../game-objects/Npc';
 import { mapContentKeys } from '../constants/map-content-keys';
@@ -19,11 +20,9 @@ export abstract class AbstractScene extends Phaser.Scene {
   public player: Player;
   public cursors: CursorKeys;
   public npcs: Npc[];
-  public treants: Treant[];
-  public moles: Mole[];
+  public monsters: Monster[];
   public map: Phaser.Tilemaps.Tilemap;
-  public treantGroup: Phaser.Physics.Arcade.Group;
-  public moleGroup: Phaser.Physics.Arcade.Group;
+  public monsterGroup: Phaser.Physics.Arcade.Group;
   public layers: {
     terrain: Phaser.Tilemaps.StaticTilemapLayer;
     deco: Phaser.Tilemaps.StaticTilemapLayer;
@@ -39,10 +38,8 @@ export abstract class AbstractScene extends Phaser.Scene {
     this.player = null;
     this.cursors = null;
     this.npcs = [];
-    this.treants = [];
-    this.treantGroup = null;
-    this.moles = [];
-    this.moleGroup = null;
+    this.monsters = [];
+    this.monsterGroup = null;
     this.map = null;
     this.layers = null;
   }
@@ -57,8 +54,7 @@ export abstract class AbstractScene extends Phaser.Scene {
       shift: this.cursors.shift.isDown,
     };
 
-    this.treants.map(treant => treant.update());
-    this.moles.map(mole => mole.update());
+    this.monsters.map(monster => monster.update());
     this.player.update(keyPressed);
   }
 
@@ -76,18 +72,12 @@ export abstract class AbstractScene extends Phaser.Scene {
   }
 
   private addColliders() {
-    this.treantGroup = this.physics.add.group(this.treants.map(treant => treant.gameObject));
-    this.moleGroup = this.physics.add.group(this.moles.map(mole => mole.gameObject));
-    this.physics.add.collider(this.treantGroup, this.layers.terrain);
-    this.physics.add.collider(this.moleGroup, this.layers.terrain);
-    this.physics.add.collider(this.treantGroup, this.layers.deco);
-    this.physics.add.collider(this.moleGroup, this.layers.deco);
+    this.monsterGroup = this.physics.add.group(this.monsters.map(monster => monster.gameObject));
+    this.physics.add.collider(this.monsterGroup, this.layers.terrain);
+    this.physics.add.collider(this.monsterGroup, this.layers.deco);
     // TODO refactor this for performance
-    this.treants.map(treant =>
-      this.physics.add.collider(treant.gameObject, this.player.gameObject, treant.treantHit),
-    );
-    this.moles.map(mole =>
-      this.physics.add.collider(mole.gameObject, this.player.gameObject, mole.moleHit),
+    this.monsters.map(monster =>
+      this.physics.add.collider(monster.gameObject, this.player.gameObject, monster.monsterHit),
     );
 
     this.physics.add.collider(this.player.gameObject, this.layers.terrain);
@@ -164,17 +154,19 @@ export abstract class AbstractScene extends Phaser.Scene {
       return new Npc(this, npc.x, npc.y, npc.properties.message);
     });
 
-    const treantsMapObjects = this.map.objects.find(o => o.name === mapContentKeys.objects.TREANTS);
-    const molesMapObjects = this.map.objects.find(o => o.name === mapContentKeys.objects.MOLES);
-    const treants: any = treantsMapObjects ? treantsMapObjects.objects : [];
-    const moles: any = molesMapObjects ? molesMapObjects.objects : [];
+    const monstersMapObjects = this.map.objects.find(o => o.name === mapContentKeys.objects.MONSTERS);
+    const monsters: any = monstersMapObjects ? monstersMapObjects.objects : [];
 
-    this.treants = treants.map(treant => {
-      return new Treant(this, treant.x, treant.y);
+    this.monsters = monsters.map(monster => {
+      switch (monster.name) {
+        case 'treant':
+          return new Treant(this, monster.x, monster.y);
+        case 'mole':
+          return new Mole(this, monster.x, monster.y);
+        default:
+      }
     });
-    this.moles = moles.map(mole => {
-      return new Mole(this, mole.x, mole.y);
-    });
+
     if (levelChangerObjectLayer) {
       levelChangerObjectLayer.objects.map((o: any) => {
         const zone = this.add.zone(o.x, o.y, o.width, o.height);

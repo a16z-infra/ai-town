@@ -23,4 +23,5 @@ class PhaserGame extends Phaser.Game {
   }
 }
 
+// tslint:disable-next-line
 new PhaserGame();

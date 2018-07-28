@@ -263,18 +263,11 @@ export class Player extends Character {
       const arrowGameObject = arrow.gameObject;
 
       // TODO refactor this for performance
-      this.scene.treants.map(treant =>
+      this.scene.monsters.map(monster =>
         this.scene.physics.add.collider(
           arrowGameObject,
-          treant.gameObject,
-          treant.treantLoseHp(arrowGameObject),
-        ),
-      );
-      this.scene.moles.map(mole =>
-        this.scene.physics.add.collider(
-          arrowGameObject,
-          mole.gameObject,
-          mole.moleLoseHp(arrowGameObject),
+          monster.gameObject,
+          monster.monsterLoseHp(arrowGameObject),
         ),
       );
     }

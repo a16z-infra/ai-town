@@ -2,7 +2,7 @@ const maps = require('../src/constants/maps').maps;
 const scenes = require('../src/constants/scenes').scenes;
 const sceneNames = Object.values(scenes);
 
-const MANDATORY_LAYERS = ['terrain', 'deco', 'bridge', 'treants', 'npcs', 'zones'];
+const MANDATORY_LAYERS = ['terrain', 'deco', 'bridge', 'monsters', 'npcs', 'zones'];
 const COMES_BACK_FROM_ENUM = ['up', 'down', 'left', 'right'];
 
 describe('map', () => {

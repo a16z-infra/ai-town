@@ -36,7 +36,7 @@
         }, 
         {
          "draworder":"topdown",
-         "name":"treants",
+         "name":"monsters",
          "objects":[
                 {
                  "height":0,
@@ -61,28 +61,18 @@
                  "width":0,
                  "x":359.13,
                  "y":56.3341
-                }],
-         "opacity":1,
-         "type":"objectgroup",
-         "visible":true,
-         "x":0,
-         "y":0
-        }, 
-        {
-         "draworder":"topdown",
-         "name":"moles",
-         "objects":[
+                }, 
                 {
                  "height":0,
-                 "id":13,
+                 "id":15,
                  "name":"mole",
                  "point":true,
                  "rotation":0,
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":384.053264046768,
-                 "y":175.381617408249
+                 "x":402.728158493017,
+                 "y":166.450146151348
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -173,7 +163,7 @@
          "x":0,
          "y":0
         }],
- "nextobjectid":14,
+ "nextobjectid":16,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.1.5",

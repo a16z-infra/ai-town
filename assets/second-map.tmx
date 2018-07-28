@@ -5581,7 +5581,7 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup name="treants">
+ <objectgroup name="monsters">
   <object id="1" name="treant" x="366.063" y="232.564">
    <point/>
   </object>
