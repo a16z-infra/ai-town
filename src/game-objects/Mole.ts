@@ -13,7 +13,6 @@ export class Mole extends Monster {
   protected MONSTER_IDLE_DOWN = ASSETS.ANIMATIONS.MOLE_IDLE_DOWN;
 
   protected MONSTER_SPEED = 20;
-  protected MONSTER_HIT_DELAY = 100;
 
   constructor(scene, x: number = 400, y: number = 400) {
     super(scene);

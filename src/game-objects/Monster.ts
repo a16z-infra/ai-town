@@ -6,8 +6,8 @@ const DESTROY_SPRITE_ATTACK_DELAY = 200;
 export abstract class Monster extends Character {
   protected abstract WALK_ANIMATION;
   protected abstract MONSTER_IDLE_DOWN;
-  protected MONSTER_SPEED;
-  protected MONSTER_HIT_DELAY;
+  protected MONSTER_SPEED = 20;
+  protected MONSTER_HIT_DELAY = 100;
 
   protected hp: number;
   private chasingPlayerTimerEvent: Phaser.Time.TimerEvent;
