@@ -260,14 +260,13 @@ export class Player extends Character {
       }
       this.reload();
       const arrow = this.shoot();
-      const arrowGameObject = arrow.gameObject;
 
       // TODO refactor this for performance
       this.scene.monsters.map(monster =>
         this.scene.physics.add.collider(
-          arrowGameObject,
+          arrow.gameObject,
           monster.gameObject,
-          monster.monsterLoseHp(arrowGameObject),
+          monster.monsterLoseHp,
         ),
       );
     }

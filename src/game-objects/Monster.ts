@@ -30,19 +30,17 @@ export abstract class Monster extends Character {
   }
 
   public monsterLoseHp = (projectile: Phaser.Physics.Arcade.Sprite) => {
-    return () => {
-      this.hp--;
-      this.gameObject.setTint(0xff0000);
-      this.scene.time.addEvent({
-        delay: this.MONSTER_HIT_DELAY,
-        callback: () => this.gameObject.clearTint(),
-        callbackScope: this,
-      });
-      projectile.destroy();
-      if (this.hp === 0) {
-        this.gameObject.destroy();
-      }
-    };
+    this.hp--;
+    this.gameObject.setTint(0xff0000);
+    this.scene.time.addEvent({
+      delay: this.MONSTER_HIT_DELAY,
+      callback: () => this.gameObject.clearTint(),
+      callbackScope: this,
+    });
+    projectile.destroy();
+    if (this.hp === 0) {
+      this.gameObject.destroy();
+    }
   }
 
   protected abstract animateAttack(): void;
