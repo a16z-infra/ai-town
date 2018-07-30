@@ -99,6 +99,8 @@ export abstract class AbstractScene extends Phaser.Scene {
         return o.properties.scene === data.comesFrom;
       });
 
+      // We shift the player position because we can't make him spawn on the
+      // zone changer directly
       let xShift = 0;
       let yShift = 0;
       const SHIFT_VALUE = 50;
