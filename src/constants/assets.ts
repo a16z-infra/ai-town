@@ -32,6 +32,7 @@ export const ASSETS = {
     MOLE_WALK_SIDE: 'mole-walk-side',
     MOLE_WALK_UP: 'mole-walk-up',
     MOLE_WALK_DOWN: 'mole-walk-down',
+    MONSTER_DEATH: 'monster-death',
   },
   ANIMATIONS: {
     PLAYER_MOVE_LEFT: 'player-move-left',
@@ -55,5 +56,6 @@ export const ASSETS = {
     MOLE_WALK_SIDE: 'mole-walk-side',
     MOLE_WALK_UP: 'mole-walk-up',
     MOLE_WALK_DOWN: 'mole-walk-down',
+    MONSTER_DEATH: 'monster-death',
   },
 };

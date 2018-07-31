@@ -152,6 +152,10 @@ export class Preloader extends Phaser.Scene {
       frameWidth: 16,
       frameHeight: 16,
     });
+    this.load.spritesheet(ASSETS.IMAGES.MONSTER_DEATH, 'assets/spritesheets/misc/enemy-death.png', {
+      frameWidth: 30,
+      frameHeight: 32,
+    });
   }
 
   private createAnimations() {
@@ -295,6 +299,12 @@ export class Preloader extends Phaser.Scene {
       frames: this.anims.generateFrameNumbers(ASSETS.IMAGES.MOLE_WALK_UP, { start: 0, end: 3 }),
       frameRate: 7,
       repeat: -1,
+    });
+    this.anims.create({
+      key: ASSETS.ANIMATIONS.MONSTER_DEATH,
+      frames: this.anims.generateFrameNumbers(ASSETS.IMAGES.MONSTER_DEATH, { start: 0, end: 6 }),
+      frameRate: 15,
+      hideOnComplete: true,
     });
   }
 

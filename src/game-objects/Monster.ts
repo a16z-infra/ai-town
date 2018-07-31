@@ -39,11 +39,22 @@ export abstract class Monster extends Character {
     });
     projectile.destroy();
     if (this.hp === 0) {
-      this.gameObject.destroy();
+      this.die();
     }
   }
 
   protected abstract animateAttack(): void;
+
+  private die = () => {
+    const deathAnim = this.scene.add
+      .sprite(
+        this.gameObject.x,
+        this.gameObject.y,
+        ASSETS.IMAGES.MONSTER_DEATH,
+      );
+    this.gameObject.destroy();
+    deathAnim.play(ASSETS.ANIMATIONS.MONSTER_DEATH, false);
+  }
 
   private shouldChase = () => {
     const playerPoint = this.scene.player.gameObject.getCenter();
