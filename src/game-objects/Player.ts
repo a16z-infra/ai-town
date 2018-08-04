@@ -1,5 +1,6 @@
 import { Character } from './Character';
 import { Arrow } from './Arrow';
+import { Monster } from './Monster';
 import { AbstractScene } from '../scenes/AbstractScene';
 import { registry as REGISTRY_KEYS } from '../constants/registry';
 import { ASSETS } from '../constants/assets';
@@ -260,14 +261,9 @@ export class Player extends Character {
       this.reload();
       const arrow = this.shoot();
 
-      // TODO refactor this for performance
-      this.scene.monsters.map(monster =>
-        this.scene.physics.add.collider(
-          arrow,
-          monster,
-          monster.monsterLoseHp,
-        ),
-      );
+      this.scene.physics.add.collider(arrow, this.scene.monsterGroup, (a: Arrow, m: Monster) => {
+        m.monsterLoseHp(a);
+      });
     }
   }
 }
