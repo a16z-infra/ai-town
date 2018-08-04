@@ -12,11 +12,10 @@ export abstract class Monster extends Character {
   protected hp: number;
   private chasingPlayerTimerEvent: Phaser.Time.TimerEvent;
 
-  constructor(scene) {
-    super(scene);
-  }
-
-  public update() {
+  public updateMonster() {
+    if (!this.active) {
+      return;
+    }
     this.handleChase();
   }
 
@@ -31,10 +30,10 @@ export abstract class Monster extends Character {
 
   public monsterLoseHp = (projectile: Phaser.Physics.Arcade.Sprite) => {
     this.hp--;
-    this.gameObject.setTint(0xff0000);
+    this.setTint(0xff0000);
     this.scene.time.addEvent({
       delay: this.MONSTER_HIT_DELAY,
-      callback: () => this.gameObject.clearTint(),
+      callback: () => this.clearTint(),
       callbackScope: this,
     });
     projectile.destroy();
@@ -48,17 +47,17 @@ export abstract class Monster extends Character {
   private die = () => {
     const deathAnim = this.scene.add
       .sprite(
-        this.gameObject.x,
-        this.gameObject.y,
+        this.x,
+        this.y,
         ASSETS.IMAGES.MONSTER_DEATH,
       );
-    this.gameObject.destroy();
+    this.destroy();
     deathAnim.play(ASSETS.ANIMATIONS.MONSTER_DEATH, false);
   }
 
   private shouldChase = () => {
-    const playerPoint = this.scene.player.gameObject.getCenter();
-    const monsterPoint = this.gameObject.getCenter();
+    const playerPoint = this.scene.player.getCenter();
+    const monsterPoint = this.getCenter();
     const distance = monsterPoint.distance(playerPoint);
 
     if (distance < 100) {
@@ -77,16 +76,16 @@ export abstract class Monster extends Character {
   }
 
   private moveMonster() {
-    if (!this.gameObject.active) {
+    if (!this.active) {
       return;
     }
 
-    const playerPoint = this.scene.player.gameObject.getCenter();
-    const monsterPoint = this.gameObject.getCenter();
+    const playerPoint = this.scene.player.getCenter();
+    const monsterPoint = this.getCenter();
     const { x, y } = playerPoint.subtract(monsterPoint);
 
-    this.gameObject.setVelocityX(Math.sign(x) * this.MONSTER_SPEED);
-    this.gameObject.setVelocityY(Math.sign(y) * this.MONSTER_SPEED);
+    this.setVelocityX(Math.sign(x) * this.MONSTER_SPEED);
+    this.setVelocityY(Math.sign(y) * this.MONSTER_SPEED);
 
     const orientation = this.getOrientationFromTargettedPosition(x, y);
 
@@ -104,12 +103,12 @@ export abstract class Monster extends Character {
   }
 
   private beIdle() {
-    this.gameObject.play(this.MONSTER_IDLE_DOWN);
+    this.play(this.MONSTER_IDLE_DOWN);
   }
 
   private stopChasing() {
-    if (this.gameObject.active) {
-      this.gameObject.setVelocity(0);
+    if (this.active) {
+      this.setVelocity(0);
       this.beIdle();
     }
     this.chasingPlayerTimerEvent.destroy();

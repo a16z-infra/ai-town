@@ -15,20 +15,18 @@ export class Treant extends Monster {
   protected MONSTER_SPEED = 20;
 
   constructor(scene, x: number = 400, y: number = 400) {
-    super(scene);
+    super(scene, x, y, ASSETS.IMAGES.TREANT_IDLE_DOWN);
 
     this.hp = 3;
-    this.gameObject = this.scene.physics.add
-      .sprite(x, y, ASSETS.IMAGES.TREANT_IDLE_DOWN, 0)
-      .setDepth(5);
-    this.gameObject.setCollideWorldBounds(true);
-    this.gameObject.setImmovable(true);
+    this.setDepth(5);
+    this.setCollideWorldBounds(true);
+    this.setImmovable(true);
   }
 
   protected animateAttack() {
     const treantAttack = this.scene.physics.add.sprite(
-      this.scene.player.gameObject.x,
-      this.scene.player.gameObject.y,
+      this.scene.player.x,
+      this.scene.player.y,
       ASSETS.IMAGES.TREANT_ATTACK,
     );
     this.scene.time.addEvent({

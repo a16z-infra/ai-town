@@ -54,8 +54,8 @@ export abstract class AbstractScene extends Phaser.Scene {
       shift: this.cursors.shift.isDown,
     };
 
-    this.monsters.map(monster => monster.update());
-    this.player.update(keyPressed);
+    this.monsters.map((monster: Monster) => monster.updateMonster());
+    this.player.updatePlayer(keyPressed);
   }
 
   private createMapWithLayers() {
@@ -72,18 +72,18 @@ export abstract class AbstractScene extends Phaser.Scene {
   }
 
   private addColliders() {
-    this.monsterGroup = this.physics.add.group(this.monsters.map(monster => monster.gameObject));
+    this.monsterGroup = this.physics.add.group(this.monsters.map(monster => monster));
     this.physics.add.collider(this.monsterGroup, this.layers.terrain);
     this.physics.add.collider(this.monsterGroup, this.layers.deco);
     // TODO refactor this for performance
-    this.monsters.map(monster =>
-      this.physics.add.collider(monster.gameObject, this.player.gameObject, monster.monsterHit),
+    this.monsters.map((monster: Monster) =>
+      this.physics.add.collider(monster, this.player, monster.monsterHit),
     );
 
-    this.physics.add.collider(this.player.gameObject, this.layers.terrain);
-    this.physics.add.collider(this.player.gameObject, this.layers.deco);
+    this.physics.add.collider(this.player, this.layers.terrain);
+    this.physics.add.collider(this.player, this.layers.deco);
     this.npcs.map(npc =>
-      this.physics.add.collider(npc.gameObject, this.player.gameObject, npc.talk),
+      this.physics.add.collider(npc, this.player, npc.talk),
     );
   }
 
@@ -135,7 +135,7 @@ export abstract class AbstractScene extends Phaser.Scene {
   private initCamera() {
     this.cameras.main.setRoundPixels(true);
     this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
-    this.cameras.main.startFollow(this.player.gameObject, true, CAMERA_LERP, CAMERA_LERP);
+    this.cameras.main.startFollow(this.player, true, CAMERA_LERP, CAMERA_LERP);
   }
 
   private init(data: InterSceneData) {
@@ -159,7 +159,7 @@ export abstract class AbstractScene extends Phaser.Scene {
     const monstersMapObjects = this.map.objects.find(o => o.name === mapContentKeys.objects.MONSTERS);
     const monsters: any = monstersMapObjects ? monstersMapObjects.objects : [];
 
-    this.monsters = monsters.map(monster => {
+    this.monsters = monsters.map((monster: any): Monster => {
       switch (monster.name) {
         case 'treant':
           return new Treant(this, monster.x, monster.y);
@@ -173,7 +173,7 @@ export abstract class AbstractScene extends Phaser.Scene {
       levelChangerObjectLayer.objects.map((o: any) => {
         const zone = this.add.zone(o.x, o.y, o.width, o.height);
         this.physics.add.existing(zone);
-        this.physics.add.overlap(zone, this.player.gameObject, () => {
+        this.physics.add.overlap(zone, this.player, () => {
           this.scene.start(o.properties.scene, { comesFrom: this.scene.key });
         });
       });

@@ -48,20 +48,19 @@ export class Player extends Character {
   private hearts: Phaser.GameObjects.Sprite[];
 
   constructor(scene: AbstractScene, x: number, y: number) {
-    super(scene);
+    super(scene, x, y, ASSETS.IMAGES.PLAYER_IDLE_DOWN);
 
     const registryHp = this.scene.registry.get(REGISTRY_KEYS.PLAYER.HP);
     if (!registryHp) {
       this.scene.registry.set(REGISTRY_KEYS.PLAYER.HP, MAX_HP);
     }
 
-    this.gameObject = scene.physics.add.sprite(x, y, ASSETS.IMAGES.PLAYER_IDLE_DOWN, 0);
     this.orientation = 'down';
     this.lastTimeHit = new Date().getTime();
-    this.gameObject.setCollideWorldBounds(true);
-    this.gameObject.setOrigin(0.5, 0.7);
-    this.gameObject.setSize(10, 10);
-    this.gameObject.setDepth(10);
+    this.setCollideWorldBounds(true);
+    this.setOrigin(0.5, 0.7);
+    this.setSize(10, 10);
+    this.setDepth(10);
     this.isLoading = false;
     this.isShooting = false;
     this.tomb = null;
@@ -70,11 +69,11 @@ export class Player extends Character {
     this.initHearts();
   }
 
-  public update(keyPressed) {
-    if (!this.gameObject.active) {
+  public updatePlayer(keyPressed) {
+    if (!this.active) {
       return;
     }
-    this.gameObject.setVelocity(0);
+    this.setVelocity(0);
     this.handleMovement(keyPressed);
 
     if (keyPressed.space) {
@@ -106,10 +105,10 @@ export class Player extends Character {
     // Player dies
     if (!this.tomb) {
       this.tomb = this.scene.add
-        .sprite(this.gameObject.x, this.gameObject.y, ASSETS.IMAGES.TOMB)
+        .sprite(this.x, this.y, ASSETS.IMAGES.TOMB)
         .setScale(0.1);
     }
-    this.gameObject.destroy();
+    this.destroy();
   }
 
   private getHp(): number {
@@ -173,16 +172,16 @@ export class Player extends Character {
   private go(direction, shouldAnimate = true) {
     switch (direction) {
       case 'left':
-        this.gameObject.setVelocityX(-PLAYER_SPEED);
+        this.setVelocityX(-PLAYER_SPEED);
         break;
       case 'right':
-        this.gameObject.setVelocityX(PLAYER_SPEED);
+        this.setVelocityX(PLAYER_SPEED);
         break;
       case 'up':
-        this.gameObject.setVelocityY(-PLAYER_SPEED);
+        this.setVelocityY(-PLAYER_SPEED);
         break;
       case 'down':
-        this.gameObject.setVelocityY(PLAYER_SPEED);
+        this.setVelocityY(PLAYER_SPEED);
         break;
       default:
         break;
@@ -264,8 +263,8 @@ export class Player extends Character {
       // TODO refactor this for performance
       this.scene.monsters.map(monster =>
         this.scene.physics.add.collider(
-          arrow.gameObject,
-          monster.gameObject,
+          arrow,
+          monster,
           monster.monsterLoseHp,
         ),
       );

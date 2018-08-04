@@ -15,14 +15,12 @@ export class Mole extends Monster {
   protected MONSTER_SPEED = 20;
 
   constructor(scene, x: number = 400, y: number = 400) {
-    super(scene);
+    super(scene, x, y, ASSETS.IMAGES.MOLE_IDLE_DOWN);
 
     this.hp = 3;
-    this.gameObject = this.scene.physics.add
-      .sprite(x, y, ASSETS.IMAGES.MOLE_IDLE_DOWN, 0)
-      .setDepth(5);
-    this.gameObject.setCollideWorldBounds(true);
-    this.gameObject.setImmovable(true);
+    this.setDepth(5);
+    this.setCollideWorldBounds(true);
+    this.setImmovable(true);
   }
 
   protected animateAttack() {

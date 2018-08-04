@@ -2,15 +2,11 @@ import { Player } from './Player';
 
 const ARROW_SPEED = 150;
 
-export class Arrow {
-  public gameObject: Phaser.Physics.Arcade.Sprite;
-  private scene: Phaser.Scene;
+export class Arrow extends Phaser.Physics.Arcade.Sprite {
+  public scene: Phaser.Scene;
   private player: Player;
 
   constructor(scene: Phaser.Scene, player, direction) {
-    this.scene = scene;
-    this.player = player;
-
     let spriteName = 'arrow-up';
     if (direction === 'up' || direction === 'down') {
       spriteName = 'arrow-up';
@@ -20,27 +16,27 @@ export class Arrow {
       spriteName = 'arrow-side';
     }
 
-    this.gameObject = this.scene.physics.add.sprite(
-      this.player.gameObject.x,
-      this.player.gameObject.y,
-      spriteName,
-      0,
-    );
+    super(scene, player.x, player.y, spriteName, 0);
+    this.scene = scene;
+    this.player = player;
+
+    this.scene.physics.add.existing(this);
+    this.scene.add.existing(this);
 
     switch (direction) {
       case 'up':
-        this.gameObject.setVelocityY(-ARROW_SPEED);
+        this.setVelocityY(-ARROW_SPEED);
         break;
       case 'down':
-        this.gameObject.setVelocityY(ARROW_SPEED);
-        this.gameObject.setFlipY(true);
+        this.setVelocityY(ARROW_SPEED);
+        this.setFlipY(true);
         break;
       case 'left':
-        this.gameObject.setVelocityX(-ARROW_SPEED);
-        this.gameObject.setFlipX(true);
+        this.setVelocityX(-ARROW_SPEED);
+        this.setFlipX(true);
         break;
       case 'right':
-        this.gameObject.setVelocityX(ARROW_SPEED);
+        this.setVelocityX(ARROW_SPEED);
         break;
       default:
         break;

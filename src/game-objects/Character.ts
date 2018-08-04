@@ -9,13 +9,14 @@ type CharacterAnimation = {
   };
 };
 
-export abstract class Character {
-  public gameObject: Phaser.Physics.Arcade.Sprite;
-
+export abstract class Character extends Phaser.Physics.Arcade.Sprite {
   protected scene: AbstractScene;
 
-  constructor(scene: AbstractScene) {
+  constructor(scene: AbstractScene, x: number, y: number, sprite: string) {
+    super(scene, x, y, sprite, 0);
     this.scene = scene;
+    this.scene.physics.add.existing(this);
+    this.scene.add.existing(this);
   }
 
   protected animate(
@@ -23,7 +24,7 @@ export abstract class Character {
     orientation: Orientation,
   ) {
     const { flip, anim } = animationKeys[orientation];
-    this.gameObject.setFlipX(flip);
-    this.gameObject.play(anim, true);
+    this.setFlipX(flip);
+    this.play(anim, true);
   }
 }
