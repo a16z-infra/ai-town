@@ -3,8 +3,7 @@ export const ASSETS = {
   IMAGES: {
     LOGO: 'logo',
     TILES: 'tiles',
-    ARROW_UP: 'arrow-up',
-    ARROW_SIDE: 'arrow-side',
+    ARROW: 'arrow',
     TREANT_ATTACK: 'treantAttack',
     HEART: 'heart',
     HEART_EMPTY: 'heart-empty',
