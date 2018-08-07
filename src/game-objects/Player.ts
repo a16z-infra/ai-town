@@ -68,6 +68,18 @@ export class Player extends Character {
 
     this.hearts = [];
     this.initHearts();
+
+    this.on('animationrepeat', event => {
+      switch (event.key) {
+        case ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_SIDE:
+        case ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_UP:
+        case ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_DOWN:
+          this.spawnArrow();
+          break;
+        default:
+          break;
+      }
+    }, this);
   }
 
   public updatePlayer(keyPressed) {
@@ -248,9 +260,7 @@ export class Player extends Character {
     });
 
     this.animate(Player.SHOOT_ANIMATION, this.orientation);
-    const arrow = new Arrow(this.scene, this, this.orientation);
-
-    return arrow;
+    // Arrow will be spawned at the end of the animation
   }
 
   private handleShootKey(keyPressed) {
@@ -259,11 +269,14 @@ export class Player extends Character {
         return;
       }
       this.reload();
-      const arrow = this.shoot();
-
-      this.scene.physics.add.collider(arrow, this.scene.monsterGroup, (a: Arrow, m: Monster) => {
-        m.monsterLoseHp(a);
-      });
+      this.shoot();
     }
+  }
+
+  private spawnArrow() {
+    const arrow = new Arrow(this.scene, this, this.orientation);
+    this.scene.physics.add.collider(arrow, this.scene.monsterGroup, (a: Arrow, m: Monster) => {
+      m.monsterLoseHp(a);
+    });
   }
 }
