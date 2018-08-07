@@ -6,7 +6,7 @@ import { registry as REGISTRY_KEYS } from '../constants/registry';
 import { ASSETS } from '../constants/assets';
 
 const HIT_DELAY = 500;
-const PLAYER_SPEED = 100;
+const PLAYER_SPEED = 80;
 const PLAYER_SHOOTING_TIME = 300;
 const DISTANCE_BETWEEN_HEARTS = 15;
 const PLAYER_RELOAD = 500;
