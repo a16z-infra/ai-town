@@ -7,7 +7,6 @@ import { ASSETS } from '../constants/assets';
 
 const HIT_DELAY = 500;
 const PLAYER_SPEED = 80;
-const PLAYER_SHOOTING_TIME = 300;
 const DISTANCE_BETWEEN_HEARTS = 15;
 const PLAYER_RELOAD = 500;
 const MAX_HP = 3;
@@ -74,7 +73,7 @@ export class Player extends Character {
         case ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_SIDE:
         case ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_UP:
         case ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_DOWN:
-          this.spawnArrow();
+          this.concludeShoot();
           break;
         default:
           break;
@@ -247,17 +246,16 @@ export class Player extends Character {
     this.animate(Player.IDLE_ANIMATION, this.orientation);
   }
 
-  private endShoot = () => {
+  private concludeShoot = () => {
     this.isShooting = false;
+    const arrow = new Arrow(this.scene, this, this.orientation);
+    this.scene.physics.add.collider(arrow, this.scene.monsterGroup, (a: Arrow, m: Monster) => {
+      m.monsterLoseHp(a);
+    });
   }
 
   private shoot() {
     this.isShooting = true;
-    this.scene.time.addEvent({
-      delay: PLAYER_SHOOTING_TIME,
-      callback: this.endShoot,
-      callbackScope: this,
-    });
 
     this.animate(Player.SHOOT_ANIMATION, this.orientation);
     // Arrow will be spawned at the end of the animation
