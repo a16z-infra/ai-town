@@ -1,3 +1,4 @@
+import { Orientation } from '../geometry/orientation';
 import { Character } from './Character';
 import { Arrow } from './Arrow';
 import { Monster } from './Monster';
@@ -40,7 +41,7 @@ export class Player extends Character {
     right: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_SIDE },
   };
 
-  private orientation: 'up' | 'down' | 'left' | 'right';
+  private orientation: Orientation;
   private lastTimeHit: number;
   private isLoading: boolean;
   private isShooting: boolean;
@@ -55,7 +56,7 @@ export class Player extends Character {
       this.scene.registry.set(REGISTRY_KEYS.PLAYER.HP, MAX_HP);
     }
 
-    this.orientation = 'down';
+    this.orientation = Orientation.Down;
     this.lastTimeHit = new Date().getTime();
     this.setCollideWorldBounds(true);
     this.setOrigin(0.5, 0.7);
@@ -181,18 +182,18 @@ export class Player extends Character {
     this.isLoading = false;
   }
 
-  private go(direction, shouldAnimate = true) {
+  private go(direction: Orientation, shouldAnimate = true) {
     switch (direction) {
-      case 'left':
+      case Orientation.Left:
         this.setVelocityX(-PLAYER_SPEED);
         break;
-      case 'right':
+      case Orientation.Right:
         this.setVelocityX(PLAYER_SPEED);
         break;
-      case 'up':
+      case Orientation.Up:
         this.setVelocityY(-PLAYER_SPEED);
         break;
-      case 'down':
+      case Orientation.Down:
         this.setVelocityY(PLAYER_SPEED);
         break;
       default:
@@ -212,21 +213,21 @@ export class Player extends Character {
     const isUpDownPressed = keyPressed.up || keyPressed.down;
 
     if (keyPressed.left) {
-      this.go('left', !isUpDownPressed);
+      this.go(Orientation.Left, !isUpDownPressed);
       return;
     }
 
     if (keyPressed.right) {
-      this.go('right', !isUpDownPressed);
+      this.go(Orientation.Right, !isUpDownPressed);
       return;
     }
   }
 
   private handleVerticalMovement(keyPressed) {
     if (keyPressed.up) {
-      this.go('up');
+      this.go(Orientation.Up);
     } else if (keyPressed.down) {
-      this.go('down');
+      this.go(Orientation.Down);
     }
   }
 

@@ -1,3 +1,4 @@
+import { Orientation } from '../geometry/orientation';
 import { Player } from './Player';
 import { ASSETS } from '../constants/assets';
 
@@ -7,7 +8,7 @@ export class Arrow extends Phaser.Physics.Arcade.Sprite {
   public scene: Phaser.Scene;
   private player: Player;
 
-  constructor(scene: Phaser.Scene, player, direction) {
+  constructor(scene: Phaser.Scene, player: Player, direction: Orientation) {
     super(scene, player.x, player.y, ASSETS.IMAGES.ARROW);
     this.scene = scene;
     this.player = player;
@@ -18,18 +19,18 @@ export class Arrow extends Phaser.Physics.Arcade.Sprite {
     this.setDepth(1000);
 
     switch (direction) {
-      case 'up':
+      case Orientation.Up:
         this.setVelocityY(-ARROW_SPEED);
         break;
-      case 'down':
+      case Orientation.Down:
         this.setVelocityY(ARROW_SPEED);
         this.setRotation(Math.PI);
         break;
-      case 'left':
+      case Orientation.Left:
         this.setVelocityX(-ARROW_SPEED);
         this.setRotation(-Math.PI / 2);
         break;
-      case 'right':
+      case Orientation.Right:
         this.setVelocityX(ARROW_SPEED);
         this.setRotation(Math.PI / 2);
         break;

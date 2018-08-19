@@ -1,6 +1,5 @@
+import { Orientation } from '../geometry/orientation';
 import { AbstractScene } from '../scenes/AbstractScene';
-
-type Orientation = 'left' | 'right' | 'up' | 'down';
 
 type CharacterAnimation = {
   [K in Orientation]: {

@@ -1,3 +1,4 @@
+import { Orientation } from '../geometry/orientation';
 import { Character } from './Character';
 import { ASSETS } from '../constants/assets';
 
@@ -72,12 +73,12 @@ export abstract class Monster extends Character {
     return false;
   }
 
-  private getOrientationFromTargettedPosition(x: number, y: number) {
+  private getOrientationFromTargettedPosition(x: number, y: number): Orientation {
     if (Math.abs(y) > Math.abs(x)) {
-      return y < 0 ? 'up' : 'down';
+      return y < 0 ? Orientation.Up : Orientation.Down;
     }
 
-    return x < 0 ? 'left' : 'right';
+    return x < 0 ? Orientation.Left : Orientation.Right;
   }
 
   private moveTowardsPlayer() {

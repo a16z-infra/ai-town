@@ -1,3 +1,4 @@
+import { Orientation } from '../geometry/orientation';
 import { Player } from '../game-objects/Player';
 import { Treant } from '../game-objects/Treant';
 import { Monster } from '../game-objects/Monster';
@@ -104,19 +105,19 @@ export abstract class AbstractScene extends Phaser.Scene {
       let yShift = 0;
       const SHIFT_VALUE = 50;
       switch (levelChanger.properties.comesBackFrom) {
-        case 'right':
+        case Orientation.Right:
           xShift = SHIFT_VALUE;
           yShift = 0;
           break;
-        case 'left':
+        case Orientation.Left:
           xShift = -SHIFT_VALUE;
           yShift = 0;
           break;
-        case 'up':
+        case Orientation.Up:
           xShift = 0;
           yShift = -SHIFT_VALUE;
           break;
-        case 'down':
+        case Orientation.Down:
           xShift = 0;
           yShift = SHIFT_VALUE;
           break;
