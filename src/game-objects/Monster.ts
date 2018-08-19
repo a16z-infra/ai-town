@@ -35,7 +35,7 @@ export abstract class Monster extends Character {
     this.animateAttack();
   }
 
-  public monsterLoseHp = (projectile: Phaser.Physics.Arcade.Sprite) => {
+  public loseHp = (projectile: Phaser.Physics.Arcade.Sprite) => {
     this.hp--;
     this.isStartled = true;
     this.setTint(0xff0000);

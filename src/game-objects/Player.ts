@@ -251,7 +251,7 @@ export class Player extends Character {
     this.isShooting = false;
     const arrow = new Arrow(this.scene, this, this.orientation);
     this.scene.physics.add.collider(arrow, this.scene.monsterGroup, (a: Arrow, m: Monster) => {
-      m.monsterLoseHp(a);
+      m.loseHp(a);
     });
   }
 
@@ -275,7 +275,7 @@ export class Player extends Character {
   private spawnArrow() {
     const arrow = new Arrow(this.scene, this, this.orientation);
     this.scene.physics.add.collider(arrow, this.scene.monsterGroup, (a: Arrow, m: Monster) => {
-      m.monsterLoseHp(a);
+      m.loseHp(a);
     });
   }
 }
