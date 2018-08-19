@@ -16,7 +16,8 @@ export abstract class Monster extends Character {
 
   protected hp: number;
   private chasingPlayerTimerEvent: Phaser.Time.TimerEvent;
-  private isWandering = false;
+  private isWandering: boolean = false;
+  private isStartled: boolean = false;
 
   public updateMonster() {
     if (!this.active) {
@@ -36,6 +37,7 @@ export abstract class Monster extends Character {
 
   public monsterLoseHp = (projectile: Phaser.Physics.Arcade.Sprite) => {
     this.hp--;
+    this.isStartled = true;
     this.setTint(0xff0000);
     this.scene.time.addEvent({
       delay: this.MONSTER_HIT_DELAY,
@@ -67,6 +69,10 @@ export abstract class Monster extends Character {
     const distance = monsterPoint.distance(playerPoint);
 
     if (distance < this.CHASING_DISTANCE) {
+      return true;
+    }
+
+    if (this.isStartled) {
       return true;
     }
 
