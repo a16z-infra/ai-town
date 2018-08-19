@@ -26,7 +26,7 @@ export abstract class Monster extends Character {
     this.handleChase();
   }
 
-  public monsterHit = () => {
+  public attack = () => {
     if (!this.scene.player.canGetHit()) {
       return;
     }
