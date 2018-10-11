@@ -1,8 +1,6 @@
 import { Monster } from './Monster';
 import { ASSETS } from '../constants/assets';
 
-const DESTROY_SPRITE_ATTACK_DELAY = 200;
-
 export class Mole extends Monster {
   protected WALK_ANIMATION = {
     down: { flip: false, anim: ASSETS.ANIMATIONS.MOLE_WALK_DOWN },

@@ -3,9 +3,7 @@ import { Character } from './Character';
 import { Arrow } from './Arrow';
 import { Monster } from './Monster';
 import { AbstractScene } from '../scenes/AbstractScene';
-import { registry as REGISTRY_KEYS } from '../constants/registry';
 import { ASSETS } from '../constants/assets';
-import { SCENES } from '../constants/scenes';
 import { EVENTS } from '../constants/events';
 
 const HIT_DELAY = 500;
@@ -232,12 +230,5 @@ export class Player extends Character {
       this.reload();
       this.shoot();
     }
-  }
-
-  private spawnArrow() {
-    const arrow = new Arrow(this.scene, this, this.orientation);
-    this.scene.physics.add.collider(arrow, this.scene.monsterGroup, (a: Arrow, m: Monster) => {
-      m.loseHp(a);
-    });
   }
 }

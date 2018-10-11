@@ -2,8 +2,6 @@ import { Orientation } from '../geometry/orientation';
 import { Character } from './Character';
 import { ASSETS } from '../constants/assets';
 
-const DESTROY_SPRITE_ATTACK_DELAY = 200;
-
 export abstract class Monster extends Character {
   private static WANDER_DELAY = () => (1000 + 1000 * Math.random());
   private static WANDER_LENGTH = () => (1000 + 5000 * Math.random());

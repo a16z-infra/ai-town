@@ -5,6 +5,7 @@
     "target": "ES6",
     "lib": ["es2017", "dom"],
     "noUnusedParameters": true,
+    "noUnusedLocals": true,
     "sourceMap": true
   },
   "jest": {

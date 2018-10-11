@@ -15,6 +15,21 @@ export class UIScene extends Phaser.Scene {
     this.hearts = [];
   }
 
+  public get playerHp(): number {
+    return this.registry.get(REGISTRY_KEYS.PLAYER.HP);
+  }
+
+  public set playerHp(newHp: number) {
+    this.registry.set(REGISTRY_KEYS.PLAYER.HP, newHp);
+  }
+
+  protected create() {
+    this.initHearts();
+    this.events.on(EVENTS.HP_CHANGE, () => {
+      this.updateHearts();
+    });
+  }
+
   private initHearts() {
     Array(Player.MAX_HP)
       .fill(0)
@@ -39,26 +54,11 @@ export class UIScene extends Phaser.Scene {
       });
   }
 
-  public get playerHp(): number {
-    return this.registry.get(REGISTRY_KEYS.PLAYER.HP);
-  }
-
-  public set playerHp(newHp: number) {
-    this.registry.set(REGISTRY_KEYS.PLAYER.HP, newHp);
-  }
-
   private updateHearts() {
     this.hearts.map((heart, index) => {
       if (index >= this.playerHp) {
         heart.setAlpha(0);
       }
-    });
-  }
-
-  private create() {
-    this.initHearts();
-    this.events.on(EVENTS.HP_CHANGE, () => {
-      this.updateHearts();
     });
   }
 }

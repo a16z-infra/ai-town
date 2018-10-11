@@ -6,12 +6,10 @@ const ARROW_SPEED = 150;
 
 export class Arrow extends Phaser.Physics.Arcade.Sprite {
   public scene: Phaser.Scene;
-  private player: Player;
 
   constructor(scene: Phaser.Scene, player: Player, direction: Orientation) {
     super(scene, player.x, player.y, ASSETS.IMAGES.ARROW);
     this.scene = scene;
-    this.player = player;
 
     this.scene.physics.add.existing(this);
     this.scene.add.existing(this);

@@ -3,6 +3,16 @@ import { ASSETS } from '../constants/assets';
 import { SCENES } from '../constants/scenes';
 
 export class Preloader extends Phaser.Scene {
+  protected preload() {
+    this.loadAssets();
+  }
+
+  protected create() {
+    this.createAnimations();
+    this.scene.launch(SCENES.MAIN);
+    this.scene.launch(SCENES.UI);
+  }
+
   private loadAssets() {
     this.load.tilemapTiledJSON(maps.main.key, `assets/${maps.main.file}`);
     this.load.tilemapTiledJSON(maps.second.key, `assets/${maps.second.file}`);
@@ -306,15 +316,5 @@ export class Preloader extends Phaser.Scene {
       frameRate: 15,
       hideOnComplete: true,
     });
-  }
-
-  private preload() {
-    this.loadAssets();
-  }
-
-  private create() {
-    this.createAnimations();
-    this.scene.launch(SCENES.MAIN);
-    this.scene.launch(SCENES.UI);
   }
 }

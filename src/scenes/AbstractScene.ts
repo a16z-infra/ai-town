@@ -59,6 +59,54 @@ export abstract class AbstractScene extends Phaser.Scene {
     this.player.updatePlayer(keyPressed);
   }
 
+  protected init(data: InterSceneData) {
+    this.createMapWithLayers();
+
+    this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
+
+    const levelChangerObjectLayer = this.map.objects.find(
+      o => o.name === mapContentKeys.objects.ZONES,
+    );
+
+    const playerInitialPosition = this.getPlayerInitialPosition(levelChangerObjectLayer, data);
+    this.player = new Player(this, playerInitialPosition.x, playerInitialPosition.y);
+
+    const npcsMapObjects = this.map.objects.find(o => o.name === mapContentKeys.objects.NPCS);
+    const npcs: any = npcsMapObjects ? npcsMapObjects.objects : [];
+    this.npcs = npcs.map(npc => {
+      return new Npc(this, npc.x, npc.y, npc.properties.message);
+    });
+
+    const monstersMapObjects = this.map.objects.find(o => o.name === mapContentKeys.objects.MONSTERS);
+    const monsters: any = monstersMapObjects ? monstersMapObjects.objects : [];
+
+    this.monsters = monsters.map((monster: any): Monster => {
+      switch (monster.name) {
+        case 'treant':
+          return new Treant(this, monster.x, monster.y);
+        case 'mole':
+          return new Mole(this, monster.x, monster.y);
+        default:
+      }
+    });
+
+    if (levelChangerObjectLayer) {
+      levelChangerObjectLayer.objects.map((o: any) => {
+        const zone = this.add.zone(o.x, o.y, o.width, o.height);
+        this.physics.add.existing(zone);
+        this.physics.add.overlap(zone, this.player, () => {
+          this.scene.start(o.properties.scene, { comesFrom: this.scene.key });
+        });
+      });
+    }
+
+    this.addColliders();
+
+    this.initCamera();
+
+    this.cursors = this.input.keyboard.createCursorKeys();
+  }
+
   private createMapWithLayers() {
     this.map = this.make.tilemap({ key: this.mapKey });
     const tileset = this.map.addTilesetImage(ASSETS.TILESET, ASSETS.IMAGES.TILES, 16, 16, 0, 0);
@@ -136,53 +184,5 @@ export abstract class AbstractScene extends Phaser.Scene {
     this.cameras.main.setRoundPixels(true);
     this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
     this.cameras.main.startFollow(this.player, true, CAMERA_LERP, CAMERA_LERP);
-  }
-
-  private init(data: InterSceneData) {
-    this.createMapWithLayers();
-
-    this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
-
-    const levelChangerObjectLayer = this.map.objects.find(
-      o => o.name === mapContentKeys.objects.ZONES,
-    );
-
-    const playerInitialPosition = this.getPlayerInitialPosition(levelChangerObjectLayer, data);
-    this.player = new Player(this, playerInitialPosition.x, playerInitialPosition.y);
-
-    const npcsMapObjects = this.map.objects.find(o => o.name === mapContentKeys.objects.NPCS);
-    const npcs: any = npcsMapObjects ? npcsMapObjects.objects : [];
-    this.npcs = npcs.map(npc => {
-      return new Npc(this, npc.x, npc.y, npc.properties.message);
-    });
-
-    const monstersMapObjects = this.map.objects.find(o => o.name === mapContentKeys.objects.MONSTERS);
-    const monsters: any = monstersMapObjects ? monstersMapObjects.objects : [];
-
-    this.monsters = monsters.map((monster: any): Monster => {
-      switch (monster.name) {
-        case 'treant':
-          return new Treant(this, monster.x, monster.y);
-        case 'mole':
-          return new Mole(this, monster.x, monster.y);
-        default:
-      }
-    });
-
-    if (levelChangerObjectLayer) {
-      levelChangerObjectLayer.objects.map((o: any) => {
-        const zone = this.add.zone(o.x, o.y, o.width, o.height);
-        this.physics.add.existing(zone);
-        this.physics.add.overlap(zone, this.player, () => {
-          this.scene.start(o.properties.scene, { comesFrom: this.scene.key });
-        });
-      });
-    }
-
-    this.addColliders();
-
-    this.initCamera();
-
-    this.cursors = this.input.keyboard.createCursorKeys();
   }
 }
