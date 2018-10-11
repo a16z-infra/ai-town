@@ -1,5 +1,6 @@
 import { maps } from '../constants/maps';
 import { ASSETS } from '../constants/assets';
+import { SCENES } from '../constants/scenes';
 
 export class Preloader extends Phaser.Scene {
   private loadAssets() {
@@ -313,7 +314,7 @@ export class Preloader extends Phaser.Scene {
 
   private create() {
     this.createAnimations();
-    this.scene.launch('Main');
-    this.scene.launch('UIScene');
+    this.scene.launch(SCENES.MAIN);
+    this.scene.launch(SCENES.UI);
   }
 }
