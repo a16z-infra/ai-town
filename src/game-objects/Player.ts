@@ -69,9 +69,10 @@ export class Player extends Character {
 
     this.on('animationrepeat', event => {
       switch (event.key) {
-        case ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_SIDE:
-        case ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_UP:
-        case ASSETS.ANIMATIONS.PLAYER_ATTACK_WEAPON_DOWN:
+        case Player.SHOOT_ANIMATION.left.anim:
+        case Player.SHOOT_ANIMATION.right.anim:
+        case Player.SHOOT_ANIMATION.up.anim:
+        case Player.SHOOT_ANIMATION.down.anim:
           this.concludeShoot();
           break;
         default:
