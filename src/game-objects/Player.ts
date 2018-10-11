@@ -10,11 +10,11 @@ import { EVENTS } from '../constants/events';
 
 const HIT_DELAY = 500;
 const PLAYER_SPEED = 80;
-const DISTANCE_BETWEEN_HEARTS = 15;
 const PLAYER_RELOAD = 500;
-const MAX_HP = 3;
 
 export class Player extends Character {
+  public static MAX_HP = 3;
+
   private static MOVE_ANIMATION = {
     down: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_MOVE_DOWN },
     up: { flip: false, anim: ASSETS.ANIMATIONS.PLAYER_MOVE_UP },
@@ -52,9 +52,8 @@ export class Player extends Character {
   constructor(scene: AbstractScene, x: number, y: number) {
     super(scene, x, y, ASSETS.IMAGES.PLAYER_IDLE_DOWN);
 
-    const registryHp = this.scene.registry.get(REGISTRY_KEYS.PLAYER.HP);
-    if (!registryHp) {
-      this.scene.registry.set(REGISTRY_KEYS.PLAYER.HP, MAX_HP);
+    if (!this.hp) {
+      this.hp = Player.MAX_HP;
     }
 
     this.orientation = Orientation.Down;

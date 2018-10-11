@@ -1,10 +1,10 @@
+import { Player } from '../game-objects/Player';
 import { registry as REGISTRY_KEYS } from '../constants/registry';
 import { ASSETS } from '../constants/assets';
 import { SCENES } from '../constants/scenes';
 import { EVENTS } from '../constants/events';
 
 const DISTANCE_BETWEEN_HEARTS = 15;
-const MAX_HP = 3;
 
 export class UIScene extends Phaser.Scene {
   private hearts: Phaser.GameObjects.Sprite[];
@@ -16,7 +16,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   private initHearts() {
-    Array(MAX_HP)
+    Array(Player.MAX_HP)
       .fill(0)
       .map((_, i) => {
         return this.add
