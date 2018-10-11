@@ -5,7 +5,7 @@ import { Monster } from './Monster';
 import { AbstractScene } from '../scenes/AbstractScene';
 import { registry as REGISTRY_KEYS } from '../constants/registry';
 import { ASSETS } from '../constants/assets';
-import { scenes as SCENES } from '../constants/scenes';
+import { SCENES } from '../constants/scenes';
 
 const HIT_DELAY = 500;
 const PLAYER_SPEED = 80;
