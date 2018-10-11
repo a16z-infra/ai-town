@@ -1,23 +1,17 @@
-import { Player } from '../game-objects/Player';
 import { registry as REGISTRY_KEYS } from '../constants/registry';
 import { ASSETS } from '../constants/assets';
 import { SCENES } from '../constants/scenes';
 import { EVENTS } from '../constants/events';
 
-const HIT_DELAY = 500;
-const PLAYER_SPEED = 80;
 const DISTANCE_BETWEEN_HEARTS = 15;
-const PLAYER_RELOAD = 500;
 const MAX_HP = 3;
 
 export class UIScene extends Phaser.Scene {
-  private score: number;
   private hearts: Phaser.GameObjects.Sprite[];
 
   constructor() {
     super(SCENES.UI);
 
-    this.score = 0;
     this.hearts = [];
   }
 
@@ -35,7 +29,7 @@ export class UIScene extends Phaser.Scene {
           .setDepth(50);
       });
 
-    this.hearts = Array(this.getHp())
+    this.hearts = Array(this.playerHp)
       .fill(0)
       .map((_, i) => {
         return this.add
@@ -45,13 +39,17 @@ export class UIScene extends Phaser.Scene {
       });
   }
 
-  private getHp() {
+  public get playerHp(): number {
     return this.registry.get(REGISTRY_KEYS.PLAYER.HP);
+  }
+
+  public set playerHp(newHp: number) {
+    this.registry.set(REGISTRY_KEYS.PLAYER.HP, newHp);
   }
 
   private updateHearts() {
     this.hearts.map((heart, index) => {
-      if (index >= this.getHp()) {
+      if (index >= this.playerHp) {
         heart.setAlpha(0);
       }
     });

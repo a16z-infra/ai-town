@@ -105,13 +105,13 @@ export class Player extends Character {
   }
 
   public loseHp() {
-    this.addHp(-1);
+    this.hp--;
 
     this.uiScene.events.emit(EVENTS.HP_CHANGE);
 
     this.lastTimeHit = new Date().getTime();
 
-    if (this.getHp() > 0) {
+    if (this.hp > 0) {
       return;
     }
 
@@ -124,17 +124,12 @@ export class Player extends Character {
     this.destroy();
   }
 
-  private getHp(): number {
-    return this.scene.registry.get(REGISTRY_KEYS.PLAYER.HP);
+  private get hp() {
+    return this.uiScene.playerHp;
   }
 
-  private setHp(newHp: number) {
-    this.scene.registry.set(REGISTRY_KEYS.PLAYER.HP, newHp);
-  }
-
-  private addHp(hpToAdd: number) {
-    const hp = this.scene.registry.get(REGISTRY_KEYS.PLAYER.HP);
-    this.setHp(hp + hpToAdd);
+  private set hp(newHp: number) {
+    this.uiScene.playerHp = newHp;
   }
 
   private reload() {

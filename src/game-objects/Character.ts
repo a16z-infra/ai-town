@@ -1,6 +1,7 @@
 import { Orientation } from '../geometry/orientation';
 import { AbstractScene } from '../scenes/AbstractScene';
 import { SCENES } from '../constants/scenes';
+import { UIScene } from '../scenes/UIScene';
 
 type CharacterAnimation = {
   [K in Orientation]: {
@@ -11,7 +12,7 @@ type CharacterAnimation = {
 
 export abstract class Character extends Phaser.Physics.Arcade.Sprite {
   protected scene: AbstractScene;
-  protected uiScene: Phaser.Scene;
+  protected uiScene: UIScene;
 
   constructor(scene: AbstractScene, x: number, y: number, sprite: string) {
     super(scene, x, y, sprite, 0);
@@ -19,7 +20,8 @@ export abstract class Character extends Phaser.Physics.Arcade.Sprite {
     this.scene.physics.add.existing(this);
     this.scene.add.existing(this);
 
-    this.uiScene = this.scene.scene.get(SCENES.UI);
+    const uiScene: any = this.scene.scene.get(SCENES.UI);
+    this.uiScene = uiScene;
   }
 
   protected animate(
