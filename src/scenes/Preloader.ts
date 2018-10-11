@@ -314,5 +314,6 @@ export class Preloader extends Phaser.Scene {
   private create() {
     this.createAnimations();
     this.scene.launch('Main');
+    this.scene.launch('UIScene');
   }
 }

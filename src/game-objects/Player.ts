@@ -5,6 +5,7 @@ import { Monster } from './Monster';
 import { AbstractScene } from '../scenes/AbstractScene';
 import { registry as REGISTRY_KEYS } from '../constants/registry';
 import { ASSETS } from '../constants/assets';
+import { scenes as SCENES } from '../constants/scenes';
 
 const HIT_DELAY = 500;
 const PLAYER_SPEED = 80;
@@ -46,7 +47,6 @@ export class Player extends Character {
   private isLoading: boolean;
   private isShooting: boolean;
   private tomb: Phaser.GameObjects.Sprite;
-  private hearts: Phaser.GameObjects.Sprite[];
 
   constructor(scene: AbstractScene, x: number, y: number) {
     super(scene, x, y, ASSETS.IMAGES.PLAYER_IDLE_DOWN);
@@ -65,9 +65,6 @@ export class Player extends Character {
     this.isLoading = false;
     this.isShooting = false;
     this.tomb = null;
-
-    this.hearts = [];
-    this.initHearts();
 
     this.on('animationrepeat', event => {
       switch (event.key) {
@@ -107,7 +104,9 @@ export class Player extends Character {
 
   public loseHp() {
     this.addHp(-1);
-    this.updateHearts();
+
+    const uiScene = this.scene.scene.get(SCENES.UI);
+    uiScene.events.emit('hp change');
 
     this.lastTimeHit = new Date().getTime();
 
@@ -135,38 +134,6 @@ export class Player extends Character {
   private addHp(hpToAdd: number) {
     const hp = this.scene.registry.get(REGISTRY_KEYS.PLAYER.HP);
     this.setHp(hp + hpToAdd);
-  }
-
-  private initHearts() {
-    Array(MAX_HP)
-      .fill(0)
-      .map((_, i) => {
-        return this.scene.add
-          .sprite(
-            (i + 1) * DISTANCE_BETWEEN_HEARTS,
-            DISTANCE_BETWEEN_HEARTS,
-            ASSETS.IMAGES.HEART_EMPTY,
-          )
-          .setScrollFactor(0)
-          .setDepth(50);
-      });
-
-    this.hearts = Array(this.getHp())
-      .fill(0)
-      .map((_, i) => {
-        return this.scene.add
-          .sprite((i + 1) * DISTANCE_BETWEEN_HEARTS, DISTANCE_BETWEEN_HEARTS, ASSETS.IMAGES.HEART)
-          .setScrollFactor(0)
-          .setDepth(100);
-      });
-  }
-
-  private updateHearts() {
-    this.hearts.map((heart, index) => {
-      if (index >= this.getHp()) {
-        heart.setAlpha(0);
-      }
-    });
   }
 
   private reload() {
