@@ -2,6 +2,7 @@ import { Player } from '../game-objects/Player';
 import { registry as REGISTRY_KEYS } from '../constants/registry';
 import { ASSETS } from '../constants/assets';
 import { SCENES } from '../constants/scenes';
+import { EVENTS } from '../constants/events';
 
 const HIT_DELAY = 500;
 const PLAYER_SPEED = 80;
@@ -58,7 +59,7 @@ export class UIScene extends Phaser.Scene {
 
   private create() {
     this.initHearts();
-    this.events.on('hp change', () => {
+    this.events.on(EVENTS.HP_CHANGE, () => {
       this.updateHearts();
     });
   }

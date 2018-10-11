@@ -6,6 +6,7 @@ import { AbstractScene } from '../scenes/AbstractScene';
 import { registry as REGISTRY_KEYS } from '../constants/registry';
 import { ASSETS } from '../constants/assets';
 import { SCENES } from '../constants/scenes';
+import { EVENTS } from '../constants/events';
 
 const HIT_DELAY = 500;
 const PLAYER_SPEED = 80;
@@ -105,8 +106,7 @@ export class Player extends Character {
   public loseHp() {
     this.addHp(-1);
 
-    const uiScene = this.scene.scene.get(SCENES.UI);
-    uiScene.events.emit('hp change');
+    this.uiScene.events.emit(EVENTS.HP_CHANGE);
 
     this.lastTimeHit = new Date().getTime();
 
