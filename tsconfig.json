@@ -4,6 +4,7 @@
     "allowJs": true,
     "target": "ES6",
     "lib": ["es2017", "dom"],
+    "noUnusedParameters": true,
     "sourceMap": true
   },
   "jest": {
