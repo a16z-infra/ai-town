@@ -1,4 +1,4 @@
-import { maps } from '../constants/maps';
+import { MAPS } from '../constants/maps';
 import { ASSETS } from '../constants/assets';
 import { SCENES } from '../constants/scenes';
 
@@ -14,8 +14,8 @@ export class Preloader extends Phaser.Scene {
   }
 
   private loadAssets() {
-    this.load.tilemapTiledJSON(maps.main.key, `assets/${maps.main.file}`);
-    this.load.tilemapTiledJSON(maps.second.key, `assets/${maps.second.file}`);
+    this.load.tilemapTiledJSON(MAPS.main.key, `assets/${MAPS.main.file}`);
+    this.load.tilemapTiledJSON(MAPS.second.key, `assets/${MAPS.second.file}`);
 
     // Images
     this.load.image(ASSETS.IMAGES.LOGO, 'assets/logo.png');
