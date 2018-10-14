@@ -4,7 +4,6 @@ import { Arrow } from './Arrow';
 import { Monster } from './Monster';
 import { AbstractScene } from '../scenes/AbstractScene';
 import { ASSETS } from '../constants/assets';
-import { EVENTS } from '../constants/events';
 
 const HIT_DELAY = 500;
 const PLAYER_SPEED = 80;
@@ -103,8 +102,6 @@ export class Player extends Character {
 
   public loseHp() {
     this.hp--;
-
-    this.uiScene.events.emit(EVENTS.HP_CHANGE);
 
     this.lastTimeHit = new Date().getTime();
 
