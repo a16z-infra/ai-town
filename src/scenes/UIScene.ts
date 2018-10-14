@@ -1,5 +1,5 @@
 import { Player } from '../game-objects/Player';
-import { registry as REGISTRY_KEYS } from '../constants/registry';
+import { REGISTRY_KEYS } from '../constants/registry';
 import { ASSETS } from '../constants/assets';
 import { SCENES } from '../constants/scenes';
 

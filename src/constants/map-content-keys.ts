@@ -1,4 +1,4 @@
-export const mapContentKeys = {
+export const MAP_CONTENT_KEYS = {
   layers: {
     BACKGROUND: 'terrain',
     DECORATION: 'deco',

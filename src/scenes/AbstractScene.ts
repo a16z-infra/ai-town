@@ -4,7 +4,7 @@ import { Treant } from '../game-objects/Treant';
 import { Monster } from '../game-objects/Monster';
 import { Mole } from '../game-objects/Mole';
 import { Npc } from '../game-objects/Npc';
-import { mapContentKeys } from '../constants/map-content-keys';
+import { MAP_CONTENT_KEYS } from '../constants/map-content-keys';
 import { ASSETS } from '../constants/assets';
 
 const CAMERA_LERP = 1;
@@ -65,19 +65,19 @@ export abstract class AbstractScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
 
     const levelChangerObjectLayer = this.map.objects.find(
-      o => o.name === mapContentKeys.objects.ZONES,
+      o => o.name === MAP_CONTENT_KEYS.objects.ZONES,
     );
 
     const playerInitialPosition = this.getPlayerInitialPosition(levelChangerObjectLayer, data);
     this.player = new Player(this, playerInitialPosition.x, playerInitialPosition.y);
 
-    const npcsMapObjects = this.map.objects.find(o => o.name === mapContentKeys.objects.NPCS);
+    const npcsMapObjects = this.map.objects.find(o => o.name === MAP_CONTENT_KEYS.objects.NPCS);
     const npcs: any = npcsMapObjects ? npcsMapObjects.objects : [];
     this.npcs = npcs.map(npc => {
       return new Npc(this, npc.x, npc.y, npc.properties.message);
     });
 
-    const monstersMapObjects = this.map.objects.find(o => o.name === mapContentKeys.objects.MONSTERS);
+    const monstersMapObjects = this.map.objects.find(o => o.name === MAP_CONTENT_KEYS.objects.MONSTERS);
     const monsters: any = monstersMapObjects ? monstersMapObjects.objects : [];
 
     this.monsters = monsters.map((monster: any): Monster => {
@@ -112,9 +112,9 @@ export abstract class AbstractScene extends Phaser.Scene {
     const tileset = this.map.addTilesetImage(ASSETS.TILESET, ASSETS.IMAGES.TILES, 16, 16, 0, 0);
 
     this.layers = {
-      terrain: this.map.createStaticLayer(mapContentKeys.layers.BACKGROUND, tileset, 0, 0),
-      deco: this.map.createStaticLayer(mapContentKeys.layers.DECORATION, tileset, 0, 0),
-      bridge: this.map.createStaticLayer(mapContentKeys.layers.BRIDGE, tileset, 0, 0),
+      terrain: this.map.createStaticLayer(MAP_CONTENT_KEYS.layers.BACKGROUND, tileset, 0, 0),
+      deco: this.map.createStaticLayer(MAP_CONTENT_KEYS.layers.DECORATION, tileset, 0, 0),
+      bridge: this.map.createStaticLayer(MAP_CONTENT_KEYS.layers.BRIDGE, tileset, 0, 0),
     };
     this.layers.terrain.setCollisionByProperty({ collides: true });
     this.layers.deco.setCollisionByProperty({ collides: true });

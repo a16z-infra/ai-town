@@ -1,4 +1,4 @@
-export const registry = {
+export const REGISTRY_KEYS = {
   PLAYER: {
     HP: 'playerHp',
   },
