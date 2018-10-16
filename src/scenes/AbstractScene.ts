@@ -6,6 +6,7 @@ import { Mole } from '../game-objects/Mole';
 import { Npc } from '../game-objects/Npc';
 import { MAP_CONTENT_KEYS } from '../constants/map-content-keys';
 import { ASSETS } from '../constants/assets';
+import { MONSTERS } from '../constants/monsters';
 
 const CAMERA_LERP = 1;
 const PLAYER_INITIAL_POSITION = {
@@ -82,9 +83,9 @@ export abstract class AbstractScene extends Phaser.Scene {
 
     this.monsters = monsters.map((monster: any): Monster => {
       switch (monster.name) {
-        case 'treant':
+        case MONSTERS.treant:
           return new Treant(this, monster.x, monster.y);
-        case 'mole':
+        case MONSTERS.mole:
           return new Mole(this, monster.x, monster.y);
         default:
       }
