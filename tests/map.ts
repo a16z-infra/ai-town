@@ -1,5 +1,6 @@
 const maps = require('../src/constants/maps').MAPS;
 const scenes = require('../src/constants/scenes').SCENES;
+const monsters = require('../src/constants/monsters').MONSTERS;
 const sceneNames = Object.values(scenes);
 
 const MANDATORY_LAYERS = ['terrain', 'deco', 'bridge', 'monsters', 'npcs', 'zones'];
@@ -44,6 +45,17 @@ describe('map', () => {
           });
         });
       });
+
+      describe('monsters', () => {
+        it('should have only monsters declared in the constants', () => {
+          const monstersLayer = map.layers.find(o => o.name === 'monsters');
+          monstersLayer.objects.map(monster => {
+            const monsterName = monster.name;
+            expect(Object.values(monsters)).toContain(monsterName);
+          });
+        });
+      });
+
     });
   });
 });
