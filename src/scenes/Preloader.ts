@@ -9,12 +9,12 @@ export class Preloader extends Phaser.Scene {
 
   protected create() {
     this.createAnimations();
-    this.scene.launch(SCENES.MAIN);
+    this.scene.launch(SCENES.FIRST_LEVEL);
     this.scene.launch(SCENES.UI);
   }
 
   private loadAssets() {
-    this.load.tilemapTiledJSON(MAPS.main.key, `assets/${MAPS.main.file}`);
+    this.load.tilemapTiledJSON(MAPS.firstLevel.key, `assets/${MAPS.firstLevel.file}`);
     this.load.tilemapTiledJSON(MAPS.second.key, `assets/${MAPS.second.file}`);
 
     // Images

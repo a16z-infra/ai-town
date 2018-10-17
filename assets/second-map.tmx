@@ -5607,7 +5607,7 @@
   <object id="11" x="2" y="280" width="16" height="47">
    <properties>
     <property name="comesBackFrom" value="right"/>
-    <property name="scene" value="Main"/>
+    <property name="scene" value="FirstLevel"/>
    </properties>
   </object>
  </objectgroup>

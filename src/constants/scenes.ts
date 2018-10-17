@@ -1,5 +1,5 @@
 export const SCENES = {
   UI: 'UIScene',
-  MAIN: 'Main',
+  FIRST_LEVEL: 'FirstLevel',
   SECOND: 'Second',
 };
