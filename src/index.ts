@@ -11,6 +11,7 @@ class PhaserGame extends Phaser.Game {
       parent: 'game-container',
       width: 400,
       height: 250,
+      zoom: 2.5,
       pixelArt: true,
       physics: {
         default: 'arcade',
