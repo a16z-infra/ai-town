@@ -3,6 +3,7 @@ import { FirstLevel } from './scenes/FirstLevel';
 import { SecondLevel } from './scenes/SecondLevel';
 import { Preloader } from './scenes/Preloader';
 import { GameManager } from './scenes/GameManager';
+import { HUD } from './scenes/HUD';
 
 class PhaserGame extends Phaser.Game {
   constructor() {
@@ -19,7 +20,7 @@ class PhaserGame extends Phaser.Game {
         //   debug: true,
         // },
       },
-      scene: [Preloader, FirstLevel, SecondLevel, GameManager],
+      scene: [Preloader, FirstLevel, SecondLevel, GameManager, HUD],
     };
     super(config);
   }
