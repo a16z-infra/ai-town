@@ -5,11 +5,11 @@ import { SCENES } from '../constants/scenes';
 
 const DISTANCE_BETWEEN_HEARTS = 15;
 
-export class UIScene extends Phaser.Scene {
+export class GameManager extends Phaser.Scene {
   private hearts: Phaser.GameObjects.Sprite[];
 
   constructor() {
-    super(SCENES.UI);
+    super(SCENES.GAME_MANAGER);
 
     this.hearts = [];
   }

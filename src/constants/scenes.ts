@@ -1,5 +1,5 @@
 export const SCENES = {
-  UI: 'UIScene',
+  GAME_MANAGER: 'GameManager',
   FIRST_LEVEL: 'FirstLevel',
   SECOND_LEVEL: 'SecondLevel',
 };

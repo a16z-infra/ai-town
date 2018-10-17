@@ -10,7 +10,7 @@ export class Preloader extends Phaser.Scene {
   protected create() {
     this.createAnimations();
     this.scene.launch(SCENES.FIRST_LEVEL);
-    this.scene.launch(SCENES.UI);
+    this.scene.launch(SCENES.GAME_MANAGER);
   }
 
   private loadAssets() {

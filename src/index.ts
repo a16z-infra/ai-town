@@ -2,7 +2,7 @@ import 'phaser';
 import { FirstLevel } from './scenes/FirstLevel';
 import { SecondLevel } from './scenes/SecondLevel';
 import { Preloader } from './scenes/Preloader';
-import { UIScene } from './scenes/UIScene';
+import { GameManager } from './scenes/GameManager';
 
 class PhaserGame extends Phaser.Game {
   constructor() {
@@ -19,7 +19,7 @@ class PhaserGame extends Phaser.Game {
         //   debug: true,
         // },
       },
-      scene: [Preloader, FirstLevel, SecondLevel, UIScene],
+      scene: [Preloader, FirstLevel, SecondLevel, GameManager],
     };
     super(config);
   }
