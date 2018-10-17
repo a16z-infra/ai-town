@@ -5610,7 +5610,7 @@
   <object id="11" x="355.775" y="408.424" width="13.5609" height="44.6713">
    <properties>
     <property name="comesBackFrom" value="right"/>
-    <property name="scene" value="Second"/>
+    <property name="scene" value="SecondLevel"/>
     <property name="type" value="CHANGE_SCENE"/>
    </properties>
   </object>

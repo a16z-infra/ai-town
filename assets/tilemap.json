@@ -141,7 +141,7 @@
                  "properties":
                     {
                      "comesBackFrom":"right",
-                     "scene":"Second",
+                     "scene":"SecondLevel",
                      "type":"CHANGE_SCENE"
                     },
                  "propertytypes":

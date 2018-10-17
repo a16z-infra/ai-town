@@ -15,7 +15,7 @@ export class Preloader extends Phaser.Scene {
 
   private loadAssets() {
     this.load.tilemapTiledJSON(MAPS.firstLevel.key, `assets/${MAPS.firstLevel.file}`);
-    this.load.tilemapTiledJSON(MAPS.second.key, `assets/${MAPS.second.file}`);
+    this.load.tilemapTiledJSON(MAPS.secondLevel.key, `assets/${MAPS.secondLevel.file}`);
 
     // Images
     this.load.image(ASSETS.IMAGES.LOGO, 'assets/logo.png');

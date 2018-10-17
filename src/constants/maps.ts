@@ -3,8 +3,8 @@ export const MAPS = {
     file: 'tilemap.json',
     key: 'first-level',
   },
-  second: {
+  secondLevel: {
     file: 'second-map.json',
-    key: 'second',
+    key: 'second-level',
   },
 };
