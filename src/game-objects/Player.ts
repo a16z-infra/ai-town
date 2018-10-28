@@ -84,7 +84,7 @@ export class Player extends Character {
     this.setVelocity(0);
     this.handleMovement(keyPressed);
 
-    if (keyPressed.space) {
+    if (keyPressed.shift) {
       this.punch();
     }
 
@@ -220,7 +220,7 @@ export class Player extends Character {
   }
 
   private handleShootKey(keyPressed) {
-    if (keyPressed.shift) {
+    if (keyPressed.space) {
       if (this.isLoading) {
         return;
       }
