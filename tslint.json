@@ -10,7 +10,6 @@
     "arrow-parens": [true, "ban-single-arg-parens"],
     "no-duplicate-case": [true],
     "no-constant-condition": [true],
-    "no-duplicate-case": [true],
     "no-empty-character-class": [true],
     "no-ex-assign": [true],
     "no-extra-boolean-cast": [true],
