@@ -78,18 +78,22 @@ export abstract class AbstractScene extends Phaser.Scene {
       return new Npc(this, npc.x, npc.y, npc.properties.message);
     });
 
-    const monstersMapObjects = this.map.objects.find(o => o.name === MAP_CONTENT_KEYS.objects.MONSTERS);
+    const monstersMapObjects = this.map.objects.find(
+      o => o.name === MAP_CONTENT_KEYS.objects.MONSTERS,
+    );
     const monsters: any = monstersMapObjects ? monstersMapObjects.objects : [];
 
-    this.monsters = monsters.map((monster: any): Monster => {
-      switch (monster.name) {
-        case MONSTERS.treant:
-          return new Treant(this, monster.x, monster.y);
-        case MONSTERS.mole:
-          return new Mole(this, monster.x, monster.y);
-        default:
-      }
-    });
+    this.monsters = monsters.map(
+      (monster: any): Monster => {
+        switch (monster.name) {
+          case MONSTERS.treant:
+            return new Treant(this, monster.x, monster.y);
+          case MONSTERS.mole:
+            return new Mole(this, monster.x, monster.y);
+          default:
+        }
+      },
+    );
 
     if (levelChangerObjectLayer) {
       levelChangerObjectLayer.objects.map((o: any) => {
@@ -131,9 +135,7 @@ export abstract class AbstractScene extends Phaser.Scene {
 
     this.physics.add.collider(this.player, this.layers.terrain);
     this.physics.add.collider(this.player, this.layers.deco);
-    this.npcs.map((npc: Npc) =>
-      this.physics.add.collider(npc, this.player, npc.talk),
-    );
+    this.npcs.map((npc: Npc) => this.physics.add.collider(npc, this.player, npc.talk));
   }
 
   private getPlayerInitialPosition(

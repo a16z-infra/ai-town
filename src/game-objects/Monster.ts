@@ -3,8 +3,8 @@ import { Character } from './Character';
 import { ASSETS } from '../constants/assets';
 
 export abstract class Monster extends Character {
-  private static WANDER_DELAY = () => (1000 + 1000 * Math.random());
-  private static WANDER_LENGTH = () => (1000 + 5000 * Math.random());
+  private static WANDER_DELAY = () => 1000 + 1000 * Math.random();
+  private static WANDER_LENGTH = () => 1000 + 5000 * Math.random();
 
   protected abstract WALK_ANIMATION;
   protected abstract MONSTER_IDLE_DOWN;
@@ -31,7 +31,7 @@ export abstract class Monster extends Character {
 
     this.scene.player.loseHp();
     this.animateAttack();
-  }
+  };
 
   public loseHp = (projectile: Phaser.Physics.Arcade.Sprite) => {
     this.hp--;
@@ -46,20 +46,15 @@ export abstract class Monster extends Character {
     if (this.hp === 0) {
       this.die();
     }
-  }
+  };
 
   protected abstract animateAttack(): void;
 
   private die = () => {
-    const deathAnim = this.scene.add
-      .sprite(
-        this.x,
-        this.y,
-        ASSETS.IMAGES.MONSTER_DEATH,
-      );
+    const deathAnim = this.scene.add.sprite(this.x, this.y, ASSETS.IMAGES.MONSTER_DEATH);
     this.destroy();
     deathAnim.play(ASSETS.ANIMATIONS.MONSTER_DEATH, false);
-  }
+  };
 
   private shouldChase = () => {
     const playerPoint = this.scene.player.getCenter();
@@ -75,7 +70,7 @@ export abstract class Monster extends Character {
     }
 
     return false;
-  }
+  };
 
   private getOrientationFromTargettedPosition(x: number, y: number): Orientation {
     if (Math.abs(y) > Math.abs(x)) {

@@ -24,10 +24,7 @@ export abstract class Character extends Phaser.Physics.Arcade.Sprite {
     this.uiScene = uiScene;
   }
 
-  protected animate(
-    animationKeys: CharacterAnimation,
-    orientation: Orientation,
-  ) {
+  protected animate(animationKeys: CharacterAnimation, orientation: Orientation) {
     const { flip, anim } = animationKeys[orientation];
     this.setFlipX(flip);
     this.play(anim, true);

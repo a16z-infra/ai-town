@@ -31,9 +31,9 @@ export class Npc extends Phaser.Physics.Arcade.Sprite {
       callback: this.hideText,
       callbackScope: this,
     });
-  }
+  };
 
   private hideText = () => {
     this.textGameObject.setAlpha(0);
-  }
+  };
 }

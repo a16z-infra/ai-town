@@ -63,18 +63,22 @@ export class Player extends Character {
     this.isShooting = false;
     this.tomb = null;
 
-    this.on('animationrepeat', event => {
-      switch (event.key) {
-        case Player.SHOOT_ANIMATION.left.anim:
-        case Player.SHOOT_ANIMATION.right.anim:
-        case Player.SHOOT_ANIMATION.up.anim:
-        case Player.SHOOT_ANIMATION.down.anim:
-          this.concludeShoot();
-          break;
-        default:
-          break;
-      }
-    }, this);
+    this.on(
+      'animationrepeat',
+      event => {
+        switch (event.key) {
+          case Player.SHOOT_ANIMATION.left.anim:
+          case Player.SHOOT_ANIMATION.right.anim:
+          case Player.SHOOT_ANIMATION.up.anim:
+          case Player.SHOOT_ANIMATION.down.anim:
+            this.concludeShoot();
+            break;
+          default:
+            break;
+        }
+      },
+      this,
+    );
   }
 
   public updatePlayer(keyPressed) {
@@ -111,9 +115,7 @@ export class Player extends Character {
 
     // Player dies
     if (!this.tomb) {
-      this.tomb = this.scene.add
-        .sprite(this.x, this.y, ASSETS.IMAGES.TOMB)
-        .setScale(0.1);
+      this.tomb = this.scene.add.sprite(this.x, this.y, ASSETS.IMAGES.TOMB).setScale(0.1);
     }
     this.destroy();
   }
@@ -210,7 +212,7 @@ export class Player extends Character {
     this.scene.physics.add.collider(arrow, this.scene.monsterGroup, (a: Arrow, m: Monster) => {
       m.loseHp(a);
     });
-  }
+  };
 
   private shoot() {
     this.isShooting = true;

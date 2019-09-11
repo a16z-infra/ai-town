@@ -22,6 +22,7 @@
     "copy-webpack-plugin": "4.5.1",
     "husky": "1.1.2",
     "jest": "23.3.0",
+    "prettier": "1.18.2",
     "source-map-loader": "^0.2.3",
     "ts-jest": "23.0.0",
     "tslint": "5.11.0",
