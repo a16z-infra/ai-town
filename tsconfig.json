@@ -7,6 +7,7 @@
     "noUnusedParameters": true,
     "noUnusedLocals": true,
     "skipLibCheck": true,
+    "esModuleInterop": true,
     "sourceMap": true
   },
   "jest": {

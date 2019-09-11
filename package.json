@@ -15,19 +15,19 @@
     "phaser": "3.10.1"
   },
   "devDependencies": {
-    "@types/jest": "23.1.4",
-    "@types/node": "10.5.2",
+    "@types/jest": "24.0.18",
+    "@types/node": "12.7.5",
     "@typescript-eslint/eslint-plugin": "2.2.0",
     "@typescript-eslint/parser": "2.2.0",
     "babel-core": "^6.26.3",
-    "babel-jest": "^23.2.0",
+    "babel-jest": "24.9.0",
     "copy-webpack-plugin": "4.5.1",
     "eslint": "6.3.0",
     "husky": "1.1.2",
-    "jest": "23.3.0",
+    "jest": "24.9.0",
     "prettier": "1.18.2",
     "source-map-loader": "^0.2.3",
-    "ts-jest": "23.0.0",
+    "ts-jest": "24.0.2",
     "typescript": "3.6.3",
     "webpack": "4.10.2",
     "webpack-cli": "3.0.2",
@@ -45,7 +45,7 @@
     },
     "globals": {
       "ts-jest": {
-        "tsConfigFile": "tsconfig.json"
+        "tsConfig": "tsconfig.json"
       }
     },
     "testMatch": [
