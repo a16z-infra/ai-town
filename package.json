@@ -23,7 +23,7 @@
     "babel-jest": "24.9.0",
     "copy-webpack-plugin": "4.5.1",
     "eslint": "6.3.0",
-    "husky": "1.1.2",
+    "husky": "3.0.5",
     "jest": "24.9.0",
     "prettier": "1.18.2",
     "source-map-loader": "^0.2.3",
