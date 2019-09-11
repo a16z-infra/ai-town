@@ -14,8 +14,8 @@ export abstract class Monster extends Character {
 
   protected hp: number;
   private chasingPlayerTimerEvent: Phaser.Time.TimerEvent;
-  private isWandering: boolean = false;
-  private isStartled: boolean = false;
+  private isWandering = false;
+  private isStartled = false;
 
   public updateMonster() {
     if (!this.active) {

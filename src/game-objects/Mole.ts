@@ -12,7 +12,7 @@ export class Mole extends Monster {
 
   protected MONSTER_SPEED = 20;
 
-  constructor(scene, x: number = 400, y: number = 400) {
+  constructor(scene, x = 400, y = 400) {
     super(scene, x, y, ASSETS.IMAGES.MOLE_IDLE_DOWN);
 
     this.hp = 3;

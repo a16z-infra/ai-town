@@ -4,7 +4,7 @@
     "start": "webpack-dev-server",
     "pretest": "yarn lint && tsc --project .",
     "test": "jest",
-    "lint": "tslint -c tslint.json 'src/**/*.ts'",
+    "lint": "eslint src --ext .ts --cache",
     "deploy": "yarn build && gh-pages -d dist"
   },
   "dependencies": {
@@ -28,8 +28,6 @@
     "prettier": "1.18.2",
     "source-map-loader": "^0.2.3",
     "ts-jest": "23.0.0",
-    "tslint": "5.11.0",
-    "tslint-eslint-rules": "5.3.1",
     "typescript": "3.6.3",
     "webpack": "4.10.2",
     "webpack-cli": "3.0.2",
