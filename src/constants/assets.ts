@@ -57,4 +57,4 @@ export const ASSETS = {
     MOLE_WALK_DOWN: 'mole-walk-down',
     MONSTER_DEATH: 'monster-death',
   },
-};
+} as const;

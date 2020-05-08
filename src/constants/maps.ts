@@ -7,4 +7,4 @@ export const MAPS = {
     file: 'second-map.json',
     key: 'second-level',
   },
-};
+} as const;

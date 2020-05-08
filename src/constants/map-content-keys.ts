@@ -9,4 +9,4 @@ export const MAP_CONTENT_KEYS = {
     MONSTERS: 'monsters',
     ZONES: 'zones',
   },
-};
+} as const;
