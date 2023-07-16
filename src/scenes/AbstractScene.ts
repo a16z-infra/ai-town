@@ -88,7 +88,9 @@ export abstract class AbstractScene extends Phaser.Scene {
       (monster: any): Monster => {
         switch (monster.name) {
           case MONSTERS.treant:
-            return new Treant(this, monster.x, monster.y);
+            let temp = new Treant(this, monster.x, monster.y);
+            temp.setName(monster.id)
+            return temp;
           case MONSTERS.mole:
             return new Mole(this, monster.x, monster.y);
           default:
@@ -140,11 +142,15 @@ export abstract class AbstractScene extends Phaser.Scene {
       this.monsterGroup,
       debounce(async (monsterA, monsterB) => {
         // Make sure monsterA and monsterB are actually Monster objects
+        console.log("Pause Movement")
         if (monsterA instanceof Monster && monsterB instanceof Monster) {
           // Make the monsters "talk" to each other
+          console.log("Monster A " + monsterA.name)
+          console.log("Monster B " + monsterB.name)
           monsterA.pauseMovement();
           monsterB.pauseMovement();
-          await monsterA.talkToNPC(monsterA, monsterB);
+          console.log("talking?")
+          monsterA.talkToNPC(monsterA, monsterB);
         }
       }, 3000),
     );
