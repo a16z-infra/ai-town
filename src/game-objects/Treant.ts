@@ -48,10 +48,10 @@ export class Treant extends Monster {
     });
   }
 
-  public talkToNPC = async (
+  public talkToNPC (
     npc: Phaser.GameObjects.GameObject,
     otherNpc: Phaser.GameObjects.GameObject,
-  ) => {
+  ) {
     // const result = await fetch('http://localhost:3000/api/converse', {
     //   method: 'POST',
     // });
@@ -65,7 +65,7 @@ export class Treant extends Monster {
     //   body: JSON.stringify({ key: 'value' }),
     // });
     // console.log(data);
-    console.log(npc.name);
+    
     this.textGameObject.setText('oooops');
 
     // Make the text game object visible
@@ -77,7 +77,8 @@ export class Treant extends Monster {
       callback: this.hideText,
       callbackScope: this,
     });
-  };
+    super.talkToNPC(npc, otherNpc);
+  }
 
   public talkToUser = () => {
     // Set the text of the text game object to the new text

@@ -16,6 +16,7 @@ export abstract class Monster extends Character {
   private chasingPlayerTimerEvent: Phaser.Time.TimerEvent;
   private isWandering = false;
   private isStartled = false;
+  private isTalking = false;
 
   public updateMonster() {
     if (!this.active) {
@@ -25,30 +26,58 @@ export abstract class Monster extends Character {
   }
 
   public talkToUser = () => {};
-  public talkToNPC = async (
+  public talkToNPC (
     npc: Phaser.GameObjects.GameObject,
     otherNpc: Phaser.GameObjects.GameObject,
-  ) => {};
+  ) {
+    console.log("start talking")
+    this.isTalking = true
+    if (otherNpc instanceof Monster) {
+      (otherNpc as Monster).setTalking(true);
+    }
+    this.scene.time.addEvent({
+      delay: 10000, // 10 seconds in milliseconds
+      callbackScope: this,
+      callback: () => {
+        console.log('STOP TALKING ' + this.name);
+        if (!this.active) {
+          return;
+        }
+
+        // Resume movement after the pause
+        this.isTalking = false
+
+        if (otherNpc instanceof Monster) {
+          (otherNpc as Monster).setTalking(false);
+        }
+      },
+    });
+  }
+
+  public setTalking(talking:boolean) {
+    this.isTalking = talking
+  }
 
   public pauseMovement() {
     if (this.isWandering) {
       // Stop the monster from moving
       this.stopRunning();
-      console.log('pause movement');
+      console.log('pause movement ' + this.name);
 
-      // Set a timer to resume movement after 10 seconds
-      this.scene.time.addEvent({
-        delay: 10000, // 10 seconds in milliseconds
-        callbackScope: this,
-        callback: () => {
-          if (!this.active) {
-            return;
-          }
+      // // Set a timer to resume movement after 10 seconds
+      // this.scene.time.addEvent({
+      //   delay: 10000, // 10 seconds in milliseconds
+      //   callbackScope: this,
+      //   callback: () => {
+      //     if (!this.active) {
+      //       return;
+      //     }
 
-          // Resume movement after the pause
-          this.wanderAround();
-        },
-      });
+      //     console.log('resume movement');
+      //     // Resume movement after the pause
+      //     this.wanderAround();
+      //   },
+      // });
     }
   }
 
@@ -175,7 +204,10 @@ export abstract class Monster extends Character {
   }
 
   private wanderAround() {
-    if (this.isWandering) {
+    // if (this.isTalking) {
+    //   console.log("wanderingAround " + this.isWandering  + " " + this.isTalking + " " + this.name);
+    // }
+    if (this.isWandering || this.isTalking) {
       return;
     }
 
