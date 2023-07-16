@@ -2,10 +2,10 @@
   "scripts": {
     "build": "webpack -p",
     "start": "webpack-dev-server",
-    "pretest": "yarn lint && tsc --project .",
+    "pretest": "npm run lint && tsc --project .",
     "test": "jest",
     "lint": "eslint src --ext .ts --cache",
-    "deploy": "yarn build && gh-pages -d dist"
+    "deploy": "npm run build && gh-pages -d dist"
   },
   "dependencies": {
     "awesome-typescript-loader": "^5.1.0",
