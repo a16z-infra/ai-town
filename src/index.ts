@@ -10,7 +10,7 @@ class PhaserGame extends Phaser.Game {
     const config = {
       type: Phaser.AUTO,
       parent: 'game-container',
-      width: 400,
+      width: 600,
       height: 250,
       zoom: 2.5,
       pixelArt: true,

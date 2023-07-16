@@ -4,8 +4,6 @@
     "allowJs": true,
     "target": "ES6",
     "lib": ["es2017", "dom"],
-    "noUnusedParameters": true,
-    "noUnusedLocals": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "sourceMap": true

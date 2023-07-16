@@ -2,6 +2,7 @@ import { Monster } from './Monster';
 import { ASSETS } from '../constants/assets';
 
 const DESTROY_SPRITE_ATTACK_DELAY = 200;
+const TEXT_VERTICAL_SHIFT = 10;
 
 export class Treant extends Monster {
   protected WALK_ANIMATION = {
@@ -11,6 +12,7 @@ export class Treant extends Monster {
     right: { flip: false, anim: ASSETS.ANIMATIONS.TREANT_WALK_SIDE },
   };
   protected MONSTER_IDLE_DOWN = ASSETS.ANIMATIONS.TREANT_IDLE_DOWN;
+  private textGameObject: Phaser.GameObjects.Text;
 
   protected MONSTER_SPEED = 20;
 
@@ -21,6 +23,15 @@ export class Treant extends Monster {
     this.setDepth(5);
     this.setCollideWorldBounds(true);
     this.setImmovable(true);
+    this.textGameObject = this.scene.add.text(0, 0, 'hello!', {
+      align: 'center',
+      fontSize: '10px',
+    });
+    this.textGameObject.setPosition(
+      this.x + (this.width - this.textGameObject.width) / 2,
+      this.y - this.textGameObject.height - TEXT_VERTICAL_SHIFT,
+    );
+    this.textGameObject.setAlpha(0).setDepth(1000);
   }
 
   protected animateAttack() {
@@ -35,4 +46,37 @@ export class Treant extends Monster {
       callbackScope: this,
     });
   }
+
+  public talkToNPC = (otherNpc: Phaser.GameObjects.GameObject) => {
+    this.textGameObject.setText('oooops');
+
+    // Make the text game object visible
+    this.textGameObject.setAlpha(1);
+
+    // Set up a timer to hide the text after 3 seconds
+    this.scene.time.addEvent({
+      delay: 1000,
+      callback: this.hideText,
+      callbackScope: this,
+    });
+  };
+
+  public talkToUser = () => {
+    // Set the text of the text game object to the new text
+    this.textGameObject.setText('oooops');
+
+    // Make the text game object visible
+    this.textGameObject.setAlpha(1);
+
+    // Set up a timer to hide the text after 3 seconds
+    this.scene.time.addEvent({
+      delay: 3000,
+      callback: this.hideText,
+      callbackScope: this,
+    });
+  };
+
+  private hideText = () => {
+    this.textGameObject.setAlpha(0);
+  };
 }

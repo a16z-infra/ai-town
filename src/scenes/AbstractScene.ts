@@ -129,13 +129,24 @@ export abstract class AbstractScene extends Phaser.Scene {
     this.monsterGroup = this.physics.add.group(this.monsters.map(monster => monster));
     this.physics.add.collider(this.monsterGroup, this.layers.terrain);
     this.physics.add.collider(this.monsterGroup, this.layers.deco);
-    this.physics.add.collider(this.monsterGroup, this.player, (_: Player, m: Monster) => {
-      m.attack();
-    });
 
     this.physics.add.collider(this.player, this.layers.terrain);
     this.physics.add.collider(this.player, this.layers.deco);
+
+    // Add a collider between each pair of monsters
+    this.physics.add.collider(this.monsterGroup, this.monsterGroup, (monsterA, monsterB) => {
+      // Make sure monsterA and monsterB are actually Monster objects
+      if (monsterA instanceof Monster && monsterB instanceof Monster) {
+        // Make the monsters "talk" to each other
+        monsterA.talkToNPC(monsterB);
+        monsterB.talkToNPC(monsterA);
+      }
+    });
+
     this.npcs.map((npc: Npc) => this.physics.add.collider(npc, this.player, npc.talk));
+    this.monsters.map((monster: Monster) =>
+      this.physics.add.collider(monster, this.player, monster.talkToUser),
+    );
   }
 
   private getPlayerInitialPosition(

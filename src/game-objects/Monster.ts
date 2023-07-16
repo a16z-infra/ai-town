@@ -21,17 +21,29 @@ export abstract class Monster extends Character {
     if (!this.active) {
       return;
     }
-    this.handleChase();
+    this.wanderAround();
   }
 
-  public attack = () => {
-    if (!this.scene.player.canGetHit()) {
-      return;
-    }
+  public talkToUser = () => {};
+  public talkToNPC = (otherNpc: Phaser.GameObjects.GameObject) => {};
 
-    this.scene.player.loseHp();
-    this.animateAttack();
-  };
+  // public talk = () => {
+  //   this.textGameObject.setAlpha(1);
+  //   this.scene.time.addEvent({
+  //     delay: 3000,
+  //     callback: this.hideText,
+  //     callbackScope: this,
+  //   });
+  // };
+
+  // public attack = () => {
+  //   if (!this.scene.player.canGetHit()) {
+  //     return;
+  //   }
+
+  //   this.scene.player.loseHp();
+  //   this.animateAttack();
+  // };
 
   public loseHp = (projectile: Phaser.Physics.Arcade.Sprite) => {
     this.hp--;
