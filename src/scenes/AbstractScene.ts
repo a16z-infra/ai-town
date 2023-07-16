@@ -7,6 +7,7 @@ import { Npc } from '../game-objects/Npc';
 import { MAP_CONTENT_KEYS } from '../constants/map-content-keys';
 import { ASSETS } from '../constants/assets';
 import { MONSTERS } from '../constants/monsters';
+import { debounce } from '../utils';
 
 const CAMERA_LERP = 1;
 const PLAYER_INITIAL_POSITION = {
@@ -134,14 +135,19 @@ export abstract class AbstractScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.layers.deco);
 
     // Add a collider between each pair of monsters
-    this.physics.add.collider(this.monsterGroup, this.monsterGroup, (monsterA, monsterB) => {
-      // Make sure monsterA and monsterB are actually Monster objects
-      if (monsterA instanceof Monster && monsterB instanceof Monster) {
-        // Make the monsters "talk" to each other
-        monsterA.talkToNPC(monsterB);
-        monsterB.talkToNPC(monsterA);
-      }
-    });
+    this.physics.add.collider(
+      this.monsterGroup,
+      this.monsterGroup,
+      debounce(async (monsterA, monsterB) => {
+        // Make sure monsterA and monsterB are actually Monster objects
+        if (monsterA instanceof Monster && monsterB instanceof Monster) {
+          // Make the monsters "talk" to each other
+          monsterA.pauseMovement();
+          monsterB.pauseMovement();
+          await monsterA.talkToNPC(monsterA, monsterB);
+        }
+      }, 3000),
+    );
 
     this.npcs.map((npc: Npc) => this.physics.add.collider(npc, this.player, npc.talk));
     this.monsters.map((monster: Monster) =>

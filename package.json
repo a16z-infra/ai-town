@@ -1,7 +1,7 @@
 {
   "scripts": {
     "build": "webpack -p",
-    "start": "webpack-dev-server",
+    "start": "webpack-dev-server --port 8080 --proxy http://localhost:3000",
     "pretest": "npm run lint && tsc --project .",
     "test": "jest",
     "lint": "eslint src --ext .ts --cache",

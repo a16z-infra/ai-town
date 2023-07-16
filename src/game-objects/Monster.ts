@@ -25,25 +25,32 @@ export abstract class Monster extends Character {
   }
 
   public talkToUser = () => {};
-  public talkToNPC = (otherNpc: Phaser.GameObjects.GameObject) => {};
+  public talkToNPC = async (
+    npc: Phaser.GameObjects.GameObject,
+    otherNpc: Phaser.GameObjects.GameObject,
+  ) => {};
 
-  // public talk = () => {
-  //   this.textGameObject.setAlpha(1);
-  //   this.scene.time.addEvent({
-  //     delay: 3000,
-  //     callback: this.hideText,
-  //     callbackScope: this,
-  //   });
-  // };
+  public pauseMovement() {
+    if (this.isWandering) {
+      // Stop the monster from moving
+      this.stopRunning();
+      console.log('pause movement');
 
-  // public attack = () => {
-  //   if (!this.scene.player.canGetHit()) {
-  //     return;
-  //   }
+      // Set a timer to resume movement after 10 seconds
+      this.scene.time.addEvent({
+        delay: 10000, // 10 seconds in milliseconds
+        callbackScope: this,
+        callback: () => {
+          if (!this.active) {
+            return;
+          }
 
-  //   this.scene.player.loseHp();
-  //   this.animateAttack();
-  // };
+          // Resume movement after the pause
+          this.wanderAround();
+        },
+      });
+    }
+  }
 
   public loseHp = (projectile: Phaser.Physics.Arcade.Sprite) => {
     this.hp--;
@@ -121,7 +128,7 @@ export abstract class Monster extends Character {
     this.animate(this.WALK_ANIMATION, orientation);
   }
 
-  private stopRunning() {
+  public stopRunning() {
     if (!this.active) {
       return;
     }

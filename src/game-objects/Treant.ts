@@ -1,5 +1,6 @@
 import { Monster } from './Monster';
 import { ASSETS } from '../constants/assets';
+import { debounce } from '../utils';
 
 const DESTROY_SPRITE_ATTACK_DELAY = 200;
 const TEXT_VERTICAL_SHIFT = 10;
@@ -47,7 +48,24 @@ export class Treant extends Monster {
     });
   }
 
-  public talkToNPC = (otherNpc: Phaser.GameObjects.GameObject) => {
+  public talkToNPC = async (
+    npc: Phaser.GameObjects.GameObject,
+    otherNpc: Phaser.GameObjects.GameObject,
+  ) => {
+    // const result = await fetch('http://localhost:3000/api/converse', {
+    //   method: 'POST',
+    // });
+    // console.log('result: ', result);
+    // const data = await fetch('http://localhost:3000/api/converse', {
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //     // Add any other required headers
+    //   },
+    //   body: JSON.stringify({ key: 'value' }),
+    // });
+    // console.log(data);
+    console.log(npc.name);
     this.textGameObject.setText('oooops');
 
     // Make the text game object visible
