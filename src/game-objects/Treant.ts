@@ -48,7 +48,7 @@ export class Treant extends Monster {
     });
   }
 
-  public talkToNPC (
+  public async talkToNPC(
     npc: Phaser.GameObjects.GameObject,
     otherNpc: Phaser.GameObjects.GameObject,
   ) {
@@ -65,7 +65,7 @@ export class Treant extends Monster {
     //   body: JSON.stringify({ key: 'value' }),
     // });
     // console.log(data);
-    
+
     this.textGameObject.setText('oooops');
 
     // Make the text game object visible

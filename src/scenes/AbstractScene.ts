@@ -7,7 +7,7 @@ import { Npc } from '../game-objects/Npc';
 import { MAP_CONTENT_KEYS } from '../constants/map-content-keys';
 import { ASSETS } from '../constants/assets';
 import { MONSTERS } from '../constants/monsters';
-import { debounce } from '../utils';
+import { converse, debounce } from '../utils';
 
 const CAMERA_LERP = 1;
 const PLAYER_INITIAL_POSITION = {
@@ -89,7 +89,7 @@ export abstract class AbstractScene extends Phaser.Scene {
         switch (monster.name) {
           case MONSTERS.treant:
             let temp = new Treant(this, monster.x, monster.y);
-            temp.setName(monster.id)
+            temp.setName(monster.id);
             return temp;
           case MONSTERS.mole:
             return new Mole(this, monster.x, monster.y);
@@ -142,17 +142,19 @@ export abstract class AbstractScene extends Phaser.Scene {
       this.monsterGroup,
       debounce(async (monsterA, monsterB) => {
         // Make sure monsterA and monsterB are actually Monster objects
-        console.log("Pause Movement")
+        console.log('Pause Movement');
         if (monsterA instanceof Monster && monsterB instanceof Monster) {
           // Make the monsters "talk" to each other
-          console.log("Monster A " + monsterA.name)
-          console.log("Monster B " + monsterB.name)
+          console.log('Monster A ' + monsterA.name);
+          console.log('Monster B ' + monsterB.name);
           monsterA.pauseMovement();
           monsterB.pauseMovement();
-          console.log("talking?")
-          monsterA.talkToNPC(monsterA, monsterB);
+
+          console.log('talking?');
+          await monsterA.talkToNPC(monsterA, monsterB);
+          //await converse(this, monsterA, monsterB);
         }
-      }, 3000),
+      }, 3000), // debounce for 30min
     );
 
     this.npcs.map((npc: Npc) => this.physics.add.collider(npc, this.player, npc.talk));

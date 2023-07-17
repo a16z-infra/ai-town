@@ -1,6 +1,7 @@
 import { Orientation } from '../geometry/orientation';
 import { Character } from './Character';
 import { ASSETS } from '../constants/assets';
+import { converse } from '../utils';
 
 export abstract class Monster extends Character {
   private static WANDER_DELAY = () => 1000 + 1000 * Math.random();
@@ -26,17 +27,31 @@ export abstract class Monster extends Character {
   }
 
   public talkToUser = () => {};
-  public talkToNPC (
+  public async talkToNPC(
     npc: Phaser.GameObjects.GameObject,
     otherNpc: Phaser.GameObjects.GameObject,
   ) {
-    console.log("start talking")
-    this.isTalking = true
+    console.log('start talking');
+
+    this.isTalking = true;
     if (otherNpc instanceof Monster) {
       (otherNpc as Monster).setTalking(true);
     }
+
+    let from = 'Alex';
+    let to = 'Sebastian';
+    while (true) {
+      let result = await converse(this.scene, from, to);
+      console.log(result);
+      if (result == undefined || !result || result!.text === 'STOP') {
+        break;
+      }
+      [from, to] = [to, from];
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+
     this.scene.time.addEvent({
-      delay: 10000, // 10 seconds in milliseconds
+      delay: 60000, // 60 seconds in milliseconds
       callbackScope: this,
       callback: () => {
         console.log('STOP TALKING ' + this.name);
@@ -45,7 +60,7 @@ export abstract class Monster extends Character {
         }
 
         // Resume movement after the pause
-        this.isTalking = false
+        this.isTalking = false;
 
         if (otherNpc instanceof Monster) {
           (otherNpc as Monster).setTalking(false);
@@ -54,8 +69,8 @@ export abstract class Monster extends Character {
     });
   }
 
-  public setTalking(talking:boolean) {
-    this.isTalking = talking
+  public setTalking(talking: boolean) {
+    this.isTalking = talking;
   }
 
   public pauseMovement() {
@@ -63,21 +78,6 @@ export abstract class Monster extends Character {
       // Stop the monster from moving
       this.stopRunning();
       console.log('pause movement ' + this.name);
-
-      // // Set a timer to resume movement after 10 seconds
-      // this.scene.time.addEvent({
-      //   delay: 10000, // 10 seconds in milliseconds
-      //   callbackScope: this,
-      //   callback: () => {
-      //     if (!this.active) {
-      //       return;
-      //     }
-
-      //     console.log('resume movement');
-      //     // Resume movement after the pause
-      //     this.wanderAround();
-      //   },
-      // });
     }
   }
 
