@@ -23,6 +23,5 @@ export async function converse(scene: AbstractScene, fromNPC: string, toNPC: str
     body: JSON.stringify({ characters: [fromNPC, toNPC] }),
   });
   const data = await response.json();
-  console.log(data);
   return data;
 }

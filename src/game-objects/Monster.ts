@@ -38,12 +38,15 @@ export abstract class Monster extends Character {
       (otherNpc as Monster).setTalking(true);
     }
 
-    let from = 'Alex';
-    let to = 'Sebastian';
+    let from = npc.name;
+    let to = otherNpc.name;
+    console.log('npc names', from, to);
     while (true) {
       let result = await converse(this.scene, from, to);
       console.log(result);
       if (result == undefined || !result || result!.text === 'STOP') {
+        this.isTalking = false;
+
         break;
       }
       [from, to] = [to, from];
