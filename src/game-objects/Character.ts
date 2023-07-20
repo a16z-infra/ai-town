@@ -11,7 +11,7 @@ type CharacterAnimation = {
 };
 
 export abstract class Character extends Phaser.Physics.Arcade.Sprite {
-  protected scene: AbstractScene;
+  public scene: AbstractScene;
   protected uiScene: GameManager;
 
   constructor(scene: AbstractScene, x: number, y: number, sprite: string) {

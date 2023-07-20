@@ -3,3 +3,5 @@ node_modules
 .vscode
 built
 .eslintcache
+
+.DS_Store

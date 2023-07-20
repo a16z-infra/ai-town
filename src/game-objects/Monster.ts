@@ -109,7 +109,7 @@ export abstract class Monster extends Character {
 
   private shouldChase = () => {
     const playerPoint = this.scene.player.getCenter();
-    const monsterPoint = this.getCenter();
+    const monsterPoint = new Phaser.Math.Vector2(this.getCenter());
     const distance = monsterPoint.distance(playerPoint);
 
     if (distance < this.CHASING_DISTANCE) {
@@ -136,7 +136,7 @@ export abstract class Monster extends Character {
       return;
     }
 
-    const playerPoint = this.scene.player.getCenter();
+    const playerPoint = new Phaser.Math.Vector2(this.scene.player.getCenter());
     const monsterPoint = this.getCenter();
     const { x, y } = playerPoint.subtract(monsterPoint);
 
