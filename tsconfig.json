@@ -1,21 +1,35 @@
 {
   "compilerOptions": {
-    "outDir": "./built",
-    "allowJs": true,
-    "target": "ES6",
-    "lib": ["es2017", "dom", "dom.iterable", "scripthost"],
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "esnext"],
     "typeRoots": ["./node_modules/phaser/types"],
-    "types": ["Phaser"],
+    "allowJs": true,
     "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
     "esModuleInterop": true,
-    "sourceMap": true
-  },
-  "jest": {
-    "globals": {
-      "require": true
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
     }
   },
-  "files": ["typings/typings.d.ts"],
-  "include": ["./src/**/*"],
-  "exclude": ["node_modules", "bin"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "src/utils/whole.mjs"
+  ],
+  "exclude": ["node_modules"]
 }

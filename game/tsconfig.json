@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "outDir": "./built",
+    "allowJs": true,
+    "target": "ES6",
+    "lib": ["es2017", "dom", "dom.iterable", "scripthost"],
+    "typeRoots": ["./node_modules/phaser/types"],
+    "types": ["Phaser"],
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "sourceMap": true
+  },
+  "jest": {
+    "globals": {
+      "require": true
+    }
+  },
+  "files": ["typings/typings.d.ts"],
+  "include": ["./src/**/*"],
+  "exclude": ["node_modules", "bin"]
+}
