@@ -1,5 +1,5 @@
 export const ASSETS = {
-  TILESET: 'tileset',
+  TILESET: 'rpg-tileset',
   IMAGES: {
     LOGO: 'logo',
     TILES: 'tiles',
