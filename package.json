@@ -1,55 +1,53 @@
 {
+  "name": "ai-getting-started",
+  "version": "0.0.0",
+  "private": true,
   "scripts": {
-    "build": "webpack -p",
-    "start": "webpack-dev-server",
-    "pretest": "npm run lint && tsc --project .",
-    "test": "jest",
-    "lint": "eslint src --ext .ts --cache",
-    "deploy": "npm run build && gh-pages -d dist"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "generate-embeddings-pinecone": "node src/scripts/indexPinecone.mjs",
+    "generate-embeddings-supabase": "node src/scripts/indexPGVector.mjs",
+    "export-to-character": "node src/scripts/exportToCharacter.mjs"
   },
   "dependencies": {
-    "awesome-typescript-loader": "^5.1.0",
-    "clean-webpack-plugin": "3.0.0",
-    "fsevents": "^2.3.2",
-    "gh-pages": "2.1.1",
-    "html-webpack-plugin": "^3.2.0",
-    "phaser": "3.60.0"
+    "@clerk/clerk-sdk-node": "^4.10.12",
+    "@clerk/nextjs": "^4.21.9-snapshot.56dc3e3",
+    "@headlessui/react": "^1.7.15",
+    "@pinecone-database/pinecone": "^0.1.6",
+    "@supabase/supabase-js": "^2.25.0",
+    "@tailwindcss/forms": "^0.5.3",
+    "@types/node": "20.2.5",
+    "@types/react": "18.2.8",
+    "@types/react-dom": "18.2.4",
+    "@upstash/ratelimit": "^0.4.3",
+    "@upstash/redis": "^1.21.0",
+    "ai": "^2.1.3",
+    "autoprefixer": "10.4.14",
+    "dotenv": "^16.1.4",
+    "eslint": "8.42.0",
+    "eslint-config-next": "13.4.4",
+    "hnswlib-node": "^1.4.2",
+    "langchain": "^0.0.92",
+    "next": "13.4.4",
+    "phaser": "^3.60.0",
+    "phaser3spectorjs": "^0.0.8",
+    "postcss": "8.4.24",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-github-btn": "^1.4.0",
+    "react-tooltip": "^5.16.1",
+    "replicate": "^0.9.3",
+    "socket.io": "^4.7.1",
+    "tailwindcss": "3.3.2",
+    "twilio": "^4.12.0",
+    "typescript": "5.1.3",
+    "ws": "^8.13.0"
   },
   "devDependencies": {
-    "@types/jest": "24.0.18",
-    "@types/node": "12.7.5",
-    "@typescript-eslint/eslint-plugin": "2.2.0",
-    "@typescript-eslint/parser": "2.2.0",
-    "babel-core": "^6.26.3",
-    "babel-jest": "24.9.0",
-    "copy-webpack-plugin": "5.0.4",
-    "eslint": "6.3.0",
-    "jest": "24.9.0",
-    "prettier": "1.18.2",
-    "source-map-loader": "^0.2.3",
-    "ts-jest": "24.0.2",
-    "typescript": "3.6.3",
-    "webpack": "4.39.3",
-    "webpack-cli": "3.3.8",
-    "webpack-dev-server": "3.8.0"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "ts",
-      "tsx",
-      "json",
-      "js"
-    ],
-    "transform": {
-      "^.+\\.(ts|tsx)$": "ts-jest"
-    },
-    "globals": {
-      "ts-jest": {
-        "tsConfig": "tsconfig.json"
-      }
-    },
-    "testMatch": [
-      "**/tests/**/*.ts"
-    ]
+    "@flydotio/dockerfile": "^0.2.14",
+    "@types/ws": "^8.5.5",
+    "concurrently": "^8.2.0"
   }
 }
