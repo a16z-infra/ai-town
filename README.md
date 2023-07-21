@@ -1,5 +1,8 @@
 # AI Town 🏠🙍👷‍♀️💻💌
 
+<img width="1225" alt="Screen Shot 2023-07-20 at 11 32 35 PM" src="https://github.com/a16z-infra/AI-town/assets/3489963/17a60b28-63fd-4b11-b44c-707180a32dca">
+
+
 ## Installation
 
 Client:
