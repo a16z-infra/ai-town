@@ -29,9 +29,9 @@
     "source-map-loader": "^0.2.3",
     "ts-jest": "24.0.2",
     "typescript": "3.6.3",
-    "webpack": "4.39.3",
-    "webpack-cli": "3.3.8",
-    "webpack-dev-server": "3.8.0"
+    "webpack": "4.44.2",
+    "webpack-cli": "3.3.12",
+    "webpack-dev-server": "3.11.3"
   },
   "jest": {
     "moduleFileExtensions": [
