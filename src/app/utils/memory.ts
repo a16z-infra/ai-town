@@ -120,7 +120,8 @@ class MemoryManager {
     });
     let latestChatTimeStr: string;
     if (result.length > 0) {
-      latestChatTimeStr = new Date(<number>result[1]).toTimeString();
+      let timestamp = new Date(<number>result[1]);
+      latestChatTimeStr = timestamp.toDateString() + ' ' + timestamp.toTimeString();
     } else {
       latestChatTimeStr = 'two weeks ago';
     }
