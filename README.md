@@ -23,6 +23,13 @@ npm run dev
 
 You can now visit http://localhost:[PORT_NUMBER]/ai-town
 
+## Stack
+- Clerk
+- Convex
+- Upstash
+- OpenAI
+...
+
 ## Credits
 
 - Original phaser project was from https://github.com/pierpo/phaser3-simple-rpg. We have made heavy modifications, but are thankful for the OSS community!
