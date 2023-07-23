@@ -1,9 +1,9 @@
-import { Redis } from "@upstash/redis";
-import { OpenAIEmbeddings } from "langchain/embeddings/openai";
-import { PineconeClient } from "@pinecone-database/pinecone";
-import { PineconeStore } from "langchain/vectorstores/pinecone";
-import { SupabaseVectorStore } from "langchain/vectorstores/supabase";
-import { SupabaseClient, createClient } from "@supabase/supabase-js";
+import { Redis } from '@upstash/redis';
+import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
+import { PineconeClient } from '@pinecone-database/pinecone';
+import { PineconeStore } from 'langchain/vectorstores/pinecone';
+import { SupabaseVectorStore } from 'langchain/vectorstores/supabase';
+import { SupabaseClient, createClient } from '@supabase/supabase-js';
 
 export type CompanionKey = {
   companionName: string;
@@ -18,7 +18,7 @@ class MemoryManager {
 
   public constructor() {
     this.history = Redis.fromEnv();
-    if (process.env.VECTOR_DB === "pinecone") {
+    if (process.env.VECTOR_DB === 'pinecone') {
       this.vectorDBClient = new PineconeClient();
     } else {
       const auth = {
@@ -41,45 +41,38 @@ class MemoryManager {
     }
   }
 
-  public async vectorSearch(
-    recentChatHistory: string,
-    companionFileName: string
-  ) {
-    if (process.env.VECTOR_DB === "pinecone") {
-      console.log("INFO: using Pinecone for vector search.");
+  public async vectorSearch(recentChatHistory: string, companionFileName: string) {
+    if (process.env.VECTOR_DB === 'pinecone') {
+      console.log('INFO: using Pinecone for vector search.');
       const pineconeClient = <PineconeClient>this.vectorDBClient;
 
-      const pineconeIndex = pineconeClient.Index(
-        process.env.PINECONE_INDEX! || ""
-      );
+      const pineconeIndex = pineconeClient.Index(process.env.PINECONE_INDEX! || '');
 
       const vectorStore = await PineconeStore.fromExistingIndex(
         new OpenAIEmbeddings({ openAIApiKey: process.env.OPENAI_API_KEY }),
-        { pineconeIndex }
+        { pineconeIndex },
       );
 
       const similarDocs = await vectorStore
         .similaritySearch(recentChatHistory, 3, { fileName: companionFileName })
         .catch((err) => {
-          console.log("WARNING: failed to get vector search results.", err);
+          console.log('WARNING: failed to get vector search results.', err);
         });
       return similarDocs;
     } else {
-      console.log("INFO: using Supabase for vector search.");
+      console.log('INFO: using Supabase for vector search.');
       const supabaseClient = <SupabaseClient>this.vectorDBClient;
       const vectorStore = await SupabaseVectorStore.fromExistingIndex(
         new OpenAIEmbeddings({ openAIApiKey: process.env.OPENAI_API_KEY }),
         {
           client: supabaseClient,
-          tableName: "documents",
-          queryName: "match_documents",
-        }
+          tableName: 'documents',
+          queryName: 'match_documents',
+        },
       );
-      const similarDocs = await vectorStore
-        .similaritySearch(recentChatHistory, 3)
-        .catch((err) => {
-          console.log("WARNING: failed to get vector search results.", err);
-        });
+      const similarDocs = await vectorStore.similaritySearch(recentChatHistory, 3).catch((err) => {
+        console.log('WARNING: failed to get vector search results.', err);
+      });
       return similarDocs;
     }
   }
@@ -96,10 +89,19 @@ class MemoryManager {
     return `${companionKey.companionName}-${companionKey.modelName}-${companionKey.userId}`;
   }
 
+  public async writeToConversationHistory(text: string, conversationKey: string) {
+    const result = await this.history.zadd(conversationKey, {
+      score: Date.now(),
+      member: text,
+    });
+
+    return result;
+  }
+
   public async writeToHistory(text: string, companionKey: CompanionKey) {
-    if (!companionKey || typeof companionKey.userId == "undefined") {
-      console.log("Companion key set incorrectly");
-      return "";
+    if (!companionKey || typeof companionKey.userId == 'undefined') {
+      console.log('Companion key set incorrectly');
+      return '';
     }
 
     const key = this.generateRedisCompanionKey(companionKey);
@@ -111,10 +113,30 @@ class MemoryManager {
     return result;
   }
 
+  public async readLatestCharacterConversations(conversationKey: string): Promise<string[]> {
+    let result = await this.history.zrange(conversationKey, 0, Date.now(), {
+      byScore: true,
+      withScores: true,
+    });
+    let latestChatTimeStr: string;
+    if (result.length > 0) {
+      let timestamp = new Date(<number>result[1]);
+      latestChatTimeStr = timestamp.toDateString() + ' ' + timestamp.toTimeString();
+    } else {
+      latestChatTimeStr = 'two weeks ago';
+    }
+
+    result = result.filter((item) => typeof item !== 'number');
+
+    result = result.slice(-2).reverse();
+    const recentChats = result.reverse().join('\n');
+    return [latestChatTimeStr, recentChats];
+  }
+
   public async readLatestHistory(companionKey: CompanionKey): Promise<string> {
-    if (!companionKey || typeof companionKey.userId == "undefined") {
-      console.log("Companion key set incorrectly");
-      return "";
+    if (!companionKey || typeof companionKey.userId == 'undefined') {
+      console.log('Companion key set incorrectly');
+      return '';
     }
 
     const key = this.generateRedisCompanionKey(companionKey);
@@ -123,18 +145,18 @@ class MemoryManager {
     });
 
     result = result.slice(-30).reverse();
-    const recentChats = result.reverse().join("\n");
+    const recentChats = result.reverse().join('\n');
     return recentChats;
   }
 
   public async seedChatHistory(
     seedContent: String,
-    delimiter: string = "\n",
-    companionKey: CompanionKey
+    delimiter: string = '\n',
+    companionKey: CompanionKey,
   ) {
     const key = this.generateRedisCompanionKey(companionKey);
     if (await this.history.exists(key)) {
-      console.log("User already has chat history");
+      console.log('User already has chat history');
       return;
     }
 
