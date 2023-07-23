@@ -120,7 +120,7 @@ class MemoryManager {
     });
     let latestChatTimeStr: string;
     if (result.length > 0) {
-      latestChatTimeStr = new Date(<number>result[1]).toLocaleDateString();
+      latestChatTimeStr = new Date(<number>result[1]).toTimeString();
     } else {
       latestChatTimeStr = 'two weeks ago';
     }
