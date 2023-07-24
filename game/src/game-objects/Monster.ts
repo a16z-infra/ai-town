@@ -46,8 +46,16 @@ export abstract class Monster extends Character {
       console.log(result);
       if (result == undefined || !result || result!.text === 'STOP') {
         this.isTalking = false;
-
+        this.clearText();
+        (otherNpc as Character).clearText();
         break;
+      }
+      if (from === npc.name) {
+        this.sayText(result.text);
+        (otherNpc as Character).clearText();
+      } else {
+        (otherNpc as Character).sayText(result.text);
+        this.clearText()
       }
       [from, to] = [to, from];
       await new Promise(resolve => setTimeout(resolve, 3000));
