@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import ConfigManager from '@/app/utils/config';
-import { callLLM, loadCharacterOverview } from '@/app/utils/converse';
+import { callLLM, loadCharacterOverview, reflectStoppingPoint } from '@/app/utils/converse';
 import { NextResponse } from 'next/server';
 import MemoryManager from '@/app/utils/memory';
 
@@ -22,31 +22,37 @@ export async function POST(req: Request, res: Response) {
   const chatHistoryKey = [character1Name.toLowerCase(), character2Name.toLowerCase()]
     .sort()
     .join('-');
-  const recentConversationObj: string[] = await memoryManager.readLatestCharacterConversations(
-    chatHistoryKey,
-  );
+  // const recentConversationObj: string[] = await memoryManager.readLatestCharacterConversations(
+  //   chatHistoryKey,
+  // );
+
+  //TODO
+  const recentConversationObj: string[] = ['', ''];
   const latestChatTimestamp = recentConversationObj[0];
   const latestChatHistory = recentConversationObj[1];
+  console.log('recent conversation ts', latestChatTimestamp);
 
   // Get character overviews. TODO: add vector search here
   let fromCharacterOverview = await loadCharacterOverview(character1Config.name + '.txt');
   let toCharacterOverview = await loadCharacterOverview(character2Config.name + '.txt');
+  const now = new Date();
 
   const finalPrompt = `
-  Your name is ${character1Name} and you are talking to ${character2Name}. 
-  Do NOT greet more than once in the same conversation, based on the chat history provided below. 
-  Do NOT repeat things you already talked about in the chat history provided below. 
 
-  Last time you chatted with ${character2Name}, it was ${latestChatTimestamp}. If you just talked to ${character2Name} recently, you can skip this conversation by returning "0".
+  You are ${character1Name} and you are currently talking to ${character2Name}. 
 
-  If you think this conversation should be concluded or skipped based on the chat history below OR the last time you chatted, return "0". 
+  ONLY greet the other person at the beginning of the conversation. DO NOT greet them again. 
+  Do NOT repeat topics already in the chat history provided below. 
   
-  Feel free to start a new topic if you think it'd be interesting to start a different conversation. Below are relevant details about ${character2Name}:
+  If the conversation below starts to sound repetitive to you, find a way to conclude the conversation. 
+  If you think the conversation should end, return "0" and do not say anything else.
+
+  Last time you chatted with ${character2Name}, it was ${latestChatTimestamp}. It's now ${now}. 
+  If you talked to ${character2Name} within the last 30 minutes, skip this conversation by returning "0". 
+  DO NOT engage in conversation if you have talked to ${character2Name} within the last 30 minutes.
+
+  Below are relevant details about ${character2Name}:
   ${toCharacterOverview}
-
-  
-  Relevant chat history: 
-  ${latestChatHistory}
   
   Current conversation: 
   ${chatHistory.join('\n')}
@@ -54,15 +60,22 @@ export async function POST(req: Request, res: Response) {
   ${character1Name}:`;
 
   let responseFromConvo = await callLLM(finalPrompt);
-  if (responseFromConvo!.text !== '0') {
-    chatHistory.push(`${character1Name}: ${responseFromConvo!.text}`);
+  let stopConvo: string = await reflectStoppingPoint(
+    chatHistory.join('\n') + '\n' + responseFromConvo!.text,
+  );
 
+  if (stopConvo !== '0') {
+    chatHistory.push(`${character1Name}: ${responseFromConvo!.text}`);
     return NextResponse.json({
       text: `${character1Name}: ${responseFromConvo!.text}`,
     });
   } else {
     console.log('sending stop signal');
-    await memoryManager.writeToConversationHistory(chatHistory.join('\n'), chatHistoryKey);
+    await memoryManager.summarizeAndStoreInVectorDB(
+      chatHistory.join('\n'),
+      character1Name,
+      character2Name,
+    );
     chatHistory = [];
     return NextResponse.json({
       text: `STOP`,

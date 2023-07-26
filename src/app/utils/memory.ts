@@ -1,9 +1,11 @@
 import { Redis } from '@upstash/redis';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
+import { Document } from 'langchain/document';
 import { PineconeClient } from '@pinecone-database/pinecone';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import { SupabaseVectorStore } from 'langchain/vectorstores/supabase';
 import { SupabaseClient, createClient } from '@supabase/supabase-js';
+import { callLLM } from './converse';
 
 export type CompanionKey = {
   companionName: string;
@@ -77,6 +79,47 @@ class MemoryManager {
     }
   }
 
+  public async summarizeAndStoreInVectorDB(text: string, name1: string, name2: string) {
+    const chatHistoryKey = [name1.toLowerCase(), name2.toLowerCase()].sort().join('-');
+    const summaryPrompt = `This is a conversation between ${name1} and ${name2}. 
+    Please return a one paragraph summary of the conversation including all key words and concepts ${text}`;
+
+    const summaryText = await callLLM(summaryPrompt);
+    await this.storeInVectorDB(summaryText!.text, chatHistoryKey);
+  }
+
+  public async storeInVectorDB(text: string, key: string) {
+    const doc = new Document({
+      metadata: { names: key, timestamp: Date.now() },
+      pageContent: text,
+    });
+    if (process.env.VECTOR_DB === 'pinecone') {
+      console.log('INFO: using Pinecone for vector search.');
+      const pineconeClient = <PineconeClient>this.vectorDBClient;
+
+      const pineconeIndex = pineconeClient.Index(process.env.PINECONE_INDEX! || '');
+
+      await PineconeStore.fromDocuments(
+        [doc],
+        new OpenAIEmbeddings({ openAIApiKey: process.env.OPENAI_API_KEY }),
+        {
+          pineconeIndex,
+        },
+      );
+    } else {
+      console.log('INFO: using Supabase for vector store.');
+      const supabaseClient = <SupabaseClient>this.vectorDBClient;
+      await SupabaseVectorStore.fromDocuments(
+        [doc],
+        new OpenAIEmbeddings({ openAIApiKey: process.env.OPENAI_API_KEY }),
+        {
+          client: supabaseClient,
+          tableName: 'documents',
+        },
+      );
+    }
+  }
+
   public static async getInstance(): Promise<MemoryManager> {
     if (!MemoryManager.instance) {
       MemoryManager.instance = new MemoryManager();
@@ -114,7 +157,7 @@ class MemoryManager {
   }
 
   public async readLatestCharacterConversations(conversationKey: string): Promise<string[]> {
-    let result = await this.history.zrange(conversationKey, 0, Date.now(), {
+    let result = await this.history.zrange(conversationKey, -1, Date.now(), {
       byScore: true,
       withScores: true,
     });
@@ -128,7 +171,7 @@ class MemoryManager {
 
     result = result.filter((item) => typeof item !== 'number');
 
-    result = result.slice(-2).reverse();
+    result = result.reverse();
     const recentChats = result.reverse().join('\n');
     return [latestChatTimeStr, recentChats];
   }
