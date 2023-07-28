@@ -13,6 +13,7 @@ export type Location = Infer<typeof location>;
 export const Agents = tableHelper('agents', {
   name: v.string(),
   cursor: v.number(), // Last time agent loop processed
+  nextActionTs: v.number(), // When to run next action
 });
 
 export const Memories = tableHelper('memories', {
