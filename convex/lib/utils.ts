@@ -1,5 +1,5 @@
 import { Validator, v } from 'convex/values';
-import { defineTable } from 'convex/server';
+import { WithoutSystemFields, defineTable } from 'convex/server';
 import { Doc, Id, TableNames } from '../_generated/dataModel';
 import { DatabaseReader } from '../_generated/server';
 
@@ -41,22 +41,24 @@ export async function getAll<TableName extends TableNames>(
   ids: Id<TableName>[],
 ): Promise<Doc<TableName>[]> {
   const docs = await asyncMap(ids, db.get);
-  docs.forEach((doc, idx) => {
+  return docs.map((doc, idx) => {
     if (doc === null) {
       throw new Error(`Missing document for id ${ids[idx]}`);
     }
+    return doc;
   });
-  return docs;
 }
 
-export function tableAndDoc<T extends { [field: string]: Validator<any, any, any> }>(
+// Returns a bunch of useful parts of a table definition.
+export function tableHelper<T extends Record<string, Validator<any, any, any>>>(
   name: string,
   fields: T,
 ) {
   const docFields = { ...fields, _id: v.id(name), _creationTime: v.number() };
+  const table = defineTable(fields);
   return {
     fields,
-    table: defineTable(fields),
+    table,
     docFields,
     doc: v.object(docFields),
   };

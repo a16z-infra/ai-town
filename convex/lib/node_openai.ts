@@ -1,6 +1,6 @@
 'use node';
 import { Configuration, CreateModerationResponseResultsInner, OpenAIApi } from 'openai';
-import { internalAction } from './_generated/server';
+import { internalAction } from '../_generated/server';
 import { v } from 'convex/values';
 
 export const chat = internalAction({

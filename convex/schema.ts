@@ -1,67 +1,133 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { Infer, v } from 'convex/values';
-import { tableAndDoc } from './lib/utils.js';
+import { tableHelper } from './lib/utils.js';
 
-export const { table: memoriesTable, doc: memory } = tableAndDoc('memories', {
+// ts is milliseconds in game time
+export const ts = v.number();
+export type GameTs = Infer<typeof ts>;
+
+// Hierarchical location within tree
+export const location = v.array(v.string());
+export type Location = Infer<typeof location>;
+
+export const Agents = tableHelper('agents', {
+  name: v.string(),
+  cursor: v.number(), // Last time agent loop processed
+});
+
+export const Memories = tableHelper('memories', {
   agentId: v.id('agents'),
-  idx: v.number(),
   description: v.string(),
-  emojiSummary: v.string(),
   embeddingId: v.id('embeddings'),
   importance: v.number(),
-  relatedMemoryIds: v.optional(v.array(v.id('memories'))),
-  conversationId: v.optional(v.id('conversations')),
+  ts,
+  data: v.union(
+    // Useful for seed memories, high level goals
+    v.object({
+      type: v.literal('identity'),
+    }),
+    // Setting up dynamics between agents
+    v.object({
+      type: v.literal('relationship'),
+      agentId: v.id('agents'),
+    }),
+    // Per-agent summary of recent observations
+    // Can start out all the same, but could be dependent on personality
+    v.object({
+      type: v.literal('conversation'),
+      coversationId: v.id('conversations'),
+    }),
+
+    // Exercises left to the reader:
+
+    // v.object({
+    //   type: v.literal('reflection'),
+    //   relatedMemoryIds: v.array(v.id('memories')),
+    // }),
+    // v.object({
+    //   type: v.literal('observation'),
+    //   object: v.string(),
+    //   location,
+    // }),
+    // Seemed too noisey for every message for every party, but maybe?
+    // v.object({
+    //   type: v.literal('message'),
+    //   messageId: v.id('messages'),
+    //   relatedMemoryIds: v.optional(v.array(v.id('memories'))),
+    // }),
+    // Could be a way to have the agent reflect and change identities
+  ),
 });
-const memories = memoriesTable.index('embeddingId', ['embeddingId']);
+export type Memory = Infer<typeof Memories.doc>;
 
-// To track recent accesses
-export const memoryAccesses = defineTable({
-  memoryId: v.id('memories'),
-}).index('memoryId', ['memoryId']);
+// Journal documents are append-only, and define an agent's state.
+export const Journal = tableHelper('journal', {
+  ts,
+  // Could be extended to non-agent actors
+  actorId: v.id('agents'),
+  // emojiSummary: v.string(),
+  data: v.union(
+    v.object({
+      type: v.literal('talking'),
+      // If they are speaking to a person in particular.
+      // If it's empty, it's just talking out loud.
+      audience: v.array(v.id('agents')),
+      content: v.string(),
+      firstMessage: v.id('journal'),
+      relatedMemories: v.array(v.id('memories')),
+    }),
+    v.object({
+      type: v.literal('stopped'),
+      reason: v.union(v.literal('interrupted'), v.literal('finished')),
+      location,
+    }),
+    v.object({
+      type: v.literal('walking'),
+      route: v.array(location),
+      targetEndTs: v.number(),
+    }),
 
-export const embeddings = defineTable({
-  agentId: v.id('agents'),
-  text: v.string(),
-  embedding: v.array(v.number()),
-}).vectorIndex('embedding', {
-  vectorField: 'embedding',
-  filterFields: ['agentId'],
-  dimension: 1536,
+    // Exercises left to the reader:
+
+    // v.object({
+    //   type: v.literal('thinking'),
+    // }),
+    // v.object({
+    //   type: v.literal('activity'),
+    //   description: v.string(),
+    // 	// objects: v.array(v.object({ id: v.id('objects'), action: v.string() })),
+    //   location,
+    // }),
+  ),
 });
+export type Entry = Infer<typeof Journal.doc>;
 
-// TODO: move state into log -> memories?
-export const { table: agents, doc: agent } = tableAndDoc('agents', {
-  // Hierarchical location within tree
-  location: v.array(v.string()),
-  status: v.string(),
-  summary: v.string(), // High level summary of agent
-  objects: v.array(v.object({ id: v.id('objects'), action: v.string() })),
-  lastObservation: v.number(),
+export default defineSchema({
+  agents: Agents.table.index('by_cursor', ['cursor']),
+  journal: Journal.table.index('by_agentId_type_ts', ['actorId', 'data.type', 'ts']),
+
+  memories: Memories.table
+    .index('by_embeddingId', ['embeddingId', 'ts'])
+    .index('by_type_ts', ['data.type', 'ts']),
+
+  // To track recent accesses
+  memoryAccesses: defineTable({
+    memoryId: v.id('memories'),
+    ts,
+  }).index('by_memoryId', ['memoryId']),
+
+  embeddings: defineTable({
+    agentId: v.id('agents'),
+    embedding: v.array(v.number()),
+  }).vectorIndex('embedding', {
+    vectorField: 'embedding',
+    filterFields: ['agentId'],
+    dimension: 1536,
+  }),
+
+  // To avoid recomputing embeddings
+  embeddingCache: defineTable({
+    text: v.string(),
+    embeddingId: v.id('embeddings'),
+  }).index('by_text', ['text']),
 });
-export type Agent = Infer<typeof agent>;
-
-export const { table: conversations } = tableAndDoc('conversations', {
-  initiator: v.id('agents'),
-  participants: v.array(v.id('agents')),
-  location: v.array(v.string()),
-  endTs: v.optional(v.number()),
-});
-
-export const { table: messages, doc: message } = tableAndDoc('messages', {
-  conversationId: v.id('conversations'),
-  agentId: v.id('agents'),
-  text: v.string(),
-  relatedMemories: v.array(v.id('memories')),
-});
-
-export default defineSchema(
-  {
-    memories,
-    memoryAccesses,
-    agents,
-    conversations,
-    messages,
-    embeddings,
-  },
-  { schemaValidation: false },
-);

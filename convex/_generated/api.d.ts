@@ -16,12 +16,13 @@ import type {
 } from "convex/server";
 import type * as agent from "../agent";
 import type * as init from "../init";
-import type * as lib_embeddings from "../lib/embeddings";
+import type * as lib_memory from "../lib/memory";
 import type * as lib_migrations from "../lib/migrations";
+import type * as lib_node_openai from "../lib/node_openai";
+import type * as lib_openai from "../lib/openai";
 import type * as lib_pinecone from "../lib/pinecone";
+import type * as lib_relationships from "../lib/relationships";
 import type * as lib_utils from "../lib/utils";
-import type * as lib_vector from "../lib/vector";
-import type * as openai from "../openai";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -34,12 +35,13 @@ import type * as openai from "../openai";
 declare const fullApi: ApiFromModules<{
   agent: typeof agent;
   init: typeof init;
-  "lib/embeddings": typeof lib_embeddings;
+  "lib/memory": typeof lib_memory;
   "lib/migrations": typeof lib_migrations;
+  "lib/node_openai": typeof lib_node_openai;
+  "lib/openai": typeof lib_openai;
   "lib/pinecone": typeof lib_pinecone;
+  "lib/relationships": typeof lib_relationships;
   "lib/utils": typeof lib_utils;
-  "lib/vector": typeof lib_vector;
-  openai: typeof openai;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,
