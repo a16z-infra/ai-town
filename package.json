@@ -3,13 +3,13 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "npm-run-all dev:init --parallel dev:frontend dev:backend",
+    "build": "tsc && next build",
     "start": "next start",
     "lint": "next lint",
-    "generate-embeddings-pinecone": "node src/scripts/indexPinecone.mjs",
-    "generate-embeddings-supabase": "node src/scripts/indexPGVector.mjs",
-    "export-to-character": "node src/scripts/exportToCharacter.mjs"
+    "dev:backend": "convex dev --tail-logs",
+    "dev:frontend": "next dev",
+    "dev:init": "convex dev --run init --until-success"
   },
   "dependencies": {
     "@clerk/clerk-sdk-node": "^4.10.12",
@@ -25,6 +25,7 @@
     "@upstash/redis": "^1.21.0",
     "ai": "^2.1.3",
     "autoprefixer": "10.4.14",
+    "convex": "^1.0.3-alpha.0",
     "dotenv": "^16.1.4",
     "eslint": "8.42.0",
     "eslint-config-next": "13.4.4",
