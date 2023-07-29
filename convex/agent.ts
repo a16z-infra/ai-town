@@ -27,7 +27,7 @@ export const runAgent = internalAction({
 });
 
 export async function agentLoop(
-  { agent, nearbyAgents, status, plan, ts }: Snapshot,
+  { agent, nearbyAgents, status, plan }: Snapshot,
   memory: MemoryDB,
 ): Promise<Action> {
   const newFriends = nearbyAgents.filter((a) => a.new).map(({ agent }) => agent);
@@ -54,7 +54,7 @@ export async function agentLoop(
           {
             agentId: agent.id,
             description,
-            ts,
+            ts: Date.now(),
             data: {
               type: 'conversation',
               conversationId: status.conversationId,
@@ -82,7 +82,7 @@ export async function agentLoop(
         // Hey, new friends
         // TODO: decide whether we want to talk, and to whom.
         const { embedding } = await fetchEmbedding(`What do you think about ${newFriends[0].name}`);
-        const memories = await memory.accessMemories(agent.id, embedding, ts);
+        const memories = await memory.accessMemories(agent.id, embedding);
         // TODO: actually do things with LLM completions.
         return {
           type: 'startConversation',

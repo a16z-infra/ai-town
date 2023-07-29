@@ -131,7 +131,6 @@ export default defineSchema({
   // To track recent accesses
   memoryAccesses: defineTable({
     memoryId: v.id('memories'),
-    ts,
   }).index('by_memoryId', ['memoryId']),
 
   embeddings: defineTable({

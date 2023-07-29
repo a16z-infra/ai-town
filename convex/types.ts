@@ -47,7 +47,6 @@ export const Snapshot = v.object({
   plan: v.string(),
   // recentMemories: v.array(memoryValidator),
   nearbyAgents: v.array(v.object({ agent: Agent, new: v.boolean() })),
-  ts: v.number(),
 });
 export type Snapshot = Infer<typeof Snapshot>;
 

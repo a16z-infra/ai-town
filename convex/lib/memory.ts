@@ -26,13 +26,11 @@ export interface MemoryDB {
   search(
     agentId: Id<'agents'>,
     vector: number[],
-    ts: number,
     limit?: number,
   ): Promise<{ memory: Doc<'memories'>; score: number }[]>;
   accessMemories(
     agentId: Id<'agents'>,
     queryEmbedding: number[],
-    ts: number,
     count?: number,
   ): Promise<{ memory: Doc<'memories'>; overallScore: number }[]>;
   addMemories(memories: NewMemory[]): Promise<Id<'memories'>[]>;
@@ -43,7 +41,7 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
 
   return {
     // Finds memories but doesn't mark them as accessed.
-    async search(agentId, queryEmbedding, ts, limit = 100) {
+    async search(agentId, queryEmbedding, limit = 100) {
       const results = await ctx.vectorSearch('embeddings', 'embedding', {
         vector: queryEmbedding,
         vectorField: 'embedding',
@@ -58,7 +56,7 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
       return results.map(({ score }, idx) => ({ memory: memories[idx], score }));
     },
 
-    async accessMemories(agentId, queryEmbedding, ts, count = 10) {
+    async accessMemories(agentId, queryEmbedding, count = 10) {
       const results = await ctx.vectorSearch('embeddings', 'embedding', {
         vector: queryEmbedding,
         vectorField: 'embedding',
@@ -69,7 +67,6 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
         agentId,
         candidates: results,
         count,
-        ts,
       });
     },
 
@@ -129,9 +126,9 @@ export const accessMemories = internalMutation({
     agentId: v.id('agents'),
     candidates: v.array(v.object({ _id: v.id('embeddings'), score: v.number() })),
     count: v.number(),
-    ts: v.number(),
   },
-  handler: async (ctx, { agentId, candidates, count, ts }) => {
+  handler: async (ctx, { agentId, candidates, count }) => {
+    const ts = Date.now();
     const relatedMemories = await asyncMap(candidates, ({ _id }) =>
       getMemoryByEmbeddingId(ctx.db, agentId, _id),
     );
@@ -144,12 +141,12 @@ export const accessMemories = internalMutation({
       memory,
       overallScore:
         (candidates[idx].score + memory.importance + 0.99) ^
-        Math.floor((ts - recentMemories[idx]!.ts) / 1000 / 60 / 60),
+        Math.floor((ts - recentMemories[idx]!._creationTime) / 1000 / 60 / 60),
     }));
     memoryScores.sort((a, b) => b.overallScore - a.overallScore);
     const accessed = memoryScores.slice(0, count);
     await Promise.all(
-      accessed.map(({ memory }) => ctx.db.insert('memoryAccesses', { ts, memoryId: memory._id })),
+      accessed.map(({ memory }) => ctx.db.insert('memoryAccesses', { memoryId: memory._id })),
     );
     return accessed;
   },

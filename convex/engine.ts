@@ -178,7 +178,6 @@ async function makeSnapshot(
     status,
     plan: planEntry.description,
     nearbyAgents,
-    ts,
   };
 }
 
