@@ -46,15 +46,14 @@ export const Status = v.union(
 );
 export type Status = Infer<typeof Status>;
 
-export const AgentFields = {
+export const Agent = v.object({
   id: v.id('agents'),
   name: v.string(),
   identity: v.string(),
   pose: Pose,
   status: Status,
   plan: v.string(),
-};
-export const Agent = v.object(AgentFields);
+});
 export type Agent = Infer<typeof Agent>;
 
 export const Snapshot = v.object({
@@ -62,7 +61,6 @@ export const Snapshot = v.object({
   // recentMemories: v.array(memoryValidator),
   nearbyAgents: v.array(v.object({ agent: Agent, new: v.boolean() })),
   ts: v.number(),
-  lastPlanTs: v.number(),
 });
 export type Snapshot = Infer<typeof Snapshot>;
 
@@ -102,7 +100,7 @@ export const runAgent = internalAction({
 });
 
 export async function agentLoop(
-  { agent, nearbyAgents, ts, lastPlanTs }: Snapshot,
+  { agent, nearbyAgents, ts }: Snapshot,
   memory: MemoryDB,
 ): Promise<Action> {
   const newFriends = nearbyAgents.filter((a) => a.new).map(({ agent }) => agent);

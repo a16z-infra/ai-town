@@ -148,9 +148,9 @@ async function makeSnapshot(
   ts: GameTs,
 ): Promise<Snapshot> {
   const lastPlan = await latestEntryOfType(db, agent.id, 'planning', ts);
-  const lastPlanTs = lastPlan?.ts ?? ts;
-  const nearbyAgents = await getNearbyAgents(db, agent, otherAgents, ts, lastPlanTs);
-  return { agent, nearbyAgents, ts, lastPlanTs };
+  const lastPlanTs = lastPlan?.ts ?? 0;
+  const nearbyAgents = await getNearbyAgents(db, agent, otherAgents, lastPlanTs);
+  return { agent, nearbyAgents, ts };
 }
 
 async function agentSnapshot(
@@ -237,7 +237,6 @@ async function getNearbyAgents(
   db: DatabaseReader,
   target: Agent,
   others: Agent[],
-  ts: GameTs,
   lastPlanTs: GameTs,
 ): Promise<Snapshot['nearbyAgents']> {
   const nearbyAgents = others.filter((a) => {
