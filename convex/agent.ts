@@ -91,7 +91,7 @@ export type Agent = Infer<typeof Agent>;
 export const Snapshot = {
   agent: Agent,
   // recentMemories: v.array(memoryValidator),
-  nearbyAgents: v.array(v.object({ agent: Agent, sinceTs: v.number() })),
+  nearbyAgents: v.array(v.object({ agent: Agent, new: v.boolean() })),
   ts: v.number(),
   lastPlanTs: v.number(),
 };
@@ -130,7 +130,7 @@ export async function agentLoop(
 ): Promise<Action> {
   const tsOffset = ts - Date.now();
   let havePlan = false;
-  const newFriends = nearbyAgents.filter((a) => a.sinceTs > lastPlanTs);
+  const newFriends = nearbyAgents.filter((a) => a.new).map(({ agent }) => agent);
   // At time ts
   // Based on plan and observations, determine next action: if so, call AgentAPI
   switch (agent.status.type) {
@@ -154,7 +154,7 @@ export async function agentLoop(
         // TODO: decide whether we want to talk, and to whom.
         return {
           type: 'startConversation',
-          audience: newFriends.map((a) => a.agent.id),
+          audience: newFriends.map((a) => a.id),
           content: 'Hello',
         };
       } else if (manhattanDistance(agent.pose.position, agent.status.route.at(-1)!)) {
@@ -172,7 +172,7 @@ export async function agentLoop(
         // TODO: decide whether we want to talk, and to whom.
         return {
           type: 'startConversation',
-          audience: newFriends.map((a) => a.agent.id),
+          audience: newFriends.map((a) => a.id),
           content: 'Hello',
         };
       } else {

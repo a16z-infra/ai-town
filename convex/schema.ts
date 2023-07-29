@@ -126,7 +126,7 @@ export default defineSchema({
     .index('by_conversation', ['data.conversationId', 'ts']),
 
   memories: Memories.table
-    .index('by_embeddingId', ['embeddingId', 'ts'])
+    .index('by_agentId_embeddingId', ['agentId', 'embeddingId', 'ts'])
     .index('by_agentId_type_ts', ['agentId', 'data.type', 'ts']),
 
   // To track recent accesses
@@ -137,16 +137,14 @@ export default defineSchema({
 
   embeddings: defineTable({
     agentId: v.id('agents'),
-    embedding: v.array(v.number()),
-  }).vectorIndex('embedding', {
-    vectorField: 'embedding',
-    filterFields: ['agentId'],
-    dimension: 1536,
-  }),
-
-  // To avoid recomputing embeddings
-  embeddingCache: defineTable({
     text: v.string(),
-    embeddingId: v.id('embeddings'),
-  }).index('by_text', ['text']),
+    embedding: v.array(v.number()),
+  })
+    .vectorIndex('embedding', {
+      vectorField: 'embedding',
+      filterFields: ['agentId'],
+      dimension: 1536,
+    })
+    // To avoid recomputing embeddings
+    .index('by_text', ['text']),
 });

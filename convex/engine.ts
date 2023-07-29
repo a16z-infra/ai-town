@@ -93,8 +93,9 @@ async function makeSnapshot(
   ts: GameTs,
 ): Promise<Snapshot> {
   const lastPlan = await latestEntryOfType(db, agent.id, 'planning', ts);
-  const nearbyAgents = await getNearbyAgents(agent.pose, otherAgents, ts);
-  return { agent, nearbyAgents, ts, lastPlanTs: lastPlan?.ts ?? ts };
+  const lastPlanTs = lastPlan?.ts ?? ts;
+  const nearbyAgents = await getNearbyAgents(db, agent, otherAgents, ts, lastPlanTs);
+  return { agent, nearbyAgents, ts, lastPlanTs };
 }
 
 async function agentSnapshot(
@@ -176,12 +177,36 @@ async function agentSnapshot(
   };
 }
 
-async function getNearbyAgents(pose: Pose, others: Agent[], ts: GameTs) {
+async function getNearbyAgents(
+  db: DatabaseReader,
+  target: Agent,
+  others: Agent[],
+  ts: GameTs,
+  lastPlanTs: GameTs,
+): Promise<Snapshot['nearbyAgents']> {
   const nearbyAgents = others.filter((a) => {
-    const distance = manhattanDistance(pose.position, a.pose.position);
+    const distance = manhattanDistance(target.pose.position, a.pose.position);
     return distance < NEARBY_DISTANCE;
   });
-  return nearbyAgents;
+  const oldTarget = await findHistoricalPose(db, target.id, lastPlanTs);
+  return asyncMap(nearbyAgents, async (agent) => {
+    const old = await findHistoricalPose(db, agent.id, lastPlanTs);
+    const oldDistance = manhattanDistance(oldTarget.position, old.position);
+    return {
+      agent,
+      new: oldDistance > NEARBY_DISTANCE,
+    };
+  });
+}
+
+async function findHistoricalPose(
+  db: DatabaseReader,
+  agentId: Id<'agents'>,
+  ts: GameTs,
+): Promise<Pose> {
+  const lastStop = await latestEntryOfType(db, agentId, 'stopped', ts);
+  const lastWalk = await latestEntryOfType(db, agentId, 'walking', ts);
+  return calculatePose(lastStop, lastWalk, ts);
 }
 
 async function fetchMessages(db: DatabaseReader, conversationId: Id<'journal'>) {
