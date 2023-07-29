@@ -280,12 +280,7 @@ async function fetchMessages(db: DatabaseReader, conversationId: Id<'conversatio
     .query('journal')
     .withIndex('by_conversation', (q) => q.eq('data.conversationId', conversationId as any))
     .collect();
-  const messagesWithTalkingType = messageEntries.map((m) => {
-    if (m.data.type !== 'talking') throw new Error('Messages should be talking');
-    const data = m.data as Extract<Entry['data'], { type: 'talking' }>;
-    return { ...m, data };
-  });
-  return messagesWithTalkingType;
+  return messageEntries as EntryOfType<'talking'>[];
 }
 
 function calculatePose(
