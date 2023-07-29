@@ -1,16 +1,12 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { Infer, v } from 'convex/values';
-import { tableHelper } from './lib/utils.js';
-import { Position, Pose } from './lib/physics.js';
-import { Snapshot } from './agent.js';
+import { tableHelper } from './lib/utils';
+import { Position, Pose } from './lib/physics';
+import { Snapshot } from './types';
 
 // ts is milliseconds in game time
 const ts = v.number();
 export type GameTs = Infer<typeof ts>;
-
-export const Agents = tableHelper('agents', {
-  name: v.string(),
-});
 
 export const Memories = tableHelper('memories', {
   agentId: v.id('agents'),
@@ -121,7 +117,9 @@ export type EntryOfType<T extends EntryType> = Omit<Entry, 'data'> & {
 };
 
 export default defineSchema({
-  agents: Agents.table,
+  agents: defineTable({
+    name: v.string(),
+  }),
   journal: Journal.table
     .index('by_actorId_type_ts', ['actorId', 'data.type', 'ts'])
     .index('by_conversation', ['data.conversationId', 'ts']),
