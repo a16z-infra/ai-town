@@ -2,6 +2,7 @@ import { defineSchema, defineTable } from 'convex/server';
 import { Infer, v } from 'convex/values';
 import { tableHelper } from './lib/utils.js';
 import { Position, Pose } from './lib/physics.js';
+import { Snapshot } from './agent.js';
 
 // ts is milliseconds in game time
 const ts = v.number();
@@ -93,6 +94,7 @@ export const Journal = tableHelper('journal', {
     // When we run the agent loop.
     v.object({
       type: v.literal('planning'),
+      snapshot: Snapshot,
     }),
     // In case we don't do anything, confirm we're done planning.
     v.object({
@@ -144,7 +146,9 @@ export default defineSchema({
       filterFields: ['agentId'],
       dimension: 1536,
     })
-    // To avoid recomputing embeddings
+    // To avoid recomputing embeddings, we can use this table as a cache.
+    // IMPORTANT: don't re-use the object, as it has a reference to the agentId.
+    // Just copy the embedding to a new document when needed.
     .index('by_text', ['text']),
 
   // Something for messages to associate with, can store

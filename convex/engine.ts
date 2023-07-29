@@ -46,24 +46,54 @@ export const tick = internalMutation({
     // TODO: segment agents by world
     const agentDocs = await ctx.db.query('agents').collect();
     // Make snapshot of world
-    const snapshots = await asyncMap(agentDocs, async (agentDoc) => {
-      return makeSnapshot(ctx.db, agentDoc, agentDocs, ts);
-    });
+    const agentSnapshots = await asyncMap(agentDocs, async (agentDoc) =>
+      agentSnapshot(ctx.db, agentDoc, ts),
+    );
 
     // TODO: ensure one action running per agent
     // TODO: coordinate shared interactions (shared focus)
     // TODO: Determine if any agents are not worth waking up
 
+    const snapshots = await asyncMap(agentSnapshots, async (agentSnapshot) =>
+      makeSnapshot(ctx.db, agentSnapshot, agentSnapshots, ts),
+    );
     // For each agent (oldest to newest? Or all on the same step?):
     for (const snapshot of snapshots) {
       // For agents worth waking up: schedule action
       if (oneShot && snapshot.agent.id !== oneShot) continue;
+      await ctx.db.insert('journal', {
+        ts,
+        actorId: snapshot.agent.id,
+        data: {
+          type: 'planning',
+          snapshot,
+        },
+      });
       await ctx.scheduler.runAfter(0, internal.agent.runAgent, { snapshot });
       // TODO: handle timeouts
       // Later: handle object ownership?
     }
     if (oneShot) return;
     // TODO: recursively schedule mutation
+  },
+});
+
+export const getAgentSnapshot = query({
+  args: { agentId: v.id('agents'), tsOffset: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    // TODO: how to fetch the latest always, not cache Date.now()?
+    // For now, use a big tsOffset.
+    const ts = Date.now() + (args.tsOffset ?? Infinity);
+    const agentDoc = (await ctx.db.get(args.agentId))!;
+    const agent = await agentSnapshot(ctx.db, agentDoc, ts);
+    // Could potentially do a smarter filter in the future to only get
+    // agents that are nearby, but for now, just get all of them.
+    const allAgents = await asyncMap(await ctx.db.query('agents').collect(), (agentDoc) =>
+      agentSnapshot(ctx.db, agentDoc, ts),
+    );
+    const snapshot = await makeSnapshot(ctx.db, agent, allAgents, ts);
+    // We fetch at ts===Infinity to get the latest
+    return { ...snapshot, ts: ts === Infinity ? Date.now() : ts };
   },
 });
 
@@ -142,23 +172,58 @@ export const handleAgentAction = internalMutation({
 
 async function makeSnapshot(
   db: DatabaseReader,
-  agentDoc: Doc<'agents'>,
-  otherAgentsAndMe: Doc<'agents'>[],
+  agent: Agent,
+  otherAgentsAndMe: Agent[],
   ts: GameTs,
 ): Promise<Snapshot> {
-  const otherAgents = otherAgentsAndMe.filter((d) => d._id !== agentDoc._id);
-  const agent = await agentSnapshot(db, agentDoc, ts);
-
-  const lastTalk = await latestEntryOfType(db, agent.id, 'talking', ts);
-  const lastStop = await latestEntryOfType(db, agent.id, 'stopped', ts);
-  const lastWalk = await latestEntryOfType(db, agent.id, 'walking', ts);
+  const status = await getStatus(db, agent.id, ts);
   const lastPlan = await latestEntryOfType(db, agent.id, 'planning', ts);
-  const lastContinue = await latestEntryOfType(db, agent.id, 'continuing', ts);
+  const lastPlanTs = lastPlan?.ts ?? 0;
+  const otherAgents = otherAgentsAndMe.filter((d) => d.id !== agent.id);
+  const nearbyAgents = getNearbyAgents(db, agent, otherAgents, lastPlanTs).map((agent) => ({
+    agent,
+    new: !lastPlan?.data.snapshot.nearbyAgents.find((a) => a.agent.id === agent.id),
+  }));
+  const planEntry = (await latestMemoryOfType(db, agent.id, 'plan', ts))!;
+  return {
+    agent,
+    status,
+    plan: planEntry.description,
+    nearbyAgents,
+    ts,
+  };
+}
+
+async function agentSnapshot(
+  db: DatabaseReader,
+  agentDoc: Doc<'agents'>,
+  ts: GameTs,
+): Promise<Agent> {
+  const lastStop = await latestEntryOfType(db, agentDoc._id, 'stopped', ts);
+  const lastWalk = await latestEntryOfType(db, agentDoc._id, 'walking', ts);
+  const pose: Pose = calculatePose(lastStop, lastWalk, ts);
+  const identity = await fetchIdentity(db, agentDoc._id, ts);
+
+  return { id: agentDoc._id, name: agentDoc.name, identity, pose };
+}
+
+function getNearbyAgents(db: DatabaseReader, target: Agent, others: Agent[], lastPlanTs: GameTs) {
+  return others.filter((a) => {
+    const distance = manhattanDistance(target.pose.position, a.pose.position);
+    return distance < NEARBY_DISTANCE;
+  });
+}
+
+async function getStatus(db: DatabaseReader, agentId: Id<'agents'>, ts: GameTs): Promise<Status> {
+  const lastTalk = await latestEntryOfType(db, agentId, 'talking', ts);
+  const lastStop = await latestEntryOfType(db, agentId, 'stopped', ts);
+  const lastWalk = await latestEntryOfType(db, agentId, 'walking', ts);
+  const lastPlan = await latestEntryOfType(db, agentId, 'planning', ts);
+  const lastContinue = await latestEntryOfType(db, agentId, 'continuing', ts);
   const stack = pruneNull([lastTalk, lastStop, lastWalk, lastPlan, lastContinue]).sort(
     (a, b) => a.ts - b.ts,
   );
   // Special base case for before agent has other entries.
-  let status: Status = { type: 'stopped', sinceTs: ts, reason: 'finished' };
   if (stack.length > 0) {
     let latest = stack.pop()!;
     if (latest.data.type === 'continuing') {
@@ -175,7 +240,7 @@ async function makeSnapshot(
       case 'talking':
         const messages = await fetchMessages(db, latestData.conversationId);
         const lastMessage = messages.at(-1)!;
-        status = {
+        return {
           type: 'talking',
           otherAgentIds: lastMessage.data.audience,
           conversationId: latestData.conversationId,
@@ -185,72 +250,27 @@ async function makeSnapshot(
             content: m.data.content,
           })),
         };
-        break;
       case 'walking':
-        status = {
+        return {
           type: 'walking',
           sinceTs: latest.ts,
           route: latestData.route,
           targetEndTs: latestData.targetEndTs,
         };
-        break;
       case 'stopped':
-        status = {
+        return {
           type: 'stopped',
           reason: latestData.reason,
           sinceTs: latest.ts,
         };
-        break;
       case 'planning':
-        status = {
+        return {
           type: 'thinking',
           sinceTs: latest.ts,
         };
-        break;
     }
   }
-
-  const lastPlanTs = lastPlan?.ts ?? 0;
-  const nearbyAgents = await getNearbyAgents(db, agent, otherAgents, ts, lastPlanTs);
-  const planEntry = (await latestMemoryOfType(db, agent.id, 'plan', ts))!;
-  return { agent, status, plan: planEntry.description, nearbyAgents, ts };
-}
-
-async function agentSnapshot(
-  db: DatabaseReader,
-  agentDoc: Doc<'agents'>,
-  ts: GameTs,
-): Promise<Agent> {
-  const lastStop = await latestEntryOfType(db, agentDoc._id, 'stopped', ts);
-  const lastWalk = await latestEntryOfType(db, agentDoc._id, 'walking', ts);
-  const pose: Pose = calculatePose(lastStop, lastWalk, ts);
-  const identity = await fetchIdentity(db, agentDoc._id, ts);
-
-  return { id: agentDoc._id, name: agentDoc.name, identity, pose };
-}
-
-async function getNearbyAgents(
-  db: DatabaseReader,
-  target: Agent,
-  others: Doc<'agents'>[],
-  ts: GameTs,
-  lastPlanTs: GameTs,
-): Promise<Snapshot['nearbyAgents']> {
-  const nearbyAgents = (
-    await asyncMap(others, (agentDoc) => agentSnapshot(db, agentDoc, ts))
-  ).filter((a) => {
-    const distance = manhattanDistance(target.pose.position, a.pose.position);
-    return distance < NEARBY_DISTANCE;
-  });
-  const oldTarget = await fetchPose(db, target.id, lastPlanTs);
-  return asyncMap(nearbyAgents, async (agent) => {
-    const old = await fetchPose(db, agent.id, lastPlanTs);
-    const oldDistance = manhattanDistance(oldTarget.position, old.position);
-    return {
-      agent,
-      new: oldDistance > NEARBY_DISTANCE,
-    };
-  });
+  return { type: 'stopped', sinceTs: ts, reason: 'finished' };
 }
 
 async function fetchPose(db: DatabaseReader, agentId: Id<'agents'>, ts: GameTs): Promise<Pose> {
