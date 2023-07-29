@@ -49,77 +49,95 @@ type Status =
       type: 'thinking';
     };
 
-interface AgentAPI {
-  startConversation(
-    agentId: Id<'agents'>,
-    audience: Id<'agents'>[],
-    content: string,
-  ): Promise<boolean>;
-  saySomething(agentId: Id<'agents'>, to: Id<'agents'>, content: string): Promise<boolean>;
-  travel(agentId: Id<'agents'>, location: Location): Promise<boolean>;
+export type Snapshot = {
+  agent: Agent;
+  recentMemories: Memory[];
+  nearbyAgents: { agent: Agent; sinceTs: GameTs }[];
+  ts: number;
+  lastPlanTs: number;
+};
+
+export type Action =
+  | {
+      type: 'startConversation';
+      audience: Id<'agents'>[];
+      content: string;
+    }
+  | {
+      type: 'saySomething';
+      to: Id<'agents'>;
+      content: string;
+    }
+  | {
+      type: 'travel';
+      position: Position;
+    }
+  | {
+      type: 'continue';
+    };
+
+function getRandomPosition(): Position {
+  return { x: Math.floor(Math.random() * 100), y: Math.floor(Math.random() * 100) };
 }
 
-export const focusAttention = mutation({
-  args: {
-    agentId: v.id('agents'),
-  },
-  handler: async (ctx, args) => {
-    // ensure one action running per agent
-    // coordinate shared interactions (shared focus)
-    // handle timeouts
-    // handle object ownership?
-  },
-});
-
-//What triggers another loop:
-// 1. New observation
-// 2.
-export const worldLoop = internalAction({
-  args: {
-    agents: v.array(Agents.doc),
-    recentObservations: v.array(Memories.doc),
-    ts,
-    lastTs: ts,
-  },
-  handler: async (ctx, args) => {
-    // At time ts
-
-    // For each agent (oldest to newest? Or all on the same step?):
-    //  fetch params: nearby agent states, memories, messages
-    // ^ can happen in mutation
-    //  might include new observations -> add to memory with openai embeddings
-    //   Future: ask who should talk next if it's 3+ people
-    //  run agent loop
-    //  if starts a conversation, ... see it through? just send one?
-    //   If dialog, focus attention of other agent(s)
-    //     Creates a conversation stream
-    //  If move, update path plan
-    //    Scan for upcoming collisions (including objects for new observations)
-    //  Update agent cursor seen and nextActionTs
-    // Handle new observations
-    //   Calculate scores
-    //   If there's enough observation score, trigger reflection?
-    return 'hello';
-  },
-});
+function manhattanDistance(p1: Position, p2: Position) {
+  return Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y);
+}
 
 async function agentLoop(
-  agent: Agent,
-  recentMemories: Memory[],
-  nearbyAgents: { agent: Agent; sinceTs: GameTs }[],
+  { agent, recentMemories, nearbyAgents, ts, lastPlanTs }: Snapshot,
   memory: MemoryDB,
-  actions: AgentAPI,
-  ts: number,
-  lastTs: number,
-) {
+): Promise<Action> {
+  const tsOffset = ts - Date.now();
+  let havePlan = false;
+  const newFriends = nearbyAgents.filter((a) => a.sinceTs > lastPlanTs);
   // At time ts
   // Based on plan and observations, determine next action: if so, call AgentAPI
-  // Talk to someone who arrived since lastTs?
-  // Say something if in an active conversation? (agent.status.messages)
-  // End conversation?
-  // Move to a new location?
+  switch (agent.status.type) {
+    case 'talking':
+      // Decide if we keep talking.
+      if (agent.status.messages.length >= 10) {
+        // TODO: make a better plan
+        return { type: 'travel', position: getRandomPosition() };
+      } else {
+        // Assuming one other person who just said something.
+        // TODO: real logic
+        return {
+          type: 'saySomething',
+          to: agent.status.messages.at(-1)!.from,
+          content: 'Interesting point',
+        };
+      }
+    case 'walking':
+      if (newFriends.length) {
+        // Hey, new friends
+        // TODO: decide whether we want to talk, and to whom.
+        return {
+          type: 'startConversation',
+          audience: newFriends.map((a) => a.agent.id),
+          content: 'Hello',
+        };
+      } else if (manhattanDistance(agent.pose.position, agent.status.route.at(-1)!)) {
+        // We've arrived.
+        // TODO: make a better plan
+        return { type: 'travel', position: getRandomPosition() };
+      }
+      // Otherwise I guess just keep walking?
+      return { type: 'continue' };
+    case 'stopped':
+    case 'thinking':
+      // TODO: consider reflecting on recent memories
+      if (newFriends.length) {
+        // Hey, new friends
+        // TODO: decide whether we want to talk, and to whom.
+        return {
+          type: 'startConversation',
+          audience: newFriends.map((a) => a.agent.id),
+          content: 'Hello',
+        };
+      } else {
+        // TODO: make a better plan
+        return { type: 'travel', position: getRandomPosition() };
+      }
+  }
 }
-
-// async function haveConversation(agents: Agent[], memory: MemoryDB) {}
-
-function getAgentStatus(entries: Entry[] /* latest first */) {}

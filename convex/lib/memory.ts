@@ -86,7 +86,7 @@ export const addMemory = internalMutation({
 });
 
 export function memoryDB(ctx: ActionCtx): MemoryDB {
-  // TODO: add pinecone option
+  // TODO: add pinecone option, if env variables are set
 
   return {
     // Finds memories but doesn't mark them as accessed.
