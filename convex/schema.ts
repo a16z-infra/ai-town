@@ -20,7 +20,6 @@ export type Pose = Infer<typeof pose>;
 
 export const Agents = tableHelper('agents', {
   name: v.string(),
-  cursor: v.number(), // Last time agent loop processed
   nextActionTs: v.number(), // When to run next action
 });
 
@@ -95,6 +94,14 @@ export const Journal = tableHelper('journal', {
       route: v.array(position),
       targetEndTs: v.number(),
     }),
+    // When we run the agent loop.
+    v.object({
+      type: v.literal('planning'),
+    }),
+    // In case we don't do anything, confirm we're done planning.
+    v.object({
+      type: v.literal('continuing'),
+    }),
 
     // Exercises left to the reader:
 
@@ -112,7 +119,7 @@ export const Journal = tableHelper('journal', {
 export type Entry = Infer<typeof Journal.doc>;
 
 export default defineSchema({
-  agents: Agents.table.index('by_cursor', ['cursor']),
+  agents: Agents.table,
   journal: Journal.table.index('by_agentId_type_ts', ['actorId', 'data.type', 'ts']),
 
   memories: Memories.table
