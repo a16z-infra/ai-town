@@ -14,12 +14,13 @@ import {
 import { asyncMap, getAll } from './utils.js';
 import { getManyFrom, getManyVia, getOneFrom } from './relationships.js';
 import { Memories } from '../schema.js';
-import { fetchEmbedding } from './openai.js';
+import { chatGPTCompletion, fetchEmbedding, fetchEmbeddingBatch } from './openai.js';
 
-const { embeddingId: _, ...memoryWithoutEmbeddingId } = Memories.fields;
-const newMemoryValidator = { ...memoryWithoutEmbeddingId, embedding: v.array(v.number()) };
-const newMemoryObject = v.object(newMemoryValidator);
-type NewMemory = Infer<typeof newMemoryObject>;
+const { embeddingId: _, ...MemoryWithoutEmbeddingId } = Memories.fields;
+const NewMemory = { ...MemoryWithoutEmbeddingId, importance: v.optional(v.number()) };
+const NewMemoryWithEmbedding = { ...MemoryWithoutEmbeddingId, embedding: v.array(v.number()) };
+const NewMemoryObject = v.object(NewMemory);
+type NewMemory = Infer<typeof NewMemoryObject>;
 
 export interface MemoryDB {
   search(
@@ -34,7 +35,84 @@ export interface MemoryDB {
     ts: number,
     count?: number,
   ): Promise<{ memory: Doc<'memories'>; overallScore: number }[]>;
-  addMemory(memory: NewMemory): Promise<Id<'memories'>>;
+  addMemories(memories: NewMemory[]): Promise<Id<'memories'>[]>;
+}
+
+export function MemoryDB(ctx: ActionCtx): MemoryDB {
+  // TODO: add pinecone option, if env variables are set
+
+  return {
+    // Finds memories but doesn't mark them as accessed.
+    async search(agentId, queryEmbedding, ts, limit = 100) {
+      const results = await ctx.vectorSearch('embeddings', 'embedding', {
+        vector: queryEmbedding,
+        vectorField: 'embedding',
+        filter: (q) => q.eq('agentId', agentId),
+        limit,
+      });
+      const embeddingIds = results.map((r) => r._id);
+      const memories = await ctx.runQuery(internal.lib.memory.getMemories, {
+        agentId,
+        embeddingIds,
+      });
+      return results.map(({ score }, idx) => ({ memory: memories[idx], score }));
+    },
+
+    async accessMemories(agentId, queryEmbedding, ts, count = 10) {
+      const results = await ctx.vectorSearch('embeddings', 'embedding', {
+        vector: queryEmbedding,
+        vectorField: 'embedding',
+        filter: (q) => q.eq('agentId', agentId),
+        limit: 10 * count,
+      });
+      return await ctx.runMutation(internal.lib.memory.accessMemories, {
+        agentId,
+        candidates: results,
+        count,
+        ts,
+      });
+    },
+
+    async addMemories(memoriesWithoutEmbedding) {
+      const cachedEmbeddings = await ctx.runQuery(internal.lib.memory.getEmbeddingsByText, {
+        texts: memoriesWithoutEmbedding.map((memory) => memory.description),
+      });
+      const { embeddings: missingEmbeddings } = await fetchEmbeddingBatch(
+        memoriesWithoutEmbedding
+          .filter((memory, idx) => !cachedEmbeddings[idx])
+          .map((memory) => memory.description),
+      );
+      // NB: The cache gets populated by addMemories, so no need to do it here.
+      missingEmbeddings.reverse();
+      // Swap the cache misses with calculated embeddings
+      const embeddings = cachedEmbeddings.map((cached) => cached || missingEmbeddings.pop()!);
+
+      const memories = await asyncMap(memoriesWithoutEmbedding, async (memory, idx) => {
+        const embedding = embeddings[idx];
+
+        if (memory.importance === undefined) {
+          // TODO: make a better prompt based on the user's memories
+          const { content: importanceRaw } = await chatGPTCompletion([
+            { role: 'user', content: memory.description },
+            {
+              role: 'user',
+              content: 'How important is this? Answer on a scale of 0-10. Respond like: 5',
+            },
+          ]);
+          let importance = 5;
+          try {
+            importance = parseFloat(importanceRaw);
+          } catch (e) {
+            console.log('failed to parse importance', e);
+          }
+          return { ...memory, embedding, importance };
+        } else {
+          return { ...memory, embedding, importance: memory.importance };
+        }
+      });
+      return ctx.runMutation(internal.lib.memory.addMemories, { memories });
+    },
+  };
 }
 
 export const getMemories = internalQuery({
@@ -77,6 +155,42 @@ export const accessMemories = internalMutation({
   },
 });
 
+export const embedMemory = internalAction({
+  args: { memory: v.object(NewMemory) },
+  handler: async (ctx, args): Promise<Id<'memories'>> => {
+    return (await MemoryDB(ctx).addMemories([args.memory]))[0];
+  },
+});
+
+export const embedMemories = internalAction({
+  args: { memories: v.array(v.object(NewMemory)) },
+  handler: async (ctx, args): Promise<Id<'memories'>[]> => {
+    return await MemoryDB(ctx).addMemories(args.memories);
+  },
+});
+
+export const addMemory = internalMutation({
+  args: NewMemoryWithEmbedding,
+  handler: async (ctx, args): Promise<Id<'memories'>> => {
+    const { embedding, ...memory } = args;
+    const { agentId, description: text } = memory;
+    const embeddingId = await ctx.db.insert('embeddings', { agentId, embedding, text });
+    return await ctx.db.insert('memories', { ...memory, embeddingId });
+  },
+});
+
+export const addMemories = internalMutation({
+  args: { memories: v.array(v.object(NewMemoryWithEmbedding)) },
+  handler: async (ctx, args): Promise<Id<'memories'>[]> => {
+    return asyncMap(args.memories, async (memoryWithEmbedding) => {
+      const { embedding, ...memory } = memoryWithEmbedding;
+      const { agentId, description: text } = memory;
+      const embeddingId = await ctx.db.insert('embeddings', { agentId, embedding, text });
+      return await ctx.db.insert('memories', { ...memory, embeddingId });
+    });
+  },
+});
+
 // Technically it's redundant to retrieve them by agentId, since the embedding
 // is stored associated with an agentId already.
 async function getMemoryByEmbeddingId(
@@ -95,75 +209,20 @@ async function getMemoryByEmbeddingId(
   return doc;
 }
 
-export const embedMemory = internalAction({
-  args: memoryWithoutEmbeddingId,
-  handler: async (ctx, args): Promise<Id<'memories'>> => {
-    const { agentId, ...memory } = args;
-    const { embedding } = await fetchEmbedding(memory.description);
-    // TODO: also calculate importance of memory.
-    return await ctx.runMutation(internal.lib.memory.addMemory, {
-      ...args,
-      embedding,
-    });
-  },
-});
-
-export const addMemory = internalMutation({
-  args: newMemoryValidator,
-  handler: async (ctx, args): Promise<Id<'memories'>> => {
-    const { embedding, ...memory } = args;
-    const { agentId, description: text } = memory;
-    const embeddingId = await ctx.db.insert('embeddings', { agentId, embedding, text });
-    return await ctx.db.insert('memories', { ...memory, embeddingId });
-  },
-});
-
-export async function checkEmbeddingCache(db: DatabaseReader, text: string) {
-  const existing = await db
-    .query('embeddings')
-    .withIndex('by_text', (q) => q.eq('text', text))
-    .first();
-  if (existing) return existing.embedding;
-  return null;
+export async function checkEmbeddingCache(db: DatabaseReader, texts: string[]) {
+  return asyncMap(texts, async (text) => {
+    const existing = await db
+      .query('embeddings')
+      .withIndex('by_text', (q) => q.eq('text', text))
+      .first();
+    if (existing) return existing.embedding;
+    return null;
+  });
 }
 
-export function memoryDB(ctx: ActionCtx): MemoryDB {
-  // TODO: add pinecone option, if env variables are set
-
-  return {
-    // Finds memories but doesn't mark them as accessed.
-    async search(agentId, queryEmbedding, ts, limit = 100) {
-      const results = await ctx.vectorSearch('embeddings', 'embedding', {
-        vector: queryEmbedding,
-        vectorField: 'embedding',
-        filter: (q) => q.eq('agentId', agentId),
-        limit,
-      });
-      const embeddingIds = results.map((r) => r._id);
-      const memories = await ctx.runQuery(internal.lib.memory.getMemories, {
-        agentId,
-        embeddingIds,
-      });
-      return results.map(({ score }, idx) => ({ memory: memories[idx], score }));
-    },
-
-    async accessMemories(agentId, queryEmbedding, ts, count = 10) {
-      const results = await ctx.vectorSearch('embeddings', 'embedding', {
-        vector: queryEmbedding,
-        vectorField: 'embedding',
-        filter: (q) => q.eq('agentId', agentId),
-        limit: 10 * count,
-      });
-      return await ctx.runMutation(internal.lib.memory.accessMemories, {
-        agentId,
-        candidates: results,
-        count,
-        ts,
-      });
-    },
-
-    async addMemory(memory) {
-      return ctx.runMutation(internal.lib.memory.addMemory, memory);
-    },
-  };
-}
+export const getEmbeddingsByText = internalQuery({
+  args: { texts: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    return checkEmbeddingCache(ctx.db, args.texts);
+  },
+});

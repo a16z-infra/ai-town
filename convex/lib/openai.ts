@@ -1,3 +1,94 @@
+// That's right! No imports and no dependencies 🤯
+
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error(
+    'Missing OPENAI_API_KEY in environment variables.\n' +
+      'Set it in the project settings in the Convex dashboard:\n' +
+      '    npx convex dashboard\n or https://dashboard.convex.dev',
+  );
+}
+
+export async function chatGPTCompletion(body: Message[]) {
+  const start = Date.now();
+  const result = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer ' + process.env.OPENAI_API_KEY,
+    },
+
+    body: JSON.stringify({
+      model: 'gpt-3.5-turbo-16k',
+      stream: false, // TODO: add streaming implementation
+      // function_call: "none" | "auto" | {"name": "my_function"}
+      // frequency_penalty: -2 to 2;
+      // functions: [{name: "my_function", parameters: {json schema}, description: "my function description"}]
+      // logit_bias: {[tokenId]: -100 to 100}
+      // max_tokens: number
+      // n: how many choices to generate
+      // presence_penalty: -2 to 2
+      // stop: string[] | string, specifies tokens to stop at
+      // temperature 0 to 2, how random
+      // top_p: number, alternative to temp
+      // user: string, string identifying user to help OpenAI monitor abuse.
+      body,
+    }),
+  });
+  const ms = Date.now() - start;
+  const completion = (await result.json()).data as ChatCompletion;
+  const content = completion.choices[0].message?.content;
+  if (!content) {
+    throw new Error('Unexpected result from OpenAI: ' + JSON.stringify(completion));
+  }
+  return {
+    content,
+    usage: completion.usage,
+    ms,
+  };
+}
+
+export async function fetchEmbeddingBatch(texts: string[]) {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error(
+      'Missing OPENAI_API_KEY in environment variables.\n' +
+        'Set it in the project settings in the Convex dashboard:\n' +
+        '    npx convex dashboard\n or https://dashboard.convex.dev',
+    );
+  }
+  const start = Date.now();
+  const result = await fetch('https://api.openai.com/v1/embeddings', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer ' + process.env.OPENAI_API_KEY,
+    },
+
+    body: JSON.stringify({
+      model: 'text-embedding-ada-002',
+      input: texts.map((text) => text.replace(/\n/g, ' ')),
+    }),
+  });
+  const ms = Date.now() - start;
+
+  const jsonresults = (await result.json()) as CreateEmbeddingResponse;
+  if (jsonresults.data.length !== texts.length) {
+    console.error(result);
+    throw new Error('Unexpected number of embeddings');
+  }
+  const allembeddings = jsonresults.data;
+  allembeddings.sort((a, b) => b.index - a.index);
+  return {
+    embeddings: allembeddings.map(({ embedding }) => embedding),
+    usage: jsonresults.usage.total_tokens,
+    ms,
+  };
+}
+
+export async function fetchEmbedding(text: string) {
+  const { embeddings, ...stats } = await fetchEmbeddingBatch([text]);
+  return { embedding: embeddings[0], ...stats };
+}
+
 // Lifted from openai's package
 export interface Message {
   /**
@@ -68,93 +159,16 @@ interface ChatCompletion {
   };
 }
 
-export async function chatGPTCompletion(body: Message[]) {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error(
-      'Missing OPENAI_API_KEY in environment variables.\n' +
-        'Set it in the project settings in the Convex dashboard:\n' +
-        '    npx convex dashboard\n or https://dashboard.convex.dev',
-    );
-  }
-  const start = Date.now();
-  const result = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer ' + process.env.OPENAI_API_KEY,
-    },
-
-    body: JSON.stringify({
-      model: 'gpt-3.5-turbo-16k',
-      stream: false, // TODO: add streaming implementation
-      // function_call: "none" | "auto" | {"name": "my_function"}
-      // frequency_penalty: -2 to 2;
-      // functions: [{name: "my_function", parameters: {json schema}, description: "my function description"}]
-      // logit_bias: {[tokenId]: -100 to 100}
-      // max_tokens: number
-      // n: how many choices to generate
-      // presence_penalty: -2 to 2
-      // stop: string[] | string, specifies tokens to stop at
-      // temperature 0 to 2, how random
-      // top_p: number, alternative to temp
-      // user: string, string identifying user to help OpenAI monitor abuse.
-      body,
-    }),
-  });
-  const completionMs = Date.now() - start;
-  const completion = (await result.json()).data as ChatCompletion;
-  const content = completion.choices[0].message?.content;
-  if (!content) {
-    throw new Error('Unexpected result from OpenAI: ' + JSON.stringify(completion));
-  }
-  return {
-    content,
-    usage: completion.usage,
-    completionMs,
-  };
-}
-
-export async function fetchEmbeddingBatch(texts: string[]) {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error(
-      'Missing OPENAI_API_KEY in environment variables.\n' +
-        'Set it in the project settings in the Convex dashboard:\n' +
-        '    npx convex dashboard\n or https://dashboard.convex.dev',
-    );
-  }
-  const start = Date.now();
-  const result = await fetch('https://api.openai.com/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer ' + process.env.OPENAI_API_KEY,
-    },
-
-    body: JSON.stringify({
-      model: 'text-embedding-ada-002',
-      input: texts.map((text) => text.replace(/\n/g, ' ')),
-    }),
-  });
-  const embeddingMs = Date.now() - start;
-
-  const jsonresults = await result.json();
-  if (jsonresults.data.length !== texts.length) {
-    console.error(result);
-    throw new Error('Unexpected number of embeddings');
-  }
-  const allembeddings = jsonresults.data as {
-    embedding: number[];
+interface CreateEmbeddingResponse {
+  data: {
     index: number;
+    object: string;
+    embedding: number[];
   }[];
-  allembeddings.sort((a, b) => b.index - a.index);
-  return {
-    embeddings: allembeddings.map(({ embedding }) => embedding),
-    totalTokens: jsonresults.usage.total_tokens,
-    embeddingMs,
+  model: string;
+  object: string;
+  usage: {
+    prompt_tokens: number;
+    total_tokens: number;
   };
-}
-
-export async function fetchEmbedding(text: string) {
-  const { embeddings, ...stats } = await fetchEmbeddingBatch([text]);
-  return { embedding: embeddings[0], ...stats };
 }

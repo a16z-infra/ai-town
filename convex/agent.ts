@@ -9,9 +9,8 @@ import {
   mutation,
   query,
 } from './_generated/server';
-import { Entry, Agents, Memories, Memory, GameTs } from './schema.js';
 import { Position, Pose, getRandomPosition, manhattanDistance } from './lib/physics.js';
-import { MemoryDB, memoryDB } from './lib/memory.js';
+import { MemoryDB } from './lib/memory.js';
 import { chatGPTCompletion, fetchEmbedding } from './lib/openai.js';
 
 export const Message = v.object({
@@ -89,7 +88,7 @@ export type Action = Infer<typeof Action>;
 export const runAgent = internalAction({
   args: { snapshot: Snapshot },
   handler: async (ctx, { snapshot }) => {
-    const memory = memoryDB(ctx);
+    const memory = MemoryDB(ctx);
     const action = await agentLoop(snapshot, memory);
     await ctx.runMutation(internal.engine.handleAgentAction, {
       agentId: snapshot.agent.id,
@@ -100,13 +99,14 @@ export const runAgent = internalAction({
 });
 
 export async function agentLoop(
-  { agent, nearbyAgents, status, ts }: Snapshot,
+  { agent, nearbyAgents, status, plan, ts }: Snapshot,
   memory: MemoryDB,
 ): Promise<Action> {
   const newFriends = nearbyAgents.filter((a) => a.new).map(({ agent }) => agent);
   // Future: Store observations about seeing agents?
   //  might include new observations -> add to memory with openai embeddings
-  // Based on plan and observations, determine next action: if so, call AgentAPI
+  // Based on plan and observations, determine next action:
+  //   if so, add new memory for new plan, and return new action
   switch (status.type) {
     case 'talking':
       // Decide if we keep talking.
@@ -122,26 +122,17 @@ export async function agentLoop(
             content: 'Can you summarize the above conversation?',
           },
         ]);
-        // TODO: make a better prompt based on the user
-        const { content: importanceRaw } = await chatGPTCompletion([
-          { role: 'user', content: description },
+        await memory.addMemories([
           {
-            role: 'user',
-            content: 'How important is this? Answer on a scale of 0-10. Respond like: 5',
+            agentId: agent.id,
+            description,
+            ts,
+            data: {
+              type: 'conversation',
+              conversationId: status.conversationId,
+            },
           },
         ]);
-        const { embedding } = await fetchEmbedding(description);
-        await memory.addMemory({
-          agentId: agent.id,
-          importance: parseFloat(importanceRaw),
-          description,
-          embedding,
-          ts,
-          data: {
-            type: 'conversation',
-            conversationId: status.conversationId,
-          },
-        });
 
         return { type: 'travel', position: getRandomPosition() };
       } else if (status.messages.at(-1)?.from === agent.id) {

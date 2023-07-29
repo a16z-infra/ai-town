@@ -11,6 +11,7 @@ import {
 } from './_generated/server';
 import { MemoryType } from './schema.js';
 import { checkEmbeddingCache } from './lib/memory.js';
+import { asyncMap, pruneNull } from './lib/utils.js';
 
 const data = [
   {
@@ -28,6 +29,10 @@ const data = [
         description: 'You like lucky',
         agentName: 'Lucky',
       },
+      {
+        type: 'plan' as const,
+        description: 'You want to find love.',
+      },
     ],
   },
   {
@@ -42,12 +47,20 @@ infinitely patient, except when he sees a squirrel. He's also incredibly loyal a
 Lucky has just returned from an amazing space adventure to explore a distant planet
 and he's very excited to tell people about it.`,
       },
+      {
+        type: 'plan' as const,
+        description: 'You want to hear all the gossip.',
+      },
     ],
   },
 ];
 
 export const seed = mutation({
   handler: async (ctx) => {
+    if (await ctx.db.query('agents').first()) {
+      // Already seeded
+      return;
+    }
     const agentsByName: Record<string, Id<'agents'>> = {};
     for (const { name } of data) {
       const agentId = await ctx.db.insert('agents', {
@@ -55,10 +68,9 @@ export const seed = mutation({
       });
       agentsByName[name] = agentId;
     }
-    for (const { name, memories } of data) {
+    const memories = data.flatMap(({ name, memories }) => {
       const agentId = agentsByName[name]!;
-      for (const [idx, memory] of memories.entries()) {
-        // TODO: calculate the embedding
+      return memories.map((memory, idx) => {
         let data: Doc<'memories'>['data'] | undefined;
         if (memory.type === 'relationship') {
           const { agentName, ...relationship } = memory;
@@ -72,27 +84,18 @@ export const seed = mutation({
           agentId,
           data,
           description: memory.description,
-          // TODO: call openai to calculate
-          importance: 1,
-          ts: Date.now() + idx * 1000,
+          // You can add custom importances to override the calculated ones.
+          // importance: memory.importance,
+          // Set the memories in the past, so they don't all have the same ts.
+          ts: Date.now() - (memories.length - idx) * 1000,
         };
 
-        const embedding = await checkEmbeddingCache(ctx.db, memory.description);
-        if (embedding) {
-          const embeddingId = await ctx.db.insert('embeddings', {
-            agentId,
-            text: memory.description,
-            embedding,
-          });
-          await ctx.db.insert('memories', {
-            embeddingId,
-            ...newMemory,
-          });
-        } else {
-          await ctx.scheduler.runAfter(0, internal.lib.memory.embedMemory, newMemory);
-        }
-      }
-    }
+        return newMemory;
+      });
+    });
+    // It will check the cache, calculate missing embeddings, and add them.
+    // If it fails here, it won't be retried. But you could clear the memor
+    await ctx.scheduler.runAfter(0, internal.lib.memory.embedMemories, { memories });
   },
 });
 

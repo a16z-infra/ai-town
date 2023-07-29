@@ -21,7 +21,7 @@ import {
   MemoryOfType,
   MemoryType,
 } from './schema.js';
-import { MemoryDB, memoryDB } from './lib/memory.js';
+import { MemoryDB } from './lib/memory.js';
 import { Action, Agent, Message, Snapshot, Status, agentLoop } from './agent.js';
 import { asyncMap, pruneNull } from './lib/utils.js';
 import {
@@ -29,7 +29,6 @@ import {
   calculateFraction,
   findRoute,
   getPoseFromRoute,
-  getRandomPosition,
   manhattanDistance,
 } from './lib/physics.js';
 
