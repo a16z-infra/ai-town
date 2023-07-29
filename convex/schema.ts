@@ -7,8 +7,16 @@ export const ts = v.number();
 export type GameTs = Infer<typeof ts>;
 
 // Hierarchical location within tree
-export const location = v.array(v.string());
-export type Location = Infer<typeof location>;
+// TODO: build zone lookup from position, whether agent-dependent or global.
+export const zone = v.array(v.string());
+export type Zone = Infer<typeof zone>;
+
+export const position = v.object({ x: v.number(), y: v.number() });
+export type Position = Infer<typeof position>;
+
+// Position plus a direction, as degrees counter-clockwise from East / Right
+export const pose = v.object({ position, dirDeg: v.number() });
+export type Pose = Infer<typeof pose>;
 
 export const Agents = tableHelper('agents', {
   name: v.string(),
@@ -48,7 +56,7 @@ export const Memories = tableHelper('memories', {
     // v.object({
     //   type: v.literal('observation'),
     //   object: v.string(),
-    //   location,
+    //   pose,
     // }),
     // Seemed too noisey for every message for every party, but maybe?
     // v.object({
@@ -80,11 +88,11 @@ export const Journal = tableHelper('journal', {
     v.object({
       type: v.literal('stopped'),
       reason: v.union(v.literal('interrupted'), v.literal('finished')),
-      location,
+      pose,
     }),
     v.object({
       type: v.literal('walking'),
-      route: v.array(location),
+      route: v.array(position),
       targetEndTs: v.number(),
     }),
 
@@ -97,7 +105,7 @@ export const Journal = tableHelper('journal', {
     //   type: v.literal('activity'),
     //   description: v.string(),
     // 	// objects: v.array(v.object({ id: v.id('objects'), action: v.string() })),
-    //   location,
+    //   pose,
     // }),
   ),
 });

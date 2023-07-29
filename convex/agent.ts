@@ -9,7 +9,7 @@ import {
   mutation,
   query,
 } from './_generated/server';
-import { Entry, Agents, Memories, Memory, GameTs, ts } from './schema.js';
+import { Entry, Agents, Memories, Memory, GameTs, ts, Position, Pose } from './schema.js';
 import { MemoryDB } from './lib/memory.js';
 
 type Message = {
@@ -19,9 +19,10 @@ type Message = {
 };
 
 type Agent = {
+  id: Id<'agents'>;
   name: string;
   identity: string; // Latest one, if multiple
-  location: Location;
+  pose: Pose;
   status: Status;
   plan: string;
 };
@@ -35,8 +36,7 @@ type Status =
   | {
       type: 'walking';
       startTs: GameTs;
-      start: Location;
-      end: Location;
+      route: Position[];
       estEndTs: GameTs;
     }
   | {
