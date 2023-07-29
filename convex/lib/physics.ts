@@ -62,3 +62,25 @@ export function getPoseFromRoute(route: Position[], fraction: number): Pose {
     orientation: calculateOrientation(start, end),
   };
 }
+export function findRoute(startPose: Pose, end: Position) {
+  const route: Position[] = [];
+  let distance = 0;
+  let current = startPose.position;
+  // Try to maintain their direction.
+  let horizontal = !(startPose.orientation === 90 || startPose.orientation === 270);
+  // TODO: handle walls
+  while (current.x !== end.x || current.y !== end.y) {
+    const next = { ...current };
+    if (current.x < end.x && horizontal) {
+      next.x = end.x;
+      distance += Math.abs(current.x - end.x);
+    } else {
+      next.y = end.y;
+      distance += Math.abs(current.y - end.y);
+    }
+    route.push(next);
+    current = next;
+    horizontal = !horizontal;
+  }
+  return { route, distance };
+}

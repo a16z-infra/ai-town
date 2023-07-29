@@ -22,21 +22,24 @@ import {
   MemoryType,
 } from './schema.js';
 import { MemoryDB, memoryDB } from './lib/memory.js';
-import { Agent, Message, Snapshot, Status, agentLoop } from './agent.js';
+import { Action, Agent, Message, Snapshot, Status, agentLoop } from './agent.js';
 import { asyncMap, pruneNull } from './lib/utils.js';
 import {
   Pose,
   calculateFraction,
+  findRoute,
   getPoseFromRoute,
   getRandomPosition,
   manhattanDistance,
 } from './lib/physics.js';
 
 export const NEARBY_DISTANCE = 5;
+export const TIME_PER_STEP = 1000;
 
 export const tick = internalMutation({
-  args: { ts: v.number() },
-  handler: async (ctx, { ts }) => {
+  args: { oneShot: v.optional(v.id('agents')) },
+  handler: async (ctx, { oneShot }) => {
+    const ts = Date.now();
     // TODO: segment agents by world
     const agentDocs = await ctx.db.query('agents').collect();
     // Make snapshot of world
@@ -44,17 +47,23 @@ export const tick = internalMutation({
       agentSnapshot(ctx.db, agentDoc, ts),
     );
 
-    // ensure one action running per agent
-    // coordinate shared interactions (shared focus)
+    // TODO: ensure one action running per agent
+    // TODO: coordinate shared interactions (shared focus)
+    // TODO: Determine if any agents are not worth waking up
 
-    const snapshots = await asyncMap(agentSnapshots, async (agentSnapshot) => {
-      const snapshot = await makeSnapshot(ctx.db, agentSnapshot, agentSnapshots, ts);
-      await ctx.scheduler.runAfter(0, internal.engine.runAgent, snapshot);
-    });
+    const snapshots = await asyncMap(agentSnapshots, async (agentSnapshot) =>
+      makeSnapshot(ctx.db, agentSnapshot, agentSnapshots, ts),
+    );
     // For each agent (oldest to newest? Or all on the same step?):
-    // For agents worth waking up: schedule action
-    // handle timeouts
-    // Later: handle object ownership?
+    for (const snapshot of snapshots) {
+      // For agents worth waking up: schedule action
+      if (oneShot && snapshot.agent.id !== oneShot) continue;
+      await ctx.scheduler.runAfter(0, internal.engine.runAgent, { snapshot });
+      // TODO: handle timeouts
+      // Later: handle object ownership?
+    }
+    if (oneShot) return;
+    // TODO: recursively schedule mutation
   },
 });
 
@@ -62,27 +71,90 @@ export const tick = internalMutation({
 // 1. New observation
 // 2.
 export const runAgent = internalAction({
-  args: Snapshot,
-  handler: async (ctx, snapshot) => {
+  args: { snapshot: Snapshot },
+  handler: async (ctx, { snapshot }) => {
     const tsOffset = snapshot.ts - Date.now();
     const memory = memoryDB(ctx);
     const action = await agentLoop(snapshot, memory);
-    //  fetch params: nearby agent states, memories, messages
-    // ^ can happen in mutation
-    //  might include new observations -> add to memory with openai embeddings
-    //   Future: ask who should talk next if it's 3+ people
-    //  run agent loop
-    //  if starts a conversation, ... see it through? just send one?
-    //   If dialog, focus attention of other agent(s)
-    //     Creates a conversation stream
-    //  If move, update path plan
-    //    Scan for upcoming collisions (including objects for new observations)
-    //  Update agent cursor seen and nextActionTs
-    // Handle new observations
-    //   Calculate scores
-    //   If there's enough observation score, trigger reflection?
+    await ctx.runMutation(internal.engine.handleAgentAction, {
+      agentId: snapshot.agent.id,
+      action,
+      observedSnapshot: snapshot,
+    });
+  },
+});
 
-    return 'hello';
+export const handleAgentAction = internalMutation({
+  args: { agentId: v.id('agents'), action: Action, observedSnapshot: Snapshot },
+  handler: async (ctx, { agentId, action, observedSnapshot }) => {
+    const ts = Date.now();
+    const agentDoc = (await ctx.db.get(agentId))!;
+    const agent = await agentSnapshot(ctx.db, agentDoc, ts);
+    // TODO: Check if the agent shoudl still respond.
+    switch (action.type) {
+      case 'startConversation':
+        // TODO: determine if other users are still available.
+        const conversationId = await ctx.db.insert('conversations', {});
+        await ctx.db.insert('journal', {
+          ts,
+          actorId: agentId,
+          data: {
+            type: 'talking',
+            audience: action.audience,
+            content: action.content,
+            conversationId,
+          },
+        });
+        break;
+      case 'saySomething':
+        // TODO: Check if these users are still nearby?
+        await ctx.db.insert('journal', {
+          ts,
+          actorId: agentId,
+          data: {
+            type: 'talking',
+            audience: action.audience,
+            content: action.content,
+            conversationId: action.conversationId,
+          },
+        });
+        break;
+      case 'travel':
+        // TODO: calculate obstacles to wake up?
+        const { route, distance } = await findRoute(agent.pose, action.position);
+        const targetEndTs = ts + distance * TIME_PER_STEP;
+        await ctx.db.insert('journal', {
+          ts,
+          actorId: agentId,
+          data: {
+            type: 'walking',
+            route,
+            targetEndTs,
+          },
+        });
+        break;
+      case 'continue':
+        await ctx.db.insert('journal', {
+          ts,
+          actorId: agentId,
+          data: {
+            type: 'continuing',
+          },
+        });
+        break;
+
+      //   Future: ask who should talk next if it's 3+ people
+      //  run agent loop
+      //  if starts a conversation, ... see it through? just send one?
+      //   If dialog, focus attention of other agent(s)
+      //     Creates a conversation stream
+      //  If move, update path plan
+      //    Scan for upcoming collisions (including objects for new observations)
+      //  Update agent cursor seen and nextActionTs
+      // Handle new observations
+      //   Calculate scores
+      //   If there's enough observation score, trigger reflection?
+    }
   },
 });
 
@@ -133,6 +205,7 @@ async function agentSnapshot(
         status = {
           type: 'talking',
           otherAgentIds: lastMessage.data.audience,
+          conversationId: latestData.conversationId,
           messages: messages.map((m) => ({
             from: m.actorId,
             to: m.data.audience,
@@ -209,7 +282,7 @@ async function findHistoricalPose(
   return calculatePose(lastStop, lastWalk, ts);
 }
 
-async function fetchMessages(db: DatabaseReader, conversationId: Id<'journal'>) {
+async function fetchMessages(db: DatabaseReader, conversationId: Id<'conversations'>) {
   const messageEntries = await db
     .query('journal')
     .withIndex('by_conversation', (q) => q.eq('data.conversationId', conversationId as any))

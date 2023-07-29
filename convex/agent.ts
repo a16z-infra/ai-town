@@ -12,6 +12,7 @@ import {
 import { Entry, Agents, Memories, Memory, GameTs } from './schema.js';
 import { Position, Pose, getRandomPosition, manhattanDistance } from './lib/physics.js';
 import { MemoryDB } from './lib/memory.js';
+import { fetchEmbedding } from './lib/openai.js';
 
 export const Message = v.object({
   from: v.id('agents'),
@@ -29,6 +30,7 @@ export const Status = v.union(
   v.object({
     type: v.literal('talking'),
     otherAgentIds: v.array(v.id('agents')),
+    conversationId: v.id('conversations'),
     messages: v.array(Message),
   }),
   v.object({
@@ -88,15 +90,14 @@ export type Agent = Infer<typeof Agent>;
 //   // plan: string;
 // };
 
-export const Snapshot = {
+export const Snapshot = v.object({
   agent: Agent,
   // recentMemories: v.array(memoryValidator),
   nearbyAgents: v.array(v.object({ agent: Agent, new: v.boolean() })),
   ts: v.number(),
   lastPlanTs: v.number(),
-};
-const snapshotObject = v.object(Snapshot);
-export type Snapshot = Infer<typeof snapshotObject>;
+});
+export type Snapshot = Infer<typeof Snapshot>;
 // {
 //   agent: Agent;
 //   recentMemories: Memory[];
@@ -105,33 +106,52 @@ export type Snapshot = Infer<typeof snapshotObject>;
 //   lastPlanTs: number;
 // };
 
-export type Action =
-  | {
-      type: 'startConversation';
-      audience: Id<'agents'>[];
-      content: string;
-    }
-  | {
-      type: 'saySomething';
-      to: Id<'agents'>;
-      content: string;
-    }
-  | {
-      type: 'travel';
-      position: Position;
-    }
-  | {
-      type: 'continue';
-    };
+export const Action = v.union(
+  v.object({
+    type: v.literal('startConversation'),
+    audience: v.array(v.id('agents')),
+    content: v.string(),
+  }),
+  v.object({
+    type: v.literal('saySomething'),
+    audience: v.array(v.id('agents')),
+    content: v.string(),
+    conversationId: v.id('conversations'),
+  }),
+  v.object({
+    type: v.literal('travel'),
+    position: Position,
+  }),
+  v.object({
+    type: v.literal('continue'),
+  }),
+);
+export type Action = Infer<typeof Action>;
+// | {
+//     type: 'startConversation';
+//     audience: Id<'agents'>[];
+//     content: string;
+//   }
+// | {
+//     type: 'saySomething';
+//     to: Id<'agents'>;
+//     content: string;
+//   }
+// | {
+//     type: 'travel';
+//     position: Position;
+//   }
+// | {
+//     type: 'continue';
+//   };
 
 export async function agentLoop(
   { agent, nearbyAgents, ts, lastPlanTs }: Snapshot,
   memory: MemoryDB,
 ): Promise<Action> {
-  const tsOffset = ts - Date.now();
-  let havePlan = false;
   const newFriends = nearbyAgents.filter((a) => a.new).map(({ agent }) => agent);
-  // At time ts
+  // Future: Store observations about seeing agents?
+  //  might include new observations -> add to memory with openai embeddings
   // Based on plan and observations, determine next action: if so, call AgentAPI
   switch (agent.status.type) {
     case 'talking':
@@ -144,14 +164,18 @@ export async function agentLoop(
         // TODO: real logic
         return {
           type: 'saySomething',
-          to: agent.status.messages.at(-1)!.from,
+          audience: nearbyAgents.map(({ agent }) => agent.id),
           content: 'Interesting point',
+          conversationId: agent.status.conversationId,
         };
       }
     case 'walking':
       if (newFriends.length) {
         // Hey, new friends
         // TODO: decide whether we want to talk, and to whom.
+        const { embedding } = await fetchEmbedding(`What do you think about ${newFriends[0].name}`);
+        const memories = await memory.accessMemories(agent.id, embedding, ts);
+        // TODO: actually do things with LLM completions.
         return {
           type: 'startConversation',
           audience: newFriends.map((a) => a.id),
@@ -170,6 +194,7 @@ export async function agentLoop(
       if (newFriends.length) {
         // Hey, new friends
         // TODO: decide whether we want to talk, and to whom.
+        // TODO: actually do things with LLM completions.
         return {
           type: 'startConversation',
           audience: newFriends.map((a) => a.id),

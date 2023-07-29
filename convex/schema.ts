@@ -66,6 +66,7 @@ export type MemoryOfType<T extends MemoryType> = Omit<Memory, 'data'> & {
 
 // Journal documents are append-only, and define an agent's state.
 export const Journal = tableHelper('journal', {
+  // TODO: maybe we can just use _creationTime?
   ts,
   // Could be extended to non-agent actors
   actorId: v.id('agents'),
@@ -78,8 +79,7 @@ export const Journal = tableHelper('journal', {
       audience: v.array(v.id('agents')),
       content: v.string(),
       // Refers to the first message in the conversation.
-      conversationId: v.id('journal'),
-      relatedMemories: v.array(v.id('memories')),
+      conversationId: v.id('conversations'),
     }),
     v.object({
       type: v.literal('stopped'),
@@ -147,4 +147,8 @@ export default defineSchema({
     })
     // To avoid recomputing embeddings
     .index('by_text', ['text']),
+
+  // Something for messages to associate with, can store
+  // read-only metadata here in the future.
+  conversations: defineTable({}),
 });
