@@ -36,6 +36,8 @@ import {
 export const NEARBY_DISTANCE = 5;
 export const TIME_PER_STEP = 1000;
 export const DEFAULT_AGENT_IDLE = 30_000;
+// If you don't set a start position, you'll start at 0,0.
+export const DEFAULT_START_POS = { x: 0, y: 0 };
 
 export const tick = internalMutation({
   args: { oneShot: v.optional(v.id('agents')) },
@@ -284,8 +286,7 @@ function calculatePose(
 ): Pose {
   if (!lastWalk) {
     if (!lastStop) {
-      // TODO: better Base case for location
-      return { position: getRandomPosition(), orientation: 0 };
+      return { position: DEFAULT_START_POS, orientation: 0 };
     }
     return lastStop.data.pose;
   }
@@ -312,8 +313,6 @@ async function latestEntryOfType<T extends EntryType>(
     .first();
   if (!entry) return null;
   return entry as EntryOfType<T>;
-  // if (entry.data.type !== type) throw new Error("Entry type mismatch");
-  // return {...entry, data: entry.data as Extract<Entry['data'], {type: T}>}
 }
 
 async function latestMemoryOfType<T extends MemoryType>(
