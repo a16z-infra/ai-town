@@ -9,7 +9,6 @@ export type GameTs = Infer<typeof ts>;
 
 export const Agents = tableHelper('agents', {
   name: v.string(),
-  nextActionTs: v.number(), // When to run next action
 });
 
 export const Memories = tableHelper('memories', {
@@ -32,7 +31,7 @@ export const Memories = tableHelper('memories', {
     // Can start out all the same, but could be dependent on personality
     v.object({
       type: v.literal('conversation'),
-      coversationId: v.id('conversations'),
+      conversationId: v.id('conversations'),
     }),
     v.object({
       type: v.literal('plan'),

@@ -103,8 +103,12 @@ export async function chatGPTCompletion(body: Message[]) {
   });
   const completionMs = Date.now() - start;
   const completion = (await result.json()).data as ChatCompletion;
+  const content = completion.choices[0].message?.content;
+  if (!content) {
+    throw new Error('Unexpected result from OpenAI: ' + JSON.stringify(completion));
+  }
   return {
-    body: completion.choices[0].message?.content,
+    content,
     usage: completion.usage,
     completionMs,
   };

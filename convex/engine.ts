@@ -35,6 +35,7 @@ import {
 
 export const NEARBY_DISTANCE = 5;
 export const TIME_PER_STEP = 1000;
+export const DEFAULT_AGENT_IDLE = 30_000;
 
 export const tick = internalMutation({
   args: { oneShot: v.optional(v.id('agents')) },
@@ -88,6 +89,7 @@ export const handleAgentAction = internalMutation({
   args: { agentId: v.id('agents'), action: Action, observedSnapshot: Snapshot },
   handler: async (ctx, { agentId, action, observedSnapshot }) => {
     const ts = Date.now();
+    let nextActionTs = ts + DEFAULT_AGENT_IDLE;
     const agentDoc = (await ctx.db.get(agentId))!;
     const agent = await agentSnapshot(ctx.db, agentDoc, ts);
     // TODO: Check if the agent shoudl still respond.
@@ -105,6 +107,7 @@ export const handleAgentAction = internalMutation({
             conversationId,
           },
         });
+        // TODO: schedule other users to be woken up if they aren't already.
         break;
       case 'saySomething':
         // TODO: Check if these users are still nearby?
@@ -118,11 +121,14 @@ export const handleAgentAction = internalMutation({
             conversationId: action.conversationId,
           },
         });
+        // TODO: schedule other users to be woken up if they aren't already.
         break;
       case 'travel':
         // TODO: calculate obstacles to wake up?
         const { route, distance } = await findRoute(agent.pose, action.position);
+        // TODO: Scan for upcoming collisions (including objects for new observations)
         const targetEndTs = ts + distance * TIME_PER_STEP;
+        nextActionTs = Math.min(nextActionTs, targetEndTs);
         await ctx.db.insert('journal', {
           ts,
           actorId: agentId,
@@ -143,18 +149,12 @@ export const handleAgentAction = internalMutation({
         });
         break;
 
-      //   Future: ask who should talk next if it's 3+ people
-      //  run agent loop
-      //  if starts a conversation, ... see it through? just send one?
-      //   If dialog, focus attention of other agent(s)
-      //     Creates a conversation stream
-      //  If move, update path plan
-      //    Scan for upcoming collisions (including objects for new observations)
       //  Update agent cursor seen and nextActionTs
       // Handle new observations
       //   Calculate scores
       //   If there's enough observation score, trigger reflection?
     }
+    await ctx.scheduler.runAt(nextActionTs, internal.engine.tick, {});
   },
 });
 

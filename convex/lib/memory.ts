@@ -100,6 +100,7 @@ export const embedMemory = internalAction({
   handler: async (ctx, args): Promise<Id<'memories'>> => {
     const { agentId, ...memory } = args;
     const { embedding } = await fetchEmbedding(memory.description);
+    // TODO: also calculate importance of memory.
     return await ctx.runMutation(internal.lib.memory.addMemory, {
       ...args,
       embedding,

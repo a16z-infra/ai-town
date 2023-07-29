@@ -12,7 +12,7 @@ import {
 import { Entry, Agents, Memories, Memory, GameTs } from './schema.js';
 import { Position, Pose, getRandomPosition, manhattanDistance } from './lib/physics.js';
 import { MemoryDB } from './lib/memory.js';
-import { fetchEmbedding } from './lib/openai.js';
+import { chatGPTCompletion, fetchEmbedding } from './lib/openai.js';
 
 export const Message = v.object({
   from: v.id('agents'),
@@ -157,10 +157,45 @@ export async function agentLoop(
     case 'talking':
       // Decide if we keep talking.
       if (agent.status.messages.length >= 10) {
-        // TODO: make a better plan
+        // TODO: make a better prompt based on the user & relationship
+        const { content: description } = await chatGPTCompletion([
+          ...agent.status.messages.map((m) => ({
+            role: 'user' as const,
+            content: m.content,
+          })),
+          {
+            role: 'user',
+            content: 'Can you summarize the above conversation?',
+          },
+        ]);
+        // TODO: make a better prompt based on the user
+        const { content: importanceRaw } = await chatGPTCompletion([
+          { role: 'user', content: description },
+          {
+            role: 'user',
+            content: 'How important is this? Answer on a scale of 0-10. Respond like: 5',
+          },
+        ]);
+        const { embedding } = await fetchEmbedding(description);
+        await memory.addMemory({
+          agentId: agent.id,
+          importance: parseFloat(importanceRaw),
+          description,
+          embedding,
+          ts,
+          data: {
+            type: 'conversation',
+            conversationId: agent.status.conversationId,
+          },
+        });
+
         return { type: 'travel', position: getRandomPosition() };
+      } else if (agent.status.messages.at(-1)?.from === agent.id) {
+        // We just said something.
+        return { type: 'continue' };
       } else {
-        // Assuming one other person who just said something.
+        // Assuming another person just said something.
+        //   Future: ask who should talk next if it's 3+ people
         // TODO: real logic
         return {
           type: 'saySomething',

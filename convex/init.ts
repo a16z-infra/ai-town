@@ -52,7 +52,6 @@ export const seed = mutation({
     for (const { name } of data) {
       const agentId = await ctx.db.insert('agents', {
         name,
-        nextActionTs: Date.now(),
       });
       agentsByName[name] = agentId;
     }
