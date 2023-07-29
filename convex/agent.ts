@@ -51,13 +51,13 @@ export const Agent = v.object({
   name: v.string(),
   identity: v.string(),
   pose: Pose,
-  status: Status,
-  plan: v.string(),
 });
 export type Agent = Infer<typeof Agent>;
 
 export const Snapshot = v.object({
   agent: Agent,
+  status: Status,
+  plan: v.string(),
   // recentMemories: v.array(memoryValidator),
   nearbyAgents: v.array(v.object({ agent: Agent, new: v.boolean() })),
   ts: v.number(),
@@ -100,20 +100,20 @@ export const runAgent = internalAction({
 });
 
 export async function agentLoop(
-  { agent, nearbyAgents, ts }: Snapshot,
+  { agent, nearbyAgents, status, ts }: Snapshot,
   memory: MemoryDB,
 ): Promise<Action> {
   const newFriends = nearbyAgents.filter((a) => a.new).map(({ agent }) => agent);
   // Future: Store observations about seeing agents?
   //  might include new observations -> add to memory with openai embeddings
   // Based on plan and observations, determine next action: if so, call AgentAPI
-  switch (agent.status.type) {
+  switch (status.type) {
     case 'talking':
       // Decide if we keep talking.
-      if (agent.status.messages.length >= 10) {
+      if (status.messages.length >= 10) {
         // TODO: make a better prompt based on the user & relationship
         const { content: description } = await chatGPTCompletion([
-          ...agent.status.messages.map((m) => ({
+          ...status.messages.map((m) => ({
             role: 'user' as const,
             content: m.content,
           })),
@@ -139,12 +139,12 @@ export async function agentLoop(
           ts,
           data: {
             type: 'conversation',
-            conversationId: agent.status.conversationId,
+            conversationId: status.conversationId,
           },
         });
 
         return { type: 'travel', position: getRandomPosition() };
-      } else if (agent.status.messages.at(-1)?.from === agent.id) {
+      } else if (status.messages.at(-1)?.from === agent.id) {
         // We just said something.
         return { type: 'continue' };
       } else {
@@ -155,7 +155,7 @@ export async function agentLoop(
           type: 'saySomething',
           audience: nearbyAgents.map(({ agent }) => agent.id),
           content: 'Interesting point',
-          conversationId: agent.status.conversationId,
+          conversationId: status.conversationId,
         };
       }
     case 'walking':
@@ -170,7 +170,7 @@ export async function agentLoop(
           audience: newFriends.map((a) => a.id),
           content: 'Hello',
         };
-      } else if (manhattanDistance(agent.pose.position, agent.status.route.at(-1)!)) {
+      } else if (manhattanDistance(agent.pose.position, status.route.at(-1)!)) {
         // We've arrived.
         // TODO: make a better plan
         return { type: 'travel', position: getRandomPosition() };
