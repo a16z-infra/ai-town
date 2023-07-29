@@ -2,8 +2,8 @@ import { Infer, v } from 'convex/values';
 import { Position, Pose } from './lib/physics.js';
 
 export const Message = v.object({
-  from: v.id('agents'),
-  to: v.array(v.id('agents')),
+  from: v.id('players'),
+  to: v.array(v.id('players')),
   content: v.string(),
 });
 export type Message = Infer<typeof Message>;
@@ -11,7 +11,7 @@ export type Message = Infer<typeof Message>;
 export const Status = v.union(
   v.object({
     type: v.literal('talking'),
-    otherAgentIds: v.array(v.id('agents')),
+    otherPlayerIds: v.array(v.id('players')),
     conversationId: v.id('conversations'),
     messages: v.array(Message),
   }),
@@ -33,32 +33,32 @@ export const Status = v.union(
 );
 export type Status = Infer<typeof Status>;
 
-export const Agent = v.object({
-  id: v.id('agents'),
+export const Player = v.object({
+  id: v.id('players'),
   name: v.string(),
   identity: v.string(),
   pose: Pose,
 });
-export type Agent = Infer<typeof Agent>;
+export type Player = Infer<typeof Player>;
 
 export const Snapshot = v.object({
-  agent: Agent,
+  player: Player,
   status: Status,
   plan: v.string(),
   // recentMemories: v.array(memoryValidator),
-  nearbyAgents: v.array(v.object({ agent: Agent, new: v.boolean() })),
+  nearbyPlayers: v.array(v.object({ player: Player, new: v.boolean() })),
 });
 export type Snapshot = Infer<typeof Snapshot>;
 
 export const Action = v.union(
   v.object({
     type: v.literal('startConversation'),
-    audience: v.array(v.id('agents')),
+    audience: v.array(v.id('players')),
     content: v.string(),
   }),
   v.object({
     type: v.literal('saySomething'),
-    audience: v.array(v.id('agents')),
+    audience: v.array(v.id('players')),
     content: v.string(),
     conversationId: v.id('conversations'),
   }),

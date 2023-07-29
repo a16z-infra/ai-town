@@ -1,7 +1,7 @@
 import { Infer, v } from 'convex/values';
 
 // Hierarchical location within tree
-// TODO: build zone lookup from position, whether agent-dependent or global.
+// TODO: build zone lookup from position, whether player-dependent or global.
 
 export const zone = v.array(v.string());
 export type Zone = Infer<typeof zone>;

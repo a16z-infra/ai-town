@@ -11,7 +11,7 @@ import {
   query,
 } from './_generated/server';
 import { Entry, GameTs, EntryType, EntryOfType, MemoryOfType, MemoryType } from './schema';
-import { Action, Agent, Snapshot, Status } from './types.js';
+import { Action, Player, Snapshot, Status } from './types.js';
 import { asyncMap, pruneNull } from './lib/utils.js';
 import {
   Pose,
@@ -28,30 +28,30 @@ export const DEFAULT_AGENT_IDLE = 30_000;
 export const DEFAULT_START_POS = { x: 0, y: 0 };
 
 export const tick = internalMutation({
-  args: { oneShot: v.optional(v.id('agents')) },
+  args: { oneShot: v.optional(v.id('players')) },
   handler: async (ctx, { oneShot }) => {
     const ts = Date.now();
-    // TODO: segment agents by world
-    const agentDocs = await ctx.db.query('agents').collect();
+    // TODO: segment players by world
+    const playerDocs = await ctx.db.query('players').collect();
     // Make snapshot of world
-    const agentSnapshots = await asyncMap(agentDocs, async (agentDoc) =>
-      agentSnapshot(ctx.db, agentDoc, ts),
+    const playerSnapshots = await asyncMap(playerDocs, async (playerDoc) =>
+      playerSnapshot(ctx.db, playerDoc, ts),
     );
 
-    // TODO: ensure one action running per agent
+    // TODO: ensure one action running per player
     // TODO: coordinate shared interactions (shared focus)
-    // TODO: Determine if any agents are not worth waking up
+    // TODO: Determine if any players are not worth waking up
 
-    const snapshots = await asyncMap(agentSnapshots, async (agentSnapshot) =>
-      makeSnapshot(ctx.db, agentSnapshot, agentSnapshots, ts),
+    const snapshots = await asyncMap(playerSnapshots, async (playerSnapshot) =>
+      makeSnapshot(ctx.db, playerSnapshot, playerSnapshots, ts),
     );
-    // For each agent (oldest to newest? Or all on the same step?):
+    // For each player (oldest to newest? Or all on the same step?):
     for (const snapshot of snapshots) {
-      // For agents worth waking up: schedule action
-      if (oneShot && snapshot.agent.id !== oneShot) continue;
+      // For players worth waking up: schedule action
+      if (oneShot && snapshot.player.id !== oneShot) continue;
       await ctx.db.insert('journal', {
         ts,
-        actorId: snapshot.agent.id,
+        playerId: snapshot.player.id,
         data: {
           type: 'planning',
           snapshot,
@@ -66,40 +66,40 @@ export const tick = internalMutation({
   },
 });
 
-export const getAgentSnapshot = query({
-  args: { agentId: v.id('agents'), tsOffset: v.optional(v.number()) },
+export const getPlayerSnapshot = query({
+  args: { playerId: v.id('players'), tsOffset: v.optional(v.number()) },
   handler: async (ctx, args) => {
     // TODO: how to fetch the latest always, not cache Date.now()?
     // For now, use a big tsOffset.
     const ts = Date.now() + (args.tsOffset ?? Infinity);
-    const agentDoc = (await ctx.db.get(args.agentId))!;
-    const agent = await agentSnapshot(ctx.db, agentDoc, ts);
+    const playerDoc = (await ctx.db.get(args.playerId))!;
+    const player = await playerSnapshot(ctx.db, playerDoc, ts);
     // Could potentially do a smarter filter in the future to only get
-    // agents that are nearby, but for now, just get all of them.
-    const allAgents = await asyncMap(await ctx.db.query('agents').collect(), (agentDoc) =>
-      agentSnapshot(ctx.db, agentDoc, ts),
+    // players that are nearby, but for now, just get all of them.
+    const allPlayers = await asyncMap(await ctx.db.query('players').collect(), (playerDoc) =>
+      playerSnapshot(ctx.db, playerDoc, ts),
     );
-    const snapshot = await makeSnapshot(ctx.db, agent, allAgents, ts);
+    const snapshot = await makeSnapshot(ctx.db, player, allPlayers, ts);
     // We fetch at ts===Infinity to get the latest
     return { ...snapshot, ts: ts === Infinity ? Date.now() : ts };
   },
 });
 
 export const handleAgentAction = internalMutation({
-  args: { agentId: v.id('agents'), action: Action, observedSnapshot: Snapshot },
-  handler: async (ctx, { agentId, action, observedSnapshot }) => {
+  args: { playerId: v.id('players'), action: Action, observedSnapshot: Snapshot },
+  handler: async (ctx, { playerId, action, observedSnapshot }) => {
     const ts = Date.now();
     let nextActionTs = ts + DEFAULT_AGENT_IDLE;
-    const agentDoc = (await ctx.db.get(agentId))!;
-    const agent = await agentSnapshot(ctx.db, agentDoc, ts);
-    // TODO: Check if the agent shoudl still respond.
+    const playerDoc = (await ctx.db.get(playerId))!;
+    const player = await playerSnapshot(ctx.db, playerDoc, ts);
+    // TODO: Check if the player shoudl still respond.
     switch (action.type) {
       case 'startConversation':
         // TODO: determine if other users are still available.
         const conversationId = await ctx.db.insert('conversations', {});
         await ctx.db.insert('journal', {
           ts,
-          actorId: agentId,
+          playerId,
           data: {
             type: 'talking',
             audience: action.audience,
@@ -113,7 +113,7 @@ export const handleAgentAction = internalMutation({
         // TODO: Check if these users are still nearby?
         await ctx.db.insert('journal', {
           ts,
-          actorId: agentId,
+          playerId,
           data: {
             type: 'talking',
             audience: action.audience,
@@ -125,13 +125,13 @@ export const handleAgentAction = internalMutation({
         break;
       case 'travel':
         // TODO: calculate obstacles to wake up?
-        const { route, distance } = await findRoute(agent.pose, action.position);
+        const { route, distance } = await findRoute(player.pose, action.position);
         // TODO: Scan for upcoming collisions (including objects for new observations)
         const targetEndTs = ts + distance * TIME_PER_STEP;
         nextActionTs = Math.min(nextActionTs, targetEndTs);
         await ctx.db.insert('journal', {
           ts,
-          actorId: agentId,
+          playerId,
           data: {
             type: 'walking',
             route,
@@ -142,14 +142,14 @@ export const handleAgentAction = internalMutation({
       case 'continue':
         await ctx.db.insert('journal', {
           ts,
-          actorId: agentId,
+          playerId,
           data: {
             type: 'continuing',
           },
         });
         break;
 
-      //  Update agent cursor seen and nextActionTs
+      //  Update player cursor seen and nextActionTs
       // Handle new observations
       //   Calculate scores
       //   If there's enough observation score, trigger reflection?
@@ -160,57 +160,62 @@ export const handleAgentAction = internalMutation({
 
 async function makeSnapshot(
   db: DatabaseReader,
-  agent: Agent,
-  otherAgentsAndMe: Agent[],
+  player: Player,
+  otherPlayersAndMe: Player[],
   ts: GameTs,
 ): Promise<Snapshot> {
-  const status = await getStatus(db, agent.id, ts);
-  const lastPlan = await latestEntryOfType(db, agent.id, 'planning', ts);
+  const status = await getStatus(db, player.id, ts);
+  const lastPlan = await latestEntryOfType(db, player.id, 'planning', ts);
   const lastPlanTs = lastPlan?.ts ?? 0;
-  const otherAgents = otherAgentsAndMe.filter((d) => d.id !== agent.id);
-  const nearbyAgents = getNearbyAgents(db, agent, otherAgents, lastPlanTs).map((agent) => ({
-    agent,
-    new: !lastPlan?.data.snapshot.nearbyAgents.find((a) => a.agent.id === agent.id),
+  const otherPlayers = otherPlayersAndMe.filter((d) => d.id !== player.id);
+  const nearbyPlayers = getNearbyPlayers(db, player, otherPlayers, lastPlanTs).map((player) => ({
+    player,
+    new: !lastPlan?.data.snapshot.nearbyPlayers.find((a) => a.player.id === player.id),
   }));
-  const planEntry = (await latestMemoryOfType(db, agent.id, 'plan', ts))!;
+  const planEntry = (await latestMemoryOfType(db, player.id, 'plan', ts))!;
   return {
-    agent,
+    player,
     status,
     plan: planEntry.description,
-    nearbyAgents,
+    nearbyPlayers,
   };
 }
 
-async function agentSnapshot(
+async function playerSnapshot(
   db: DatabaseReader,
-  agentDoc: Doc<'agents'>,
+  playerDoc: Doc<'players'>,
   ts: GameTs,
-): Promise<Agent> {
-  const lastStop = await latestEntryOfType(db, agentDoc._id, 'stopped', ts);
-  const lastWalk = await latestEntryOfType(db, agentDoc._id, 'walking', ts);
+): Promise<Player> {
+  const lastStop = await latestEntryOfType(db, playerDoc._id, 'stopped', ts);
+  const lastWalk = await latestEntryOfType(db, playerDoc._id, 'walking', ts);
   const pose: Pose = calculatePose(lastStop, lastWalk, ts);
-  const identity = await fetchIdentity(db, agentDoc._id, ts);
+  const identity = await fetchIdentity(db, playerDoc._id, ts);
 
-  return { id: agentDoc._id, name: agentDoc.name, identity, pose };
+  return { id: playerDoc._id, name: playerDoc.name, identity, pose };
 }
 
-function getNearbyAgents(db: DatabaseReader, target: Agent, others: Agent[], lastPlanTs: GameTs) {
+function getNearbyPlayers(
+  db: DatabaseReader,
+  target: Player,
+  others: Player[],
+  lastPlanTs: GameTs,
+) {
   return others.filter((a) => {
     const distance = manhattanDistance(target.pose.position, a.pose.position);
     return distance < NEARBY_DISTANCE;
   });
 }
 
-async function getStatus(db: DatabaseReader, agentId: Id<'agents'>, ts: GameTs): Promise<Status> {
-  const lastTalk = await latestEntryOfType(db, agentId, 'talking', ts);
-  const lastStop = await latestEntryOfType(db, agentId, 'stopped', ts);
-  const lastWalk = await latestEntryOfType(db, agentId, 'walking', ts);
-  const lastPlan = await latestEntryOfType(db, agentId, 'planning', ts);
-  const lastContinue = await latestEntryOfType(db, agentId, 'continuing', ts);
+async function getStatus(db: DatabaseReader, playerId: Id<'players'>, ts: GameTs): Promise<Status> {
+  const lastTalk = await latestEntryOfType(db, playerId, 'talking', ts);
+  const lastStop = await latestEntryOfType(db, playerId, 'stopped', ts);
+  const lastWalk = await latestEntryOfType(db, playerId, 'walking', ts);
+  const lastPlan = await latestEntryOfType(db, playerId, 'planning', ts);
+  const lastContinue = await latestEntryOfType(db, playerId, 'continuing', ts);
   const stack = pruneNull([lastTalk, lastStop, lastWalk, lastPlan, lastContinue]).sort(
     (a, b) => a.ts - b.ts,
   );
-  // Special base case for before agent has other entries.
+  // Special base case for before player has other entries.
   if (stack.length > 0) {
     let latest = stack.pop()!;
     if (latest.data.type === 'continuing') {
@@ -229,10 +234,10 @@ async function getStatus(db: DatabaseReader, agentId: Id<'agents'>, ts: GameTs):
         const lastMessage = messages.at(-1)!;
         return {
           type: 'talking',
-          otherAgentIds: lastMessage.data.audience,
+          otherPlayerIds: lastMessage.data.audience,
           conversationId: latestData.conversationId,
           messages: messages.map((m) => ({
-            from: m.actorId,
+            from: m.playerId,
             to: m.data.audience,
             content: m.data.content,
           })),
@@ -260,18 +265,18 @@ async function getStatus(db: DatabaseReader, agentId: Id<'agents'>, ts: GameTs):
   return { type: 'stopped', sinceTs: ts, reason: 'finished' };
 }
 
-async function fetchPose(db: DatabaseReader, agentId: Id<'agents'>, ts: GameTs): Promise<Pose> {
-  const lastStop = await latestEntryOfType(db, agentId, 'stopped', ts);
-  const lastWalk = await latestEntryOfType(db, agentId, 'walking', ts);
+async function fetchPose(db: DatabaseReader, playerId: Id<'players'>, ts: GameTs): Promise<Pose> {
+  const lastStop = await latestEntryOfType(db, playerId, 'stopped', ts);
+  const lastWalk = await latestEntryOfType(db, playerId, 'walking', ts);
   return calculatePose(lastStop, lastWalk, ts);
 }
 
 async function fetchIdentity(
   db: DatabaseReader,
-  agentId: Id<'agents'>,
+  playerId: Id<'players'>,
   ts: GameTs,
 ): Promise<string> {
-  const identityEntry = (await latestMemoryOfType(db, agentId, 'identity', ts))!;
+  const identityEntry = (await latestMemoryOfType(db, playerId, 'identity', ts))!;
   return identityEntry.description;
 }
 
@@ -304,14 +309,14 @@ function calculatePose(
 
 async function latestEntryOfType<T extends EntryType>(
   db: DatabaseReader,
-  agentId: Id<'agents'>,
+  playerId: Id<'players'>,
   type: T,
   ts: GameTs,
 ) {
   const entry = await db
     .query('journal')
-    .withIndex('by_actorId_type_ts', (q) =>
-      q.eq('actorId', agentId).eq('data.type', type).lte('ts', ts),
+    .withIndex('by_playerId_type_ts', (q) =>
+      q.eq('playerId', playerId).eq('data.type', type).lte('ts', ts),
     )
     .order('desc')
     .first();
@@ -321,14 +326,14 @@ async function latestEntryOfType<T extends EntryType>(
 
 async function latestMemoryOfType<T extends MemoryType>(
   db: DatabaseReader,
-  agentId: Id<'agents'>,
+  playerId: Id<'players'>,
   type: T,
   ts: GameTs,
 ) {
   const entry = await db
     .query('memories')
-    .withIndex('by_agentId_type_ts', (q) =>
-      q.eq('agentId', agentId).eq('data.type', type).lte('ts', ts),
+    .withIndex('by_playerId_type_ts', (q) =>
+      q.eq('playerId', playerId).eq('data.type', type).lte('ts', ts),
     )
     .order('desc')
     .first();
@@ -336,4 +341,4 @@ async function latestMemoryOfType<T extends MemoryType>(
   return entry as MemoryOfType<T>;
 }
 
-// function getAgentStatus(entries: Entry[] /* latest first */): Status {}
+// function getPlayerStatus(entries: Entry[] /* latest first */): Status {}

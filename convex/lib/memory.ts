@@ -24,12 +24,12 @@ type NewMemory = Infer<typeof NewMemoryObject>;
 
 export interface MemoryDB {
   search(
-    agentId: Id<'agents'>,
+    playerId: Id<'players'>,
     vector: number[],
     limit?: number,
   ): Promise<{ memory: Doc<'memories'>; score: number }[]>;
   accessMemories(
-    agentId: Id<'agents'>,
+    playerId: Id<'players'>,
     queryEmbedding: number[],
     count?: number,
   ): Promise<{ memory: Doc<'memories'>; overallScore: number }[]>;
@@ -41,30 +41,30 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
 
   return {
     // Finds memories but doesn't mark them as accessed.
-    async search(agentId, queryEmbedding, limit = 100) {
+    async search(playerId, queryEmbedding, limit = 100) {
       const results = await ctx.vectorSearch('embeddings', 'embedding', {
         vector: queryEmbedding,
         vectorField: 'embedding',
-        filter: (q) => q.eq('agentId', agentId),
+        filter: (q) => q.eq('playerId', playerId),
         limit,
       });
       const embeddingIds = results.map((r) => r._id);
       const memories = await ctx.runQuery(internal.lib.memory.getMemories, {
-        agentId,
+        playerId,
         embeddingIds,
       });
       return results.map(({ score }, idx) => ({ memory: memories[idx], score }));
     },
 
-    async accessMemories(agentId, queryEmbedding, count = 10) {
+    async accessMemories(playerId, queryEmbedding, count = 10) {
       const results = await ctx.vectorSearch('embeddings', 'embedding', {
         vector: queryEmbedding,
         vectorField: 'embedding',
-        filter: (q) => q.eq('agentId', agentId),
+        filter: (q) => q.eq('playerId', playerId),
         limit: 10 * count,
       });
       return await ctx.runMutation(internal.lib.memory.accessMemories, {
-        agentId,
+        playerId,
         candidates: results,
         count,
       });
@@ -113,24 +113,24 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
 }
 
 export const getMemories = internalQuery({
-  args: { agentId: v.id('agents'), embeddingIds: v.array(v.id('embeddings')) },
+  args: { playerId: v.id('players'), embeddingIds: v.array(v.id('embeddings')) },
   handler: async (ctx, args) => {
     return await asyncMap(args.embeddingIds, (id) =>
-      getMemoryByEmbeddingId(ctx.db, args.agentId, id),
+      getMemoryByEmbeddingId(ctx.db, args.playerId, id),
     );
   },
 });
 
 export const accessMemories = internalMutation({
   args: {
-    agentId: v.id('agents'),
+    playerId: v.id('players'),
     candidates: v.array(v.object({ _id: v.id('embeddings'), score: v.number() })),
     count: v.number(),
   },
-  handler: async (ctx, { agentId, candidates, count }) => {
+  handler: async (ctx, { playerId, candidates, count }) => {
     const ts = Date.now();
     const relatedMemories = await asyncMap(candidates, ({ _id }) =>
-      getMemoryByEmbeddingId(ctx.db, agentId, _id),
+      getMemoryByEmbeddingId(ctx.db, playerId, _id),
     );
     // TODO: filter out old
     const recentMemories = await asyncMap(relatedMemories, (memory) =>
@@ -170,8 +170,8 @@ export const addMemory = internalMutation({
   args: NewMemoryWithEmbedding,
   handler: async (ctx, args): Promise<Id<'memories'>> => {
     const { embedding, ...memory } = args;
-    const { agentId, description: text } = memory;
-    const embeddingId = await ctx.db.insert('embeddings', { agentId, embedding, text });
+    const { playerId, description: text } = memory;
+    const embeddingId = await ctx.db.insert('embeddings', { playerId, embedding, text });
     return await ctx.db.insert('memories', { ...memory, embeddingId });
   },
 });
@@ -181,28 +181,28 @@ export const addMemories = internalMutation({
   handler: async (ctx, args): Promise<Id<'memories'>[]> => {
     return asyncMap(args.memories, async (memoryWithEmbedding) => {
       const { embedding, ...memory } = memoryWithEmbedding;
-      const { agentId, description: text } = memory;
-      const embeddingId = await ctx.db.insert('embeddings', { agentId, embedding, text });
+      const { playerId, description: text } = memory;
+      const embeddingId = await ctx.db.insert('embeddings', { playerId, embedding, text });
       return await ctx.db.insert('memories', { ...memory, embeddingId });
     });
   },
 });
 
-// Technically it's redundant to retrieve them by agentId, since the embedding
-// is stored associated with an agentId already.
+// Technically it's redundant to retrieve them by playerId, since the embedding
+// is stored associated with an playerId already.
 async function getMemoryByEmbeddingId(
   db: DatabaseReader,
-  agentId: Id<'agents'>,
+  playerId: Id<'players'>,
   embeddingId: Id<'embeddings'>,
 ) {
   const doc = await db
     .query('memories')
-    .withIndex('by_agentId_embeddingId', (q) =>
-      q.eq('agentId', agentId).eq('embeddingId', embeddingId),
+    .withIndex('by_playerId_embeddingId', (q) =>
+      q.eq('playerId', playerId).eq('embeddingId', embeddingId),
     )
     .order('desc')
     .first();
-  if (!doc) throw new Error(`No memory found for agent ${agentId} and embedding ${embeddingId}`);
+  if (!doc) throw new Error(`No memory found for player ${playerId} and embedding ${embeddingId}`);
   return doc;
 }
 

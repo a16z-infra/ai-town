@@ -45,7 +45,7 @@ export const paginateMessages = query({
 
 function clientMessage(m: EntryOfType<'talking'>) {
   return {
-    actorId: m.actorId,
+    playerId: m.playerId,
     audience: m.data.audience,
     content: m.data.content,
     ts: m.ts,

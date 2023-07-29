@@ -27,7 +27,7 @@ const data = [
       {
         type: 'relationship' as const,
         description: 'You like lucky',
-        agentName: 'Lucky',
+        playerName: 'Lucky',
       },
       {
         type: 'plan' as const,
@@ -57,7 +57,7 @@ and he's very excited to tell people about it.`,
 
 export const seed = mutation({
   handler: async (ctx) => {
-    if (await ctx.db.query('agents').first()) {
+    if (await ctx.db.query('players').first()) {
       // Already seeded
       return;
     }
@@ -68,27 +68,27 @@ export const seed = mutation({
           '    npx convex dashboard\n or https://dashboard.convex.dev',
       );
     }
-    const agentsByName: Record<string, Id<'agents'>> = {};
+    const playersByName: Record<string, Id<'players'>> = {};
     for (const { name } of data) {
-      const agentId = await ctx.db.insert('agents', {
+      const playerId = await ctx.db.insert('players', {
         name,
       });
-      agentsByName[name] = agentId;
+      playersByName[name] = playerId;
     }
     const memories = data.flatMap(({ name, memories }) => {
-      const agentId = agentsByName[name]!;
+      const playerId = playersByName[name]!;
       return memories.map((memory, idx) => {
         let data: Doc<'memories'>['data'] | undefined;
         if (memory.type === 'relationship') {
-          const { agentName, ...relationship } = memory;
-          const otherId = agentsByName[agentName];
-          if (!otherId) throw new Error(`No agent named ${agentName}`);
-          data = { ...relationship, agentId: otherId };
+          const { playerName, ...relationship } = memory;
+          const otherId = playersByName[playerName];
+          if (!otherId) throw new Error(`No player named ${playerName}`);
+          data = { ...relationship, playerId: otherId };
         } else {
           data = memory;
         }
         const newMemory = {
-          agentId,
+          playerId,
           data,
           description: memory.description,
           // You can add custom importances to override the calculated ones.

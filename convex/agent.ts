@@ -19,7 +19,7 @@ export const runAgent = internalAction({
     const memory = MemoryDB(ctx);
     const action = await agentLoop(snapshot, memory);
     await ctx.runMutation(internal.engine.handleAgentAction, {
-      agentId: snapshot.agent.id,
+      playerId: snapshot.player.id,
       action,
       observedSnapshot: snapshot,
     });
@@ -27,11 +27,11 @@ export const runAgent = internalAction({
 });
 
 export async function agentLoop(
-  { agent, nearbyAgents, status, plan }: Snapshot,
+  { player, nearbyPlayers, status, plan }: Snapshot,
   memory: MemoryDB,
 ): Promise<Action> {
-  const newFriends = nearbyAgents.filter((a) => a.new).map(({ agent }) => agent);
-  // Future: Store observations about seeing agents?
+  const newFriends = nearbyPlayers.filter((a) => a.new).map(({ player }) => player);
+  // Future: Store observations about seeing players?
   //  might include new observations -> add to memory with openai embeddings
   // Based on plan and observations, determine next action:
   //   if so, add new memory for new plan, and return new action
@@ -52,7 +52,7 @@ export async function agentLoop(
         ]);
         await memory.addMemories([
           {
-            agentId: agent.id,
+            playerId: player.id,
             description,
             ts: Date.now(),
             data: {
@@ -63,7 +63,7 @@ export async function agentLoop(
         ]);
 
         return { type: 'travel', position: getRandomPosition() };
-      } else if (status.messages.at(-1)?.from === agent.id) {
+      } else if (status.messages.at(-1)?.from === player.id) {
         // We just said something.
         return { type: 'continue' };
       } else {
@@ -72,7 +72,7 @@ export async function agentLoop(
         // TODO: real logic
         return {
           type: 'saySomething',
-          audience: nearbyAgents.map(({ agent }) => agent.id),
+          audience: nearbyPlayers.map(({ player }) => player.id),
           content: 'Interesting point',
           conversationId: status.conversationId,
         };
@@ -82,14 +82,14 @@ export async function agentLoop(
         // Hey, new friends
         // TODO: decide whether we want to talk, and to whom.
         const { embedding } = await fetchEmbedding(`What do you think about ${newFriends[0].name}`);
-        const memories = await memory.accessMemories(agent.id, embedding);
+        const memories = await memory.accessMemories(player.id, embedding);
         // TODO: actually do things with LLM completions.
         return {
           type: 'startConversation',
           audience: newFriends.map((a) => a.id),
           content: 'Hello',
         };
-      } else if (manhattanDistance(agent.pose.position, status.route.at(-1)!)) {
+      } else if (manhattanDistance(player.pose.position, status.route.at(-1)!)) {
         // We've arrived.
         // TODO: make a better plan
         return { type: 'travel', position: getRandomPosition() };

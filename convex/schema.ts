@@ -9,7 +9,7 @@ const ts = v.number();
 export type GameTs = Infer<typeof ts>;
 
 export const Memories = tableHelper('memories', {
-  agentId: v.id('agents'),
+  playerId: v.id('players'),
   description: v.string(),
   embeddingId: v.id('embeddings'),
   importance: v.number(),
@@ -19,10 +19,10 @@ export const Memories = tableHelper('memories', {
     v.object({
       type: v.literal('identity'),
     }),
-    // Setting up dynamics between agents
+    // Setting up dynamics between players
     v.object({
       type: v.literal('relationship'),
-      agentId: v.id('agents'),
+      playerId: v.id('players'),
     }),
     // Per-agent summary of recent observations
     // Can start out all the same, but could be dependent on personality
@@ -60,19 +60,18 @@ export type MemoryOfType<T extends MemoryType> = Omit<Memory, 'data'> & {
   data: Extract<Memory['data'], { type: T }>;
 };
 
-// Journal documents are append-only, and define an agent's state.
+// Journal documents are append-only, and define an player's state.
 export const Journal = tableHelper('journal', {
   // TODO: maybe we can just use _creationTime?
   ts,
-  // Could be extended to non-agent actors
-  actorId: v.id('agents'),
+  playerId: v.id('players'),
   // emojiSummary: v.string(),
   data: v.union(
     v.object({
       type: v.literal('talking'),
       // If they are speaking to a person in particular.
       // If it's empty, it's just talking out loud.
-      audience: v.array(v.id('agents')),
+      audience: v.array(v.id('players')),
       content: v.string(),
       // Refers to the first message in the conversation.
       conversationId: v.id('conversations'),
@@ -117,16 +116,17 @@ export type EntryOfType<T extends EntryType> = Omit<Entry, 'data'> & {
 };
 
 export default defineSchema({
-  agents: defineTable({
+  // Could be extended to non-agent players
+  players: defineTable({
     name: v.string(),
   }),
   journal: Journal.table
-    .index('by_actorId_type_ts', ['actorId', 'data.type', 'ts'])
+    .index('by_playerId_type_ts', ['playerId', 'data.type', 'ts'])
     .index('by_conversation', ['data.conversationId', 'ts']),
 
   memories: Memories.table
-    .index('by_agentId_embeddingId', ['agentId', 'embeddingId', 'ts'])
-    .index('by_agentId_type_ts', ['agentId', 'data.type', 'ts']),
+    .index('by_playerId_embeddingId', ['playerId', 'embeddingId', 'ts'])
+    .index('by_playerId_type_ts', ['playerId', 'data.type', 'ts']),
 
   // To track recent accesses
   memoryAccesses: defineTable({
@@ -134,17 +134,17 @@ export default defineSchema({
   }).index('by_memoryId', ['memoryId']),
 
   embeddings: defineTable({
-    agentId: v.id('agents'),
+    playerId: v.id('players'),
     text: v.string(),
     embedding: v.array(v.number()),
   })
     .vectorIndex('embedding', {
       vectorField: 'embedding',
-      filterFields: ['agentId'],
+      filterFields: ['playerId'],
       dimension: 1536,
     })
     // To avoid recomputing embeddings, we can use this table as a cache.
-    // IMPORTANT: don't re-use the object, as it has a reference to the agentId.
+    // IMPORTANT: don't re-use the object, as it has a reference to the playerId.
     // Just copy the embedding to a new document when needed.
     .index('by_text', ['text']),
 
