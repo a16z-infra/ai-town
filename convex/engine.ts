@@ -59,29 +59,12 @@ export const tick = internalMutation({
     for (const snapshot of snapshots) {
       // For agents worth waking up: schedule action
       if (oneShot && snapshot.agent.id !== oneShot) continue;
-      await ctx.scheduler.runAfter(0, internal.engine.runAgent, { snapshot });
+      await ctx.scheduler.runAfter(0, internal.agent.runAgent, { snapshot });
       // TODO: handle timeouts
       // Later: handle object ownership?
     }
     if (oneShot) return;
     // TODO: recursively schedule mutation
-  },
-});
-
-//What triggers another loop:
-// 1. New observation
-// 2.
-export const runAgent = internalAction({
-  args: { snapshot: Snapshot },
-  handler: async (ctx, { snapshot }) => {
-    const tsOffset = snapshot.ts - Date.now();
-    const memory = memoryDB(ctx);
-    const action = await agentLoop(snapshot, memory);
-    await ctx.runMutation(internal.engine.handleAgentAction, {
-      agentId: snapshot.agent.id,
-      action,
-      observedSnapshot: snapshot,
-    });
   },
 });
 

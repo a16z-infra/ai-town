@@ -11,7 +11,7 @@ import {
 } from './_generated/server';
 import { Entry, Agents, Memories, Memory, GameTs } from './schema.js';
 import { Position, Pose, getRandomPosition, manhattanDistance } from './lib/physics.js';
-import { MemoryDB } from './lib/memory.js';
+import { MemoryDB, memoryDB } from './lib/memory.js';
 import { chatGPTCompletion, fetchEmbedding } from './lib/openai.js';
 
 export const Message = v.object({
@@ -20,11 +20,6 @@ export const Message = v.object({
   content: v.string(),
 });
 export type Message = Infer<typeof Message>;
-// {
-//   from: Id<'agents'>;
-//   to: Id<'agents'>[];
-//   content: string;
-// };
 
 export const Status = v.union(
   v.object({
@@ -50,26 +45,6 @@ export const Status = v.union(
   }),
 );
 export type Status = Infer<typeof Status>;
-// | {
-//     type: 'talking';
-//     otherAgentIds: Id<'agents'>[];
-//     messages: Message[];
-//   }
-// | {
-//     type: 'walking';
-//     sinceTs: GameTs;
-//     route: Position[];
-//     targetEndTs: GameTs;
-//   }
-// | {
-//     type: 'stopped';
-//     sinceTs: GameTs;
-//     reason: 'interrupted' | 'finished';
-//   }
-// | {
-//     sinceTs: GameTs;
-//     type: 'thinking';
-//   };
 
 export const AgentFields = {
   id: v.id('agents'),
@@ -81,14 +56,6 @@ export const AgentFields = {
 };
 export const Agent = v.object(AgentFields);
 export type Agent = Infer<typeof Agent>;
-// {
-//   id: Id<'agents'>;
-//   name: string;
-//   identity: string; // Latest one, if multiple
-//   pose: Pose;
-//   status: Status;
-//   // plan: string;
-// };
 
 export const Snapshot = v.object({
   agent: Agent,
@@ -98,13 +65,6 @@ export const Snapshot = v.object({
   lastPlanTs: v.number(),
 });
 export type Snapshot = Infer<typeof Snapshot>;
-// {
-//   agent: Agent;
-//   recentMemories: Memory[];
-//   nearbyAgents: { agent: Agent; sinceTs: GameTs }[];
-//   ts: number;
-//   lastPlanTs: number;
-// };
 
 export const Action = v.union(
   v.object({
@@ -127,23 +87,19 @@ export const Action = v.union(
   }),
 );
 export type Action = Infer<typeof Action>;
-// | {
-//     type: 'startConversation';
-//     audience: Id<'agents'>[];
-//     content: string;
-//   }
-// | {
-//     type: 'saySomething';
-//     to: Id<'agents'>;
-//     content: string;
-//   }
-// | {
-//     type: 'travel';
-//     position: Position;
-//   }
-// | {
-//     type: 'continue';
-//   };
+
+export const runAgent = internalAction({
+  args: { snapshot: Snapshot },
+  handler: async (ctx, { snapshot }) => {
+    const memory = memoryDB(ctx);
+    const action = await agentLoop(snapshot, memory);
+    await ctx.runMutation(internal.engine.handleAgentAction, {
+      agentId: snapshot.agent.id,
+      action,
+      observedSnapshot: snapshot,
+    });
+  },
+});
 
 export async function agentLoop(
   { agent, nearbyAgents, ts, lastPlanTs }: Snapshot,
