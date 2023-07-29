@@ -61,6 +61,13 @@ export const seed = mutation({
       // Already seeded
       return;
     }
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error(
+        'Missing OPENAI_API_KEY in environment variables.\n' +
+          'Set it in the project settings in the Convex dashboard:\n' +
+          '    npx convex dashboard\n or https://dashboard.convex.dev',
+      );
+    }
     const agentsByName: Record<string, Id<'agents'>> = {};
     for (const { name } of data) {
       const agentId = await ctx.db.insert('agents', {

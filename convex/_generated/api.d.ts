@@ -25,6 +25,7 @@ import type * as lib_physics from "../lib/physics";
 import type * as lib_pinecone from "../lib/pinecone";
 import type * as lib_relationships from "../lib/relationships";
 import type * as lib_utils from "../lib/utils";
+import type * as types from "../types";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -46,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   "lib/pinecone": typeof lib_pinecone;
   "lib/relationships": typeof lib_relationships;
   "lib/utils": typeof lib_utils;
+  types: typeof types;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

@@ -1,14 +1,14 @@
 // That's right! No imports and no dependencies 🤯
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error(
-    'Missing OPENAI_API_KEY in environment variables.\n' +
-      'Set it in the project settings in the Convex dashboard:\n' +
-      '    npx convex dashboard\n or https://dashboard.convex.dev',
-  );
-}
-
 export async function chatGPTCompletion(body: Message[]) {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error(
+      'Missing OPENAI_API_KEY in environment variables.\n' +
+        'Set it in the project settings in the Convex dashboard:\n' +
+        '    npx convex dashboard\n or https://dashboard.convex.dev',
+    );
+  }
+
   const start = Date.now();
   const result = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',

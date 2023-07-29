@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { api, internal } from './_generated/api.js';
+import { api, internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
 import {
   DatabaseReader,
@@ -10,19 +10,8 @@ import {
   mutation,
   query,
 } from './_generated/server';
-import {
-  Entry,
-  Agents,
-  Memories,
-  Memory,
-  GameTs,
-  EntryType,
-  EntryOfType,
-  MemoryOfType,
-  MemoryType,
-} from './schema.js';
-import { MemoryDB } from './lib/memory.js';
-import { Action, Agent, Message, Snapshot, Status, agentLoop } from './agent.js';
+import { Entry, GameTs, EntryType, EntryOfType, MemoryOfType, MemoryType } from './schema';
+import { Action, Agent, Snapshot, Status } from './types.js';
 import { asyncMap, pruneNull } from './lib/utils.js';
 import {
   Pose,
