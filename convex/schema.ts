@@ -1,22 +1,11 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { Infer, v } from 'convex/values';
 import { tableHelper } from './lib/utils.js';
+import { Position, Pose } from './lib/physics.js';
 
 // ts is milliseconds in game time
-export const ts = v.number();
+const ts = v.number();
 export type GameTs = Infer<typeof ts>;
-
-// Hierarchical location within tree
-// TODO: build zone lookup from position, whether agent-dependent or global.
-export const zone = v.array(v.string());
-export type Zone = Infer<typeof zone>;
-
-export const position = v.object({ x: v.number(), y: v.number() });
-export type Position = Infer<typeof position>;
-
-// Position plus a direction, as degrees counter-clockwise from East / Right
-export const pose = v.object({ position, dirDeg: v.number() });
-export type Pose = Infer<typeof pose>;
 
 export const Agents = tableHelper('agents', {
   name: v.string(),
@@ -45,6 +34,9 @@ export const Memories = tableHelper('memories', {
       type: v.literal('conversation'),
       coversationId: v.id('conversations'),
     }),
+    v.object({
+      type: v.literal('plan'),
+    }),
 
     // Exercises left to the reader:
 
@@ -55,7 +47,7 @@ export const Memories = tableHelper('memories', {
     // v.object({
     //   type: v.literal('observation'),
     //   object: v.string(),
-    //   pose,
+    //   pose: Pose,
     // }),
     // Seemed too noisey for every message for every party, but maybe?
     // v.object({
@@ -67,6 +59,10 @@ export const Memories = tableHelper('memories', {
   ),
 });
 export type Memory = Infer<typeof Memories.doc>;
+export type MemoryType = Memory['data']['type'];
+export type MemoryOfType<T extends MemoryType> = Omit<Memory, 'data'> & {
+  data: Extract<Memory['data'], { type: T }>;
+};
 
 // Journal documents are append-only, and define an agent's state.
 export const Journal = tableHelper('journal', {
@@ -81,17 +77,18 @@ export const Journal = tableHelper('journal', {
       // If it's empty, it's just talking out loud.
       audience: v.array(v.id('agents')),
       content: v.string(),
-      firstMessage: v.id('journal'),
+      // Refers to the first message in the conversation.
+      conversationId: v.id('journal'),
       relatedMemories: v.array(v.id('memories')),
     }),
     v.object({
       type: v.literal('stopped'),
       reason: v.union(v.literal('interrupted'), v.literal('finished')),
-      pose,
+      pose: Pose,
     }),
     v.object({
       type: v.literal('walking'),
-      route: v.array(position),
+      route: v.array(Position),
       targetEndTs: v.number(),
     }),
     // When we run the agent loop.
@@ -112,19 +109,25 @@ export const Journal = tableHelper('journal', {
     //   type: v.literal('activity'),
     //   description: v.string(),
     // 	// objects: v.array(v.object({ id: v.id('objects'), action: v.string() })),
-    //   pose,
+    //   pose: Pose,
     // }),
   ),
 });
 export type Entry = Infer<typeof Journal.doc>;
+export type EntryType = Entry['data']['type'];
+export type EntryOfType<T extends EntryType> = Omit<Entry, 'data'> & {
+  data: Extract<Entry['data'], { type: T }>;
+};
 
 export default defineSchema({
   agents: Agents.table,
-  journal: Journal.table.index('by_agentId_type_ts', ['actorId', 'data.type', 'ts']),
+  journal: Journal.table
+    .index('by_actorId_type_ts', ['actorId', 'data.type', 'ts'])
+    .index('by_conversation', ['data.conversationId', 'ts']),
 
   memories: Memories.table
     .index('by_embeddingId', ['embeddingId', 'ts'])
-    .index('by_type_ts', ['data.type', 'ts']),
+    .index('by_agentId_type_ts', ['agentId', 'data.type', 'ts']),
 
   // To track recent accesses
   memoryAccesses: defineTable({

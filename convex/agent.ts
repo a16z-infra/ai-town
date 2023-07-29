@@ -9,53 +9,101 @@ import {
   mutation,
   query,
 } from './_generated/server';
-import { Entry, Agents, Memories, Memory, GameTs, ts, Position, Pose } from './schema.js';
+import { Entry, Agents, Memories, Memory, GameTs } from './schema.js';
+import { Position, Pose, getRandomPosition, manhattanDistance } from './lib/physics.js';
 import { MemoryDB } from './lib/memory.js';
 
-type Message = {
-  from: Id<'agents'>;
-  to: Id<'agents'>[];
-  content: string;
-};
+export const Message = v.object({
+  from: v.id('agents'),
+  to: v.array(v.id('agents')),
+  content: v.string(),
+});
+export type Message = Infer<typeof Message>;
+// {
+//   from: Id<'agents'>;
+//   to: Id<'agents'>[];
+//   content: string;
+// };
 
-type Agent = {
-  id: Id<'agents'>;
-  name: string;
-  identity: string; // Latest one, if multiple
-  pose: Pose;
-  status: Status;
-  plan: string;
-};
+export const Status = v.union(
+  v.object({
+    type: v.literal('talking'),
+    otherAgentIds: v.array(v.id('agents')),
+    messages: v.array(Message),
+  }),
+  v.object({
+    type: v.literal('walking'),
+    sinceTs: v.number(),
+    route: v.array(Position),
+    targetEndTs: v.number(),
+  }),
+  v.object({
+    type: v.literal('stopped'),
+    sinceTs: v.number(),
+    reason: v.union(v.literal('interrupted'), v.literal('finished')),
+  }),
+  v.object({
+    type: v.literal('thinking'),
+    sinceTs: v.number(),
+  }),
+);
+export type Status = Infer<typeof Status>;
+// | {
+//     type: 'talking';
+//     otherAgentIds: Id<'agents'>[];
+//     messages: Message[];
+//   }
+// | {
+//     type: 'walking';
+//     sinceTs: GameTs;
+//     route: Position[];
+//     targetEndTs: GameTs;
+//   }
+// | {
+//     type: 'stopped';
+//     sinceTs: GameTs;
+//     reason: 'interrupted' | 'finished';
+//   }
+// | {
+//     sinceTs: GameTs;
+//     type: 'thinking';
+//   };
 
-type Status =
-  | {
-      type: 'talking';
-      otherAgentIds: Id<'agents'>[];
-      messages: Message[];
-    }
-  | {
-      type: 'walking';
-      startTs: GameTs;
-      route: Position[];
-      estEndTs: GameTs;
-    }
-  | {
-      type: 'stopped';
-      startTs: GameTs;
-      reason: 'interrupted' | 'finished';
-    }
-  | {
-      startTs: GameTs;
-      type: 'thinking';
-    };
-
-export type Snapshot = {
-  agent: Agent;
-  recentMemories: Memory[];
-  nearbyAgents: { agent: Agent; sinceTs: GameTs }[];
-  ts: number;
-  lastPlanTs: number;
+export const AgentFields = {
+  id: v.id('agents'),
+  name: v.string(),
+  identity: v.string(),
+  pose: Pose,
+  status: Status,
+  plan: v.string(),
 };
+export const Agent = v.object(AgentFields);
+export type Agent = Infer<typeof Agent>;
+// {
+//   id: Id<'agents'>;
+//   name: string;
+//   identity: string; // Latest one, if multiple
+//   pose: Pose;
+//   status: Status;
+//   // plan: string;
+// };
+
+export const Snapshot = {
+  agent: Agent,
+  // recentMemories: v.array(memoryValidator),
+  nearbyAgents: v.array(v.object({ agent: Agent, sinceTs: v.number() })),
+  ts: v.number(),
+  lastPlanTs: v.number(),
+};
+const snapshotObject = v.object(Snapshot);
+export type Snapshot = Infer<typeof snapshotObject>;
+// {
+//   agent: Agent;
+//   recentMemories: Memory[];
+//   nearbyAgents: { agent: Agent; sinceTs: GameTs }[];
+//   ts: number;
+//   lastPlanTs: number;
+// };
 
 export type Action =
   | {
@@ -76,16 +124,8 @@ export type Action =
       type: 'continue';
     };
 
-function getRandomPosition(): Position {
-  return { x: Math.floor(Math.random() * 100), y: Math.floor(Math.random() * 100) };
-}
-
-function manhattanDistance(p1: Position, p2: Position) {
-  return Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y);
-}
-
-async function agentLoop(
-  { agent, recentMemories, nearbyAgents, ts, lastPlanTs }: Snapshot,
+export async function agentLoop(
+  { agent, nearbyAgents, ts, lastPlanTs }: Snapshot,
   memory: MemoryDB,
 ): Promise<Action> {
   const tsOffset = ts - Date.now();

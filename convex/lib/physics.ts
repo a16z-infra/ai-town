@@ -1,0 +1,64 @@
+import { Infer, v } from 'convex/values';
+
+// Hierarchical location within tree
+// TODO: build zone lookup from position, whether agent-dependent or global.
+
+export const zone = v.array(v.string());
+export type Zone = Infer<typeof zone>;
+
+export const Position = v.object({ x: v.number(), y: v.number() });
+export type Position = Infer<typeof Position>;
+// Position plus a direction, as degrees counter-clockwise from East / Right
+
+export const Pose = v.object({ position: Position, orientation: v.number() });
+export type Pose = Infer<typeof Pose>;
+
+export function getRandomPosition(): Position {
+  return { x: Math.floor(Math.random() * 100), y: Math.floor(Math.random() * 100) };
+}
+
+export function manhattanDistance(p1: Position, p2: Position) {
+  return Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y);
+}
+
+export function calculateFraction(start: number, end: number, ts: number): number {
+  const progress = (ts - start) / end - start;
+  return Math.max(Math.min(1, progress), 0);
+}
+
+export function interpolatePosition(start: Position, end: Position, fraction: number): Position {
+  return {
+    x: start.x + (end.x - start.x) * fraction,
+    y: start.y + (end.y - start.y) * fraction,
+  };
+}
+
+export function calculateOrientation(start: Position, end: Position): number {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const orientation = (Math.atan2(dy, dx) / Math.PI) * 180;
+  return orientation < 0 ? orientation + 360 : orientation;
+}
+
+export function getPoseFromRoute(route: Position[], fraction: number): Pose {
+  const totalLength = route.reduce((sum, pos, idx) => {
+    if (idx === 0) return sum;
+    return sum + manhattanDistance(pos, route[idx - 1]);
+  }, 0);
+  const progressDistance = fraction * totalLength;
+  let soFar = 0;
+  let start = route.at(-1)!;
+  let end = route[0]!;
+  for (const [idx, pos] of route.slice(1).entries()) {
+    soFar += manhattanDistance(route[idx - 1], pos);
+    if (soFar >= progressDistance) {
+      start = route[idx - 1];
+      end = pos;
+      break;
+    }
+  }
+  return {
+    position: interpolatePosition(start, end, fraction),
+    orientation: calculateOrientation(start, end),
+  };
+}

@@ -12,7 +12,7 @@ import {
 } from '../_generated/server.js';
 import { asyncMap, getAll } from './utils.js';
 import { getManyFrom, getManyVia, getOneFrom } from './relationships.js';
-import { Memories, ts } from '../schema.js';
+import { Memories } from '../schema.js';
 
 const { embeddingId: _, ...withoutEmbeddingId } = Memories.fields;
 const newMemoryValidator = { ...withoutEmbeddingId, embedding: v.array(v.number()) };
@@ -76,7 +76,7 @@ export const accessMemories = internalMutation({
 });
 
 export const addMemory = internalMutation({
-  args: { ...newMemoryValidator, ts },
+  args: { ...newMemoryValidator, ts: v.number() },
   handler: async (ctx, args) => {
     const { agentId, embedding, ...memory } = args;
     // TODO: check embedding cache
