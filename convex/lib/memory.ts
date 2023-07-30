@@ -12,7 +12,6 @@ import {
   query,
 } from '../_generated/server.js';
 import { asyncMap, getAll } from './utils.js';
-import { getManyFrom, getManyVia, getOneFrom } from './relationships.js';
 import { Memories } from '../schema.js';
 import { chatGPTCompletion, fetchEmbedding, fetchEmbeddingBatch } from './openai.js';
 
