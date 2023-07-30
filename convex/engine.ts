@@ -30,11 +30,13 @@ export const DEFAULT_AGENT_IDLE = 30_000;
 export const DEFAULT_START_POS = { x: 0, y: 0 };
 
 export const tick = internalMutation({
-  args: { oneShot: v.optional(v.id('players')) },
-  handler: async (ctx, { oneShot }) => {
+  args: { worldId: v.id('worlds'), oneShot: v.optional(v.id('players')) },
+  handler: async (ctx, { worldId, oneShot }) => {
     const ts = Date.now();
-    // TODO: segment players by world
-    const playerDocs = await ctx.db.query('players').collect();
+    const playerDocs = await ctx.db
+      .query('players')
+      .withIndex('by_worldId', (q) => q.eq('worldId', worldId))
+      .collect();
     // Make snapshot of world
     const playerSnapshots = await asyncMap(playerDocs, async (playerDoc) =>
       playerSnapshot(ctx.db, playerDoc, ts),
@@ -79,8 +81,12 @@ export const getPlayerSnapshot = query({
     const player = await playerSnapshot(ctx.db, playerDoc, ts);
     // Could potentially do a smarter filter in the future to only get
     // players that are nearby, but for now, just get all of them.
-    const allPlayers = await asyncMap(await ctx.db.query('players').collect(), (playerDoc) =>
-      playerSnapshot(ctx.db, playerDoc, ts),
+    const allPlayers = await asyncMap(
+      await ctx.db
+        .query('players')
+        .withIndex('by_worldId', (q) => q.eq('worldId', playerDoc.worldId))
+        .collect(),
+      (playerDoc) => playerSnapshot(ctx.db, playerDoc, ts),
     );
     const snapshot = await makeSnapshot(ctx.db, player, allPlayers, ts);
     // We fetch at ts===Infinity to get the latest
@@ -153,7 +159,7 @@ export async function handlePlayerAction(
       });
       break;
   }
-  await ctx.scheduler.runAt(nextActionTs, internal.engine.tick, {});
+  await ctx.scheduler.runAt(nextActionTs, internal.engine.tick, { worldId: playerDoc.worldId });
 }
 
 async function makeSnapshot(

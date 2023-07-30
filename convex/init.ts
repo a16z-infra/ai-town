@@ -68,10 +68,13 @@ export const seed = mutation({
           '    npx convex dashboard\n or https://dashboard.convex.dev',
       );
     }
+    const worldId =
+      (await ctx.db.query('worlds').first())?._id || (await ctx.db.insert('worlds', {}));
     const playersByName: Record<string, Id<'players'>> = {};
     for (const { name } of data) {
       const playerId = await ctx.db.insert('players', {
         name,
+        worldId,
       });
       playersByName[name] = playerId;
     }

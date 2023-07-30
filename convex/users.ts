@@ -14,11 +14,12 @@ import { Action } from './types';
 import { Pose } from './lib/physics';
 
 export const createPlayer = mutation({
-  args: { pose: Pose, name: v.string() },
+  args: { pose: Pose, name: v.string(), worldId: v.id('worlds') },
   handler: async (ctx, args) => {
     // TODO: associate this with an authed user
     const playerId = await ctx.db.insert('players', {
       name: args.name,
+      worldId: args.worldId,
     });
     await ctx.db.insert('journal', {
       playerId,

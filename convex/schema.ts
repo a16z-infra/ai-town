@@ -116,10 +116,11 @@ export type EntryOfType<T extends EntryType> = Omit<Entry, 'data'> & {
 };
 
 export default defineSchema({
-  // Could be extended to non-agent players
+  worlds: defineTable({}),
   players: defineTable({
     name: v.string(),
-  }),
+    worldId: v.id('worlds'),
+  }).index('by_worldId', ['worldId']),
   journal: Journal.table
     .index('by_playerId_type_ts', ['playerId', 'data.type', 'ts'])
     .index('by_conversation', ['data.conversationId', 'ts']),
