@@ -151,5 +151,5 @@ export default defineSchema({
 
   // Something for messages to associate with, can store
   // read-only metadata here in the future.
-  conversations: defineTable({}),
+  conversations: defineTable({ worldId: v.id('worlds') }).index('by_worldId', ['worldId']),
 });

@@ -101,12 +101,13 @@ export async function handlePlayerAction(
   const ts = Date.now();
   let nextActionTs = ts + DEFAULT_AGENT_IDLE;
   const playerDoc = (await ctx.db.get(playerId))!;
+  const { worldId } = playerDoc;
   const player = await playerSnapshot(ctx.db, playerDoc, ts);
   // TODO: Check if the player shoudl still respond.
   switch (action.type) {
     case 'startConversation':
-      // TODO: determine if other users are still available.
-      const conversationId = await ctx.db.insert('conversations', {});
+      // TODO: determine if other players are still available.
+      const conversationId = await ctx.db.insert('conversations', { worldId });
       await ctx.db.insert('journal', {
         ts,
         playerId,
@@ -117,10 +118,10 @@ export async function handlePlayerAction(
           conversationId,
         },
       });
-      // TODO: schedule other users to be woken up if they aren't already.
+      // TODO: schedule other players to be woken up if they aren't already.
       break;
     case 'saySomething':
-      // TODO: Check if these users are still nearby?
+      // TODO: Check if these players are still nearby?
       await ctx.db.insert('journal', {
         ts,
         playerId,
@@ -159,7 +160,7 @@ export async function handlePlayerAction(
       });
       break;
   }
-  await ctx.scheduler.runAt(nextActionTs, internal.engine.tick, { worldId: playerDoc.worldId });
+  await ctx.scheduler.runAt(nextActionTs, internal.engine.tick, { worldId });
 }
 
 async function makeSnapshot(
