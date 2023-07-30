@@ -34,6 +34,7 @@ export const runConversation = action({
         const snapshot = await ctx.runMutation(internal.agent.debugPlanAgent, {
           playerId,
         });
+        console.log('running ', snapshot.player.id, snapshot.player.name);
         await ctx.runAction(internal.agent.runAgent, { snapshot, noSchedule: true });
       }
     }
@@ -185,6 +186,7 @@ export const runAgent = internalAction({
 
 export function ActionAPI(ctx: ActionCtx, playerId: Id<'players'>, noSchedule: boolean) {
   return (action: Action) => {
+    console.log('player ', playerId, ' attempting action ', action);
     return ctx.runMutation(internal.engine.handleAgentAction, {
       playerId,
       action,
