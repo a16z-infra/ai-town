@@ -75,6 +75,7 @@ export async function agentLoop(
 ) {
   const imWalkingHere = player.motion.type === 'walking' && player.motion.targetEndTs > Date.now();
   const newFriends = nearbyPlayers.filter((a) => a.new).map(({ player }) => player);
+  const othersThinking = newFriends.find((a) => a.thinking);
   // Handle new observations
   //   Calculate scores
   //   If there's enough observation score, trigger reflection?
@@ -144,18 +145,20 @@ export async function agentLoop(
       await actionAPI({ type: 'stop' });
     }
     // Hey, new friends
-    // TODO: decide whether we want to talk, and to whom.
-    const { embedding } = await fetchEmbedding(`What do you think about ${newFriends[0].name}`);
-    const memories = await memory.accessMemories(player.id, embedding);
-    // TODO: actually do things with LLM completions.
-    if (
-      await actionAPI({
-        type: 'startConversation',
-        audience: newFriends.map((a) => a.id),
-        content: 'Hello',
-      })
-    ) {
-      return;
+    if (!othersThinking) {
+      // Decide whether we want to talk
+      const { embedding } = await fetchEmbedding(`What do you think about ${newFriends[0].name}`);
+      const memories = await memory.accessMemories(player.id, embedding);
+      // TODO: actually do things with LLM completions.
+      if (
+        await actionAPI({
+          type: 'startConversation',
+          audience: newFriends.map((a) => a.id),
+          content: 'Hello',
+        })
+      ) {
+        return;
+      }
     }
   }
   if (!imWalkingHere) {
