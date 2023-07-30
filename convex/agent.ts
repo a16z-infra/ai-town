@@ -1,3 +1,4 @@
+import { v } from 'convex/values';
 import { api, internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
 import {
@@ -12,13 +13,14 @@ import { getRandomPosition, manhattanDistance } from './lib/physics';
 import { MemoryDB } from './lib/memory';
 import { chatGPTCompletion, fetchEmbedding } from './lib/openai';
 import { Snapshot, Action } from './types';
+import { handlePlayerAction } from './engine';
 
 export const runAgent = internalAction({
   args: { snapshot: Snapshot },
   handler: async (ctx, { snapshot }) => {
     const memory = MemoryDB(ctx);
     const action = await agentLoop(snapshot, memory);
-    await ctx.runMutation(internal.engine.handleAgentAction, {
+    await ctx.runMutation(internal.agent.handleAgentAction, {
       playerId: snapshot.player.id,
       action,
       // Not used now, but maybe it'd be useful later.
@@ -27,11 +29,20 @@ export const runAgent = internalAction({
   },
 });
 
+export const handleAgentAction = internalMutation({
+  args: { playerId: v.id('players'), action: Action },
+  handler: handlePlayerAction,
+});
+
 export async function agentLoop(
   { player, nearbyPlayers, status, plan }: Snapshot,
   memory: MemoryDB,
 ): Promise<Action> {
   const newFriends = nearbyPlayers.filter((a) => a.new).map(({ player }) => player);
+  // Handle new observations
+  //   Calculate scores
+  //   If there's enough observation score, trigger reflection?
+  // Wait for new memories before proceeding
   // Future: Store observations about seeing players?
   //  might include new observations -> add to memory with openai embeddings
   // Based on plan and observations, determine next action:

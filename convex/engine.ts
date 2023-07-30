@@ -3,6 +3,8 @@ import { api, internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
 import {
   DatabaseReader,
+  DatabaseWriter,
+  MutationCtx,
   action,
   internalAction,
   internalMutation,
@@ -38,6 +40,7 @@ export const tick = internalMutation({
       playerSnapshot(ctx.db, playerDoc, ts),
     );
 
+    // TODO: If the player's path is blocked, stop or re-route.
     // TODO: ensure one action running per player
     // TODO: coordinate shared interactions (shared focus)
     // TODO: Determine if any players are not worth waking up
@@ -85,78 +88,73 @@ export const getPlayerSnapshot = query({
   },
 });
 
-export const handleAgentAction = internalMutation({
-  args: { playerId: v.id('players'), action: Action },
-  handler: async (ctx, { playerId, action }) => {
-    const ts = Date.now();
-    let nextActionTs = ts + DEFAULT_AGENT_IDLE;
-    const playerDoc = (await ctx.db.get(playerId))!;
-    const player = await playerSnapshot(ctx.db, playerDoc, ts);
-    // TODO: Check if the player shoudl still respond.
-    switch (action.type) {
-      case 'startConversation':
-        // TODO: determine if other users are still available.
-        const conversationId = await ctx.db.insert('conversations', {});
-        await ctx.db.insert('journal', {
-          ts,
-          playerId,
-          data: {
-            type: 'talking',
-            audience: action.audience,
-            content: action.content,
-            conversationId,
-          },
-        });
-        // TODO: schedule other users to be woken up if they aren't already.
-        break;
-      case 'saySomething':
-        // TODO: Check if these users are still nearby?
-        await ctx.db.insert('journal', {
-          ts,
-          playerId,
-          data: {
-            type: 'talking',
-            audience: action.audience,
-            content: action.content,
-            conversationId: action.conversationId,
-          },
-        });
-        // TODO: schedule other users to be woken up if they aren't already.
-        break;
-      case 'travel':
-        // TODO: calculate obstacles to wake up?
-        const { route, distance } = await findRoute(player.pose, action.position);
-        // TODO: Scan for upcoming collisions (including objects for new observations)
-        const targetEndTs = ts + distance * TIME_PER_STEP;
-        nextActionTs = Math.min(nextActionTs, targetEndTs);
-        await ctx.db.insert('journal', {
-          ts,
-          playerId,
-          data: {
-            type: 'walking',
-            route,
-            targetEndTs,
-          },
-        });
-        break;
-      case 'continue':
-        await ctx.db.insert('journal', {
-          ts,
-          playerId,
-          data: {
-            type: 'continuing',
-          },
-        });
-        break;
-
-      //  Update player cursor seen and nextActionTs
-      // Handle new observations
-      //   Calculate scores
-      //   If there's enough observation score, trigger reflection?
-    }
-    await ctx.scheduler.runAt(nextActionTs, internal.engine.tick, {});
-  },
-});
+export async function handlePlayerAction(
+  ctx: MutationCtx,
+  { playerId, action }: { playerId: Id<'players'>; action: Action },
+) {
+  const ts = Date.now();
+  let nextActionTs = ts + DEFAULT_AGENT_IDLE;
+  const playerDoc = (await ctx.db.get(playerId))!;
+  const player = await playerSnapshot(ctx.db, playerDoc, ts);
+  // TODO: Check if the player shoudl still respond.
+  switch (action.type) {
+    case 'startConversation':
+      // TODO: determine if other users are still available.
+      const conversationId = await ctx.db.insert('conversations', {});
+      await ctx.db.insert('journal', {
+        ts,
+        playerId,
+        data: {
+          type: 'talking',
+          audience: action.audience,
+          content: action.content,
+          conversationId,
+        },
+      });
+      // TODO: schedule other users to be woken up if they aren't already.
+      break;
+    case 'saySomething':
+      // TODO: Check if these users are still nearby?
+      await ctx.db.insert('journal', {
+        ts,
+        playerId,
+        data: {
+          type: 'talking',
+          audience: action.audience,
+          content: action.content,
+          conversationId: action.conversationId,
+        },
+      });
+      // TODO: schedule other users to be woken up if they aren't already.
+      break;
+    case 'travel':
+      // TODO: calculate obstacles to wake up?
+      const { route, distance } = await findRoute(player.pose, action.position);
+      // TODO: Scan for upcoming collisions (including objects for new observations)
+      const targetEndTs = ts + distance * TIME_PER_STEP;
+      nextActionTs = Math.min(nextActionTs, targetEndTs);
+      await ctx.db.insert('journal', {
+        ts,
+        playerId,
+        data: {
+          type: 'walking',
+          route,
+          targetEndTs,
+        },
+      });
+      break;
+    case 'continue':
+      await ctx.db.insert('journal', {
+        ts,
+        playerId,
+        data: {
+          type: 'continuing',
+        },
+      });
+      break;
+  }
+  await ctx.scheduler.runAt(nextActionTs, internal.engine.tick, {});
+}
 
 async function makeSnapshot(
   db: DatabaseReader,
