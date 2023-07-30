@@ -19,10 +19,11 @@ export const runConversation = action({
   args: { players: v.optional(v.array(v.id('players'))) },
   handler: async (ctx, args) => {
     // To always clear all first:
-    // await ctx.runAction(internal.init.seed, { reset: true });
+    await ctx.runAction(internal.init.seed, { reset: true });
     // To always make a new world:
     // await ctx.runAction(internal.init.seed, { newWorld: true });
-    await ctx.runAction(internal.init.seed, {});
+    // To just run with the existing agents:
+    // await ctx.runAction(internal.init.seed, {});
     let players = args.players;
     if (!players) {
       players = await ctx.runQuery(internal.agent.getDebugPlayerIds);
