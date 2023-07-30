@@ -1,6 +1,6 @@
 // That's right! No imports and no dependencies 🤯
 
-export async function chatGPTCompletion(body: Message[]) {
+export async function chatGPTCompletion(messages: Message[]) {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error(
       'Missing OPENAI_API_KEY in environment variables.\n' +
@@ -31,11 +31,14 @@ export async function chatGPTCompletion(body: Message[]) {
       // temperature 0 to 2, how random
       // top_p: number, alternative to temp
       // user: string, string identifying user to help OpenAI monitor abuse.
-      body,
+      messages,
     }),
   });
+  const json = await result.json();
+  console.log('OpenAI response', result, messages, json);
   const ms = Date.now() - start;
-  const completion = (await result.json()).data as ChatCompletion;
+  const completion = json.data as ChatCompletion;
+  console.log({ completion });
   const content = completion.choices[0].message?.content;
   if (!content) {
     throw new Error('Unexpected result from OpenAI: ' + JSON.stringify(completion));
@@ -130,6 +133,31 @@ interface ReturnMessage extends Message {
      * The name of the function to call.
      */
     name: string;
+  };
+}
+interface CreateChatCompletionResponse {
+  id: string;
+  object: string;
+  created: number;
+  model: string;
+  choices: {
+    index?: number;
+    message?: {
+      role: {
+        readonly System: 'system';
+        readonly User: 'user';
+        readonly Assistant: 'assistant';
+      };
+      content: string;
+    };
+    finish_reason?: string;
+  }[];
+  usage?: {
+    completion_tokens: number;
+
+    prompt_tokens: number;
+
+    total_tokens: number;
   };
 }
 

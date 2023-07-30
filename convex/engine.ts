@@ -1,8 +1,7 @@
 import { v } from 'convex/values';
-import { api, internal } from './_generated/api';
+import { internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
 import {
-  ActionCtx,
   DatabaseReader,
   DatabaseWriter,
   MutationCtx,
@@ -13,17 +12,10 @@ import {
   mutation,
   query,
 } from './_generated/server';
-import { Entry, GameTs, EntryType, EntryOfType, MemoryOfType, MemoryType } from './schema';
-import { Action, Motion, Player, Pose, Snapshot } from './types.js';
+import { GameTs, EntryType, EntryOfType, MemoryOfType, MemoryType } from './schema';
+import { Action, Player, Pose, Snapshot } from './types.js';
 import { asyncMap, pruneNull } from './lib/utils.js';
-import {
-  calculateFraction,
-  findRoute,
-  getPoseFromMotion,
-  getPoseFromRoute,
-  manhattanDistance,
-  roundPose,
-} from './lib/physics.js';
+import { findRoute, getPoseFromMotion, manhattanDistance, roundPose } from './lib/physics.js';
 
 export const NEARBY_DISTANCE = 5;
 export const TIME_PER_STEP = 1000;

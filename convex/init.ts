@@ -71,14 +71,15 @@ export const seed = mutation({
     const memories = data.flatMap(({ name, memories }) => {
       const playerId = playersByName[name]!;
       return memories.map((memory, idx) => {
+        const { description, ...rest } = memory;
         let data: Doc<'memories'>['data'] | undefined;
-        if (memory.type === 'relationship') {
-          const { playerName, ...relationship } = memory;
+        if (rest.type === 'relationship') {
+          const { playerName, ...relationship } = rest;
           const otherId = playersByName[playerName];
           if (!otherId) throw new Error(`No player named ${playerName}`);
           data = { ...relationship, playerId: otherId };
         } else {
-          data = memory;
+          data = rest;
         }
         const newMemory = {
           playerId,
