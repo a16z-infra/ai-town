@@ -78,7 +78,7 @@ export const Journal = tableHelper('journal', {
     }),
     v.object({
       type: v.literal('stopped'),
-      reason: v.union(v.literal('interrupted'), v.literal('finished')),
+      reason: v.union(v.literal('interrupted'), v.literal('idle')),
       pose: Pose,
     }),
     v.object({

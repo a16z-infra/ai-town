@@ -24,7 +24,7 @@ export const Status = v.union(
   v.object({
     type: v.literal('stopped'),
     sinceTs: v.number(),
-    reason: v.union(v.literal('interrupted'), v.literal('finished')),
+    reason: v.union(v.literal('interrupted'), v.literal('idle')),
   }),
   v.object({
     type: v.literal('thinking'),

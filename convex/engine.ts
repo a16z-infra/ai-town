@@ -262,7 +262,7 @@ async function getStatus(db: DatabaseReader, playerId: Id<'players'>, ts: GameTs
         };
     }
   }
-  return { type: 'stopped', sinceTs: ts, reason: 'finished' };
+  return { type: 'stopped', sinceTs: ts, reason: 'idle' };
 }
 
 async function fetchPose(db: DatabaseReader, playerId: Id<'players'>, ts: GameTs): Promise<Pose> {
