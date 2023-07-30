@@ -16,20 +16,37 @@ import { chatGPTCompletion, fetchEmbedding } from './lib/openai';
 import { Snapshot, Action } from './types';
 
 export const runConversation = action({
-  args: { players: v.array(v.id('players')) },
+  args: { players: v.optional(v.array(v.id('players'))) },
   handler: async (ctx, args) => {
-    // To clear all:
-    // await ctx.runAction(internal.agent.debugClearAll);
-    // To make a new world:
+    // To always clear all first:
+    // await ctx.runAction(internal.init.seed, { reset: true });
+    // To always make a new world:
     // await ctx.runAction(internal.init.seed, { newWorld: true });
+    await ctx.runAction(internal.init.seed, {});
+    let players = args.players;
+    if (!players) {
+      players = await ctx.runQuery(internal.agent.getDebugPlayerIds);
+    }
     for (let i = 0; i < 10; i++) {
-      for (const playerId of args.players) {
+      for (const playerId of players) {
         const snapshot = await ctx.runQuery(api.engine.getPlayerSnapshot, {
           playerId,
         });
         await ctx.runAction(internal.agent.runAgent, { snapshot });
       }
     }
+  },
+});
+
+export const getDebugPlayerIds = internalQuery({
+  handler: async (ctx) => {
+    const world = await ctx.db.query('worlds').first();
+    if (!world) throw new Error('No worlds exist yet: try running dbx convex run init');
+    const players = await ctx.db
+      .query('players')
+      .withIndex('by_worldId', (q) => q.eq('worldId', world._id))
+      .collect();
+    return players.map((p) => p._id);
   },
 });
 
