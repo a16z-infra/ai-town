@@ -1,17 +1,14 @@
-import { v } from 'convex/values';
-import { api, internal } from './_generated/api';
+import { internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
-import {
-  action,
-  internalAction,
-  internalMutation,
-  internalQuery,
-  mutation,
-  query,
-} from './_generated/server';
-import { MemoryType } from './schema.js';
-import { checkEmbeddingCache } from './lib/memory.js';
-import { asyncMap, pruneNull } from './lib/utils.js';
+import { mutation } from './_generated/server';
+
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error(
+    'Missing OPENAI_API_KEY in environment variables.\n' +
+      'Set it in the project settings in the Convex dashboard:\n' +
+      '    npx convex dashboard\n or https://dashboard.convex.dev',
+  );
+}
 
 const data = [
   {
@@ -60,13 +57,6 @@ export const seed = mutation({
     if (await ctx.db.query('players').first()) {
       // Already seeded
       return;
-    }
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error(
-        'Missing OPENAI_API_KEY in environment variables.\n' +
-          'Set it in the project settings in the Convex dashboard:\n' +
-          '    npx convex dashboard\n or https://dashboard.convex.dev',
-      );
     }
     const worldId =
       (await ctx.db.query('worlds').first())?._id || (await ctx.db.insert('worlds', {}));
