@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
-import { Doc, Id } from './_generated/dataModel';
+import { Doc, Id, TableNames } from './_generated/dataModel';
 import { internalAction, internalMutation, mutation } from './_generated/server';
 import { MemoryDB } from './lib/memory';
 
@@ -79,19 +79,20 @@ export const addPlayers = internalMutation({
 export const debugClearAll = internalMutation({
   args: {},
   handler: async (ctx, args) => {
-    const deleteAll = (docs: Doc<any>[]) => docs.map((d) => d._id).forEach(ctx.db.delete);
-    const players = await ctx.db.query('players').take(1000);
-    await deleteAll(players);
-    const entries = await ctx.db.query('journal').take(1000);
-    await deleteAll(entries);
-    const memories = await ctx.db.query('memories').take(1000);
-    await deleteAll(memories);
-    const memoryAccesses = await ctx.db.query('memoryAccesses').take(1000);
-    await deleteAll(memoryAccesses);
-    const conversations = await ctx.db.query('conversations').take(1000);
-    await deleteAll(conversations);
-    const worlds = await ctx.db.query('worlds').take(1000);
-    await deleteAll(worlds);
+    const deleteAll = async (tableName: TableNames) => {
+      // fetch the most recent 1000
+      const docs = await ctx.db.query(tableName).order('desc').take(1000);
+      docs.map((d) => d._id).forEach(ctx.db.delete);
+      if (await ctx.db.query(tableName).first()) {
+        console.log("Didn't delete all: more than 1k entries in " + tableName);
+      }
+    };
+    await deleteAll('players');
+    await deleteAll('journal');
+    await deleteAll('memories');
+    await deleteAll('memoryAccesses');
+    await deleteAll('conversations');
+    await deleteAll('worlds');
   },
 });
 
