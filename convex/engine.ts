@@ -16,6 +16,7 @@ import { GameTs, EntryType, EntryOfType, MemoryOfType, MemoryType } from './sche
 import { Action, Player, Pose, Snapshot } from './types.js';
 import { asyncMap, pruneNull } from './lib/utils.js';
 import { findRoute, getPoseFromMotion, manhattanDistance, roundPose } from './lib/physics.js';
+import { clientMessage } from './chat';
 
 export const NEARBY_DISTANCE = 5;
 export const TIME_PER_STEP = 1000;
@@ -261,16 +262,13 @@ async function getNearbyConversations(
     }, {});
   // Now, filter out conversations that did't include the observer.
   const conversations = Object.values(conversationsById).filter((entry) => {
-    return !!entry.data.audience.indexOf(playerId);
+    return entry.data.audience.includes(playerId);
   });
   return asyncMap(conversations, async (entry) => ({
     conversationId: entry.data.conversationId,
-    messages: (await fetchMessages(db, entry.data.conversationId)).map((m) => ({
-      from: m.playerId,
-      to: m.data.audience,
-      content: m.data.content,
-      ts: m.ts,
-    })),
+    messages: (await fetchMessages(db, entry.data.conversationId))
+      .map(clientMessage)
+      .filter((message) => message.to.includes(playerId)),
   }));
 }
 

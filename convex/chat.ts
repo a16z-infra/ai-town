@@ -83,7 +83,7 @@ function conversationQuery(db: DatabaseReader, conversationId: Id<'conversations
     .order('desc');
 }
 
-function clientMessage(m: EntryOfType<'talking'>): Message {
+export function clientMessage(m: EntryOfType<'talking'>): Message {
   return {
     from: m.playerId,
     to: m.data.audience,
