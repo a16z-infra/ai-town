@@ -217,7 +217,7 @@ async function playerSnapshot(
   const lastPlan = await latestEntryOfType(db, playerDoc._id, 'planning', ts);
   const lastContinue = await latestEntryOfType(db, playerDoc._id, 'continuing', ts);
   const lastThinking = pruneNull([lastPlan, lastContinue])
-    .sort((a, b) => b.ts - a.ts)
+    .sort((a, b) => a.ts - b.ts)
     .pop();
   const lastStop = await latestEntryOfType(db, playerDoc._id, 'stopped', ts);
   const lastWalk = await latestEntryOfType(db, playerDoc._id, 'walking', ts);
