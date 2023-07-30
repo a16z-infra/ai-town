@@ -59,7 +59,7 @@ export const addPlayers = internalMutation({
   handler: async (ctx, { newWorld }) => {
     if (!newWorld && (await ctx.db.query('players').first())) {
       // Already seeded
-      return [];
+      return null;
     }
     const worldId =
       (!newWorld && (await ctx.db.query('worlds').first())?._id) ||
@@ -72,33 +72,7 @@ export const addPlayers = internalMutation({
       });
       playersByName[name] = playerId;
     }
-    const memories = data.flatMap(({ name, memories }) => {
-      const playerId = playersByName[name]!;
-      return memories.map((memory, idx) => {
-        const { description, ...rest } = memory;
-        let data: Doc<'memories'>['data'] | undefined;
-        if (rest.type === 'relationship') {
-          const { playerName, ...relationship } = rest;
-          const otherId = playersByName[playerName];
-          if (!otherId) throw new Error(`No player named ${playerName}`);
-          data = { ...relationship, playerId: otherId };
-        } else {
-          data = rest;
-        }
-        const newMemory = {
-          playerId,
-          data,
-          description: memory.description,
-          // You can add custom importances to override the calculated ones.
-          // importance: memory.importance,
-          // Set the memories in the past, so they don't all have the same ts.
-          ts: Date.now() - (memories.length - idx) * 1000,
-        };
-
-        return newMemory;
-      });
-    });
-    return memories;
+    return playersByName;
   },
 });
 
@@ -127,7 +101,34 @@ export const seed = internalAction({
     if (reset) {
       await ctx.runMutation(internal.init.debugClearAll, {});
     }
-    const memories = await ctx.runMutation(internal.init.addPlayers, { newWorld });
+    const playersByName = await ctx.runMutation(internal.init.addPlayers, { newWorld });
+    if (!playersByName) return;
+    const memories = data.flatMap(({ name, memories }) => {
+      const playerId = playersByName[name]!;
+      return memories.map((memory, idx) => {
+        const { description, ...rest } = memory;
+        let data: Doc<'memories'>['data'] | undefined;
+        if (rest.type === 'relationship') {
+          const { playerName, ...relationship } = rest;
+          const otherId = playersByName[playerName];
+          if (!otherId) throw new Error(`No player named ${playerName}`);
+          data = { ...relationship, playerId: otherId };
+        } else {
+          data = rest;
+        }
+        const newMemory = {
+          playerId,
+          data,
+          description: memory.description,
+          // You can add custom importances to override the calculated ones.
+          // importance: memory.importance,
+          // Set the memories in the past, so they don't all have the same ts.
+          ts: Date.now() - (memories.length - idx) * 1000,
+        };
+
+        return newMemory;
+      });
+    });
     // It will check the cache, calculate missing embeddings, and add them.
     // If it fails here, it won't be retried. But you could clear the memor
     await MemoryDB(ctx).addMemories(memories);

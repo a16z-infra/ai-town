@@ -11,9 +11,9 @@ import {
   mutation,
   query,
 } from '../_generated/server.js';
-import { asyncMap, getAll } from './utils.js';
+import { asyncMap } from './utils.js';
 import { Memories } from '../schema.js';
-import { chatGPTCompletion, fetchEmbedding, fetchEmbeddingBatch } from './openai.js';
+import { chatGPTCompletion, fetchEmbeddingBatch } from './openai.js';
 
 const { embeddingId: _, ...MemoryWithoutEmbeddingId } = Memories.fields;
 const NewMemory = { ...MemoryWithoutEmbeddingId, importance: v.optional(v.number()) };
