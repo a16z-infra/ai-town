@@ -32,7 +32,7 @@ export const runConversation = action({
         const snapshot = await ctx.runQuery(api.engine.getPlayerSnapshot, {
           playerId,
         });
-        await ctx.runAction(internal.agent.runAgent, { snapshot });
+        await ctx.runAction(internal.agent.runAgent, { snapshot, oneShot: true });
       }
     }
   },
