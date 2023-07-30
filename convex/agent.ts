@@ -122,7 +122,9 @@ export async function agentLoop(
   // We didn't say anything in a conversation yet.
   if (newFriends.length) {
     // Let's stop and be social
-    await actionAPI({ type: 'stop' });
+    if (imWalkingHere) {
+      await actionAPI({ type: 'stop' });
+    }
     // Hey, new friends
     // TODO: decide whether we want to talk, and to whom.
     const { embedding } = await fetchEmbedding(`What do you think about ${newFriends[0].name}`);

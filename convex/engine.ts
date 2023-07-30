@@ -146,7 +146,7 @@ export async function handlePlayerAction(
       break;
     case 'travel':
       // TODO: calculate obstacles to wake up?
-      const { route, distance } = await findRoute(player.motion, action.position);
+      const { route, distance } = findRoute(player.motion, action.position);
       // TODO: Scan for upcoming collisions (including objects for new observations)
       const targetEndTs = ts + distance * TIME_PER_STEP;
       await ctx.db.insert('journal', {
@@ -173,6 +173,7 @@ export async function handlePlayerAction(
     default:
       const _exhaustiveCheck: never = action;
   }
+  return true;
 }
 
 async function makeSnapshot(
