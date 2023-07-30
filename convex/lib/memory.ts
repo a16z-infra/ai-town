@@ -132,16 +132,24 @@ export const accessMemories = internalMutation({
     const relatedMemories = await asyncMap(candidates, ({ _id }) =>
       getMemoryByEmbeddingId(ctx.db, playerId, _id),
     );
-    // TODO: filter out old
-    const recentMemories = await asyncMap(relatedMemories, (memory) =>
-      getOneFrom(ctx.db, 'memoryAccesses', 'memoryId', memory._id),
-    );
-    // TODO: normalize ranges with min/max.
+    const recencyScore = await asyncMap(relatedMemories, async (memory) => {
+      const access = await ctx.db
+        .query('memoryAccesses')
+        .withIndex('by_memoryId', (q) => q.eq('memoryId', memory._id))
+        .order('desc')
+        .first();
+      if (!access) return 1;
+      return 0.99 ^ Math.floor((ts - access._creationTime) / 1000 / 60 / 60);
+    });
+    const relevanceRange = makeRange(candidates.map((c) => c.score));
+    const importanceRange = makeRange(relatedMemories.map((m) => m.importance));
+    const recencyRange = makeRange(recencyScore);
     const memoryScores = relatedMemories.map((memory, idx) => ({
       memory,
       overallScore:
-        (candidates[idx].score + memory.importance + 0.99) ^
-        Math.floor((ts - recentMemories[idx]!._creationTime) / 1000 / 60 / 60),
+        normalize(candidates[idx].score, relevanceRange) +
+        normalize(memory.importance, importanceRange) +
+        normalize(recencyScore[idx], recencyRange),
     }));
     memoryScores.sort((a, b) => b.overallScore - a.overallScore);
     const accessed = memoryScores.slice(0, count);
@@ -151,6 +159,17 @@ export const accessMemories = internalMutation({
     return accessed;
   },
 });
+
+function normalize(value: number, range: readonly [number, number]) {
+  const [min, max] = range;
+  return (value - min) / (max - min);
+}
+
+function makeRange(values: number[]) {
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  return [min, max] as const;
+}
 
 export const embedMemory = internalAction({
   args: { memory: v.object(NewMemory) },
