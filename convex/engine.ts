@@ -27,8 +27,8 @@ export const CONVERSATION_DEAD_THRESHOLD = 600_000; // In ms
 
 // TODO: add a cron to tick every minute or so
 export const tick = internalMutation({
-  args: { worldId: v.id('worlds'), oneShot: v.optional(v.id('players')) },
-  handler: async (ctx, { worldId, oneShot }) => {
+  args: { worldId: v.id('worlds'), forPlayer: v.optional(v.id('players')) },
+  handler: async (ctx, { worldId, forPlayer }) => {
     const ts = Date.now();
     const playerDocs = await ctx.db
       .query('players')
@@ -52,7 +52,7 @@ export const tick = internalMutation({
       // try anyways and handle rejecting old actions.
       if (player.thinking) continue;
       // For players worth waking up: schedule action
-      if (oneShot && player.id !== oneShot) continue;
+      if (forPlayer && player.id !== forPlayer) continue;
       const snapshot = await makeSnapshot(ctx.db, player, playerSnapshots, ts);
       await ctx.db.insert('journal', {
         ts,
@@ -70,7 +70,7 @@ export const tick = internalMutation({
       // TODO: handle timeouts
       // Later: handle object ownership?
     }
-    if (oneShot) return;
+    if (forPlayer) return;
   },
 });
 
@@ -98,16 +98,20 @@ export const getPlayerSnapshot = query({
 });
 
 export const handleAgentAction = internalMutation({
-  args: { playerId: v.id('players'), action: Action, oneShot: v.optional(v.boolean()) },
+  args: { playerId: v.id('players'), action: Action, noSchedule: v.optional(v.boolean()) },
   handler: handlePlayerAction,
 });
 
 export async function handlePlayerAction(
   ctx: MutationCtx,
-  { playerId, action, oneShot }: { playerId: Id<'players'>; action: Action; oneShot?: boolean },
+  {
+    playerId,
+    action,
+    noSchedule,
+  }: { playerId: Id<'players'>; action: Action; noSchedule?: boolean },
 ) {
   const tick = async (at?: number) => {
-    if (oneShot) return;
+    if (noSchedule) return;
     if (at) ctx.scheduler.runAt(at, internal.engine.tick, { worldId });
     else ctx.scheduler.runAfter(0, internal.engine.tick, { worldId });
   };

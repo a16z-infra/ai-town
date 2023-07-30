@@ -34,7 +34,7 @@ export const runConversation = action({
         const snapshot = await ctx.runMutation(internal.agent.debugPlanAgent, {
           playerId,
         });
-        await ctx.runAction(internal.agent.runAgent, { snapshot, oneShot: true });
+        await ctx.runAction(internal.agent.runAgent, { snapshot, noSchedule: true });
       }
     }
   },
@@ -170,22 +170,22 @@ export async function agentLoop(
 }
 
 export const runAgent = internalAction({
-  args: { snapshot: Snapshot, oneShot: v.optional(v.boolean()) },
-  handler: async (ctx, { snapshot, oneShot }) => {
+  args: { snapshot: Snapshot, noSchedule: v.optional(v.boolean()) },
+  handler: async (ctx, { snapshot, noSchedule }) => {
     const memory = MemoryDB(ctx);
-    const actionAPI = ActionAPI(ctx, snapshot.player.id, oneShot ?? false);
+    const actionAPI = ActionAPI(ctx, snapshot.player.id, noSchedule ?? false);
     await agentLoop(snapshot, memory, actionAPI);
     // continue should only be called from here, to match the "planning" entry.
     await actionAPI({ type: 'continue' });
   },
 });
 
-export function ActionAPI(ctx: ActionCtx, playerId: Id<'players'>, oneShot: boolean) {
+export function ActionAPI(ctx: ActionCtx, playerId: Id<'players'>, noSchedule: boolean) {
   return (action: Action) => {
     return ctx.runMutation(internal.engine.handleAgentAction, {
       playerId,
       action,
-      oneShot,
+      noSchedule,
     });
   };
 }
