@@ -171,29 +171,30 @@ function makeRange(values: number[]) {
   return [min, max] as const;
 }
 
-export const embedMemory = internalAction({
-  args: { memory: v.object(NewMemory) },
-  handler: async (ctx, args): Promise<Id<'memories'>> => {
-    return (await MemoryDB(ctx).addMemories([args.memory]))[0];
-  },
-});
+// Unused, but in case they're helpful later.
+// export const embedMemory = internalAction({
+//   args: { memory: v.object(NewMemory) },
+//   handler: async (ctx, args): Promise<Id<'memories'>> => {
+//     return (await MemoryDB(ctx).addMemories([args.memory]))[0];
+//   },
+// });
 
-export const embedMemories = internalAction({
-  args: { memories: v.array(v.object(NewMemory)) },
-  handler: async (ctx, args): Promise<Id<'memories'>[]> => {
-    return await MemoryDB(ctx).addMemories(args.memories);
-  },
-});
+// export const embedMemories = internalAction({
+//   args: { memories: v.array(v.object(NewMemory)) },
+//   handler: async (ctx, args): Promise<Id<'memories'>[]> => {
+//     return await MemoryDB(ctx).addMemories(args.memories);
+//   },
+// });
 
-export const addMemory = internalMutation({
-  args: NewMemoryWithEmbedding,
-  handler: async (ctx, args): Promise<Id<'memories'>> => {
-    const { embedding, ...memory } = args;
-    const { playerId, description: text } = memory;
-    const embeddingId = await ctx.db.insert('embeddings', { playerId, embedding, text });
-    return await ctx.db.insert('memories', { ...memory, embeddingId });
-  },
-});
+// export const addMemory = internalMutation({
+//   args: NewMemoryWithEmbedding,
+//   handler: async (ctx, args): Promise<Id<'memories'>> => {
+//     const { embedding, ...memory } = args;
+//     const { playerId, description: text } = memory;
+//     const embeddingId = await ctx.db.insert('embeddings', { playerId, embedding, text });
+//     return await ctx.db.insert('memories', { ...memory, embeddingId });
+//   },
+// });
 
 export const addMemories = internalMutation({
   args: { memories: v.array(v.object(NewMemoryWithEmbedding)) },

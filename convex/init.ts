@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
 import { internalAction, internalMutation, mutation } from './_generated/server';
+import { MemoryDB } from './lib/memory';
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error(
@@ -129,7 +130,7 @@ export const seed = internalAction({
     const memories = await ctx.runMutation(internal.init.addPlayers, { newWorld });
     // It will check the cache, calculate missing embeddings, and add them.
     // If it fails here, it won't be retried. But you could clear the memor
-    await ctx.runAction(internal.lib.memory.embedMemories, { memories });
+    await MemoryDB(ctx).addMemories(memories);
   },
 });
 
