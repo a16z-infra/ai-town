@@ -34,7 +34,6 @@ export const runConversation = action({
         const snapshot = await ctx.runMutation(internal.agent.debugPlanAgent, {
           playerId,
         });
-        console.log('running ', snapshot.player.id, snapshot.player.name);
         await ctx.runAction(internal.agent.runAgent, { snapshot, noSchedule: true });
       }
     }

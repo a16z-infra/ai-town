@@ -260,7 +260,7 @@ async function getNearbyConversations(
   )
     // Filter out old conversations
     .filter((entry) => Date.now() - entry.ts < CONVERSATION_DEAD_THRESHOLD)
-    // Get the latest message for each conversation.
+    // Get the latest message for each conversation, keyed by conversationId.
     .reduce<Record<Id<'conversations'>, EntryOfType<'talking'>>>((convos, entry) => {
       const existing = convos[entry.data.conversationId];
       if (!existing || existing.ts < entry.ts) {
@@ -269,15 +269,17 @@ async function getNearbyConversations(
       return convos;
     }, {});
   // Now, filter out conversations that did't include the observer.
-  const conversations = Object.values(conversationsById).filter((entry) => {
-    return entry.data.audience.includes(playerId);
-  });
-  return asyncMap(conversations, async (entry) => ({
-    conversationId: entry.data.conversationId,
-    messages: (await fetchMessages(db, entry.data.conversationId))
-      .map(clientMessage)
-      .filter((message) => message.to.includes(playerId)),
-  }));
+  const conversations = Object.values(conversationsById).filter(
+    (entry) => entry.data.audience.includes(playerId) || entry.playerId === playerId,
+  );
+  return (
+    await asyncMap(conversations, async (entry) => ({
+      conversationId: entry.data.conversationId,
+      messages: (await fetchMessages(db, entry.data.conversationId))
+        .map(clientMessage)
+        .filter((message) => message.to.includes(playerId) || message.from === playerId),
+    }))
+  ).filter((c) => c.messages.length > 0);
 }
 
 async function fetchIdentity(
