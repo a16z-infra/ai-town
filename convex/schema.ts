@@ -1,7 +1,7 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { Infer, v } from 'convex/values';
 import { tableHelper } from './lib/utils';
-import { Pose, Position, Snapshot } from './types';
+import { Pose, Position, Snapshot, Stopped, Walking } from './types';
 
 // ts is milliseconds in game time
 const ts = v.number();
@@ -75,16 +75,8 @@ export const Journal = tableHelper('journal', {
       // Refers to the first message in the conversation.
       conversationId: v.id('conversations'),
     }),
-    v.object({
-      type: v.literal('stopped'),
-      reason: v.union(v.literal('interrupted'), v.literal('idle')),
-      pose: Pose,
-    }),
-    v.object({
-      type: v.literal('walking'),
-      route: v.array(Position),
-      targetEndTs: v.number(),
-    }),
+    Stopped,
+    Walking,
     // When we run the agent loop.
     v.object({
       type: v.literal('planning'),

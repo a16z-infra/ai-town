@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 import { api, internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
 import {
+  ActionCtx,
   action,
   internalAction,
   internalMutation,
@@ -13,31 +14,13 @@ import { getRandomPosition, manhattanDistance } from './lib/physics';
 import { MemoryDB } from './lib/memory';
 import { chatGPTCompletion, fetchEmbedding } from './lib/openai';
 import { Snapshot, Action } from './types';
-import { handlePlayerAction } from './engine';
-
-export const runAgent = internalAction({
-  args: { snapshot: Snapshot },
-  handler: async (ctx, { snapshot }) => {
-    const memory = MemoryDB(ctx);
-    const action = await agentLoop(snapshot, memory);
-    await ctx.runMutation(internal.agent.handleAgentAction, {
-      playerId: snapshot.player.id,
-      action,
-      // Not used now, but maybe it'd be useful later.
-      // observedSnapshot: snapshot,
-    });
-  },
-});
-
-export const handleAgentAction = internalMutation({
-  args: { playerId: v.id('players'), action: Action },
-  handler: handlePlayerAction,
-});
 
 export async function agentLoop(
-  { player, nearbyPlayers, status, plan }: Snapshot,
+  { player, nearbyPlayers, nearbyConversations, lastPlan }: Snapshot,
   memory: MemoryDB,
-): Promise<Action> {
+  actionAPI: ActionAPI,
+) {
+  const imWalkingHere = player.motion.type === 'walking' && player.motion.targetEndTs > Date.now();
   const newFriends = nearbyPlayers.filter((a) => a.new).map(({ player }) => player);
   // Handle new observations
   //   Calculate scores
@@ -47,13 +30,34 @@ export async function agentLoop(
   //  might include new observations -> add to memory with openai embeddings
   // Based on plan and observations, determine next action:
   //   if so, add new memory for new plan, and return new action
-  switch (status.type) {
-    case 'talking':
-      // Decide if we keep talking.
-      if (status.messages.length >= 10) {
+  for (const { conversationId, messages } of nearbyConversations) {
+    // Decide if we keep talking.
+    if (messages.length >= 10) {
+      // It's to chatty here, let's go somewhere else.
+      if (!imWalkingHere) {
+        if (await actionAPI({ type: 'travel', position: getRandomPosition() })) {
+          return;
+        }
+      }
+      break;
+    } else if (messages.at(-1)?.from !== player.id) {
+      // Let's stop and be social
+      await actionAPI({ type: 'stop' });
+      // We didn't just say something.
+      // Assuming another person just said something.
+      //   Future: ask who should talk next if it's 3+ people
+      // TODO: real logic
+      const success = await actionAPI({
+        type: 'saySomething',
+        audience: nearbyPlayers.map(({ player }) => player.id),
+        content: 'Interesting point',
+        conversationId: conversationId,
+      });
+      // Success might mean someone else said something first
+      if (success) {
         // TODO: make a better prompt based on the user & relationship
         const { content: description } = await chatGPTCompletion([
-          ...status.messages.map((m) => ({
+          ...messages.map((m) => ({
             role: 'user' as const,
             content: m.content,
           })),
@@ -69,60 +73,62 @@ export async function agentLoop(
             ts: Date.now(),
             data: {
               type: 'conversation',
-              conversationId: status.conversationId,
+              conversationId: conversationId,
             },
           },
         ]);
-
-        return { type: 'travel', position: getRandomPosition() };
-      } else if (status.messages.at(-1)?.from === player.id) {
-        // We just said something.
-        return { type: 'continue' };
-      } else {
-        // Assuming another person just said something.
-        //   Future: ask who should talk next if it's 3+ people
-        // TODO: real logic
-        return {
-          type: 'saySomething',
-          audience: nearbyPlayers.map(({ player }) => player.id),
-          content: 'Interesting point',
-          conversationId: status.conversationId,
-        };
+        // Only message in one conversation
+        return;
       }
-    case 'walking':
-      if (newFriends.length) {
-        // Hey, new friends
-        // TODO: decide whether we want to talk, and to whom.
-        const { embedding } = await fetchEmbedding(`What do you think about ${newFriends[0].name}`);
-        const memories = await memory.accessMemories(player.id, embedding);
-        // TODO: actually do things with LLM completions.
-        return {
-          type: 'startConversation',
-          audience: newFriends.map((a) => a.id),
-          content: 'Hello',
-        };
-      } else if (manhattanDistance(player.pose.position, status.route.at(-1)!)) {
-        // We've arrived.
-        // TODO: make a better plan
-        return { type: 'travel', position: getRandomPosition() };
-      }
-      // Otherwise I guess just keep walking?
-      return { type: 'continue' };
-    case 'stopped':
-    case 'thinking':
-      // TODO: consider reflecting on recent memories
-      if (newFriends.length) {
-        // Hey, new friends
-        // TODO: decide whether we want to talk, and to whom.
-        // TODO: actually do things with LLM completions.
-        return {
-          type: 'startConversation',
-          audience: newFriends.map((a) => a.id),
-          content: 'Hello',
-        };
-      } else {
-        // TODO: make a better plan
-        return { type: 'travel', position: getRandomPosition() };
-      }
+    }
   }
+  // We didn't say anything in a conversation yet.
+  if (newFriends.length) {
+    // Let's stop and be social
+    await actionAPI({ type: 'stop' });
+    // Hey, new friends
+    // TODO: decide whether we want to talk, and to whom.
+    const { embedding } = await fetchEmbedding(`What do you think about ${newFriends[0].name}`);
+    const memories = await memory.accessMemories(player.id, embedding);
+    // TODO: actually do things with LLM completions.
+    if (
+      await actionAPI({
+        type: 'startConversation',
+        audience: newFriends.map((a) => a.id),
+        content: 'Hello',
+      })
+    ) {
+      return;
+    }
+  }
+  if (!imWalkingHere) {
+    // TODO: make a better plan
+    const success = await actionAPI({ type: 'travel', position: getRandomPosition() });
+    if (success) {
+      return;
+    }
+  }
+  // Otherwise I guess just keep walking?
+  // TODO: consider reflecting on recent memories
 }
+
+export const runAgent = internalAction({
+  args: { snapshot: Snapshot },
+  handler: async (ctx, { snapshot }) => {
+    const memory = MemoryDB(ctx);
+    const actionAPI = ActionAPI(ctx, snapshot.player.id);
+    await agentLoop(snapshot, memory, actionAPI);
+    // continue should only be called from here, to match the "planning" entry.
+    await actionAPI({ type: 'continue' });
+  },
+});
+
+export function ActionAPI(ctx: ActionCtx, playerId: Id<'players'>) {
+  return (action: Action) => {
+    return ctx.runMutation(internal.engine.handleAgentAction, {
+      playerId,
+      action,
+    });
+  };
+}
+export type ActionAPI = ReturnType<typeof ActionAPI>;

@@ -29,6 +29,14 @@ export function calculateOrientation(start: Position, end: Position): number {
   return dx ? (dx > 0 ? 0 : 180) : dy > 0 ? 90 : 270;
 }
 
+export function getPoseFromMotion(motion: Motion, ts: number): Pose {
+  if (motion.type === 'stopped') {
+    return motion.pose;
+  }
+  const fraction = calculateFraction(motion.startTs, motion.targetEndTs, ts);
+  return getPoseFromRoute(motion.route, fraction);
+}
+
 export function getPoseFromRoute(route: Position[], fraction: number): Pose {
   const totalLength = route.reduce((sum, pos, idx) => {
     if (idx === 0) return sum;
@@ -51,11 +59,26 @@ export function getPoseFromRoute(route: Position[], fraction: number): Pose {
     orientation: calculateOrientation(start, end),
   };
 }
-export function findRoute(startPose: Motion, end: Position) {
+
+export function roundPosition(pos: Position): Position {
+  return { x: Math.round(pos.x), y: Math.round(pos.y) };
+}
+
+export function roundPose(pose: Pose): Pose {
+  return {
+    position: roundPosition(pose.position),
+    orientation: 90 * Math.round(pose.orientation / 90),
+  };
+}
+
+export function findRoute(startMotion: Motion, end: Position) {
   const route: Position[] = [];
   let distance = 0;
 
-  let current = { x: Math.round(startPose.position.x), y: Math.round(startPose.position.y) };
+  const startPose = getPoseFromMotion(startMotion, Date.now());
+  // TODO: If they were partially along some path, include that in the new
+  // route, adjusting the start time so we stay in the same place.
+  let current = roundPosition(startPose.position);
   // Try to maintain their direction.
   let horizontal = !(startPose.orientation === 90 || startPose.orientation === 270);
   // TODO: handle walls

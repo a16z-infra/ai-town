@@ -10,8 +10,7 @@ import {
   query,
 } from './_generated/server';
 import { handlePlayerAction } from './engine';
-import { Action } from './types';
-import { Pose } from './lib/physics';
+import { Action, Pose } from './types';
 
 export const createPlayer = mutation({
   args: { pose: Pose, name: v.string(), worldId: v.id('worlds') },

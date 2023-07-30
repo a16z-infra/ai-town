@@ -30,51 +30,30 @@ export const Stopped = v.object({
 export const Walking = v.object({
   type: v.literal('walking'),
   route: v.array(Position),
+  startTs: v.number(),
   targetEndTs: v.number(),
 });
 
 export const Motion = v.union(Walking, Stopped);
 export type Motion = Infer<typeof Motion>;
- 
-export const Status = v.union(
-  v.object({
-    type: v.literal('talking'),
-    otherPlayerIds: v.array(v.id('players')),
-    conversationId: v.id('conversations'),
-    messages: v.array(Message),
-  }),
-  v.object({
-    type: v.literal('walking'),
-    sinceTs: v.number(),
-    route: v.array(Position),
-    targetEndTs: v.number(),
-  }),
-  v.object({
-    type: v.literal('stopped'),
-    sinceTs: v.number(),
-    reason: v.union(v.literal('interrupted'), v.literal('idle')),
-  }),
-  v.object({
-    type: v.literal('thinking'),
-    sinceTs: v.number(),
-  }),
-);
-export type Status = Infer<typeof Status>;
 
 export const Player = v.object({
   id: v.id('players'),
   name: v.string(),
   identity: v.string(),
-  pose: Pose,
+  motion: Motion,
+  thinking: v.boolean(),
 });
 export type Player = Infer<typeof Player>;
 
 export const Snapshot = v.object({
   player: Player,
-  status: Status,
-  plan: v.string(),
+  lastPlan: v.optional(v.object({ plan: v.string(), ts: v.number() })),
   // recentMemories: v.array(memoryValidator),
   nearbyPlayers: v.array(v.object({ player: Player, new: v.boolean() })),
+  nearbyConversations: v.array(
+    v.object({ conversationId: v.id('conversations'), messages: v.array(Message) }),
+  ),
 });
 export type Snapshot = Infer<typeof Snapshot>;
 
@@ -93,6 +72,9 @@ export const Action = v.union(
   v.object({
     type: v.literal('travel'),
     position: Position,
+  }),
+  v.object({
+    type: v.literal('stop'),
   }),
   v.object({
     type: v.literal('continue'),

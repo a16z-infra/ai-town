@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 import { api, internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
 import {
+  ActionCtx,
   DatabaseReader,
   DatabaseWriter,
   MutationCtx,
@@ -13,20 +14,23 @@ import {
   query,
 } from './_generated/server';
 import { Entry, GameTs, EntryType, EntryOfType, MemoryOfType, MemoryType } from './schema';
-import { Action, Player, Pose, Snapshot, Status } from './types.js';
+import { Action, Motion, Player, Pose, Snapshot } from './types.js';
 import { asyncMap, pruneNull } from './lib/utils.js';
 import {
   calculateFraction,
   findRoute,
+  getPoseFromMotion,
   getPoseFromRoute,
   manhattanDistance,
+  roundPose,
 } from './lib/physics.js';
 
 export const NEARBY_DISTANCE = 5;
 export const TIME_PER_STEP = 1000;
 export const DEFAULT_AGENT_IDLE = 30_000;
 // If you don't set a start position, you'll start at 0,0.
-export const DEFAULT_START_POS = { x: 0, y: 0 };
+export const DEFAULT_START_POSE: Pose = { position: { x: 0, y: 0 }, orientation: 0 };
+export const CONVERSATION_DEAD_THRESHOLD = 600_000; // In ms
 
 export const tick = internalMutation({
   args: { worldId: v.id('worlds'), oneShot: v.optional(v.id('players')) },
@@ -93,6 +97,11 @@ export const getPlayerSnapshot = query({
   },
 });
 
+export const handleAgentAction = internalMutation({
+  args: { playerId: v.id('players'), action: Action },
+  handler: handlePlayerAction,
+});
+
 export async function handlePlayerAction(
   ctx: MutationCtx,
   { playerId, action }: { playerId: Id<'players'>; action: Action },
@@ -135,29 +144,32 @@ export async function handlePlayerAction(
       break;
     case 'travel':
       // TODO: calculate obstacles to wake up?
-      const { route, distance } = await findRoute(player.pose, action.position);
+      const { route, distance } = await findRoute(player.motion, action.position);
       // TODO: Scan for upcoming collisions (including objects for new observations)
       const targetEndTs = ts + distance * TIME_PER_STEP;
       nextActionTs = Math.min(nextActionTs, targetEndTs);
       await ctx.db.insert('journal', {
         ts,
         playerId,
-        data: {
-          type: 'walking',
-          route,
-          targetEndTs,
-        },
+        data: { type: 'walking', route, startTs: ts, targetEndTs },
       });
       break;
     case 'continue':
+      await ctx.db.insert('journal', { ts, playerId, data: { type: 'continuing' } });
+      break;
+    case 'stop':
       await ctx.db.insert('journal', {
         ts,
         playerId,
         data: {
-          type: 'continuing',
+          type: 'stopped',
+          reason: 'interrupted',
+          pose: roundPose(getPoseFromMotion(player.motion, ts)),
         },
       });
       break;
+    default:
+      const _exhaustiveCheck: never = action;
   }
   await ctx.scheduler.runAt(nextActionTs, internal.engine.tick, { worldId });
 }
@@ -168,20 +180,23 @@ async function makeSnapshot(
   otherPlayersAndMe: Player[],
   ts: GameTs,
 ): Promise<Snapshot> {
-  const status = await getStatus(db, player.id, ts);
   const lastPlan = await latestEntryOfType(db, player.id, 'planning', ts);
-  const lastPlanTs = lastPlan?.ts ?? 0;
   const otherPlayers = otherPlayersAndMe.filter((d) => d.id !== player.id);
-  const nearbyPlayers = getNearbyPlayers(db, player, otherPlayers, lastPlanTs).map((player) => ({
+  const nearbyPlayers = getNearbyPlayers(db, player, otherPlayers, ts).map((player) => ({
     player,
     new: !lastPlan?.data.snapshot.nearbyPlayers.find((a) => a.player.id === player.id),
   }));
-  const planEntry = (await latestMemoryOfType(db, player.id, 'plan', ts))!;
+  const planEntry = await latestMemoryOfType(db, player.id, 'plan', ts);
   return {
     player,
-    status,
-    plan: planEntry.description,
+    lastPlan: planEntry ? { plan: planEntry.description, ts: planEntry.ts } : undefined,
     nearbyPlayers,
+    nearbyConversations: await getNearbyConversations(
+      db,
+      player.id,
+      otherPlayersAndMe.map(({ id }) => id),
+      ts,
+    ),
   };
 }
 
@@ -190,89 +205,73 @@ async function playerSnapshot(
   playerDoc: Doc<'players'>,
   ts: GameTs,
 ): Promise<Player> {
+  const lastPlan = await latestEntryOfType(db, playerDoc._id, 'planning', ts);
+  const lastContinue = await latestEntryOfType(db, playerDoc._id, 'continuing', ts);
+  const lastThinking = pruneNull([lastPlan, lastContinue])
+    .sort((a, b) => b.ts - a.ts)
+    .pop();
   const lastStop = await latestEntryOfType(db, playerDoc._id, 'stopped', ts);
   const lastWalk = await latestEntryOfType(db, playerDoc._id, 'walking', ts);
-  const pose: Pose = calculatePose(lastStop, lastWalk, ts);
+  const latestMotion = pruneNull([lastStop, lastWalk])
+    .sort((a, b) => b.ts - a.ts)
+    .pop()?.data;
   const identity = await fetchIdentity(db, playerDoc._id, ts);
 
-  return { id: playerDoc._id, name: playerDoc.name, identity, pose };
+  return {
+    id: playerDoc._id,
+    name: playerDoc.name,
+    identity,
+    thinking: lastThinking?.data.type === 'planning',
+    motion: latestMotion ?? { type: 'stopped', reason: 'idle', pose: DEFAULT_START_POSE },
+  };
 }
 
-function getNearbyPlayers(
-  db: DatabaseReader,
-  target: Player,
-  others: Player[],
-  lastPlanTs: GameTs,
-) {
+function getNearbyPlayers(db: DatabaseReader, target: Player, others: Player[], ts: GameTs) {
+  const targetPose = getPoseFromMotion(target.motion, ts);
   return others.filter((a) => {
-    const distance = manhattanDistance(target.pose.position, a.pose.position);
+    const distance = manhattanDistance(
+      targetPose.position,
+      getPoseFromMotion(a.motion, ts).position,
+    );
     return distance < NEARBY_DISTANCE;
   });
 }
 
-async function getStatus(db: DatabaseReader, playerId: Id<'players'>, ts: GameTs): Promise<Status> {
-  const lastTalk = await latestEntryOfType(db, playerId, 'talking', ts);
-  const lastStop = await latestEntryOfType(db, playerId, 'stopped', ts);
-  const lastWalk = await latestEntryOfType(db, playerId, 'walking', ts);
-  const lastPlan = await latestEntryOfType(db, playerId, 'planning', ts);
-  const lastContinue = await latestEntryOfType(db, playerId, 'continuing', ts);
-  const stack = pruneNull([lastTalk, lastStop, lastWalk, lastPlan, lastContinue]).sort(
-    (a, b) => a.ts - b.ts,
-  );
-  // Special base case for before player has other entries.
-  if (stack.length > 0) {
-    let latest = stack.pop()!;
-    if (latest.data.type === 'continuing') {
-      const next = stack.pop()!;
-      if (next.data.type === 'planning') {
-        // The planning decided to continue as previously planned.
-        latest = stack.pop()!;
-      } else {
-        latest = next;
+async function getNearbyConversations(
+  db: DatabaseReader,
+  playerId: Id<'players'>,
+  playerIds: Id<'players'>[],
+  ts: GameTs,
+): Promise<Snapshot['nearbyConversations']> {
+  const conversationsById = pruneNull(
+    await asyncMap(
+      playerIds,
+      async (playerId) => await latestEntryOfType(db, playerId, 'talking', ts),
+    ),
+  )
+    // Filter out old conversations
+    .filter((entry) => entry.ts < CONVERSATION_DEAD_THRESHOLD)
+    // Get the latest message for each conversation.
+    .reduce<Record<Id<'conversations'>, EntryOfType<'talking'>>>((convos, entry) => {
+      const existing = convos[entry.data.conversationId];
+      if (!existing || existing.ts < entry.ts) {
+        convos[entry.data.conversationId] = entry;
       }
-    }
-    const latestData = latest.data;
-    switch (latestData.type) {
-      case 'talking':
-        const messages = await fetchMessages(db, latestData.conversationId);
-        const lastMessage = messages.at(-1)!;
-        return {
-          type: 'talking',
-          otherPlayerIds: lastMessage.data.audience,
-          conversationId: latestData.conversationId,
-          messages: messages.map((m) => ({
-            from: m.playerId,
-            to: m.data.audience,
-            content: m.data.content,
-          })),
-        };
-      case 'walking':
-        return {
-          type: 'walking',
-          sinceTs: latest.ts,
-          route: latestData.route,
-          targetEndTs: latestData.targetEndTs,
-        };
-      case 'stopped':
-        return {
-          type: 'stopped',
-          reason: latestData.reason,
-          sinceTs: latest.ts,
-        };
-      case 'planning':
-        return {
-          type: 'thinking',
-          sinceTs: latest.ts,
-        };
-    }
-  }
-  return { type: 'stopped', sinceTs: ts, reason: 'idle' };
-}
-
-async function fetchPose(db: DatabaseReader, playerId: Id<'players'>, ts: GameTs): Promise<Pose> {
-  const lastStop = await latestEntryOfType(db, playerId, 'stopped', ts);
-  const lastWalk = await latestEntryOfType(db, playerId, 'walking', ts);
-  return calculatePose(lastStop, lastWalk, ts);
+      return convos;
+    }, {});
+  // Now, filter out conversations that did't include the observer.
+  const conversations = Object.values(conversationsById).filter((entry) => {
+    return !!entry.data.audience.indexOf(playerId);
+  });
+  return asyncMap(conversations, async (entry) => ({
+    conversationId: entry.data.conversationId,
+    messages: (await fetchMessages(db, entry.data.conversationId)).map((m) => ({
+      from: m.playerId,
+      to: m.data.audience,
+      content: m.data.content,
+      ts: m.ts,
+    })),
+  }));
 }
 
 async function fetchIdentity(
@@ -290,25 +289,6 @@ async function fetchMessages(db: DatabaseReader, conversationId: Id<'conversatio
     .withIndex('by_conversation', (q) => q.eq('data.conversationId', conversationId as any))
     .collect();
   return messageEntries as EntryOfType<'talking'>[];
-}
-
-function calculatePose(
-  lastStop: EntryOfType<'stopped'> | null,
-  lastWalk: EntryOfType<'walking'> | null,
-  ts: GameTs,
-): Pose {
-  if (!lastWalk) {
-    if (!lastStop) {
-      return { position: DEFAULT_START_POS, orientation: 0 };
-    }
-    return lastStop.data.pose;
-  }
-  if (!lastStop || lastWalk.ts > lastStop.ts) {
-    // Calculate based on walk
-    const fraction = calculateFraction(lastWalk.ts, lastWalk.data.targetEndTs, ts);
-    return getPoseFromRoute(lastWalk.data.route, fraction);
-  }
-  return lastStop.data.pose;
 }
 
 async function latestEntryOfType<T extends EntryType>(
