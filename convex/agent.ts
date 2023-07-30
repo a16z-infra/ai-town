@@ -21,7 +21,8 @@ export const runAgent = internalAction({
     await ctx.runMutation(internal.engine.handleAgentAction, {
       playerId: snapshot.player.id,
       action,
-      observedSnapshot: snapshot,
+      // Not used now, but maybe it'd be useful later.
+      // observedSnapshot: snapshot,
     });
   },
 });

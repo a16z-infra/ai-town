@@ -86,8 +86,8 @@ export const getPlayerSnapshot = query({
 });
 
 export const handleAgentAction = internalMutation({
-  args: { playerId: v.id('players'), action: Action, observedSnapshot: Snapshot },
-  handler: async (ctx, { playerId, action, observedSnapshot }) => {
+  args: { playerId: v.id('players'), action: Action },
+  handler: async (ctx, { playerId, action }) => {
     const ts = Date.now();
     let nextActionTs = ts + DEFAULT_AGENT_IDLE;
     const playerDoc = (await ctx.db.get(playerId))!;
