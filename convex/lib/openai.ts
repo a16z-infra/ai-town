@@ -34,10 +34,8 @@ export async function chatGPTCompletion(messages: Message[]) {
       messages,
     }),
   });
-  const json = await result.json();
-  console.log('OpenAI response', result, messages, json);
+  const completion = (await result.json()) as CreateChatCompletionResponse;
   const ms = Date.now() - start;
-  const completion = json.data as ChatCompletion;
   console.log({ completion });
   const content = completion.choices[0].message?.content;
   if (!content) {
@@ -143,11 +141,7 @@ interface CreateChatCompletionResponse {
   choices: {
     index?: number;
     message?: {
-      role: {
-        readonly System: 'system';
-        readonly User: 'user';
-        readonly Assistant: 'assistant';
-      };
+      role: 'system' | 'user' | 'assistant';
       content: string;
     };
     finish_reason?: string;

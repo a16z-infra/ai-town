@@ -73,11 +73,12 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
       const cachedEmbeddings = await ctx.runQuery(internal.lib.memory.getEmbeddingsByText, {
         texts: memoriesWithoutEmbedding.map((memory) => memory.description),
       });
-      const { embeddings: missingEmbeddings } = await fetchEmbeddingBatch(
-        memoriesWithoutEmbedding
-          .filter((memory, idx) => !cachedEmbeddings[idx])
-          .map((memory) => memory.description),
-      );
+      const cacheMisses = memoriesWithoutEmbedding
+        .filter((memory, idx) => !cachedEmbeddings[idx])
+        .map((memory) => memory.description);
+      const { embeddings: missingEmbeddings } = cacheMisses.length
+        ? await fetchEmbeddingBatch(cacheMisses)
+        : { embeddings: [] };
       // NB: The cache gets populated by addMemories, so no need to do it here.
       missingEmbeddings.reverse();
       // Swap the cache misses with calculated embeddings

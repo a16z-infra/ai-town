@@ -14,6 +14,17 @@ import { Entry, EntryOfType } from './schema';
 import { PaginationResult, paginationOptsValidator } from 'convex/server';
 import { Message } from './types';
 
+export const listConversations = query({
+  args: { worldId: v.id('worlds') },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('conversations')
+      .withIndex('by_worldId', (q) => q.eq('worldId', args.worldId))
+      .order('desc')
+      .collect();
+  },
+});
+
 export const paginateConversations = query({
   args: { worldId: v.id('worlds'), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {

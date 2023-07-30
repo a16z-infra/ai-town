@@ -1,6 +1,7 @@
+import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
-import { mutation } from './_generated/server';
+import { internalAction, internalMutation, mutation } from './_generated/server';
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error(
@@ -52,14 +53,16 @@ and he's very excited to tell people about it.`,
   },
 ];
 
-export const seed = mutation({
-  handler: async (ctx) => {
-    if (await ctx.db.query('players').first()) {
+export const addPlayers = internalMutation({
+  args: { newWorld: v.optional(v.boolean()) },
+  handler: async (ctx, { newWorld }) => {
+    if (!newWorld && (await ctx.db.query('players').first())) {
       // Already seeded
-      return;
+      return [];
     }
     const worldId =
-      (await ctx.db.query('worlds').first())?._id || (await ctx.db.insert('worlds', {}));
+      (!newWorld && (await ctx.db.query('worlds').first())?._id) ||
+      (await ctx.db.insert('worlds', {}));
     const playersByName: Record<string, Id<'players'>> = {};
     for (const { name } of data) {
       const playerId = await ctx.db.insert('players', {
@@ -94,9 +97,39 @@ export const seed = mutation({
         return newMemory;
       });
     });
+    return memories;
+  },
+});
+
+export const debugClearAll = internalMutation({
+  args: {},
+  handler: async (ctx, args) => {
+    const deleteAll = (docs: Doc<any>[]) => docs.map((d) => d._id).forEach(ctx.db.delete);
+    const players = await ctx.db.query('players').take(1000);
+    await deleteAll(players);
+    const entries = await ctx.db.query('journal').take(1000);
+    await deleteAll(entries);
+    const memories = await ctx.db.query('memories').take(1000);
+    await deleteAll(memories);
+    const memoryAccesses = await ctx.db.query('memoryAccesses').take(1000);
+    await deleteAll(memoryAccesses);
+    const conversations = await ctx.db.query('conversations').take(1000);
+    await deleteAll(conversations);
+    const worlds = await ctx.db.query('worlds').take(1000);
+    await deleteAll(worlds);
+  },
+});
+
+export const seed = internalAction({
+  args: { newWorld: v.optional(v.boolean()), reset: v.optional(v.boolean()) },
+  handler: async (ctx, { newWorld, reset }) => {
+    if (reset) {
+      await ctx.runMutation(internal.init.debugClearAll, {});
+    }
+    const memories = await ctx.runMutation(internal.init.addPlayers, { newWorld });
     // It will check the cache, calculate missing embeddings, and add them.
     // If it fails here, it won't be retried. But you could clear the memor
-    await ctx.scheduler.runAfter(0, internal.lib.memory.embedMemories, { memories });
+    await ctx.runAction(internal.lib.memory.embedMemories, { memories });
   },
 });
 

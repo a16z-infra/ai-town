@@ -15,6 +15,24 @@ import { MemoryDB } from './lib/memory';
 import { chatGPTCompletion, fetchEmbedding } from './lib/openai';
 import { Snapshot, Action } from './types';
 
+export const runConversation = action({
+  args: { players: v.array(v.id('players')) },
+  handler: async (ctx, args) => {
+    // To clear all:
+    // await ctx.runAction(internal.agent.debugClearAll);
+    // To make a new world:
+    // await ctx.runAction(internal.init.seed, { newWorld: true });
+    for (let i = 0; i < 10; i++) {
+      for (const playerId of args.players) {
+        const snapshot = await ctx.runQuery(api.engine.getPlayerSnapshot, {
+          playerId,
+        });
+        await ctx.runAction(internal.agent.runAgent, { snapshot });
+      }
+    }
+  },
+});
+
 export async function agentLoop(
   { player, nearbyPlayers, nearbyConversations, lastPlan }: Snapshot,
   memory: MemoryDB,
@@ -42,7 +60,9 @@ export async function agentLoop(
       break;
     } else if (messages.at(-1)?.from !== player.id) {
       // Let's stop and be social
-      await actionAPI({ type: 'stop' });
+      if (imWalkingHere) {
+        await actionAPI({ type: 'stop' });
+      }
       // We didn't just say something.
       // Assuming another person just said something.
       //   Future: ask who should talk next if it's 3+ people
@@ -113,21 +133,22 @@ export async function agentLoop(
 }
 
 export const runAgent = internalAction({
-  args: { snapshot: Snapshot },
-  handler: async (ctx, { snapshot }) => {
+  args: { snapshot: Snapshot, oneShot: v.optional(v.boolean()) },
+  handler: async (ctx, { snapshot, oneShot }) => {
     const memory = MemoryDB(ctx);
-    const actionAPI = ActionAPI(ctx, snapshot.player.id);
+    const actionAPI = ActionAPI(ctx, snapshot.player.id, oneShot ?? false);
     await agentLoop(snapshot, memory, actionAPI);
     // continue should only be called from here, to match the "planning" entry.
     await actionAPI({ type: 'continue' });
   },
 });
 
-export function ActionAPI(ctx: ActionCtx, playerId: Id<'players'>) {
+export function ActionAPI(ctx: ActionCtx, playerId: Id<'players'>, oneShot: boolean) {
   return (action: Action) => {
     return ctx.runMutation(internal.engine.handleAgentAction, {
       playerId,
       action,
+      oneShot,
     });
   };
 }

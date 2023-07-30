@@ -24,6 +24,7 @@ export const DEFAULT_AGENT_IDLE = 30_000;
 export const DEFAULT_START_POSE: Pose = { position: { x: 0, y: 0 }, orientation: 0 };
 export const CONVERSATION_DEAD_THRESHOLD = 600_000; // In ms
 
+// TODO: add a cron to tick every minute or so
 export const tick = internalMutation({
   args: { worldId: v.id('worlds'), oneShot: v.optional(v.id('players')) },
   handler: async (ctx, { worldId, oneShot }) => {
@@ -47,6 +48,9 @@ export const tick = internalMutation({
     );
     // For each player (oldest to newest? Or all on the same step?):
     for (const snapshot of snapshots) {
+      // TODO: if the player hasn't finished for a long time,
+      // try anyways and handle rejecting old actions.
+      if (snapshot.player.thinking) continue;
       // For players worth waking up: schedule action
       if (oneShot && snapshot.player.id !== oneShot) continue;
       await ctx.db.insert('journal', {
@@ -57,12 +61,12 @@ export const tick = internalMutation({
           snapshot,
         },
       });
+      // TODO: try to avoid them talking over each other.
       await ctx.scheduler.runAfter(0, internal.agent.runAgent, { snapshot });
       // TODO: handle timeouts
       // Later: handle object ownership?
     }
     if (oneShot) return;
-    // TODO: recursively schedule mutation
   },
 });
 
@@ -90,16 +94,20 @@ export const getPlayerSnapshot = query({
 });
 
 export const handleAgentAction = internalMutation({
-  args: { playerId: v.id('players'), action: Action },
+  args: { playerId: v.id('players'), action: Action, oneShot: v.optional(v.boolean()) },
   handler: handlePlayerAction,
 });
 
 export async function handlePlayerAction(
   ctx: MutationCtx,
-  { playerId, action }: { playerId: Id<'players'>; action: Action },
+  { playerId, action, oneShot }: { playerId: Id<'players'>; action: Action; oneShot?: boolean },
 ) {
+  const tick = async (at?: number) => {
+    if (oneShot) return;
+    if (at) ctx.scheduler.runAt(at, internal.engine.tick, { worldId });
+    else ctx.scheduler.runAfter(0, internal.engine.tick, { worldId });
+  };
   const ts = Date.now();
-  let nextActionTs = ts + DEFAULT_AGENT_IDLE;
   const playerDoc = (await ctx.db.get(playerId))!;
   const { worldId } = playerDoc;
   const player = await playerSnapshot(ctx.db, playerDoc, ts);
@@ -113,12 +121,13 @@ export async function handlePlayerAction(
         playerId,
         data: {
           type: 'talking',
+          // TODO: just limit to who's around.
           audience: action.audience,
           content: action.content,
           conversationId,
         },
       });
-      // TODO: schedule other players to be woken up if they aren't already.
+      tick();
       break;
     case 'saySomething':
       // TODO: Check if these players are still nearby?
@@ -132,19 +141,19 @@ export async function handlePlayerAction(
           conversationId: action.conversationId,
         },
       });
-      // TODO: schedule other users to be woken up if they aren't already.
+      await tick();
       break;
     case 'travel':
       // TODO: calculate obstacles to wake up?
       const { route, distance } = await findRoute(player.motion, action.position);
       // TODO: Scan for upcoming collisions (including objects for new observations)
       const targetEndTs = ts + distance * TIME_PER_STEP;
-      nextActionTs = Math.min(nextActionTs, targetEndTs);
       await ctx.db.insert('journal', {
         ts,
         playerId,
         data: { type: 'walking', route, startTs: ts, targetEndTs },
       });
+      tick(targetEndTs);
       break;
     case 'continue':
       await ctx.db.insert('journal', { ts, playerId, data: { type: 'continuing' } });
@@ -163,7 +172,6 @@ export async function handlePlayerAction(
     default:
       const _exhaustiveCheck: never = action;
   }
-  await ctx.scheduler.runAt(nextActionTs, internal.engine.tick, { worldId });
 }
 
 async function makeSnapshot(
@@ -271,8 +279,8 @@ async function fetchIdentity(
   playerId: Id<'players'>,
   ts: GameTs,
 ): Promise<string> {
-  const identityEntry = (await latestMemoryOfType(db, playerId, 'identity', ts))!;
-  return identityEntry.description;
+  const identityEntry = await latestMemoryOfType(db, playerId, 'identity', ts);
+  return identityEntry?.description ?? 'I am a person.';
 }
 
 async function fetchMessages(db: DatabaseReader, conversationId: Id<'conversations'>) {
