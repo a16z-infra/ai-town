@@ -36,8 +36,9 @@ export function interpolatePosition(start: Position, end: Position, fraction: nu
 export function calculateOrientation(start: Position, end: Position): number {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
-  const orientation = (Math.atan2(dy, dx) / Math.PI) * 180;
-  return orientation < 0 ? orientation + 360 : orientation;
+  // const orientation = (Math.atan2(dy, dx) / Math.PI) * 180;
+  // return orientation < 0 ? orientation + 360 : orientation;
+  return dx ? (dx > 0 ? 0 : 180) : dy > 0 ? 90 : 270;
 }
 
 export function getPoseFromRoute(route: Position[], fraction: number): Pose {
@@ -47,12 +48,12 @@ export function getPoseFromRoute(route: Position[], fraction: number): Pose {
   }, 0);
   const progressDistance = fraction * totalLength;
   let soFar = 0;
-  let start = route.at(-1)!;
-  let end = route[0]!;
+  let start = route[0]!;
+  let end = route[1]!;
   for (const [idx, pos] of route.slice(1).entries()) {
-    soFar += manhattanDistance(route[idx - 1], pos);
+    soFar += manhattanDistance(route[idx], pos);
     if (soFar >= progressDistance) {
-      start = route[idx - 1];
+      start = route[idx];
       end = pos;
       break;
     }
