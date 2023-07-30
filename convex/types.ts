@@ -5,6 +5,7 @@ export const Message = v.object({
   from: v.id('players'),
   to: v.array(v.id('players')),
   content: v.string(),
+  ts: v.number(),
 });
 export type Message = Infer<typeof Message>;
 

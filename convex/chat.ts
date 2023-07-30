@@ -12,6 +12,7 @@ import {
 } from './_generated/server';
 import { Entry, EntryOfType } from './schema';
 import { PaginationResult, paginationOptsValidator } from 'convex/server';
+import { Message } from './types';
 
 export const paginateConversations = query({
   args: { worldId: v.id('worlds'), paginationOpts: paginationOptsValidator },
@@ -71,10 +72,10 @@ function conversationQuery(db: DatabaseReader, conversationId: Id<'conversations
     .order('desc');
 }
 
-function clientMessage(m: EntryOfType<'talking'>) {
+function clientMessage(m: EntryOfType<'talking'>): Message {
   return {
-    playerId: m.playerId,
-    audience: m.data.audience,
+    from: m.playerId,
+    to: m.data.audience,
     content: m.data.content,
     ts: m.ts,
   };
