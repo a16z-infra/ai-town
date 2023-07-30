@@ -27,6 +27,7 @@ import type * as lib_pinecone from "../lib/pinecone";
 import type * as lib_relationships from "../lib/relationships";
 import type * as lib_utils from "../lib/utils";
 import type * as types from "../types";
+import type * as users from "../users";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   "lib/relationships": typeof lib_relationships;
   "lib/utils": typeof lib_utils;
   types: typeof types;
+  users: typeof users;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,
