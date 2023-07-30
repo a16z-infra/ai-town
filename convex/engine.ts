@@ -89,7 +89,7 @@ export const getPlayerSnapshot = query({
     );
     const snapshot = await makeSnapshot(ctx.db, player, allPlayers, ts);
     // We fetch at ts===Infinity to get the latest
-    return { ...snapshot, ts: ts === Infinity ? Date.now() : ts };
+    return snapshot;
   },
 });
 
