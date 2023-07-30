@@ -177,9 +177,12 @@ export const runAgent = internalAction({
   handler: async (ctx, { snapshot, noSchedule }) => {
     const memory = MemoryDB(ctx);
     const actionAPI = ActionAPI(ctx, snapshot.player.id, noSchedule ?? false);
-    await agentLoop(snapshot, memory, actionAPI);
-    // continue should only be called from here, to match the "planning" entry.
-    await actionAPI({ type: 'continue' });
+    try {
+      await agentLoop(snapshot, memory, actionAPI);
+    } finally {
+      // continue should only be called from here, to match the "planning" entry.
+      await actionAPI({ type: 'continue' });
+    }
   },
 });
 
