@@ -19,7 +19,7 @@ export const debugListMessages = internalQuery({
   args: {},
   handler: async (ctx, args) => {
     const world = await ctx.db.query('worlds').order('desc').first();
-    if (!world) throw new Error('No worlds exist yet: try running dbx convex run init');
+    if (!world) return [];
     const players = await ctx.db
       .query('players')
       .withIndex('by_worldId', (q) => q.eq('worldId', world._id))
@@ -38,6 +38,11 @@ export const debugListMessages = internalQuery({
     return messageEntries
       .flatMap((a) => a)
       .map(clientMessage)
+      .map((m) => ({
+        ...m,
+        from: ': ' + players.find((p) => p._id === m.from)?.name + ': ' + m.from,
+        to: m.to.map((id) => players.find((p) => p._id === id)?.name + ': ' + id),
+      }))
       .sort((a, b) => a.ts - b.ts);
   },
 });
