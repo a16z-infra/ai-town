@@ -26,6 +26,7 @@ export const createPlayer = mutation({
       ts: Date.now(),
       data: { type: 'stopped', reason: 'idle', pose: args.pose },
     });
+    await ctx.scheduler.runAfter(0, internal.engine.tick, { worldId: args.worldId });
     return playerId;
   },
 });
