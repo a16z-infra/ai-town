@@ -187,9 +187,9 @@ async function makeSnapshot(
 ): Promise<Snapshot> {
   const lastPlan = await latestEntryOfType(db, player.id, 'planning', ts);
   const otherPlayers = otherPlayersAndMe.filter((d) => d.id !== player.id);
-  const nearbyPlayers = getNearbyPlayers(db, player, otherPlayers, ts).map((player) => ({
-    player,
-    new: !lastPlan?.data.snapshot.nearbyPlayers.find((a) => a.player.id === player.id),
+  const nearbyPlayers = getNearbyPlayers(db, player, otherPlayers, ts).map((other) => ({
+    player: other,
+    new: !lastPlan?.data.snapshot.nearbyPlayers.find((a) => a.player.id === other.id),
   }));
   const planEntry = await latestMemoryOfType(db, player.id, 'plan', ts);
   return {
@@ -255,7 +255,7 @@ async function getNearbyConversations(
     ),
   )
     // Filter out old conversations
-    .filter((entry) => entry.ts < CONVERSATION_DEAD_THRESHOLD)
+    .filter((entry) => Date.now() - entry.ts < CONVERSATION_DEAD_THRESHOLD)
     // Get the latest message for each conversation.
     .reduce<Record<Id<'conversations'>, EntryOfType<'talking'>>>((convos, entry) => {
       const existing = convos[entry.data.conversationId];
