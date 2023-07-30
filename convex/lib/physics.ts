@@ -51,10 +51,11 @@ export function getPoseFromRoute(route: Position[], fraction: number): Pose {
     orientation: calculateOrientation(start, end),
   };
 }
-export function findRoute(startPose: Pose, end: Position) {
+export function findRoute(startPose: Motion, end: Position) {
   const route: Position[] = [];
   let distance = 0;
-  let current = startPose.position;
+
+  let current = { x: Math.round(startPose.position.x), y: Math.round(startPose.position.y) };
   // Try to maintain their direction.
   let horizontal = !(startPose.orientation === 90 || startPose.orientation === 270);
   // TODO: handle walls
