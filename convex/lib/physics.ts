@@ -1,4 +1,3 @@
-import { Infer, v } from 'convex/values';
 import { Motion, Pose, Position } from '../types';
 
 export function getRandomPosition(): Position {
@@ -72,24 +71,28 @@ export function roundPose(pose: Pose): Pose {
 }
 
 export function findRoute(startMotion: Motion, end: Position) {
-  const route: Position[] = [];
   let distance = 0;
 
   const startPose = getPoseFromMotion(startMotion, Date.now());
   // TODO: If they were partially along some path, include that in the new
   // route, adjusting the start time so we stay in the same place.
   let current = roundPosition(startPose.position);
+  const route: Position[] = [current];
   // Try to maintain their direction.
   let horizontal = !(startPose.orientation === 90 || startPose.orientation === 270);
   // TODO: handle walls
   while (current.x !== end.x || current.y !== end.y) {
     const next = { ...current };
-    if (current.x < end.x && horizontal) {
+    if (current.x !== end.x && horizontal) {
+      // bias towards maintainng character direction
       next.x = end.x;
       distance += Math.abs(current.x - end.x);
-    } else {
+    } else if (current.y !== end.y) {
       next.y = end.y;
       distance += Math.abs(current.y - end.y);
+    } else {
+      next.x = end.x;
+      distance += Math.abs(current.x - end.x);
     }
     route.push(next);
     current = next;
