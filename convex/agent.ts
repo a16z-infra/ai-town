@@ -14,6 +14,7 @@ import { getRandomPosition, manhattanDistance } from './lib/physics';
 import { MemoryDB } from './lib/memory';
 import { chatGPTCompletion, fetchEmbedding } from './lib/openai';
 import { Snapshot, Action } from './types';
+import { getPlayerSnapshot } from './engine';
 
 export const runConversation = action({
   args: { players: v.optional(v.array(v.id('players'))) },
@@ -24,18 +25,34 @@ export const runConversation = action({
     // await ctx.runAction(internal.init.seed, { newWorld: true });
     // To just run with the existing agents:
     // await ctx.runAction(internal.init.seed, {});
-    let players = args.players;
-    if (!players) {
-      players = await ctx.runQuery(internal.agent.getDebugPlayerIds);
+    let playerIds = args.players;
+    if (!playerIds) {
+      playerIds = await ctx.runQuery(internal.agent.getDebugPlayerIds);
     }
-    for (let i = 0; i < 10; i++) {
-      for (const playerId of players) {
-        const snapshot = await ctx.runQuery(api.engine.getPlayerSnapshot, {
+    for (let i = 0; i < 2; i++) {
+      for (const playerId of playerIds) {
+        const snapshot = await ctx.runMutation(internal.agent.debugPlanAgent, {
           playerId,
         });
         await ctx.runAction(internal.agent.runAgent, { snapshot, oneShot: true });
       }
     }
+  },
+});
+
+export const debugPlanAgent = internalMutation({
+  args: { playerId: v.id('players') },
+  handler: async (ctx, { playerId }) => {
+    const snapshot = await getPlayerSnapshot(ctx, { playerId });
+    await ctx.db.insert('journal', {
+      ts: Date.now(),
+      playerId,
+      data: {
+        type: 'planning',
+        snapshot,
+      },
+    });
+    return snapshot;
   },
 });
 

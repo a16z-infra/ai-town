@@ -40,20 +40,20 @@ export const tick = internalMutation({
     );
 
     // TODO: If the player's path is blocked, stop or re-route.
-    // TODO: ensure one action running per player
     // TODO: coordinate shared interactions (shared focus)
     // TODO: Determine if any players are not worth waking up
 
-    const snapshots = await asyncMap(playerSnapshots, async (playerSnapshot) =>
-      makeSnapshot(ctx.db, playerSnapshot, playerSnapshots, ts),
-    );
+    // TODO: sort players by how long ago they last did something.
+
     // For each player (oldest to newest? Or all on the same step?):
-    for (const snapshot of snapshots) {
+    for (let idx = 0; idx < playerSnapshots.length; idx++) {
+      const player = playerSnapshots[idx];
       // TODO: if the player hasn't finished for a long time,
       // try anyways and handle rejecting old actions.
-      if (snapshot.player.thinking) continue;
+      if (player.thinking) continue;
       // For players worth waking up: schedule action
-      if (oneShot && snapshot.player.id !== oneShot) continue;
+      if (oneShot && player.id !== oneShot) continue;
+      const snapshot = await makeSnapshot(ctx.db, player, playerSnapshots, ts);
       await ctx.db.insert('journal', {
         ts,
         playerId: snapshot.player.id,
@@ -62,7 +62,10 @@ export const tick = internalMutation({
           snapshot,
         },
       });
-      // TODO: try to avoid them talking over each other.
+      // Fetch the new state
+      const playerDoc = playerDocs.find((d) => d._id === player.id)!;
+      // Replace it for other players.
+      playerSnapshots[idx] = await playerSnapshot(ctx.db, playerDoc, ts);
       await ctx.scheduler.runAfter(0, internal.agent.runAgent, { snapshot });
       // TODO: handle timeouts
       // Later: handle object ownership?
