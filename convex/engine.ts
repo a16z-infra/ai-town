@@ -13,10 +13,9 @@ import {
   query,
 } from './_generated/server';
 import { Entry, GameTs, EntryType, EntryOfType, MemoryOfType, MemoryType } from './schema';
-import { Action, Player, Snapshot, Status } from './types.js';
+import { Action, Player, Pose, Snapshot, Status } from './types.js';
 import { asyncMap, pruneNull } from './lib/utils.js';
 import {
-  Pose,
   calculateFraction,
   findRoute,
   getPoseFromRoute,

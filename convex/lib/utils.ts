@@ -2,7 +2,6 @@ import { Validator, v } from 'convex/values';
 import { WithoutSystemFields, defineTable } from 'convex/server';
 import { Doc, Id, TableNames } from '../_generated/dataModel';
 import { DatabaseReader } from '../_generated/server';
-import { Position } from './physics';
 
 /**
  * Filters out null elements from an array.

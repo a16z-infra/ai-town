@@ -1,17 +1,5 @@
 import { Infer, v } from 'convex/values';
-
-// Hierarchical location within tree
-// TODO: build zone lookup from position, whether player-dependent or global.
-
-export const zone = v.array(v.string());
-export type Zone = Infer<typeof zone>;
-
-export const Position = v.object({ x: v.number(), y: v.number() });
-export type Position = Infer<typeof Position>;
-// Position plus a direction, as degrees counter-clockwise from East / Right
-
-export const Pose = v.object({ position: Position, orientation: v.number() });
-export type Pose = Infer<typeof Pose>;
+import { Motion, Pose, Position } from '../types';
 
 export function getRandomPosition(): Position {
   return { x: Math.floor(Math.random() * 100), y: Math.floor(Math.random() * 100) };

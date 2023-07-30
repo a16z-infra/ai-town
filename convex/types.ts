@@ -1,5 +1,4 @@
 import { Infer, v } from 'convex/values';
-import { Position, Pose } from './lib/physics.js';
 
 export const Message = v.object({
   from: v.id('players'),
@@ -9,6 +8,34 @@ export const Message = v.object({
 });
 export type Message = Infer<typeof Message>;
 
+// Hierarchical location within tree
+// TODO: build zone lookup from position, whether player-dependent or global.
+
+export const zone = v.array(v.string());
+export type Zone = Infer<typeof zone>;
+
+export const Position = v.object({ x: v.number(), y: v.number() });
+export type Position = Infer<typeof Position>;
+// Position plus a direction, as degrees counter-clockwise from East / Right
+
+export const Pose = v.object({ position: Position, orientation: v.number() });
+export type Pose = Infer<typeof Pose>;
+
+export const Stopped = v.object({
+  type: v.literal('stopped'),
+  reason: v.union(v.literal('interrupted'), v.literal('idle')),
+  pose: Pose,
+});
+
+export const Walking = v.object({
+  type: v.literal('walking'),
+  route: v.array(Position),
+  targetEndTs: v.number(),
+});
+
+export const Motion = v.union(Walking, Stopped);
+export type Motion = Infer<typeof Motion>;
+ 
 export const Status = v.union(
   v.object({
     type: v.literal('talking'),

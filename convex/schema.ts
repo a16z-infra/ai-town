@@ -1,8 +1,7 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { Infer, v } from 'convex/values';
 import { tableHelper } from './lib/utils';
-import { Position, Pose } from './lib/physics';
-import { Snapshot } from './types';
+import { Pose, Position, Snapshot } from './types';
 
 // ts is milliseconds in game time
 const ts = v.number();
