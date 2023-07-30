@@ -224,7 +224,8 @@ async function playerSnapshot(
   const latestMotion = pruneNull([lastStop, lastWalk])
     .sort((a, b) => b.ts - a.ts)
     .pop()?.data;
-  const identity = await fetchIdentity(db, playerDoc._id, ts);
+  const identityEntry = await latestMemoryOfType(db, playerDoc._id, 'identity', ts);
+  const identity = identityEntry?.description ?? 'I am a person.';
 
   return {
     id: playerDoc._id,
@@ -280,15 +281,6 @@ async function getNearbyConversations(
         .filter((message) => message.to.includes(playerId) || message.from === playerId),
     }))
   ).filter((c) => c.messages.length > 0);
-}
-
-async function fetchIdentity(
-  db: DatabaseReader,
-  playerId: Id<'players'>,
-  ts: GameTs,
-): Promise<string> {
-  const identityEntry = await latestMemoryOfType(db, playerId, 'identity', ts);
-  return identityEntry?.description ?? 'I am a person.';
 }
 
 async function fetchMessages(db: DatabaseReader, conversationId: Id<'conversations'>) {
