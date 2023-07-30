@@ -36,7 +36,7 @@ export const tick = internalMutation({
       .collect();
     // Make snapshot of world
     const playerSnapshots = await asyncMap(playerDocs, async (playerDoc) =>
-      playerSnapshot(ctx.db, playerDoc, ts),
+      getPlayer(ctx.db, playerDoc, ts),
     );
 
     // TODO: If the player's path is blocked, stop or re-route.
@@ -65,12 +65,12 @@ export const tick = internalMutation({
       // Fetch the new state
       const playerDoc = playerDocs.find((d) => d._id === player.id)!;
       // Replace it for other players.
-      playerSnapshots[idx] = await playerSnapshot(ctx.db, playerDoc, ts);
+      playerSnapshots[idx] = await getPlayer(ctx.db, playerDoc, ts);
+      // For players worth waking up: schedule action
       await ctx.scheduler.runAfter(0, internal.agent.runAgent, { snapshot });
       // TODO: handle timeouts
       // Later: handle object ownership?
     }
-    if (forPlayer) return;
   },
 });
 
@@ -81,7 +81,7 @@ export const getPlayerSnapshot = query({
     // For now, use a big tsOffset.
     const ts = Date.now() + (args.tsOffset ?? Infinity);
     const playerDoc = (await ctx.db.get(args.playerId))!;
-    const player = await playerSnapshot(ctx.db, playerDoc, ts);
+    const player = await getPlayer(ctx.db, playerDoc, ts);
     // Could potentially do a smarter filter in the future to only get
     // players that are nearby, but for now, just get all of them.
     const allPlayers = await asyncMap(
@@ -89,7 +89,7 @@ export const getPlayerSnapshot = query({
         .query('players')
         .withIndex('by_worldId', (q) => q.eq('worldId', playerDoc.worldId))
         .collect(),
-      (playerDoc) => playerSnapshot(ctx.db, playerDoc, ts),
+      (playerDoc) => getPlayer(ctx.db, playerDoc, ts),
     );
     const snapshot = await makeSnapshot(ctx.db, player, allPlayers, ts);
     // We fetch at ts===Infinity to get the latest
@@ -118,7 +118,7 @@ export async function handlePlayerAction(
   const ts = Date.now();
   const playerDoc = (await ctx.db.get(playerId))!;
   const { worldId } = playerDoc;
-  const player = await playerSnapshot(ctx.db, playerDoc, ts);
+  const player = await getPlayer(ctx.db, playerDoc, ts);
   // TODO: Check if the player shoudl still respond.
   switch (action.type) {
     case 'startConversation':
@@ -209,7 +209,7 @@ async function makeSnapshot(
   };
 }
 
-async function playerSnapshot(
+async function getPlayer(
   db: DatabaseReader,
   playerDoc: Doc<'players'>,
   ts: GameTs,
