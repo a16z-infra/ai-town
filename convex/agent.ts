@@ -40,7 +40,7 @@ export const runConversation = action({
 
 export const getDebugPlayerIds = internalQuery({
   handler: async (ctx) => {
-    const world = await ctx.db.query('worlds').first();
+    const world = await ctx.db.query('worlds').order('desc').first();
     if (!world) throw new Error('No worlds exist yet: try running dbx convex run init');
     const players = await ctx.db
       .query('players')
