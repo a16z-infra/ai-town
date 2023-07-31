@@ -22,6 +22,7 @@ import {
   Player,
   Pose,
   Snapshot,
+  Motion,
 } from './types.js';
 import { asyncMap, pruneNull } from './lib/utils.js';
 import { findRoute, getPoseFromMotion, manhattanDistance, roundPose } from './lib/physics.js';
@@ -48,10 +49,9 @@ export const tick = internalMutation({
       getPlayer(ctx.db, playerDoc, ts),
     );
 
-    // TODO: If the player's path is blocked, stop or re-route.
     // TODO: coordinate shared interactions (shared focus)
 
-    // TODO: sort players by how long ago they last did something.
+    // Sort players by how long ago they last spoke
     playerSnapshots.sort((a, b) => a.lastSpokeTs - b.lastSpokeTs);
 
     // For each player (oldest to newest? Or all on the same step?):
@@ -60,9 +60,30 @@ export const tick = internalMutation({
       // TODO: if the player hasn't finished for a long time,
       // try anyways and handle rejecting old actions.
       if (player.thinking) continue;
+      // For ticks specific to a user, only run for that user.
       if (forPlayer && player.id !== forPlayer) continue;
+
+      // TODO: If the player's path is blocked, stop or re-route.
+      // If the player has arrived at their destination, update it.
+      if (player.motion.type === 'walking' && player.motion.targetEndTs <= ts) {
+        const motion = {
+          type: 'stopped',
+          reason: 'idle',
+          pose: roundPose(getPoseFromMotion(player.motion, ts)),
+        } as Motion;
+        await ctx.db.insert('journal', {
+          ts,
+          playerId: player.id,
+          data: motion,
+        });
+        // A bit hacky, we could re-create the player state, but fine for now.
+        player.motion = motion;
+      }
+
       // TODO: Determine if any players are not worth waking up
       const snapshot = await makeSnapshot(ctx.db, player, playerSnapshots, ts);
+      // We mark ourselves as planning AFTER the snapshot, so the snapshot can
+      // access the previous plan.
       await ctx.db.insert('journal', {
         ts,
         playerId: snapshot.player.id,
@@ -88,7 +109,7 @@ export const getPlayerSnapshot = query({
   handler: async (ctx, args) => {
     // TODO: how to fetch the latest always, not cache Date.now()?
     // For now, use a big tsOffset.
-    const ts = Date.now() + (args.tsOffset ?? Infinity);
+    const ts = Date.now() + (args.tsOffset ?? 0);
     const playerDoc = (await ctx.db.get(args.playerId))!;
     const player = await getPlayer(ctx.db, playerDoc, ts);
     // Could potentially do a smarter filter in the future to only get
@@ -101,7 +122,6 @@ export const getPlayerSnapshot = query({
       (playerDoc) => getPlayer(ctx.db, playerDoc, ts),
     );
     const snapshot = await makeSnapshot(ctx.db, player, allPlayers, ts);
-    // We fetch at ts===Infinity to get the latest
     return snapshot;
   },
 });
@@ -121,7 +141,6 @@ export async function handlePlayerAction(
 ) {
   const tick = async (at?: number, forPlayer?: Id<'players'>) => {
     if (noSchedule) return;
-    console.log('scheduling tick!', at);
     if (at) ctx.scheduler.runAt(at, internal.engine.tick, { worldId, forPlayer });
     else ctx.scheduler.runAfter(0, internal.engine.tick, { worldId, forPlayer });
   };

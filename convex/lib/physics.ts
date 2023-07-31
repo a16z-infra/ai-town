@@ -9,7 +9,7 @@ export function manhattanDistance(p1: Position, p2: Position) {
 }
 
 export function calculateFraction(start: number, end: number, ts: number): number {
-  const progress = (ts - start) / end - start;
+  const progress = (ts - start) / (end - start);
   return Math.max(Math.min(1, progress), 0);
 }
 
