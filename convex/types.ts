@@ -38,7 +38,7 @@ export const Action = v.union(
     type: v.literal('stop'),
   }),
   v.object({
-    type: v.literal('continue'),
+    type: v.literal('done_thinking'),
   }),
 );
 export type Action = Infer<typeof Action>;
@@ -114,18 +114,18 @@ export const Journal = tableHelper('journal', {
     Walking,
     // When we run the agent loop.
     v.object({
-      type: v.literal('planning'),
+      type: v.literal('thinking'),
       snapshot: Snapshot,
     }),
-    // In case we don't do anything, confirm we're done planning.
+    // In case we don't do anything, confirm we're done thinking.
     v.object({
-      type: v.literal('continuing'),
+      type: v.literal('done_thinking'),
     }),
 
     // Exercises left to the reader:
 
     // v.object({
-    //   type: v.literal('thinking'),
+    //   type: v.literal('reflecting'),
     // }),
     // v.object({
     //   type: v.literal('activity'),

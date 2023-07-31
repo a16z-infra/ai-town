@@ -51,7 +51,7 @@ export const debugPlanAgent = internalMutation({
       ts: Date.now(),
       playerId,
       data: {
-        type: 'planning',
+        type: 'thinking',
         snapshot,
       },
     });
@@ -194,8 +194,8 @@ export const runAgent = internalAction({
     try {
       await agentLoop(snapshot, memory, actionAPI);
     } finally {
-      // continue should only be called from here, to match the "planning" entry.
-      await actionAPI({ type: 'continue' });
+      // should only be called from here, to match the "thinking" entry.
+      await actionAPI({ type: 'done_thinking' });
     }
   },
 });

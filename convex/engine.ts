@@ -84,13 +84,13 @@ export const tick = internalMutation({
 
       // TODO: Determine if any players are not worth waking up
       const snapshot = await makeSnapshot(ctx.db, player, playerSnapshots);
-      // We mark ourselves as planning AFTER the snapshot, so the snapshot can
+      // We mark ourselves as thining AFTER the snapshot, so the snapshot can
       // access the previous plan.
       await ctx.db.insert('journal', {
         ts,
         playerId: snapshot.player.id,
         data: {
-          type: 'planning',
+          type: 'thinking',
           snapshot,
         },
       });
@@ -197,8 +197,8 @@ export async function handlePlayerAction(
       });
       tick(targetEndTs, playerId);
       break;
-    case 'continue':
-      await ctx.db.insert('journal', { ts, playerId, data: { type: 'continuing' } });
+    case 'done_thinking':
+      await ctx.db.insert('journal', { ts, playerId, data: { type: 'done_thinking' } });
       break;
     case 'stop':
       await ctx.db.insert('journal', {
@@ -222,14 +222,14 @@ async function makeSnapshot(
   player: Player,
   otherPlayersAndMe: Player[],
 ): Promise<Snapshot> {
-  const lastPlan = await latestEntryOfType(db, player.id, 'planning');
+  const lastThink = await latestEntryOfType(db, player.id, 'thinking');
   const otherPlayers = otherPlayersAndMe.filter((d) => d.id !== player.id);
   const nearbyPlayers = await asyncMap(getNearbyPlayers(player, otherPlayers), async (other) => ({
     player: other,
     relationship:
       (await latestRelationshipMemoryWith(db, player.id, other.id))?.description ??
       `${player.name} doesn't know ${other.name}`,
-    new: !lastPlan?.data.snapshot.nearbyPlayers.find((a) => a.player.id === other.id),
+    new: !lastThink?.data.snapshot.nearbyPlayers.find((a) => a.player.id === other.id),
   }));
   const planEntry = await latestMemoryOfType(db, player.id, 'plan');
   return {
@@ -245,9 +245,9 @@ async function makeSnapshot(
 }
 
 async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): Promise<Player> {
-  const lastPlan = await latestEntryOfType(db, playerDoc._id, 'planning');
-  const lastContinue = await latestEntryOfType(db, playerDoc._id, 'continuing');
-  const lastThinking = pruneNull([lastPlan, lastContinue])
+  const lastThinkStart = await latestEntryOfType(db, playerDoc._id, 'thinking');
+  const lastThinkEnd = await latestEntryOfType(db, playerDoc._id, 'done_thinking');
+  const lastThinking = pruneNull([lastThinkStart, lastThinkEnd])
     .sort((a, b) => a.ts - b.ts)
     .pop();
   const lastStop = await latestEntryOfType(db, playerDoc._id, 'stopped');
@@ -263,7 +263,7 @@ async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): Promise
     id: playerDoc._id,
     name: playerDoc.name,
     identity,
-    thinking: lastThinking?.data.type === 'planning',
+    thinking: lastThinking?.data.type === 'thinking',
     lastSpokeTs: lastChat?.ts ?? 0,
     motion: latestMotion ?? { type: 'stopped', reason: 'idle', pose: DEFAULT_START_POSE },
   };
