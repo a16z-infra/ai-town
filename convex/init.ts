@@ -3,6 +3,7 @@ import { internal } from './_generated/api';
 import { Doc, Id, TableNames } from './_generated/dataModel';
 import { internalAction, internalMutation, mutation } from './_generated/server';
 import { MemoryDB } from './lib/memory';
+import { asyncMap } from './lib/utils';
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error(
@@ -82,7 +83,10 @@ export const debugClearAll = internalMutation({
     const deleteAll = async (tableName: TableNames) => {
       // fetch the most recent 1000
       const docs = await ctx.db.query(tableName).order('desc').take(1000);
-      docs.map((d) => d._id).forEach(ctx.db.delete);
+      await asyncMap(
+        docs.map((d) => d._id),
+        ctx.db.delete,
+      );
       if (await ctx.db.query(tableName).first()) {
         console.log("Didn't delete all: more than 1k entries in " + tableName);
       }
