@@ -36,7 +36,7 @@ export const runConversation = internalAction({
 export const debugPlanAgent = internalMutation({
   args: { playerId: v.id('players') },
   handler: async (ctx, { playerId }) => {
-    const snapshot = await getAgentSnapshot(ctx, { playerId });
+    const snapshot = await getAgentSnapshot(ctx, playerId);
     await ctx.db.insert('journal', {
       ts: Date.now(),
       playerId,
@@ -181,7 +181,6 @@ export const runAgent = internalAction({
 
 export function ActionAPI(ctx: ActionCtx, playerId: Id<'players'>, noSchedule: boolean) {
   return (action: Action) => {
-    console.log('player ', playerId, ' attempting action ', action);
     return ctx.runMutation(internal.engine.handleAgentAction, {
       playerId,
       action,

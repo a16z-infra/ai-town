@@ -5,6 +5,7 @@ import {
   DatabaseReader,
   DatabaseWriter,
   MutationCtx,
+  QueryCtx,
   action,
   internalAction,
   internalMutation,
@@ -105,24 +106,21 @@ export const tick = internalMutation({
   },
 });
 
-export const getAgentSnapshot = query({
-  args: { playerId: v.id('players') },
-  handler: async (ctx, args) => {
-    const playerDoc = (await ctx.db.get(args.playerId))!;
-    const player = await getPlayer(ctx.db, playerDoc);
-    // Could potentially do a smarter filter in the future to only get
-    // players that are nearby, but for now, just get all of them.
-    const allPlayers = await asyncMap(
-      await ctx.db
-        .query('players')
-        .withIndex('by_worldId', (q) => q.eq('worldId', playerDoc.worldId))
-        .collect(),
-      (playerDoc) => getPlayer(ctx.db, playerDoc),
-    );
-    const snapshot = await makeSnapshot(ctx.db, player, allPlayers);
-    return snapshot;
-  },
-});
+export async function getAgentSnapshot(ctx: QueryCtx, playerId: Id<'players'>) {
+  const playerDoc = (await ctx.db.get(playerId))!;
+  const player = await getPlayer(ctx.db, playerDoc);
+  // Could potentially do a smarter filter in the future to only get
+  // players that are nearby, but for now, just get all of them.
+  const allPlayers = await asyncMap(
+    await ctx.db
+      .query('players')
+      .withIndex('by_worldId', (q) => q.eq('worldId', playerDoc.worldId))
+      .collect(),
+    (playerDoc) => getPlayer(ctx.db, playerDoc),
+  );
+  const snapshot = await makeSnapshot(ctx.db, player, allPlayers);
+  return snapshot;
+}
 
 export const getPlayerSnapshot = query({
   args: { playerId: v.id('players') },
