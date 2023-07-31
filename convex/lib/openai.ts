@@ -10,7 +10,7 @@ export async function chatGPTCompletion(messages: Message[], maxTokens?: number,
   }
 
   const start = Date.now();
-  let bodyPayload: any = {
+  let bodyPayload: CreateChatCompletionRequest = {
     model: 'gpt-3.5-turbo-16k',
     stream: false, // TODO: add streaming implementation
     // function_call: "none" | "auto" | {"name": "my_function"}
@@ -27,11 +27,11 @@ export async function chatGPTCompletion(messages: Message[], maxTokens?: number,
     messages,
   };
   if (maxTokens) {
-    bodyPayload['max_tokens']! = maxTokens;
+    bodyPayload.max_tokens = maxTokens;
   }
 
   if (stop) {
-    bodyPayload['stop'] = stop;
+    bodyPayload.stop = stop;
   }
 
   const result = await fetch('https://api.openai.com/v1/chat/completions', {
