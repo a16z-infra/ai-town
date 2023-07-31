@@ -96,10 +96,9 @@ export async function agentLoop(
 
   // messages only contain playerId, we want to construct a chat history with player names
   let playerMap = nearbyPlayers.reduce((acc, obj) => {
-    const playerId: string = obj.player.id.toString();
-    acc[playerId] = obj.player.name;
+    acc[obj.player.id] = obj.player.name;
     return acc;
-  }, {} as { [playerId: string]: string });
+  }, {} as { [playerId: Id<'players'>]: string });
   playerMap[player.id] = player.name;
 
   for (const { conversationId, messages } of relevantConversations) {
