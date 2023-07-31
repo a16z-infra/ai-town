@@ -230,6 +230,7 @@ async function getPlayer(
     .pop();
   const lastStop = await latestEntryOfType(db, playerDoc._id, 'stopped', ts);
   const lastWalk = await latestEntryOfType(db, playerDoc._id, 'walking', ts);
+  const lastChat = await latestEntryOfType(db, playerDoc._id, 'talking', ts);
   const latestMotion = pruneNull([lastStop, lastWalk])
     .sort((a, b) => b.ts - a.ts)
     .pop()?.data;
@@ -241,6 +242,7 @@ async function getPlayer(
     name: playerDoc.name,
     identity,
     thinking: lastThinking?.data.type === 'planning',
+    lastSpokeTs: lastChat?.ts ?? 0,
     motion: latestMotion ?? { type: 'stopped', reason: 'idle', pose: DEFAULT_START_POSE },
   };
 }
