@@ -12,7 +12,7 @@ import {
   query,
 } from '../_generated/server.js';
 import { asyncMap } from './utils.js';
-import { Memories } from '../schema.js';
+import { Memories } from '../types.js';
 import { chatGPTCompletion, fetchEmbeddingBatch } from './openai.js';
 
 const { embeddingId: _, ...MemoryWithoutEmbeddingId } = Memories.fields;

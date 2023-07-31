@@ -12,8 +12,17 @@ import {
   mutation,
   query,
 } from './_generated/server';
-import { GameTs, EntryType, EntryOfType, MemoryOfType, MemoryType } from './schema';
-import { Action, Player, Pose, Snapshot } from './types.js';
+import {
+  GameTs,
+  EntryType,
+  EntryOfType,
+  MemoryOfType,
+  MemoryType,
+  Action,
+  Player,
+  Pose,
+  Snapshot,
+} from './types.js';
 import { asyncMap, pruneNull } from './lib/utils.js';
 import { findRoute, getPoseFromMotion, manhattanDistance, roundPose } from './lib/physics.js';
 import { clientMessage } from './chat';

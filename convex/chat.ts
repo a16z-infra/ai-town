@@ -10,7 +10,7 @@ import {
   mutation,
   query,
 } from './_generated/server';
-import { Entry, EntryOfType } from './schema';
+import { Entry, EntryOfType } from './types';
 import { PaginationResult, paginationOptsValidator } from 'convex/server';
 import { Message } from './types';
 import { asyncMap } from './lib/utils';
