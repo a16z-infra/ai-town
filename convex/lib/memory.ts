@@ -99,6 +99,10 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
           let importance = 5;
           try {
             importance = parseFloat(importanceRaw);
+            if (isNaN(importance)) {
+              console.log('importance is NaN', importanceRaw);
+              importance = 5;
+            }
           } catch (e) {
             console.log('failed to parse importance', e);
           }
