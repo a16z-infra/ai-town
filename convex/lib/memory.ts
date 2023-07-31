@@ -37,6 +37,7 @@ export interface MemoryDB {
   rememberConversation(
     playerId: Id<'players'>,
     conversationId: Id<'conversations'>,
+    lastSpokeTs: number,
   ): Promise<Id<'memories'> | null>;
 }
 
@@ -123,12 +124,13 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
       return ctx.runMutation(internal.lib.memory.addMemories, { memories });
     },
 
-    async rememberConversation(playerId, conversationId) {
+    async rememberConversation(playerId, conversationId, lastSpokeTs) {
       const messages = await ctx.runQuery(internal.lib.memory.getRecentMessages, {
         playerId,
         conversationId,
+        lastSpokeTs,
       });
-      if (!messages) return null;
+      if (!messages.length) return null;
       const { content: description } = await chatGPTCompletion([
         {
           role: 'user',
@@ -301,8 +303,13 @@ export const getEmbeddingsByText = internalQuery({
 });
 
 export const getRecentMessages = internalQuery({
-  args: { playerId: v.id('players'), conversationId: v.id('conversations') },
-  handler: async (ctx, { playerId, conversationId }) => {
+  args: {
+    playerId: v.id('players'),
+    conversationId: v.id('conversations'),
+    lastSpokeTs: v.number(),
+  },
+  handler: async (ctx, { playerId, conversationId, lastSpokeTs }) => {
+    // Fetch the last memory, whether it was this conversation or not.
     const lastConversationMemory = (await ctx.db
       .query('memories')
       .withIndex('by_playerId_type_ts', (q) =>
@@ -310,6 +317,11 @@ export const getRecentMessages = internalQuery({
       )
       .order('desc')
       .first()) as MemoryOfType<'conversation'>;
+
+    if (lastSpokeTs < lastConversationMemory.ts) {
+      // We haven't spoken since a conversation memory, so not worth recording.
+      return [];
+    }
 
     const allMessages = (await ctx.db
       .query('journal')
@@ -322,7 +334,10 @@ export const getRecentMessages = internalQuery({
       })
       .collect()) as EntryOfType<'talking'>[];
     // Find if we have a memory of this conversation already.
+    // This may be before the last conversation memory we've had.
     // Only need to check from when the first message exists.
+    // Only a slight optimization over the previous one, which might scan to the
+    // beginning of time.
     const previousConversationMemory = await ctx.db
       .query('memories')
       .withIndex('by_playerId_type_ts', (q) =>

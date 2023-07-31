@@ -88,11 +88,17 @@ export async function agentLoop(
   //  might include new observations -> add to memory with openai embeddings
   // Based on plan and observations, determine next action:
   //   if so, add new memory for new plan, and return new action
+
+  // If we aren't part of a conversation anymore, remember it.
   if (
     player.lastSpokeConversationId &&
     !nearbyConversations.find((c) => c.conversationId === player.lastSpokeConversationId)
   ) {
-    await memory.rememberConversation(player.id, player.lastSpokeConversationId);
+    await memory.rememberConversation(
+      player.id,
+      player.lastSpokeConversationId,
+      player.lastSpokeTs,
+    );
   }
 
   // Check if any messages are from players still nearby.
@@ -140,17 +146,19 @@ export async function agentLoop(
         content: playerCompletion,
         conversationId: conversationId,
       });
-      await memory.addMemories([
-        {
-          playerId: player.id,
-          description: playerCompletion,
-          ts: Date.now(),
-          data: {
-            type: 'conversation',
-            conversationId: conversationId,
-          },
-        },
-      ]);
+      // Now that we're remembering the conversation overall,
+      // don't store every message. We'll have the messages history for that.
+      // await memory.addMemories([
+      //   {
+      //     playerId: player.id,
+      //     description: playerCompletion,
+      //     ts: Date.now(),
+      //     data: {
+      //       type: 'conversation',
+      //       conversationId: conversationId,
+      //     },
+      //   },
+      // ]);
       // Only message in one conversation
       return;
     }
