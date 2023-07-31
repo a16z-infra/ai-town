@@ -12,9 +12,10 @@ import {
 } from './_generated/server';
 import { getRandomPosition, manhattanDistance } from './lib/physics';
 import { MemoryDB } from './lib/memory';
-import { chatGPTCompletion, fetchEmbedding } from './lib/openai';
+import { Message, chatGPTCompletion, fetchEmbedding } from './lib/openai';
 import { Snapshot, Action } from './types';
 import { getPlayerSnapshot } from './engine';
+import { converse, walkAway } from './conversation';
 
 export const runConversation = action({
   args: { players: v.optional(v.array(v.id('players'))) },
@@ -29,7 +30,7 @@ export const runConversation = action({
     if (!playerIds) {
       playerIds = await ctx.runQuery(internal.agent.getDebugPlayerIds);
     }
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 5; i++) {
       for (const playerId of playerIds) {
         const snapshot = await ctx.runMutation(internal.agent.debugPlanAgent, {
           playerId,
@@ -91,8 +92,17 @@ export async function agentLoop(
     (c) => c.messages.filter((m) => nearbyPlayerIds.includes(m.from)).length,
   );
   for (const { conversationId, messages } of relevantConversations) {
+    const chatHistory: Message[] = [
+      ...messages.map((m) => ({
+        role: 'user' as const,
+        content: `${m.from} to ${m.to}: ${m.content}\n`,
+      })),
+    ];
+    const shouldWalkAway = await walkAway(chatHistory, player);
+    console.log('shouldWalkAway: ', shouldWalkAway);
+
     // Decide if we keep talking.
-    if (messages.length >= 10) {
+    if (shouldWalkAway || messages.length >= 10) {
       // It's to chatty here, let's go somewhere else.
       if (!imWalkingHere) {
         if (await actionAPI({ type: 'travel', position: getRandomPosition() })) {
@@ -105,43 +115,28 @@ export async function agentLoop(
       if (imWalkingHere) {
         await actionAPI({ type: 'stop' });
       }
-      // We didn't just say something.
-      // Assuming another person just said something.
-      //   Future: ask who should talk next if it's 3+ people
-      // TODO: real logic
+
+      const playerCompletion = await converse(chatHistory, player, nearbyPlayers);
+      // display the chat via actionAPI
       const success = await actionAPI({
         type: 'saySomething',
         audience: nearbyPlayers.map(({ player }) => player.id),
-        content: 'Interesting point',
+        content: playerCompletion,
         conversationId: conversationId,
       });
-      // Success might mean someone else said something first
-      if (success) {
-        // TODO: make a better prompt based on the user & relationship
-        const { content: description } = await chatGPTCompletion([
-          ...messages.map((m) => ({
-            role: 'user' as const,
-            content: m.content,
-          })),
-          {
-            role: 'user',
-            content: 'Can you summarize the above conversation?',
+      await memory.addMemories([
+        {
+          playerId: player.id,
+          description: playerCompletion,
+          ts: Date.now(),
+          data: {
+            type: 'conversation',
+            conversationId: conversationId,
           },
-        ]);
-        await memory.addMemories([
-          {
-            playerId: player.id,
-            description,
-            ts: Date.now(),
-            data: {
-              type: 'conversation',
-              conversationId: conversationId,
-            },
-          },
-        ]);
-        // Only message in one conversation
-        return;
-      }
+        },
+      ]);
+      // Only message in one conversation
+      return;
     }
   }
   // We didn't say anything in a conversation yet.

@@ -112,6 +112,10 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
   };
 }
 
+export const filterMemoriesType = (types: string[], memories: Doc<'memories'>) => {
+  //return memories.filter((memory) => types.includes(memory.type));
+};
+
 export const getMemories = internalQuery({
   args: { playerId: v.id('players'), embeddingIds: v.array(v.id('embeddings')) },
   handler: async (ctx, args) => {

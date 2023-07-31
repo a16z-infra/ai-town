@@ -1,6 +1,6 @@
 // That's right! No imports and no dependencies 🤯
 
-export async function chatGPTCompletion(messages: Message[]) {
+export async function chatGPTCompletion(messages: Message[], maxTokens?: number, stop?: string[]) {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error(
       'Missing OPENAI_API_KEY in environment variables.\n' +
@@ -10,6 +10,30 @@ export async function chatGPTCompletion(messages: Message[]) {
   }
 
   const start = Date.now();
+  let bodyPayload: any = {
+    model: 'gpt-3.5-turbo-16k',
+    stream: false, // TODO: add streaming implementation
+    // function_call: "none" | "auto" | {"name": "my_function"}
+    // frequency_penalty: -2 to 2;
+    // functions: [{name: "my_function", parameters: {json schema}, description: "my function description"}]
+    // logit_bias: {[tokenId]: -100 to 100}
+    // max_tokens: number
+    // n: how many choices to generate
+    // presence_penalty: -2 to 2
+    // stop: string[] | string, specifies tokens to stop at
+    // temperature 0 to 2, how random
+    // top_p: number, alternative to temp
+    // user: string, string identifying user to help OpenAI monitor abuse.
+    messages,
+  };
+  if (maxTokens) {
+    bodyPayload['max_tokens']! = maxTokens;
+  }
+
+  if (stop) {
+    bodyPayload['stop'] = stop;
+  }
+
   const result = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -17,24 +41,10 @@ export async function chatGPTCompletion(messages: Message[]) {
       Authorization: 'Bearer ' + process.env.OPENAI_API_KEY,
     },
 
-    body: JSON.stringify({
-      model: 'gpt-3.5-turbo-16k',
-      stream: false, // TODO: add streaming implementation
-      // function_call: "none" | "auto" | {"name": "my_function"}
-      // frequency_penalty: -2 to 2;
-      // functions: [{name: "my_function", parameters: {json schema}, description: "my function description"}]
-      // logit_bias: {[tokenId]: -100 to 100}
-      // max_tokens: number
-      // n: how many choices to generate
-      // presence_penalty: -2 to 2
-      // stop: string[] | string, specifies tokens to stop at
-      // temperature 0 to 2, how random
-      // top_p: number, alternative to temp
-      // user: string, string identifying user to help OpenAI monitor abuse.
-      messages,
-    }),
+    body: JSON.stringify(bodyPayload),
   });
   const completion = (await result.json()) as CreateChatCompletionResponse;
+  console.log('completion: ', completion);
   const ms = Date.now() - start;
   const content = completion.choices[0].message?.content;
   if (!content) {

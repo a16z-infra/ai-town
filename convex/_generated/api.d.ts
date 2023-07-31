@@ -16,6 +16,7 @@ import type {
 } from "convex/server";
 import type * as agent from "../agent";
 import type * as chat from "../chat";
+import type * as conversation from "../conversation";
 import type * as engine from "../engine";
 import type * as init from "../init";
 import type * as lib_memory from "../lib/memory";
@@ -39,6 +40,7 @@ import type * as users from "../users";
 declare const fullApi: ApiFromModules<{
   agent: typeof agent;
   chat: typeof chat;
+  conversation: typeof conversation;
   engine: typeof engine;
   init: typeof init;
   "lib/memory": typeof lib_memory;
