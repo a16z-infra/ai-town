@@ -93,18 +93,22 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
             { role: 'user', content: memory.description },
             {
               role: 'user',
-              content: 'How important is this? Answer on a scale of 0-10. Respond like: 5',
+              content:
+                'How important is this? Answer on a scale of 0 to 9. Respond with number only, e.g. "5"',
             },
           ]);
-          let importance = 5;
-          try {
-            importance = parseFloat(importanceRaw);
-            if (isNaN(importance)) {
-              console.log('importance is NaN', importanceRaw);
-              importance = 5;
+          let importance = NaN;
+          for (let i = 0; i < importanceRaw.length; i++) {
+            const number = parseInt(importanceRaw[i]);
+            if (!isNaN(number)) {
+              importance = number;
+              break;
             }
-          } catch (e) {
-            console.log('failed to parse importance', e);
+          }
+          importance = parseFloat(importanceRaw);
+          if (isNaN(importance)) {
+            console.log('importance is NaN', importanceRaw);
+            importance = 5;
           }
           return { ...memory, embedding, importance };
         } else {

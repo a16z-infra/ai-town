@@ -11,7 +11,7 @@ import {
   mutation,
   query,
 } from './_generated/server';
-import { getRandomPosition, manhattanDistance } from './lib/physics';
+import { getRandomPosition } from './lib/physics';
 import { MemoryDB, filterMemoriesType } from './lib/memory';
 import { Message, chatGPTCompletion, fetchEmbedding } from './lib/openai';
 import { Snapshot, Action } from './types';
