@@ -89,29 +89,25 @@ export async function agentLoop(
   // Based on plan and observations, determine next action:
   //   if so, add new memory for new plan, and return new action
 
-  // If we aren't part of a conversation anymore, remember it.
-  if (
-    player.lastSpokeConversationId &&
-    !nearbyConversations.find((c) => c.conversationId === player.lastSpokeConversationId)
-  ) {
-    await memory.rememberConversation(
-      player.id,
-      player.lastSpokeConversationId,
-      player.lastSpokeTs,
-    );
-  }
-
   // Check if any messages are from players still nearby.
-  const relevantConversations = nearbyConversations.filter(
+  let relevantConversations = nearbyConversations.filter(
     (c) => c.messages.filter((m) => nearbyPlayerIds.includes(m.from)).length,
   );
-  // Try for the conversation we were just in first.
-  // TODO: if we are in a nearby conversation, should we only do that one?
-  relevantConversations.sort(
-    (a, b) =>
-      (a.conversationId === player.lastSpokeConversationId ? 1 : 0) -
-      (b.conversationId === player.lastSpokeConversationId ? 1 : 0),
+  const lastConversation = relevantConversations.find(
+    (c) => c.conversationId === player.lastSpokeConversationId,
   );
+  if (lastConversation) {
+    relevantConversations = [lastConversation];
+  } else {
+    if (player.lastSpokeConversationId) {
+      // If we aren't part of a conversation anymore, remember it.
+      await memory.rememberConversation(
+        player.id,
+        player.lastSpokeConversationId,
+        player.lastSpokeTs,
+      );
+    }
+  }
 
   for (const { conversationId, messages } of relevantConversations) {
     const chatHistory: Message[] = [
@@ -140,7 +136,7 @@ export async function agentLoop(
 
       const playerCompletion = await converse(chatHistory, player, nearbyPlayers, memory);
       // display the chat via actionAPI
-      const success = await actionAPI({
+      await actionAPI({
         type: 'saySomething',
         audience: nearbyPlayers.map(({ player }) => player.id),
         content: playerCompletion,
