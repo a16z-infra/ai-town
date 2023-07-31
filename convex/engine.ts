@@ -238,7 +238,7 @@ async function getPlayer(
   const lastWalk = await latestEntryOfType(db, playerDoc._id, 'walking', ts);
   const lastChat = await latestEntryOfType(db, playerDoc._id, 'talking', ts);
   const latestMotion = pruneNull([lastStop, lastWalk])
-    .sort((a, b) => b.ts - a.ts)
+    .sort((a, b) => a.ts - b.ts)
     .pop()?.data;
   const identityEntry = await latestMemoryOfType(db, playerDoc._id, 'identity', ts);
   const identity = identityEntry?.description ?? 'I am a person.';
