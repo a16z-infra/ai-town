@@ -100,12 +100,17 @@ export const debugClearAll = internalMutation({
   },
 });
 
+export const reset = internalAction({
+  args: {},
+  handler: async (ctx, args) => {
+    await ctx.runMutation(internal.init.debugClearAll, {});
+    await ctx.runAction(internal.init.seed, {});
+  },
+});
+
 export const seed = internalAction({
-  args: { newWorld: v.optional(v.boolean()), reset: v.optional(v.boolean()) },
-  handler: async (ctx, { newWorld, reset }) => {
-    if (reset) {
-      await ctx.runMutation(internal.init.debugClearAll, {});
-    }
+  args: { newWorld: v.optional(v.boolean()) },
+  handler: async (ctx, { newWorld }) => {
     const playersByName = await ctx.runMutation(internal.init.addPlayers, { newWorld });
     if (!playersByName) return;
     const memories = data.flatMap(({ name, memories }) => {

@@ -21,7 +21,7 @@ export const runConversation = action({
   args: { players: v.optional(v.array(v.id('players'))) },
   handler: async (ctx, args) => {
     // To always clear all first:
-    await ctx.runAction(internal.init.seed, { reset: true });
+    await ctx.runAction(internal.init.reset);
     // To always make a new world:
     // await ctx.runAction(internal.init.seed, { newWorld: true });
     // To just run with the existing agents:
