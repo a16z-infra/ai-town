@@ -93,6 +93,13 @@ export async function agentLoop(
   const relevantConversations = nearbyConversations.filter(
     (c) => c.messages.filter((m) => nearbyPlayerIds.includes(m.from)).length,
   );
+  // Try for the conversation we were just in first.
+  // TODO: if we are in a nearby conversation, should we only do that one?
+  relevantConversations.sort(
+    (a, b) =>
+      (a.conversationId === player.lastSpokeConversationId ? 1 : 0) -
+      (b.conversationId === player.lastSpokeConversationId ? 1 : 0),
+  );
 
   for (const { conversationId, messages } of relevantConversations) {
     const chatHistory: Message[] = [
