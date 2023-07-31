@@ -85,7 +85,7 @@ export const Snapshot = v.object({
     v.object({
       player: Player,
       new: v.boolean(),
-      // relationship: v.string()
+      relationship: v.string(),
     }),
   ),
   nearbyConversations: v.array(

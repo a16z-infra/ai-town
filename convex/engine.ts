@@ -200,10 +200,16 @@ async function makeSnapshot(
 ): Promise<Snapshot> {
   const lastPlan = await latestEntryOfType(db, player.id, 'planning', ts);
   const otherPlayers = otherPlayersAndMe.filter((d) => d.id !== player.id);
-  const nearbyPlayers = getNearbyPlayers(db, player, otherPlayers, ts).map((other) => ({
-    player: other,
-    new: !lastPlan?.data.snapshot.nearbyPlayers.find((a) => a.player.id === other.id),
-  }));
+  const nearbyPlayers = await asyncMap(
+    getNearbyPlayers(db, player, otherPlayers, ts),
+    async (other) => ({
+      player: other,
+      relationship:
+        (await latestRelationshipMemoryWith(db, player.id, other.id, ts))?.description ??
+        `${player.name} doesn't know ${other.name}`,
+      new: !lastPlan?.data.snapshot.nearbyPlayers.find((a) => a.player.id === other.id),
+    }),
+  );
   const planEntry = await latestMemoryOfType(db, player.id, 'plan', ts);
   return {
     player,
@@ -334,6 +340,24 @@ async function latestMemoryOfType<T extends MemoryType>(
     .first();
   if (!entry) return null;
   return entry as MemoryOfType<T>;
+}
+
+async function latestRelationshipMemoryWith(
+  db: DatabaseReader,
+  playerId: Id<'players'>,
+  otherPlayerId: Id<'players'>,
+  ts: GameTs,
+) {
+  const entry = await db
+    .query('memories')
+    .withIndex('by_playerId_type_ts', (q) =>
+      q.eq('playerId', playerId).eq('data.type', 'relationship').lte('ts', ts),
+    )
+    .order('desc')
+    .filter((q) => q.eq(q.field('data.playerId'), otherPlayerId))
+    .first();
+  if (!entry) return null;
+  return entry as MemoryOfType<'relationship'>;
 }
 
 // function getPlayerStatus(entries: Entry[] /* latest first */): Status {}
