@@ -116,8 +116,13 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
   };
 }
 
-export const filterMemoriesType = (types: string[], memories: Doc<'memories'>) => {
-  //return memories.filter((memory) => types.includes(memory.type));
+export const filterMemoriesType = (
+  memoryTypes: string[],
+  memories: { memory: Doc<'memories'>; overallScore: number }[],
+) => {
+  return memories.filter((m: any) => {
+    return memoryTypes.includes(m.memory.data.type);
+  });
 };
 
 export const getMemories = internalQuery({

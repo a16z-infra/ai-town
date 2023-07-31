@@ -1,13 +1,23 @@
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
-import { ActionCtx, internalAction, internalMutation, internalQuery } from './_generated/server';
-import { getRandomPosition } from './lib/physics';
-import { MemoryDB } from './lib/memory';
+
+import {
+  ActionCtx,
+  action,
+  internalAction,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from './_generated/server';
+import { getRandomPosition, manhattanDistance } from './lib/physics';
+import { MemoryDB, filterMemoriesType } from './lib/memory';
 import { Message, chatGPTCompletion, fetchEmbedding } from './lib/openai';
 import { Snapshot, Action } from './types';
+import { getPlayerSnapshot } from './engine';
+import { converse, startConversation, walkAway } from './conversation';
 import { getAgentSnapshot } from './engine';
-import { converse, walkAway } from './conversation';
 
 export const runConversation = internalAction({
   args: { players: v.optional(v.array(v.id('players'))) },
@@ -17,7 +27,7 @@ export const runConversation = internalAction({
     // To always make a new world:
     // await ctx.runAction(internal.init.seed, { newWorld: true });
     // To just run with the existing agents:
-    // await ctx.runAction(internal.init.seed, {});
+    //await ctx.runAction(internal.init.seed, {});
     let playerIds = args.players;
     if (!playerIds) {
       playerIds = await ctx.runQuery(internal.agent.getDebugPlayerIds);
@@ -83,11 +93,22 @@ export async function agentLoop(
   const relevantConversations = nearbyConversations.filter(
     (c) => c.messages.filter((m) => nearbyPlayerIds.includes(m.from)).length,
   );
+
+  // messages only contain playerId, we want to construct a chat history with player names
+  let playerMap = nearbyPlayers.reduce((acc, obj) => {
+    const playerId: string = obj.player.id.toString();
+    acc[playerId] = obj.player.name;
+    return acc;
+  }, {} as { [playerId: string]: string });
+  playerMap[player.id] = player.name;
+
   for (const { conversationId, messages } of relevantConversations) {
     const chatHistory: Message[] = [
       ...messages.map((m) => ({
         role: 'user' as const,
-        content: `${m.from} to ${m.to}: ${m.content}\n`,
+        content: `${playerMap[m.from]} to ${m.to.map((r) => playerMap[r]).join(',')}: ${
+          m.content
+        }\n`,
       })),
     ];
     const shouldWalkAway = await walkAway(chatHistory, player);
@@ -108,7 +129,7 @@ export async function agentLoop(
         await actionAPI({ type: 'stop' });
       }
 
-      const playerCompletion = await converse(chatHistory, player, nearbyPlayers);
+      const playerCompletion = await converse(chatHistory, player, nearbyPlayers, memory);
       // display the chat via actionAPI
       const success = await actionAPI({
         type: 'saySomething',
@@ -140,14 +161,14 @@ export async function agentLoop(
     // Hey, new friends
     if (!othersThinking) {
       // Decide whether we want to talk
-      const { embedding } = await fetchEmbedding(`What do you think about ${newFriends[0].name}`);
-      const memories = await memory.accessMemories(player.id, embedding);
-      // TODO: actually do things with LLM completions.
+      const newFriendsNames = newFriends.map((a) => a.name);
+      const playerCompletion = await startConversation(newFriendsNames, memory, player);
+
       if (
         await actionAPI({
           type: 'startConversation',
           audience: newFriends.map((a) => a.id),
-          content: 'Hello',
+          content: playerCompletion,
         })
       ) {
         return;
