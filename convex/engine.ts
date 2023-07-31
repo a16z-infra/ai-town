@@ -119,10 +119,11 @@ export async function handlePlayerAction(
     noSchedule,
   }: { playerId: Id<'players'>; action: Action; noSchedule?: boolean },
 ) {
-  const tick = async (at?: number) => {
+  const tick = async (at?: number, forPlayer?: Id<'players'>) => {
     if (noSchedule) return;
-    if (at) ctx.scheduler.runAt(at, internal.engine.tick, { worldId });
-    else ctx.scheduler.runAfter(0, internal.engine.tick, { worldId });
+    console.log('scheduling tick!', at);
+    if (at) ctx.scheduler.runAt(at, internal.engine.tick, { worldId, forPlayer });
+    else ctx.scheduler.runAfter(0, internal.engine.tick, { worldId, forPlayer });
   };
   const ts = Date.now();
   const playerDoc = (await ctx.db.get(playerId))!;
@@ -170,7 +171,7 @@ export async function handlePlayerAction(
         playerId,
         data: { type: 'walking', route, startTs: ts, targetEndTs },
       });
-      tick(targetEndTs);
+      tick(targetEndTs, playerId);
       break;
     case 'continue':
       await ctx.db.insert('journal', { ts, playerId, data: { type: 'continuing' } });
