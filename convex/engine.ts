@@ -29,7 +29,7 @@ import { asyncMap, pruneNull } from './lib/utils.js';
 import { findRoute, getPoseFromMotion, manhattanDistance, roundPose } from './lib/physics.js';
 import { clientMessage } from './chat';
 
-export const NEARBY_DISTANCE = 5;
+export const NEARBY_DISTANCE = 10;
 export const TIME_PER_STEP = 1000;
 export const DEFAULT_AGENT_IDLE = 30_000;
 // If you don't set a start position, you'll start at 0,0.
