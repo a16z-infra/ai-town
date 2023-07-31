@@ -41,9 +41,9 @@ export const tick = internalMutation({
 
     // TODO: If the player's path is blocked, stop or re-route.
     // TODO: coordinate shared interactions (shared focus)
-    // TODO: Determine if any players are not worth waking up
 
     // TODO: sort players by how long ago they last did something.
+    playerSnapshots.sort((a, b) => a.lastSpokeTs - b.lastSpokeTs);
 
     // For each player (oldest to newest? Or all on the same step?):
     for (let idx = 0; idx < playerSnapshots.length; idx++) {
@@ -51,8 +51,8 @@ export const tick = internalMutation({
       // TODO: if the player hasn't finished for a long time,
       // try anyways and handle rejecting old actions.
       if (player.thinking) continue;
-      // For players worth waking up: schedule action
       if (forPlayer && player.id !== forPlayer) continue;
+      // TODO: Determine if any players are not worth waking up
       const snapshot = await makeSnapshot(ctx.db, player, playerSnapshots, ts);
       await ctx.db.insert('journal', {
         ts,
