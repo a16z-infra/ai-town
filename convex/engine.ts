@@ -144,14 +144,14 @@ export async function handlePlayerAction(
     noSchedule,
   }: { playerId: Id<'players'>; action: Action; noSchedule?: boolean },
 ) {
+  const ts = Date.now();
+  const playerDoc = (await ctx.db.get(playerId))!;
+  const { worldId } = playerDoc;
   const tick = async (at?: number, forPlayer?: Id<'players'>) => {
     if (noSchedule) return;
     if (at) ctx.scheduler.runAt(at, internal.engine.tick, { worldId, forPlayer });
     else ctx.scheduler.runAfter(0, internal.engine.tick, { worldId, forPlayer });
   };
-  const ts = Date.now();
-  const playerDoc = (await ctx.db.get(playerId))!;
-  const { worldId } = playerDoc;
   const player = await getPlayer(ctx.db, playerDoc);
   // TODO: Check if the player shoudl still respond.
   switch (action.type) {
