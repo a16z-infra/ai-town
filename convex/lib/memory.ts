@@ -12,8 +12,9 @@ import {
   query,
 } from '../_generated/server.js';
 import { asyncMap } from './utils.js';
-import { Memories } from '../types.js';
-import { chatGPTCompletion, fetchEmbeddingBatch } from './openai.js';
+import { EntryOfType, Memories, MemoryOfType } from '../types.js';
+import { chatGPTCompletion, fetchEmbedding, fetchEmbeddingBatch } from './openai.js';
+import { clientMessageMapper } from '../chat.js';
 
 const { embeddingId: _, ...MemoryWithoutEmbeddingId } = Memories.fields;
 const NewMemory = { ...MemoryWithoutEmbeddingId, importance: v.optional(v.number()) };
@@ -33,6 +34,10 @@ export interface MemoryDB {
     count?: number,
   ): Promise<{ memory: Doc<'memories'>; overallScore: number }[]>;
   addMemories(memories: NewMemory[]): Promise<Id<'memories'>[]>;
+  rememberConversation(
+    playerId: Id<'players'>,
+    conversationId: Id<'conversations'>,
+  ): Promise<Id<'memories'> | null>;
 }
 
 export function MemoryDB(ctx: ActionCtx): MemoryDB {
@@ -116,6 +121,40 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
         }
       });
       return ctx.runMutation(internal.lib.memory.addMemories, { memories });
+    },
+
+    async rememberConversation(playerId, conversationId) {
+      const messages = await ctx.runQuery(internal.lib.memory.getRecentMessages, {
+        playerId,
+        conversationId,
+      });
+      if (!messages) return null;
+      const { content: description } = await chatGPTCompletion([
+        {
+          role: 'user',
+          content: `The following are messages. I would like you to summarize the conversation in a paragraph.`,
+        },
+        ...messages.map((m) => ({
+          role: 'user' as const,
+          content: `${m.fromName}: ${m.content}`,
+        })),
+        {
+          role: 'user',
+          content: `Summary:`,
+        },
+      ]);
+      const memory = await this.addMemories([
+        {
+          playerId,
+          description,
+          ts: Date.now(),
+          data: {
+            type: 'conversation',
+            conversationId,
+          },
+        },
+      ]);
+      return memory[0];
     },
   };
 }
@@ -258,5 +297,43 @@ export const getEmbeddingsByText = internalQuery({
   args: { texts: v.array(v.string()) },
   handler: async (ctx, args) => {
     return checkEmbeddingCache(ctx.db, args.texts);
+  },
+});
+
+export const getRecentMessages = internalQuery({
+  args: { playerId: v.id('players'), conversationId: v.id('conversations') },
+  handler: async (ctx, { playerId, conversationId }) => {
+    const lastConversationMemory = (await ctx.db
+      .query('memories')
+      .withIndex('by_playerId_type_ts', (q) =>
+        q.eq('playerId', playerId).eq('data.type', 'conversation'),
+      )
+      .order('desc')
+      .first()) as MemoryOfType<'conversation'>;
+
+    const allMessages = (await ctx.db
+      .query('journal')
+      .withIndex('by_conversation', (q) => {
+        const q2 = q.eq('data.conversationId', conversationId as any);
+        if (lastConversationMemory?.data.conversationId === conversationId) {
+          return q2.gt('ts', lastConversationMemory.ts);
+        }
+        return q;
+      })
+      .collect()) as EntryOfType<'talking'>[];
+    // Find if we have a memory of this conversation already.
+    // Only need to check from when the first message exists.
+    const previousConversationMemory = await ctx.db
+      .query('memories')
+      .withIndex('by_playerId_type_ts', (q) =>
+        q.eq('playerId', playerId).eq('data.type', 'conversation').gt('ts', allMessages[0].ts),
+      )
+      .order('desc')
+      .filter((q) => q.eq(q.field('data.conversationId'), conversationId))
+      .first();
+    const lastMemoryTs = previousConversationMemory?.ts ?? 0;
+    return (await asyncMap(allMessages, clientMessageMapper(ctx.db))).filter(
+      (m) => m.ts > lastMemoryTs && (m.from === playerId || m.to.includes(playerId)),
+    );
   },
 });

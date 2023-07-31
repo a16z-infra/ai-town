@@ -88,6 +88,12 @@ export async function agentLoop(
   //  might include new observations -> add to memory with openai embeddings
   // Based on plan and observations, determine next action:
   //   if so, add new memory for new plan, and return new action
+  if (
+    player.lastSpokeConversationId &&
+    !nearbyConversations.find((c) => c.conversationId === player.lastSpokeConversationId)
+  ) {
+    await memory.rememberConversation(player.id, player.lastSpokeConversationId);
+  }
 
   // Check if any messages are from players still nearby.
   const relevantConversations = nearbyConversations.filter(
