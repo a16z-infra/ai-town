@@ -76,6 +76,7 @@ export async function agentLoop(
   const imWalkingHere = player.motion.type === 'walking' && player.motion.targetEndTs > Date.now();
   const newFriends = nearbyPlayers.filter((a) => a.new).map(({ player }) => player);
   const othersThinking = newFriends.find((a) => a.thinking);
+  const nearbyPlayerIds = nearbyPlayers.map(({ player }) => player.id);
   // Handle new observations
   //   Calculate scores
   //   If there's enough observation score, trigger reflection?
@@ -84,7 +85,12 @@ export async function agentLoop(
   //  might include new observations -> add to memory with openai embeddings
   // Based on plan and observations, determine next action:
   //   if so, add new memory for new plan, and return new action
-  for (const { conversationId, messages } of nearbyConversations) {
+
+  // Check if any messages are from players still nearby.
+  const relevantConversations = nearbyConversations.filter(
+    (c) => c.messages.filter((m) => nearbyPlayerIds.includes(m.from)).length,
+  );
+  for (const { conversationId, messages } of relevantConversations) {
     // Decide if we keep talking.
     if (messages.length >= 10) {
       // It's to chatty here, let's go somewhere else.
