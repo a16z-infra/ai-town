@@ -27,7 +27,7 @@ import {
 } from './types.js';
 import { asyncMap, pruneNull } from './lib/utils.js';
 import { findRoute, getPoseFromMotion, manhattanDistance, roundPose } from './lib/physics.js';
-import { clientMessage } from './chat';
+import { clientMessageMapper } from './chat';
 
 export const NEARBY_DISTANCE = 10;
 export const TIME_PER_STEP = 1000;
@@ -265,6 +265,7 @@ async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): Promise
     identity,
     thinking: lastThinking?.data.type === 'thinking',
     lastSpokeTs: lastChat?.ts ?? 0,
+    lastSpokeConversationId: lastChat?.data.conversationId,
     motion: latestMotion ?? { type: 'stopped', reason: 'idle', pose: DEFAULT_START_POSE },
   };
 }
@@ -306,9 +307,9 @@ async function getNearbyConversations(
   return (
     await asyncMap(conversations, async (entry) => ({
       conversationId: entry.data.conversationId,
-      messages: (await fetchMessages(db, entry.data.conversationId))
-        .map(clientMessage)
-        .filter((message) => message.to.includes(playerId) || message.from === playerId),
+      messages: (
+        await asyncMap(await fetchMessages(db, entry.data.conversationId), clientMessageMapper(db))
+      ).filter((message) => message.to.includes(playerId) || message.from === playerId),
     }))
   ).filter((c) => c.messages.length > 0);
 }

@@ -35,15 +35,12 @@ export const debugListMessages = internalQuery({
           )
           .collect() as Promise<EntryOfType<'talking'>[]>,
     );
-    return messageEntries
-      .flatMap((a) => a)
-      .map(clientMessage)
-      .map((m) => ({
-        ...m,
-        from: ': ' + players.find((p) => p._id === m.from)?.name + ': ' + m.from,
-        to: m.to.map((id) => players.find((p) => p._id === id)?.name + ': ' + id),
-      }))
-      .sort((a, b) => a.ts - b.ts);
+    return (
+      await asyncMap(
+        messageEntries.flatMap((a) => a),
+        clientMessageMapper(ctx.db),
+      )
+    ).sort((a, b) => a.ts - b.ts);
   },
 });
 
@@ -81,7 +78,7 @@ export const paginatePlayerMessages = query({
       .paginate(args.paginationOpts)) as PaginationResult<EntryOfType<'talking'>>;
     return {
       ...results,
-      page: results.page.map(clientMessage),
+      page: await asyncMap(results.page, clientMessageMapper(ctx.db)),
     };
   },
 });
@@ -92,7 +89,7 @@ export const listMessages = query({
     const messages = (await conversationQuery(ctx.db, args.conversationId).take(
       1000,
     )) as EntryOfType<'talking'>[];
-    return messages.map(clientMessage);
+    return asyncMap(messages, clientMessageMapper(ctx.db));
   },
 });
 
@@ -104,7 +101,7 @@ export const paginateMessages = query({
     )) as PaginationResult<EntryOfType<'talking'>>;
     return {
       ...messages,
-      page: messages.page.map(clientMessage),
+      page: await asyncMap(messages.page, clientMessageMapper(ctx.db)),
     };
   },
 });
@@ -116,11 +113,17 @@ function conversationQuery(db: DatabaseReader, conversationId: Id<'conversations
     .order('desc');
 }
 
-export function clientMessage(m: EntryOfType<'talking'>): Message {
-  return {
-    from: m.playerId,
-    to: m.data.audience,
-    content: m.data.content,
-    ts: m.ts,
+export function clientMessageMapper(db: DatabaseReader) {
+  const getName = async (id: Id<'players'>) => (await db.get(id))?.name || '<Anonymous>';
+  const clientMessage = async (m: EntryOfType<'talking'>): Promise<Message> => {
+    return {
+      from: m.playerId,
+      fromName: await getName(m.playerId),
+      to: m.data.audience,
+      toNames: await asyncMap(m.data.audience, getName),
+      content: m.data.content,
+      ts: m.ts,
+    };
   };
+  return clientMessage;
 }

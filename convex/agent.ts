@@ -94,20 +94,11 @@ export async function agentLoop(
     (c) => c.messages.filter((m) => nearbyPlayerIds.includes(m.from)).length,
   );
 
-  // messages only contain playerId, we want to construct a chat history with player names
-  let playerMap = nearbyPlayers.reduce((acc, obj) => {
-    acc[obj.player.id] = obj.player.name;
-    return acc;
-  }, {} as { [playerId: Id<'players'>]: string });
-  playerMap[player.id] = player.name;
-
   for (const { conversationId, messages } of relevantConversations) {
     const chatHistory: Message[] = [
       ...messages.map((m) => ({
         role: 'user' as const,
-        content: `${playerMap[m.from]} to ${m.to.map((r) => playerMap[r]).join(',')}: ${
-          m.content
-        }\n`,
+        content: `${m.fromName} to ${m.toNames.join(',')}: ${m.content}\n`,
       })),
     ];
     const shouldWalkAway = await walkAway(chatHistory, player);

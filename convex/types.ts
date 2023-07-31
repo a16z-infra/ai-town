@@ -45,7 +45,9 @@ export type Action = Infer<typeof Action>;
 
 export const Message = v.object({
   from: v.id('players'),
+  fromName: v.string(),
   to: v.array(v.id('players')),
+  toNames: v.array(v.string()),
   content: v.string(),
   ts,
 });
@@ -74,6 +76,7 @@ export const Player = v.object({
   motion: Motion,
   thinking: v.boolean(),
   lastSpokeTs: v.number(),
+  lastSpokeConversationId: v.optional(v.id('conversations')),
 });
 export type Player = Infer<typeof Player>;
 
