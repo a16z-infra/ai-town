@@ -1,23 +1,15 @@
 import { v } from 'convex/values';
-import { api, internal } from './_generated/api';
+import { internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
-import {
-  ActionCtx,
-  action,
-  internalAction,
-  internalMutation,
-  internalQuery,
-  mutation,
-  query,
-} from './_generated/server';
-import { getRandomPosition, manhattanDistance } from './lib/physics';
+import { ActionCtx, internalAction, internalMutation, internalQuery } from './_generated/server';
+import { getRandomPosition } from './lib/physics';
 import { MemoryDB } from './lib/memory';
 import { Message, chatGPTCompletion, fetchEmbedding } from './lib/openai';
 import { Snapshot, Action } from './types';
-import { getPlayerSnapshot } from './engine';
+import { getAgentSnapshot } from './engine';
 import { converse, walkAway } from './conversation';
 
-export const runConversation = action({
+export const runConversation = internalAction({
   args: { players: v.optional(v.array(v.id('players'))) },
   handler: async (ctx, args) => {
     // To always clear all first:
@@ -44,7 +36,7 @@ export const runConversation = action({
 export const debugPlanAgent = internalMutation({
   args: { playerId: v.id('players') },
   handler: async (ctx, { playerId }) => {
-    const snapshot = await getPlayerSnapshot(ctx, { playerId });
+    const snapshot = await getAgentSnapshot(ctx, { playerId });
     await ctx.db.insert('journal', {
       ts: Date.now(),
       playerId,
@@ -74,7 +66,7 @@ export async function agentLoop(
   memory: MemoryDB,
   actionAPI: ActionAPI,
 ) {
-  const imWalkingHere = player.motion.type === 'walking' && player.motion.targetEndTs > Date.now();
+  const imWalkingHere = player.motion.type === 'walking';
   const newFriends = nearbyPlayers.filter((a) => a.new).map(({ player }) => player);
   const othersThinking = newFriends.find((a) => a.thinking);
   const nearbyPlayerIds = nearbyPlayers.map(({ player }) => player.id);

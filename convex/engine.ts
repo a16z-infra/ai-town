@@ -46,7 +46,7 @@ export const tick = internalMutation({
       .collect();
     // Make snapshot of world
     const playerSnapshots = await asyncMap(playerDocs, async (playerDoc) =>
-      getPlayer(ctx.db, playerDoc, ts),
+      getPlayer(ctx.db, playerDoc),
     );
 
     // TODO: coordinate shared interactions (shared focus)
@@ -76,12 +76,13 @@ export const tick = internalMutation({
           playerId: player.id,
           data: motion,
         });
+        // Give the snapshot the latest player state.
         // A bit hacky, we could re-create the player state, but fine for now.
         player.motion = motion;
       }
 
       // TODO: Determine if any players are not worth waking up
-      const snapshot = await makeSnapshot(ctx.db, player, playerSnapshots, ts);
+      const snapshot = await makeSnapshot(ctx.db, player, playerSnapshots);
       // We mark ourselves as planning AFTER the snapshot, so the snapshot can
       // access the previous plan.
       await ctx.db.insert('journal', {
@@ -95,7 +96,7 @@ export const tick = internalMutation({
       // Fetch the new state
       const playerDoc = playerDocs.find((d) => d._id === player.id)!;
       // Replace it for other players.
-      playerSnapshots[idx] = await getPlayer(ctx.db, playerDoc, ts);
+      playerSnapshots[idx] = await getPlayer(ctx.db, playerDoc);
       // For players worth waking up: schedule action
       await ctx.scheduler.runAfter(0, internal.agent.runAgent, { snapshot });
       // TODO: handle timeouts
@@ -104,14 +105,11 @@ export const tick = internalMutation({
   },
 });
 
-export const getPlayerSnapshot = query({
-  args: { playerId: v.id('players'), tsOffset: v.optional(v.number()) },
+export const getAgentSnapshot = query({
+  args: { playerId: v.id('players') },
   handler: async (ctx, args) => {
-    // TODO: how to fetch the latest always, not cache Date.now()?
-    // For now, use a big tsOffset.
-    const ts = Date.now() + (args.tsOffset ?? 0);
     const playerDoc = (await ctx.db.get(args.playerId))!;
-    const player = await getPlayer(ctx.db, playerDoc, ts);
+    const player = await getPlayer(ctx.db, playerDoc);
     // Could potentially do a smarter filter in the future to only get
     // players that are nearby, but for now, just get all of them.
     const allPlayers = await asyncMap(
@@ -119,10 +117,19 @@ export const getPlayerSnapshot = query({
         .query('players')
         .withIndex('by_worldId', (q) => q.eq('worldId', playerDoc.worldId))
         .collect(),
-      (playerDoc) => getPlayer(ctx.db, playerDoc, ts),
+      (playerDoc) => getPlayer(ctx.db, playerDoc),
     );
-    const snapshot = await makeSnapshot(ctx.db, player, allPlayers, ts);
+    const snapshot = await makeSnapshot(ctx.db, player, allPlayers);
     return snapshot;
+  },
+});
+
+export const getPlayerSnapshot = query({
+  args: { playerId: v.id('players') },
+  handler: async (ctx, args) => {
+    const playerDoc = (await ctx.db.get(args.playerId))!;
+    const player = await getPlayer(ctx.db, playerDoc);
+    return player;
   },
 });
 
@@ -147,7 +154,7 @@ export async function handlePlayerAction(
   const ts = Date.now();
   const playerDoc = (await ctx.db.get(playerId))!;
   const { worldId } = playerDoc;
-  const player = await getPlayer(ctx.db, playerDoc, ts);
+  const player = await getPlayer(ctx.db, playerDoc);
   // TODO: Check if the player shoudl still respond.
   switch (action.type) {
     case 'startConversation':
@@ -182,7 +189,7 @@ export async function handlePlayerAction(
       break;
     case 'travel':
       // TODO: calculate obstacles to wake up?
-      const { route, distance } = findRoute(player.motion, action.position);
+      const { route, distance } = findRoute(player.motion, action.position, ts);
       // TODO: Scan for upcoming collisions (including objects for new observations)
       const targetEndTs = ts + distance * TIME_PER_STEP;
       await ctx.db.insert('journal', {
@@ -216,21 +223,17 @@ async function makeSnapshot(
   db: DatabaseReader,
   player: Player,
   otherPlayersAndMe: Player[],
-  ts: GameTs,
 ): Promise<Snapshot> {
-  const lastPlan = await latestEntryOfType(db, player.id, 'planning', ts);
+  const lastPlan = await latestEntryOfType(db, player.id, 'planning');
   const otherPlayers = otherPlayersAndMe.filter((d) => d.id !== player.id);
-  const nearbyPlayers = await asyncMap(
-    getNearbyPlayers(db, player, otherPlayers, ts),
-    async (other) => ({
-      player: other,
-      relationship:
-        (await latestRelationshipMemoryWith(db, player.id, other.id, ts))?.description ??
-        `${player.name} doesn't know ${other.name}`,
-      new: !lastPlan?.data.snapshot.nearbyPlayers.find((a) => a.player.id === other.id),
-    }),
-  );
-  const planEntry = await latestMemoryOfType(db, player.id, 'plan', ts);
+  const nearbyPlayers = await asyncMap(getNearbyPlayers(player, otherPlayers), async (other) => ({
+    player: other,
+    relationship:
+      (await latestRelationshipMemoryWith(db, player.id, other.id))?.description ??
+      `${player.name} doesn't know ${other.name}`,
+    new: !lastPlan?.data.snapshot.nearbyPlayers.find((a) => a.player.id === other.id),
+  }));
+  const planEntry = await latestMemoryOfType(db, player.id, 'plan');
   return {
     player,
     lastPlan: planEntry ? { plan: planEntry.description, ts: planEntry.ts } : undefined,
@@ -239,28 +242,23 @@ async function makeSnapshot(
       db,
       player.id,
       otherPlayersAndMe.map(({ id }) => id),
-      ts,
     ),
   };
 }
 
-async function getPlayer(
-  db: DatabaseReader,
-  playerDoc: Doc<'players'>,
-  ts: GameTs,
-): Promise<Player> {
-  const lastPlan = await latestEntryOfType(db, playerDoc._id, 'planning', ts);
-  const lastContinue = await latestEntryOfType(db, playerDoc._id, 'continuing', ts);
+async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): Promise<Player> {
+  const lastPlan = await latestEntryOfType(db, playerDoc._id, 'planning');
+  const lastContinue = await latestEntryOfType(db, playerDoc._id, 'continuing');
   const lastThinking = pruneNull([lastPlan, lastContinue])
     .sort((a, b) => a.ts - b.ts)
     .pop();
-  const lastStop = await latestEntryOfType(db, playerDoc._id, 'stopped', ts);
-  const lastWalk = await latestEntryOfType(db, playerDoc._id, 'walking', ts);
-  const lastChat = await latestEntryOfType(db, playerDoc._id, 'talking', ts);
+  const lastStop = await latestEntryOfType(db, playerDoc._id, 'stopped');
+  const lastWalk = await latestEntryOfType(db, playerDoc._id, 'walking');
+  const lastChat = await latestEntryOfType(db, playerDoc._id, 'talking');
   const latestMotion = pruneNull([lastStop, lastWalk])
     .sort((a, b) => a.ts - b.ts)
     .pop()?.data;
-  const identityEntry = await latestMemoryOfType(db, playerDoc._id, 'identity', ts);
+  const identityEntry = await latestMemoryOfType(db, playerDoc._id, 'identity');
   const identity = identityEntry?.description ?? 'I am a person.';
 
   return {
@@ -273,7 +271,8 @@ async function getPlayer(
   };
 }
 
-function getNearbyPlayers(db: DatabaseReader, target: Player, others: Player[], ts: GameTs) {
+function getNearbyPlayers(target: Player, others: Player[]) {
+  const ts = Date.now();
   const targetPose = getPoseFromMotion(target.motion, ts);
   return others.filter((a) => {
     const distance = manhattanDistance(
@@ -288,13 +287,9 @@ async function getNearbyConversations(
   db: DatabaseReader,
   playerId: Id<'players'>,
   playerIds: Id<'players'>[],
-  ts: GameTs,
 ): Promise<Snapshot['nearbyConversations']> {
   const conversationsById = pruneNull(
-    await asyncMap(
-      playerIds,
-      async (playerId) => await latestEntryOfType(db, playerId, 'talking', ts),
-    ),
+    await asyncMap(playerIds, async (playerId) => await latestEntryOfType(db, playerId, 'talking')),
   )
     // Filter out old conversations
     .filter((entry) => Date.now() - entry.ts < CONVERSATION_DEAD_THRESHOLD)
@@ -332,13 +327,10 @@ async function latestEntryOfType<T extends EntryType>(
   db: DatabaseReader,
   playerId: Id<'players'>,
   type: T,
-  ts: GameTs,
 ) {
   const entry = await db
     .query('journal')
-    .withIndex('by_playerId_type_ts', (q) =>
-      q.eq('playerId', playerId).eq('data.type', type).lte('ts', ts),
-    )
+    .withIndex('by_playerId_type_ts', (q) => q.eq('playerId', playerId).eq('data.type', type))
     .order('desc')
     .first();
   if (!entry) return null;
@@ -349,13 +341,10 @@ async function latestMemoryOfType<T extends MemoryType>(
   db: DatabaseReader,
   playerId: Id<'players'>,
   type: T,
-  ts: GameTs,
 ) {
   const entry = await db
     .query('memories')
-    .withIndex('by_playerId_type_ts', (q) =>
-      q.eq('playerId', playerId).eq('data.type', type).lte('ts', ts),
-    )
+    .withIndex('by_playerId_type_ts', (q) => q.eq('playerId', playerId).eq('data.type', type))
     .order('desc')
     .first();
   if (!entry) return null;
@@ -366,12 +355,11 @@ async function latestRelationshipMemoryWith(
   db: DatabaseReader,
   playerId: Id<'players'>,
   otherPlayerId: Id<'players'>,
-  ts: GameTs,
 ) {
   const entry = await db
     .query('memories')
     .withIndex('by_playerId_type_ts', (q) =>
-      q.eq('playerId', playerId).eq('data.type', 'relationship').lte('ts', ts),
+      q.eq('playerId', playerId).eq('data.type', 'relationship'),
     )
     .order('desc')
     .filter((q) => q.eq(q.field('data.playerId'), otherPlayerId))

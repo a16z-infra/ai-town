@@ -70,10 +70,10 @@ export function roundPose(pose: Pose): Pose {
   };
 }
 
-export function findRoute(startMotion: Motion, end: Position) {
+export function findRoute(startMotion: Motion, end: Position, ts: number) {
   let distance = 0;
 
-  const startPose = getPoseFromMotion(startMotion, Date.now());
+  const startPose = getPoseFromMotion(startMotion, ts);
   // TODO: If they were partially along some path, include that in the new
   // route, adjusting the start time so we stay in the same place.
   let current = roundPosition(startPose.position);
