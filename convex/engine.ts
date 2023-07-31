@@ -197,7 +197,7 @@ export async function handlePlayerAction(
       });
       tick(targetEndTs, playerId);
       break;
-    case 'done_thinking':
+    case 'done':
       await ctx.db.insert('journal', { ts, playerId, data: { type: 'done_thinking' } });
       break;
     case 'stop':

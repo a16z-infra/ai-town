@@ -195,7 +195,7 @@ export const runAgent = internalAction({
       await agentLoop(snapshot, memory, actionAPI);
     } finally {
       // should only be called from here, to match the "thinking" entry.
-      await actionAPI({ type: 'done_thinking' });
+      await actionAPI({ type: 'done' });
     }
   },
 });

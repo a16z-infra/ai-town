@@ -38,7 +38,7 @@ export const Action = v.union(
     type: v.literal('stop'),
   }),
   v.object({
-    type: v.literal('done_thinking'),
+    type: v.literal('done'),
   }),
 );
 export type Action = Infer<typeof Action>;
