@@ -328,7 +328,7 @@ export const getRecentMessages = internalQuery({
       .withIndex('by_conversation', (q) => {
         const q2 = q.eq('data.conversationId', conversationId as any);
         if (lastConversationMemory?.data.conversationId === conversationId) {
-          return q2.gt('ts', lastConversationMemory.ts);
+          return q2.gt.bind(q2)('ts', lastConversationMemory.ts);
         }
         return q;
       })
