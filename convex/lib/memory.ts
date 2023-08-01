@@ -330,7 +330,7 @@ export const getRecentMessages = internalQuery({
         if (lastConversationMemory?.data.conversationId === conversationId) {
           return q2.gt.bind(q2)('ts', lastConversationMemory.ts);
         }
-        return q;
+        return q2;
       })
       .collect()) as EntryOfType<'talking'>[];
     // Find if we have a memory of this conversation already.
