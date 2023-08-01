@@ -4,7 +4,6 @@ import { Doc, Id } from '../_generated/dataModel.js';
 import {
   ActionCtx,
   DatabaseReader,
-  action,
   internalAction,
   internalMutation,
   internalQuery,

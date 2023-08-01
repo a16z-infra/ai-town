@@ -3,7 +3,6 @@ import { api, internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
 import {
   DatabaseReader,
-  action,
   internalAction,
   internalMutation,
   internalQuery,

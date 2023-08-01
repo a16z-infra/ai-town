@@ -6,8 +6,6 @@ import {
   DatabaseWriter,
   MutationCtx,
   QueryCtx,
-  action,
-  internalAction,
   internalMutation,
   internalQuery,
   mutation,

@@ -1,16 +1,11 @@
+'use node';
+// ^ This tells Convex to run this in a `node` environment.
+// Read more: https://docs.convex.dev/functions/runtimes
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
 
-import {
-  ActionCtx,
-  action,
-  internalAction,
-  internalMutation,
-  internalQuery,
-  mutation,
-  query,
-} from './_generated/server';
+import { ActionCtx, internalAction } from './_generated/server';
 import { getRandomPosition } from './lib/physics';
 import { MemoryDB, filterMemoriesType } from './lib/memory';
 import { Message, chatGPTCompletion, fetchEmbedding } from './lib/openai';
@@ -30,44 +25,16 @@ export const runConversation = internalAction({
     //await ctx.runAction(internal.init.seed, {});
     let playerIds = args.players;
     if (!playerIds) {
-      playerIds = await ctx.runQuery(internal.agent.getDebugPlayerIds);
+      playerIds = await ctx.runQuery(internal.testing.getDebugPlayerIds);
     }
     for (let i = 0; i < 5; i++) {
       for (const playerId of playerIds) {
-        const snapshot = await ctx.runMutation(internal.agent.debugPlanAgent, {
+        const snapshot = await ctx.runMutation(internal.testing.debugPlanAgent, {
           playerId,
         });
         await ctx.runAction(internal.agent.runAgent, { snapshot, noSchedule: true });
       }
     }
-  },
-});
-
-export const debugPlanAgent = internalMutation({
-  args: { playerId: v.id('players') },
-  handler: async (ctx, { playerId }) => {
-    const snapshot = await getAgentSnapshot(ctx, playerId);
-    await ctx.db.insert('journal', {
-      ts: Date.now(),
-      playerId,
-      data: {
-        type: 'thinking',
-        snapshot,
-      },
-    });
-    return snapshot;
-  },
-});
-
-export const getDebugPlayerIds = internalQuery({
-  handler: async (ctx) => {
-    const world = await ctx.db.query('worlds').order('desc').first();
-    if (!world) throw new Error('No worlds exist yet: try running dbx convex run init');
-    const players = await ctx.db
-      .query('players')
-      .withIndex('by_worldId', (q) => q.eq('worldId', world._id))
-      .collect();
-    return players.map((p) => p._id);
   },
 });
 

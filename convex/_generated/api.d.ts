@@ -26,6 +26,7 @@ import type * as lib_openai from "../lib/openai";
 import type * as lib_physics from "../lib/physics";
 import type * as lib_pinecone from "../lib/pinecone";
 import type * as lib_utils from "../lib/utils";
+import type * as testing from "../testing";
 import type * as types from "../types";
 import type * as users from "../users";
 
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   "lib/physics": typeof lib_physics;
   "lib/pinecone": typeof lib_pinecone;
   "lib/utils": typeof lib_utils;
+  testing: typeof testing;
   types: typeof types;
   users: typeof users;
 }>;
