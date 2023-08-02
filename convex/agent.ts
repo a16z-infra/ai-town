@@ -1,4 +1,4 @@
-'use node';
+// 'use node';
 // ^ This tells Convex to run this in a `node` environment.
 // Read more: https://docs.convex.dev/functions/runtimes
 import { v } from 'convex/values';
