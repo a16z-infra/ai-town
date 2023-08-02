@@ -1,17 +1,17 @@
-import { UserButton } from "@clerk/nextjs";
-import { auth } from "@clerk/nextjs";
-import Image from "next/image";
-import Link from "next/link";
+import { UserButton } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs';
+import Image from 'next/image';
+import Link from 'next/link';
 const navigation = [
   {
-    name: "About",
-    href: "https://github.com/a16z-infra/companion-app",
+    name: 'About',
+    href: 'https://github.com/a16z-infra/AI-town',
     current: false,
   },
 ];
 
 function classNames(...classes: string[]) {
-  return classes.filter(Boolean).join(" ");
+  return classes.filter(Boolean).join(' ');
 }
 
 export default function Navbar() {
@@ -47,11 +47,11 @@ export default function Navbar() {
                     href={item.href}
                     className={classNames(
                       item.current
-                        ? "bg-gray-900 text-white"
-                        : "text-gray-300 hover:bg-gray-700 hover:text-white",
-                      "rounded-md px-3 py-2 text-sm font-medium"
+                        ? 'bg-gray-900 text-white'
+                        : 'text-gray-300 hover:bg-gray-700 hover:text-white',
+                      'rounded-md px-3 py-2 text-sm font-medium',
                     )}
-                    aria-current={item.current ? "page" : undefined}
+                    aria-current={item.current ? 'page' : undefined}
                   >
                     {item.name}
                   </a>
