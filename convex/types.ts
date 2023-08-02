@@ -1,5 +1,5 @@
 import { Infer, v } from 'convex/values';
-import { tableHelper } from './lib/utils';
+import { Table } from './lib/utils';
 
 // ts is milliseconds in game time
 const ts = v.number();
@@ -98,7 +98,7 @@ export const Snapshot = v.object({
 export type Snapshot = Infer<typeof Snapshot>;
 
 // Journal documents are append-only, and define an player's state.
-export const Journal = tableHelper('journal', {
+export const Journal = Table('journal', {
   // TODO: maybe we can just use _creationTime?
   ts,
   playerId: v.id('players'),
@@ -144,7 +144,7 @@ export type EntryOfType<T extends EntryType> = Omit<Entry, 'data'> & {
   data: Extract<Entry['data'], { type: T }>;
 };
 
-export const Memories = tableHelper('memories', {
+export const Memories = Table('memories', {
   playerId: v.id('players'),
   description: v.string(),
   embeddingId: v.id('embeddings'),
