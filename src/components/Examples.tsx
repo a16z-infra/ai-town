@@ -55,8 +55,11 @@ export default function Examples() {
           </div>
         </div>
 
-        <div className="shrink-0 border-t border-gray-200 px-4 py-6 sm:px-6 lg:w-96 lg:border-l lg:border-t-0 lg:pr-8 xl:pr-6 bg-slate-300">
+        <div className="flex flex-col shrink-0 border-t border-gray-200 px-4 py-6 sm:px-6 lg:w-96 lg:border-l lg:border-t-0 lg:pr-8 xl:pr-6 bg-slate-300 space-y-11">
           {/* Right column area */}
+          <h1 className="text-3xl font-bold leading-tight tracking-tight text-neutral-700">
+            Conversations
+          </h1>
           <Chats />
         </div>
       </div>
