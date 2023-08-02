@@ -189,6 +189,8 @@ export const accessMemories = internalMutation({
     const relatedMemories = await asyncMap(candidates, ({ _id }) =>
       getMemoryByEmbeddingId(ctx.db, playerId, _id),
     );
+    // TODO: fetch <count> recent memories and <count> important memories
+    // so we don't miss them in case they were a little less relevant.
     const recencyScore = await asyncMap(relatedMemories, async (memory) => {
       const access = await ctx.db
         .query('memoryAccesses')
@@ -327,7 +329,7 @@ export const getRecentMessages = internalQuery({
       .withIndex('by_conversation', (q) => {
         const q2 = q.eq('data.conversationId', conversationId as any);
         if (lastConversationMemory?.data.conversationId === conversationId) {
-          return q2.gt.bind(q2)('ts', lastConversationMemory.ts);
+          return q2.gt('ts', lastConversationMemory.ts);
         }
         return q2;
       })
