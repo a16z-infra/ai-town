@@ -11,7 +11,7 @@ export default function Home() {
         </h1>
 
         <p className="mx-auto mt-4 max-w-xl text-center text-xl leading-8 text-slate-400 ">
-          A virtual town where AI lives, chat and socialize.
+          A virtual town where AI characters live, chat and socialize.
         </p>
 
         <Examples />
