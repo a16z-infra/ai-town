@@ -11,6 +11,22 @@ import { Message } from './lib/openai';
 import { Snapshot, Action, Position, Worlds } from './types';
 import { converse, startConversation, walkAway } from './conversation';
 
+// 1. The engine kicks off this action.
+export const runAgent = internalAction({
+  args: { snapshot: Snapshot, noSchedule: v.optional(v.boolean()), world: Worlds.doc },
+  handler: async (ctx, { snapshot, noSchedule, world }) => {
+    const memory = MemoryDB(ctx);
+    const actionAPI = ActionAPI(ctx, snapshot.player.id, noSchedule ?? false);
+    try {
+      await agentLoop(snapshot, memory, actionAPI, world);
+    } finally {
+      // should only be called from here, to match the "thinking" entry.
+      await actionAPI({ type: 'done' });
+    }
+  },
+});
+
+// 2. We run the agent loop
 export async function agentLoop(
   { player, nearbyPlayers, nearbyConversations, lastPlan }: Snapshot,
   memory: MemoryDB,
@@ -135,20 +151,7 @@ export async function agentLoop(
   // TODO: consider reflecting on recent memories
 }
 
-export const runAgent = internalAction({
-  args: { snapshot: Snapshot, noSchedule: v.optional(v.boolean()), world: Worlds.doc },
-  handler: async (ctx, { snapshot, noSchedule, world }) => {
-    const memory = MemoryDB(ctx);
-    const actionAPI = ActionAPI(ctx, snapshot.player.id, noSchedule ?? false);
-    try {
-      await agentLoop(snapshot, memory, actionAPI, world);
-    } finally {
-      // should only be called from here, to match the "thinking" entry.
-      await actionAPI({ type: 'done' });
-    }
-  },
-});
-
+// 3. We run any actions called by the agent loop, and finally call with "done".
 export function ActionAPI(ctx: ActionCtx, playerId: Id<'players'>, noSchedule: boolean) {
   return (action: Action) => {
     return ctx.runMutation(internal.engine.handleAgentAction, {
