@@ -6,6 +6,7 @@ import { Tooltip } from 'react-tooltip';
 
 import { getCompanions } from './actions';
 import Chats from './Chats';
+import Game from './Game';
 
 export default function Examples() {
   const [QAModalOpen, setQAModalOpen] = useState(false);
@@ -51,7 +52,7 @@ export default function Examples() {
         {/* Left sidebar & main wrapper */}
         <div className="flex-1 xl:flex">
           <div className="px-4 py-6 sm:px-6 lg:pl-8 xl:flex-1 xl:pl-6 bg-slate-50">
-            {/* Main area */}
+            <Game />
           </div>
         </div>
 
