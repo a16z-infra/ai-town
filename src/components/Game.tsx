@@ -4,7 +4,28 @@ import { ConvexProvider, useConvex, useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Player } from './Player';
 
-const useOffset = () => {
+export const Game = () => {
+  const convex = useConvex();
+  const worldState = useQuery(api.players.getWorld, {});
+  const offset = useServerTimeOffset();
+  if (!worldState) return null;
+  const { world, players } = worldState;
+  console.log('worldId', world._id);
+  return (
+    <Stage width={1200} height={800} options={{ backgroundColor: 0xffffff }}>
+      <ConvexProvider client={convex}>
+        {players
+          // .slice(0, 1)
+          .map((player) => (
+            <Player key={player._id} player={player} offset={offset} />
+          ))}
+      </ConvexProvider>
+    </Stage>
+  );
+};
+export default Game;
+
+const useServerTimeOffset = () => {
   const serverNow = useMutation(api.players.now);
   const [offset, setOffset] = useState(0);
   const prev = useRef<number[]>([]);
@@ -30,24 +51,3 @@ const useOffset = () => {
   }, []);
   return offset;
 };
-
-export const Game = () => {
-  const convex = useConvex();
-  const worldState = useQuery(api.players.getWorld, {});
-  const offset = useOffset();
-  if (!worldState) return null;
-  const { world, players } = worldState;
-  console.log('worldId', world._id);
-  return (
-    <Stage width={1200} height={800} options={{ backgroundColor: 0xffffff }}>
-      <ConvexProvider client={convex}>
-        {players
-          // .slice(0, 1)
-          .map((player) => (
-            <Player key={player._id} player={player} offset={offset} />
-          ))}
-      </ConvexProvider>
-    </Stage>
-  );
-};
-export default Game;
