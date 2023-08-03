@@ -158,7 +158,7 @@ export async function handlePlayerAction(
           conversationId,
         },
       });
-      tick();
+      await tick();
       break;
     case 'saySomething':
       // TODO: Check if these players are still nearby?
@@ -184,7 +184,7 @@ export async function handlePlayerAction(
         playerId,
         data: { type: 'walking', route, startTs: ts, targetEndTs },
       });
-      tick(targetEndTs, playerId);
+      await tick(targetEndTs, playerId);
       break;
     case 'done':
       await ctx.db.insert('journal', { ts, playerId, data: { type: 'done_thinking' } });
