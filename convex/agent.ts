@@ -3,16 +3,14 @@
 // Read more: https://docs.convex.dev/functions/runtimes
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
-import { Doc, Id } from './_generated/dataModel';
+import { Id } from './_generated/dataModel';
 
 import { ActionCtx, internalAction } from './_generated/server';
 import { getRandomPosition } from './lib/physics';
-import { MemoryDB, filterMemoriesType } from './lib/memory';
-import { Message, chatGPTCompletion, fetchEmbedding } from './lib/openai';
+import { MemoryDB } from './lib/memory';
+import { Message } from './lib/openai';
 import { Snapshot, Action } from './types';
-import { getPlayerSnapshot } from './engine';
 import { converse, startConversation, walkAway } from './conversation';
-import { getAgentSnapshot } from './engine';
 
 export const runConversation = internalAction({
   args: { players: v.optional(v.array(v.id('players'))) },

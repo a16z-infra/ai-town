@@ -72,6 +72,7 @@ export type Motion = Infer<typeof Motion>;
 export const Player = v.object({
   id: v.id('players'),
   name: v.string(),
+  characterId: v.id('characters'),
   identity: v.string(),
   motion: Motion,
   thinking: v.boolean(),
@@ -195,3 +196,17 @@ export type MemoryType = Memory['data']['type'];
 export type MemoryOfType<T extends MemoryType> = Omit<Memory, 'data'> & {
   data: Extract<Memory['data'], { type: T }>;
 };
+
+export const Characters = Table('characters', {
+  name: v.string(),
+  textureUrl: v.string(),
+  textureStorageId: v.optional(v.string()),
+  spritesheetData: v.object({
+    frames: v.any(), // Record<string, { frame: { x, y, w, h }, rotated?: boolean, trimmed?: boolean, spriteSourceSize: { x, y }, sourceSize: { w, h }, anchor?: {x, y} border?: {left, right, top, bottom} }>
+    animations: v.optional(v.any()), // Record<string, string[]>
+    meta: v.object({
+      scale: v.string(),
+    }),
+  }),
+});
+export type SpritesheetData = Infer<(typeof Characters.fields)['spritesheetData']>;

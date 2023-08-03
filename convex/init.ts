@@ -1,9 +1,12 @@
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { Doc, Id, TableNames } from './_generated/dataModel';
-import { internalAction, internalMutation, mutation } from './_generated/server';
+import { internalAction, internalMutation, internalQuery } from './_generated/server';
 import { MemoryDB } from './lib/memory';
 import { asyncMap } from './lib/utils';
+import { Characters } from './types';
+import { data as playerSpritesheetData } from './spritesheets/player';
+import { getRandomPosition } from './lib/physics';
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error(
@@ -13,9 +16,10 @@ if (!process.env.OPENAI_API_KEY) {
   );
 }
 
-const data = [
+const Data = [
   {
     name: 'Alex',
+    character: 'player',
     memories: [
       {
         type: 'identity' as const,
@@ -37,6 +41,7 @@ const data = [
   },
   {
     name: 'Lucky',
+    character: 'player',
     memories: [
       {
         type: 'identity' as const,
@@ -55,21 +60,55 @@ and he's very excited to tell people about it.`,
   },
 ];
 
+export const alreadySeeded = internalQuery({
+  handler: async (ctx) => {
+    return !!(await ctx.db.query('worlds').first());
+  },
+});
+
 export const addPlayers = internalMutation({
-  args: { newWorld: v.optional(v.boolean()) },
-  handler: async (ctx, { newWorld }) => {
-    if (!newWorld && (await ctx.db.query('players').first())) {
-      // Already seeded
-      return null;
-    }
+  args: {
+    newWorld: v.optional(v.boolean()),
+    characters: v.array(v.object(Characters.fields)),
+  },
+  handler: async (ctx, args) => {
     const worldId =
-      (!newWorld && (await ctx.db.query('worlds').first())?._id) ||
+      (!args.newWorld && (await ctx.db.query('worlds').first())?._id) ||
       (await ctx.db.insert('worlds', {}));
+    const charactersByName: Record<string, Id<'characters'>> = {};
+    for (const character of args.characters) {
+      const characterId = await ctx.db.insert('characters', character);
+      charactersByName[character.name] = characterId;
+    }
     const playersByName: Record<string, Id<'players'>> = {};
-    for (const { name } of data) {
+    for (let i = 0; i < 10; i++) {
+      const name = `Player ${i}`;
+      const characterId = charactersByName['player'];
       const playerId = await ctx.db.insert('players', {
         name,
         worldId,
+        characterId,
+      });
+      await ctx.db.insert('journal', {
+        playerId,
+        ts: Date.now(),
+        data: {
+          type: 'stopped',
+          reason: 'idle',
+          pose: {
+            orientation: 0,
+            position: getRandomPosition(),
+          },
+        },
+      });
+      playersByName[name] = playerId;
+    }
+    for (const { name, character } of Data) {
+      const characterId = charactersByName[character];
+      const playerId = await ctx.db.insert('players', {
+        name,
+        worldId,
+        characterId,
       });
       playersByName[name] = playerId;
     }
@@ -111,9 +150,20 @@ export const reset = internalAction({
 export const seed = internalAction({
   args: { newWorld: v.optional(v.boolean()) },
   handler: async (ctx, { newWorld }) => {
-    const playersByName = await ctx.runMutation(internal.init.addPlayers, { newWorld });
-    if (!playersByName) return;
-    const memories = data.flatMap(({ name, memories }) => {
+    const alreadySeeded = await ctx.runQuery(internal.init.alreadySeeded);
+    if (!newWorld && alreadySeeded) return;
+    const characters = [
+      {
+        name: 'player',
+        textureUrl: '/assets/player.png',
+        spritesheetData: playerSpritesheetData,
+      },
+    ];
+    const playersByName = await ctx.runMutation(internal.init.addPlayers, {
+      newWorld,
+      characters,
+    });
+    const memories = Data.flatMap(({ name, memories }) => {
       const playerId = playersByName[name]!;
       return memories.map((memory, idx) => {
         const { description, ...rest } = memory;

@@ -1,12 +1,17 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
-import { Journal, Memories } from './types';
+import { Journal, Memories, Characters } from './types';
 
 export default defineSchema({
-  worlds: defineTable({}),
+  worlds: defineTable({
+    // name: v.string(),
+    // characterIds: v.array(v.id('characters')),
+  }),
+  characters: Characters.table,
   players: defineTable({
     name: v.string(),
     worldId: v.id('worlds'),
+    characterId: v.id('characters'),
   }).index('by_worldId', ['worldId']),
   journal: Journal.table
     .index('by_playerId_type_ts', ['playerId', 'data.type', 'ts'])

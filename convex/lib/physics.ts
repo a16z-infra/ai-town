@@ -1,7 +1,11 @@
 import { Motion, Pose, Position } from '../types';
 
 export function getRandomPosition(): Position {
-  return { x: Math.floor(Math.random() * 100), y: Math.floor(Math.random() * 100) };
+  // TODO: read from world size
+  return {
+    x: Math.floor(Math.random() * 500),
+    y: Math.floor(Math.random() * 500),
+  };
 }
 
 export function manhattanDistance(p1: Position, p2: Position) {
@@ -25,7 +29,7 @@ export function calculateOrientation(start: Position, end: Position): number {
   const dy = end.y - start.y;
   // const orientation = (Math.atan2(dy, dx) / Math.PI) * 180;
   // return orientation < 0 ? orientation + 360 : orientation;
-  return dx ? (dx > 0 ? 0 : 180) : dy > 0 ? 90 : 270;
+  return dx ? (dx > 0 ? 0 : 180) : dy > 0 ? 270 : 90;
 }
 
 export function getPoseFromMotion(motion: Motion, ts: number): Pose {
@@ -37,6 +41,7 @@ export function getPoseFromMotion(motion: Motion, ts: number): Pose {
 }
 
 export function getPoseFromRoute(route: Position[], fraction: number): Pose {
+  if (route.length === 1) return { position: route[0], orientation: 0 };
   const totalLength = route.reduce((sum, pos, idx) => {
     if (idx === 0) return sum;
     return sum + manhattanDistance(pos, route[idx - 1]);

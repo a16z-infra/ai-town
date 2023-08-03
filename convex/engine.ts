@@ -28,7 +28,7 @@ import { findRoute, getPoseFromMotion, manhattanDistance, roundPose } from './li
 import { clientMessageMapper } from './chat';
 
 export const NEARBY_DISTANCE = 10;
-export const TIME_PER_STEP = 1000;
+export const TIME_PER_STEP = 50;
 export const DEFAULT_AGENT_IDLE = 30_000;
 // If you don't set a start position, you'll start at 0,0.
 export const DEFAULT_START_POSE: Pose = { position: { x: 0, y: 0 }, orientation: 0 };
@@ -120,15 +120,6 @@ export async function getAgentSnapshot(ctx: QueryCtx, playerId: Id<'players'>) {
   return snapshot;
 }
 
-export const getPlayerSnapshot = query({
-  args: { playerId: v.id('players') },
-  handler: async (ctx, args) => {
-    const playerDoc = (await ctx.db.get(args.playerId))!;
-    const player = await getPlayer(ctx.db, playerDoc);
-    return player;
-  },
-});
-
 export const handleAgentAction = internalMutation({
   args: { playerId: v.id('players'), action: Action, noSchedule: v.optional(v.boolean()) },
   handler: handlePlayerAction,
@@ -147,8 +138,8 @@ export async function handlePlayerAction(
   const { worldId } = playerDoc;
   const tick = async (at?: number, forPlayer?: Id<'players'>) => {
     if (noSchedule) return;
-    if (at) ctx.scheduler.runAt(at, internal.engine.tick, { worldId, forPlayer });
-    else ctx.scheduler.runAfter(0, internal.engine.tick, { worldId, forPlayer });
+    if (at) await ctx.scheduler.runAt(at, internal.engine.tick, { worldId, forPlayer });
+    else await ctx.scheduler.runAfter(0, internal.engine.tick, { worldId, forPlayer });
   };
   const player = await getPlayer(ctx.db, playerDoc);
   // TODO: Check if the player shoudl still respond.
@@ -242,7 +233,7 @@ async function makeSnapshot(
   };
 }
 
-async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): Promise<Player> {
+export async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): Promise<Player> {
   const lastThinkStart = await latestEntryOfType(db, playerDoc._id, 'thinking');
   const lastThinkEnd = await latestEntryOfType(db, playerDoc._id, 'done_thinking');
   const lastThinking = pruneNull([lastThinkStart, lastThinkEnd])
@@ -260,6 +251,7 @@ async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): Promise
   return {
     id: playerDoc._id,
     name: playerDoc.name,
+    characterId: playerDoc.characterId,
     identity,
     thinking: lastThinking?.data.type === 'thinking',
     lastSpokeTs: lastChat?.ts ?? 0,

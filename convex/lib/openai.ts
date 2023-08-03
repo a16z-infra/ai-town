@@ -43,6 +43,9 @@ export async function chatGPTCompletion(messages: Message[], maxTokens?: number,
 
     body: JSON.stringify(bodyPayload),
   });
+  if (!result.ok) {
+    throw new Error("Unexpected result from OpenAI: " + JSON.stringify(result));
+  }
   const completion = (await result.json()) as CreateChatCompletionResponse;
   console.log('completion: ', completion);
   const ms = Date.now() - start;
