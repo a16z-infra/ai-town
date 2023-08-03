@@ -233,12 +233,7 @@ export async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): 
   const lastThinking = pruneNull([lastThinkStart, lastThinkEnd])
     .sort((a, b) => a.ts - b.ts)
     .pop();
-  const lastStop = await latestEntryOfType(db, playerDoc._id, 'stopped');
-  const lastWalk = await latestEntryOfType(db, playerDoc._id, 'walking');
   const lastChat = await latestEntryOfType(db, playerDoc._id, 'talking');
-  const latestMotion = pruneNull([lastStop, lastWalk])
-    .sort((a, b) => a.ts - b.ts)
-    .pop()?.data;
   const identityEntry = await latestMemoryOfType(db, playerDoc._id, 'identity');
   const identity = identityEntry?.description ?? 'I am a person.';
 
@@ -250,8 +245,17 @@ export async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): 
     thinking: lastThinking?.data.type === 'thinking',
     lastSpokeTs: lastChat?.ts ?? 0,
     lastSpokeConversationId: lastChat?.data.conversationId,
-    motion: latestMotion ?? { type: 'stopped', reason: 'idle', pose: DEFAULT_START_POSE },
+    motion: await getLatestPlayerMotion(db, playerDoc),
   };
+}
+
+async function getLatestPlayerMotion(db: DatabaseReader, playerDoc: Doc<'players'>) {
+  const lastStop = await latestEntryOfType(db, playerDoc._id, 'stopped');
+  const lastWalk = await latestEntryOfType(db, playerDoc._id, 'walking');
+  const latestMotion = pruneNull([lastStop, lastWalk])
+    .sort((a, b) => a.ts - b.ts)
+    .pop()?.data;
+  return latestMotion ?? { type: 'stopped', reason: 'idle', pose: DEFAULT_START_POSE };
 }
 
 function getNearbyPlayers(target: Player, others: Player[]) {
