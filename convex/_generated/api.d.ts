@@ -25,6 +25,7 @@ import type * as lib_node_openai from "../lib/node_openai";
 import type * as lib_openai from "../lib/openai";
 import type * as lib_physics from "../lib/physics";
 import type * as lib_pinecone from "../lib/pinecone";
+import type * as lib_routing from "../lib/routing";
 import type * as lib_utils from "../lib/utils";
 import type * as players from "../players";
 import type * as spritesheets_player from "../spritesheets/player";
@@ -51,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   "lib/openai": typeof lib_openai;
   "lib/physics": typeof lib_physics;
   "lib/pinecone": typeof lib_pinecone;
+  "lib/routing": typeof lib_routing;
   "lib/utils": typeof lib_utils;
   players: typeof players;
   "spritesheets/player": typeof spritesheets_player;

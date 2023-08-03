@@ -6,6 +6,9 @@ export default defineSchema({
   worlds: defineTable({
     // name: v.string(),
     // characterIds: v.array(v.id('characters')),
+    walls: v.array(v.number()),
+    width: v.number(),
+    height: v.number(),
   }),
   characters: Characters.table,
   players: defineTable({

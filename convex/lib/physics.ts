@@ -65,6 +65,36 @@ export function getPoseFromRoute(route: Position[], fraction: number): Pose {
   };
 }
 
+export function getRemainingPathFromMotion(motion: Motion, ts: number): Position[] {
+  if (motion.type === 'stopped') {
+    return [motion.pose.position];
+  }
+  const route = motion.route;
+  if (route.length === 1) return route;
+  const totalLength = route.reduce((sum, pos, idx) => {
+    if (idx === 0) return sum;
+    return sum + manhattanDistance(pos, route[idx - 1]);
+  }, 0);
+  const fraction = calculateFraction(motion.startTs, motion.targetEndTs, ts);
+  const progressDistance = fraction * totalLength;
+  let soFar = 0;
+  let start = route.length - 1;
+  let end = route.length - 1;
+  for (const [idx, pos] of route.slice(1).entries()) {
+    const nextSegment = manhattanDistance(route[idx], pos);
+    if (soFar + nextSegment >= progressDistance) {
+      start = idx;
+      end = idx + 1;
+      break;
+    }
+    soFar += nextSegment;
+  }
+  return [
+    interpolatePosition(route[start], route[end], progressDistance - soFar),
+    ...route.slice(start + 1),
+  ];
+}
+
 export function roundPosition(pos: Position): Position {
   return { x: Math.round(pos.x), y: Math.round(pos.y) };
 }
@@ -74,35 +104,4 @@ export function roundPose(pose: Pose): Pose {
     position: roundPosition(pose.position),
     orientation: 90 * Math.round(pose.orientation / 90),
   };
-}
-
-export function findRoute(startMotion: Motion, end: Position, ts: number) {
-  let distance = 0;
-
-  const startPose = getPoseFromMotion(startMotion, ts);
-  // TODO: If they were partially along some path, include that in the new
-  // route, adjusting the start time so we stay in the same place.
-  let current = roundPosition(startPose.position);
-  const route: Position[] = [current];
-  // Try to maintain their direction.
-  let horizontal = !(startPose.orientation === 90 || startPose.orientation === 270);
-  // TODO: handle walls
-  while (current.x !== end.x || current.y !== end.y) {
-    const next = { ...current };
-    if (current.x !== end.x && horizontal) {
-      // bias towards maintainng character direction
-      next.x = end.x;
-      distance += Math.abs(current.x - end.x);
-    } else if (current.y !== end.y) {
-      next.y = end.y;
-      distance += Math.abs(current.y - end.y);
-    } else {
-      next.x = end.x;
-      distance += Math.abs(current.x - end.x);
-    }
-    route.push(next);
-    current = next;
-    horizontal = !horizontal;
-  }
-  return { route, distance };
 }

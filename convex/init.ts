@@ -74,7 +74,11 @@ export const addPlayers = internalMutation({
   handler: async (ctx, args) => {
     const worldId =
       (!args.newWorld && (await ctx.db.query('worlds').first())?._id) ||
-      (await ctx.db.insert('worlds', {}));
+      (await ctx.db.insert('worlds', {
+        width: 100,
+        height: 100,
+        walls: [],
+      }));
     const charactersByName: Record<string, Id<'characters'>> = {};
     for (const character of args.characters) {
       const characterId = await ctx.db.insert('characters', character);

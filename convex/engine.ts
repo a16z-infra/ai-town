@@ -24,7 +24,8 @@ import {
   Motion,
 } from './types.js';
 import { asyncMap, pruneNull } from './lib/utils.js';
-import { findRoute, getPoseFromMotion, manhattanDistance, roundPose } from './lib/physics.js';
+import { getPoseFromMotion, manhattanDistance, roundPose } from './lib/physics.js';
+import { findCollision, findRoute, wallsFromWorld } from './lib/routing';
 import { clientMessageMapper } from './chat';
 import { getAllPlayers } from './players';
 
@@ -170,9 +171,20 @@ export async function handlePlayerAction(
       break;
     case 'travel':
       // TODO: calculate obstacles to wake up?
-      const { route, distance } = findRoute(player.motion, action.position, ts);
-      // TODO: Scan for upcoming collisions (including objects for new observations)
-      const targetEndTs = ts + distance * TIME_PER_STEP;
+      const world = (await ctx.db.get(playerDoc.worldId))!;
+      const { route, distance } = findRoute(
+        wallsFromWorld(world),
+        player.motion,
+        action.position,
+        ts,
+      );
+      const otherPlayerMotion = await asyncMap(
+        (await getAllPlayers(ctx.db, world._id)).filter((p) => p._id !== player.id),
+        async (p) => getLatestPlayerMotion(ctx.db, p),
+      );
+      const nextCollisionDistance = findCollision(route, otherPlayerMotion, ts, NEARBY_DISTANCE);
+      const targetEndTs =
+        ts + (nextCollisionDistance === null ? distance : nextCollisionDistance) * TIME_PER_STEP;
       await ctx.db.insert('journal', {
         ts,
         playerId,
