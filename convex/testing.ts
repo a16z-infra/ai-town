@@ -36,7 +36,7 @@ export const getDebugPlayerIds = internalQuery({
     const world = await ctx.db.query('worlds').order('desc').first();
     if (!world) throw new Error('No worlds exist yet: try running dbx convex run init');
     const players = await getAllPlayers(ctx.db, world._id);
-    return players.map((p) => p._id);
+    return { playerIds: players.map((p) => p._id), world };
   },
 });
 

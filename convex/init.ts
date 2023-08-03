@@ -38,6 +38,7 @@ const Data = [
         description: 'You want to find love.',
       },
     ],
+    position: { x: 10, y: 10 },
   },
   {
     name: 'Lucky',
@@ -57,6 +58,7 @@ and he's very excited to tell people about it.`,
         description: 'You want to hear all the gossip.',
       },
     ],
+    position: { x: 10, y: 11 },
   },
 ];
 
@@ -79,16 +81,14 @@ export const addPlayers = internalMutation({
         height: 100,
         walls: [],
       }));
-    const world = (await ctx.db.get(worldId))!;
     const charactersByName: Record<string, Id<'characters'>> = {};
     for (const character of args.characters) {
       const characterId = await ctx.db.insert('characters', character);
       charactersByName[character.name] = characterId;
     }
     const playersByName: Record<string, Id<'players'>> = {};
-    for (let i = 0; i < 5; i++) {
-      const name = `Player ${i}`;
-      const characterId = charactersByName['player'];
+    for (const { name, character, position } of Data) {
+      const characterId = charactersByName[character];
       const playerId = await ctx.db.insert('players', {
         name,
         worldId,
@@ -102,18 +102,9 @@ export const addPlayers = internalMutation({
           reason: 'idle',
           pose: {
             orientation: 0,
-            position: getRandomPosition(world),
+            position: position ?? { x: 1, y: 1 + playersByName.length },
           },
         },
-      });
-      playersByName[name] = playerId;
-    }
-    for (const { name, character } of Data) {
-      const characterId = charactersByName[character];
-      const playerId = await ctx.db.insert('players', {
-        name,
-        worldId,
-        characterId,
       });
       playersByName[name] = playerId;
     }
@@ -151,6 +142,14 @@ export const reset = internalAction({
     await ctx.runMutation(internal.init.debugClearAll, {});
     const worldId = await ctx.runAction(internal.init.seed, {});
     await ctx.runMutation(internal.engine.tick, { worldId });
+  },
+});
+
+export const resetFrozen = internalAction({
+  args: {},
+  handler: async (ctx, args) => {
+    await ctx.runMutation(internal.init.debugClearAll, {});
+    await ctx.runAction(internal.init.seed, {});
   },
 });
 

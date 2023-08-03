@@ -2,7 +2,7 @@
 // ^ This tells Convex to run this in a `node` environment.
 // Read more: https://docs.convex.dev/functions/runtimes
 import { v } from 'convex/values';
-import { internal } from './_generated/api';
+import { api, internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
 
 import { ActionCtx, internalAction } from './_generated/server';
@@ -18,15 +18,27 @@ export const runAgent = internalAction({
     const memory = MemoryDB(ctx);
     const actionAPI = ActionAPI(ctx, snapshot.player.id, noSchedule ?? false);
     try {
+      // 2. We run the agent loop
       await agentLoop(snapshot, memory, actionAPI, world);
     } finally {
       // should only be called from here, to match the "thinking" entry.
+      // 3. We mark the agent as done
       await actionAPI({ type: 'done' });
     }
   },
 });
 
-// 2. We run the agent loop
+export function ActionAPI(ctx: ActionCtx, playerId: Id<'players'>, noSchedule: boolean) {
+  return (action: Action) => {
+    return ctx.runMutation(internal.engine.handleAgentAction, {
+      playerId,
+      action,
+      noSchedule,
+    });
+  };
+}
+export type ActionAPI = ReturnType<typeof ActionAPI>;
+
 export async function agentLoop(
   { player, nearbyPlayers, nearbyConversations, lastPlan }: Snapshot,
   memory: MemoryDB,
@@ -151,22 +163,95 @@ export async function agentLoop(
   // TODO: consider reflecting on recent memories
 }
 
-// 3. We run any actions called by the agent loop, and finally call with "done".
-export function ActionAPI(ctx: ActionCtx, playerId: Id<'players'>, noSchedule: boolean) {
-  return (action: Action) => {
-    return ctx.runMutation(internal.engine.handleAgentAction, {
-      playerId,
-      action,
-      noSchedule,
-    });
-  };
-}
-export type ActionAPI = ReturnType<typeof ActionAPI>;
-
 export function getRandomPosition(world: Doc<'worlds'>): Position {
-  // TODO: read from world size
   return {
     x: Math.floor(Math.random() * world.width),
     y: Math.floor(Math.random() * world.height),
   };
 }
+
+// For making conversations happen without walking around.
+export const runConversation = internalAction({
+  args: { numPlayers: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    // To always clear all first:
+    await ctx.runAction(internal.init.resetFrozen);
+    // To always make a new world:
+    // await ctx.runAction(internal.init.seed, { newWorld: true });
+    // To just run with the existing agents:
+    //await ctx.runAction(internal.init.seed, {});
+
+    // Grabs the latest world
+    const { playerIds, world } = await ctx.runQuery(internal.testing.getDebugPlayerIds);
+    const memory = MemoryDB(ctx);
+    let done = false;
+
+    let firstTime = true;
+    let ourConversationId: Id<'conversations'> | null = null;
+    while (!done) {
+      for (const playerId of playerIds) {
+        const actionAPI = ActionAPI(ctx, playerId, true);
+        const snapshot = await ctx.runMutation(internal.testing.debugPlanAgent, {
+          playerId,
+        });
+        const { player, nearbyPlayers, nearbyConversations } = snapshot;
+        if (nearbyPlayers.find(({ player }) => player.thinking)) {
+          throw new Error('Unexpected thinking player');
+        }
+        const newFriends = nearbyPlayers.filter((a) => a.new).map(({ player }) => player);
+        if (firstTime) {
+          firstTime = false;
+          if (nearbyConversations.length) {
+            throw new Error('Unexpected conversations taking place');
+          }
+          const newFriendsNames = newFriends.map((a) => a.name);
+          const playerCompletion = await startConversation(newFriendsNames, memory, player);
+          if (
+            !(await actionAPI({
+              type: 'startConversation',
+              audience: newFriends.map((a) => a.id),
+              content: playerCompletion,
+            }))
+          )
+            throw new Error('Unexpected failure to start conversation');
+        } else {
+          if (nearbyConversations.length !== 1) {
+            throw new Error('Unexpected conversations taking place');
+          }
+          const { conversationId, messages } = nearbyConversations[0];
+          if (!ourConversationId) {
+            if (conversationId !== ourConversationId) {
+              throw new Error(
+                'Unexpected conversationId ' + conversationId + ' != ' + ourConversationId,
+              );
+            }
+            ourConversationId = conversationId;
+          }
+          const chatHistory: Message[] = [
+            ...messages.map((m) => ({
+              role: 'user' as const,
+              content: `${m.fromName} to ${m.toNames.join(',')}: ${m.content}\n`,
+            })),
+          ];
+          const shouldWalkAway = await walkAway(chatHistory, player);
+          if (shouldWalkAway) {
+            done = true;
+            break;
+          }
+          const playerCompletion = await converse(chatHistory, player, nearbyPlayers, memory);
+          // display the chat via actionAPI
+          await actionAPI({
+            type: 'saySomething',
+            audience: nearbyPlayers.map(({ player }) => player.id),
+            content: playerCompletion,
+            conversationId: conversationId,
+          });
+        }
+      }
+    }
+    if (!ourConversationId) throw new Error('No conversationId');
+    for (const playerId of playerIds) {
+      await memory.rememberConversation(playerId, ourConversationId, Date.now());
+    }
+  },
+});
