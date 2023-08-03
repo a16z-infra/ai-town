@@ -14,35 +14,6 @@ import { PaginationResult, paginationOptsValidator } from 'convex/server';
 import { Message } from './types';
 import { asyncMap } from './lib/utils';
 
-export const debugListMessages = internalQuery({
-  args: {},
-  handler: async (ctx, args) => {
-    const world = await ctx.db.query('worlds').order('desc').first();
-    if (!world) return [];
-    const players = await ctx.db
-      .query('players')
-      .withIndex('by_worldId', (q) => q.eq('worldId', world._id))
-      .collect();
-    const playerIds = players.map((p) => p._id);
-    const messageEntries = await asyncMap(
-      playerIds,
-      (playerId) =>
-        ctx.db
-          .query('journal')
-          .withIndex('by_playerId_type_ts', (q) =>
-            q.eq('playerId', playerId as any).eq('data.type', 'talking'),
-          )
-          .collect() as Promise<EntryOfType<'talking'>[]>,
-    );
-    return (
-      await asyncMap(
-        messageEntries.flatMap((a) => a),
-        clientMessageMapper(ctx.db),
-      )
-    ).sort((a, b) => a.ts - b.ts);
-  },
-});
-
 export const listConversations = query({
   args: { worldId: v.id('worlds') },
   handler: async (ctx, args) => {
