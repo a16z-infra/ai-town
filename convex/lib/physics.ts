@@ -17,10 +17,10 @@ export function calculateFraction(start: number, end: number, ts: number): numbe
   return Math.max(Math.min(1, progress), 0);
 }
 
-export function interpolatePosition(start: Position, end: Position, fraction: number): Position {
+export function interpolatePosition(start: Position, end: Position, distance: number): Position {
   return {
-    x: start.x + (end.x - start.x) * fraction,
-    y: start.y + (end.y - start.y) * fraction,
+    x: start.x + Math.sign(end.x - start.x) * distance,
+    y: start.y + Math.sign(end.y - start.y) * distance,
   };
 }
 
@@ -51,15 +51,16 @@ export function getPoseFromRoute(route: Position[], fraction: number): Pose {
   let start = route[0]!;
   let end = route[1]!;
   for (const [idx, pos] of route.slice(1).entries()) {
-    soFar += manhattanDistance(route[idx], pos);
-    if (soFar >= progressDistance) {
+    const nextSegment = manhattanDistance(route[idx], pos);
+    if (soFar + nextSegment >= progressDistance) {
       start = route[idx];
       end = pos;
       break;
     }
+    soFar += nextSegment;
   }
   return {
-    position: interpolatePosition(start, end, fraction),
+    position: interpolatePosition(start, end, progressDistance - soFar),
     orientation: calculateOrientation(start, end),
   };
 }
