@@ -4,7 +4,7 @@ import { Pose } from '../../convex/types';
 import { AnimatedSprite, Container, Text } from '@pixi/react';
 
 export const Character = ({
-  texturePath,
+  textureUrl,
   spritesheetData,
   pose,
   isMoving = false,
@@ -13,7 +13,7 @@ export const Character = ({
   speed = 0.1,
 }: {
   // Path to the texture packed image.
-  texturePath: string;
+  textureUrl: string;
   // The data for the spritesheet.
   spritesheetData: ISpritesheetData;
   // The pose of the NPC.
@@ -29,7 +29,7 @@ export const Character = ({
   const [spriteSheet, setSpriteSheet] = useState<Spritesheet>();
   useEffect(() => {
     const parseSheet = async () => {
-      const sheet = new Spritesheet(BaseTexture.from(texturePath), spritesheetData);
+      const sheet = new Spritesheet(BaseTexture.from(textureUrl), spritesheetData);
       await sheet.parse();
       setSpriteSheet(sheet);
     };

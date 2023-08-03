@@ -33,7 +33,7 @@ export const Player = ({ player, offset }: { player: Doc<'players'>; offset: num
       isMoving={playerState.motion.type === 'walking'}
       isThinking={playerState.thinking}
       isSpeaking={(playerState.lastSpokeTs ?? 0) > time.current - SpeechDurationMs}
-      texturePath={character.textureUrl}
+      textureUrl={character.textureUrl}
       spritesheetData={character.spritesheetData}
     />
   );
