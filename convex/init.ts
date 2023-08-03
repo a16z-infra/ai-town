@@ -81,7 +81,7 @@ export const addPlayers = internalMutation({
       charactersByName[character.name] = characterId;
     }
     const playersByName: Record<string, Id<'players'>> = {};
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 5; i++) {
       const name = `Player ${i}`;
       const characterId = charactersByName['player'];
       const playerId = await ctx.db.insert('players', {
