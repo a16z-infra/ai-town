@@ -29,8 +29,8 @@ import { findCollision, findRoute, wallsFromWorld } from './lib/routing';
 import { clientMessageMapper } from './chat';
 import { getAllPlayers } from './players';
 
-export const NEARBY_DISTANCE = 10;
-export const TIME_PER_STEP = 50;
+export const NEARBY_DISTANCE = 4;
+export const TIME_PER_STEP = 250;
 export const DEFAULT_AGENT_IDLE = 30_000;
 // If you don't set a start position, you'll start at 0,0.
 export const DEFAULT_START_POSE: Pose = { position: { x: 0, y: 0 }, orientation: 0 };
@@ -41,6 +41,7 @@ export const tick = internalMutation({
   args: { worldId: v.id('worlds'), forPlayers: v.optional(v.array(v.id('players'))) },
   handler: async (ctx, { worldId, forPlayers }) => {
     const ts = Date.now();
+    const world = (await ctx.db.get(worldId))!;
     const playerDocs = await getAllPlayers(ctx.db, worldId);
     // Make snapshot of world
     const playerSnapshots = await asyncMap(playerDocs, async (playerDoc) =>
@@ -96,7 +97,7 @@ export const tick = internalMutation({
       // Replace it for other players.
       playerSnapshots[idx] = await getPlayer(ctx.db, playerDoc);
       // For players worth waking up: schedule action
-      await ctx.scheduler.runAfter(0, internal.agent.runAgent, { snapshot });
+      await ctx.scheduler.runAfter(0, internal.agent.runAgent, { snapshot, world });
       // TODO: handle timeouts
       // Later: handle object ownership?
     }

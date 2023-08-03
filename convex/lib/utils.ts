@@ -52,8 +52,15 @@ export async function getAll<TableName extends TableNames>(
 }
 
 // Returns a bunch of useful parts of a table definition.
-export function Table<T extends Record<string, Validator<any, any, any>>>(name: string, fields: T) {
-  const docFields = { ...fields, _id: v.id(name), _creationTime: v.number() };
+export function Table<T extends Record<string, Validator<any, any, any>>, TableName extends string>(
+  name: TableName,
+  fields: T,
+) {
+  const docFields = {
+    ...fields,
+    _id: v.id(name) as Validator<string & { __tableName: TableName }>,
+    _creationTime: v.number(),
+  };
   const table = defineTable(fields);
   return {
     fields,

@@ -1,13 +1,5 @@
 import { Motion, Pose, Position } from '../types';
 
-export function getRandomPosition(): Position {
-  // TODO: read from world size
-  return {
-    x: Math.floor(Math.random() * 500),
-    y: Math.floor(Math.random() * 500),
-  };
-}
-
 export function manhattanDistance(p1: Position, p2: Position) {
   return Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y);
 }

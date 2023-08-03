@@ -1,15 +1,9 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
-import { Journal, Memories, Characters } from './types';
+import { Journal, Memories, Characters, Worlds } from './types';
 
 export default defineSchema({
-  worlds: defineTable({
-    // name: v.string(),
-    // characterIds: v.array(v.id('characters')),
-    walls: v.array(v.number()),
-    width: v.number(),
-    height: v.number(),
-  }),
+  worlds: Worlds.table,
   characters: Characters.table,
   players: defineTable({
     name: v.string(),

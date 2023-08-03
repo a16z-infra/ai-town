@@ -3,43 +3,19 @@
 // Read more: https://docs.convex.dev/functions/runtimes
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
-import { Id } from './_generated/dataModel';
+import { Doc, Id } from './_generated/dataModel';
 
 import { ActionCtx, internalAction } from './_generated/server';
-import { getRandomPosition } from './lib/physics';
 import { MemoryDB } from './lib/memory';
 import { Message } from './lib/openai';
-import { Snapshot, Action } from './types';
+import { Snapshot, Action, Position, Worlds } from './types';
 import { converse, startConversation, walkAway } from './conversation';
-
-export const runConversation = internalAction({
-  args: { players: v.optional(v.array(v.id('players'))) },
-  handler: async (ctx, args) => {
-    // To always clear all first:
-    await ctx.runAction(internal.init.reset);
-    // To always make a new world:
-    // await ctx.runAction(internal.init.seed, { newWorld: true });
-    // To just run with the existing agents:
-    //await ctx.runAction(internal.init.seed, {});
-    let playerIds = args.players;
-    if (!playerIds) {
-      playerIds = await ctx.runQuery(internal.testing.getDebugPlayerIds);
-    }
-    for (let i = 0; i < 5; i++) {
-      for (const playerId of playerIds) {
-        const snapshot = await ctx.runMutation(internal.testing.debugPlanAgent, {
-          playerId,
-        });
-        await ctx.runAction(internal.agent.runAgent, { snapshot, noSchedule: true });
-      }
-    }
-  },
-});
 
 export async function agentLoop(
   { player, nearbyPlayers, nearbyConversations, lastPlan }: Snapshot,
   memory: MemoryDB,
   actionAPI: ActionAPI,
+  world: Doc<'worlds'>,
 ) {
   const imWalkingHere = player.motion.type === 'walking';
   const newFriends = nearbyPlayers.filter((a) => a.new).map(({ player }) => player);
@@ -88,7 +64,7 @@ export async function agentLoop(
     if (shouldWalkAway || messages.length >= 10) {
       // It's to chatty here, let's go somewhere else.
       if (!imWalkingHere) {
-        if (await actionAPI({ type: 'travel', position: getRandomPosition() })) {
+        if (await actionAPI({ type: 'travel', position: getRandomPosition(world) })) {
           return;
         }
       }
@@ -120,6 +96,7 @@ export async function agentLoop(
       //     },
       //   },
       // ]);
+
       // Only message in one conversation
       return;
     }
@@ -149,7 +126,7 @@ export async function agentLoop(
   }
   if (!imWalkingHere) {
     // TODO: make a better plan
-    const success = await actionAPI({ type: 'travel', position: getRandomPosition() });
+    const success = await actionAPI({ type: 'travel', position: getRandomPosition(world) });
     if (success) {
       return;
     }
@@ -159,12 +136,12 @@ export async function agentLoop(
 }
 
 export const runAgent = internalAction({
-  args: { snapshot: Snapshot, noSchedule: v.optional(v.boolean()) },
-  handler: async (ctx, { snapshot, noSchedule }) => {
+  args: { snapshot: Snapshot, noSchedule: v.optional(v.boolean()), world: Worlds.doc },
+  handler: async (ctx, { snapshot, noSchedule, world }) => {
     const memory = MemoryDB(ctx);
     const actionAPI = ActionAPI(ctx, snapshot.player.id, noSchedule ?? false);
     try {
-      await agentLoop(snapshot, memory, actionAPI);
+      await agentLoop(snapshot, memory, actionAPI, world);
     } finally {
       // should only be called from here, to match the "thinking" entry.
       await actionAPI({ type: 'done' });
@@ -182,3 +159,11 @@ export function ActionAPI(ctx: ActionCtx, playerId: Id<'players'>, noSchedule: b
   };
 }
 export type ActionAPI = ReturnType<typeof ActionAPI>;
+
+export function getRandomPosition(world: Doc<'worlds'>): Position {
+  // TODO: read from world size
+  return {
+    x: Math.floor(Math.random() * world.width),
+    y: Math.floor(Math.random() * world.height),
+  };
+}

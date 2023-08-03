@@ -6,7 +6,7 @@ import { MemoryDB } from './lib/memory';
 import { asyncMap } from './lib/utils';
 import { Characters } from './types';
 import { data as playerSpritesheetData } from './spritesheets/player';
-import { getRandomPosition } from './lib/physics';
+import { getRandomPosition } from './agent';
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error(
@@ -79,6 +79,7 @@ export const addPlayers = internalMutation({
         height: 100,
         walls: [],
       }));
+    const world = (await ctx.db.get(worldId))!;
     const charactersByName: Record<string, Id<'characters'>> = {};
     for (const character of args.characters) {
       const characterId = await ctx.db.insert('characters', character);
@@ -101,7 +102,7 @@ export const addPlayers = internalMutation({
           reason: 'idle',
           pose: {
             orientation: 0,
-            position: getRandomPosition(),
+            position: getRandomPosition(world),
           },
         },
       });

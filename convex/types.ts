@@ -11,6 +11,14 @@ export type GameTs = Infer<typeof ts>;
 export const zone = v.array(v.string());
 export type Zone = Infer<typeof zone>;
 
+export const Worlds = Table('worlds', {
+  // name: v.string(),
+  // characterIds: v.array(v.id('characters')),
+  walls: v.array(v.number()),
+  width: v.number(),
+  height: v.number(),
+});
+
 export const Position = v.object({ x: v.number(), y: v.number() });
 export type Position = Infer<typeof Position>;
 // Position plus a direction, as degrees counter-clockwise from East / Right
