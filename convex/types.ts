@@ -208,5 +208,6 @@ export const Characters = Table('characters', {
       scale: v.string(),
     }),
   }),
+  speed: v.number(),
 });
 export type SpritesheetData = Infer<(typeof Characters.fields)['spritesheetData']>;

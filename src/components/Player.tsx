@@ -35,6 +35,7 @@ export const Player = ({ player, offset }: { player: Doc<'players'>; offset: num
       isSpeaking={(playerState.lastSpokeTs ?? 0) > time.current - SpeechDurationMs}
       textureUrl={character.textureUrl}
       spritesheetData={character.spritesheetData}
+      speed={character.speed}
     />
   );
 };

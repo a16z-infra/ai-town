@@ -157,6 +157,7 @@ export const seed = internalAction({
         name: 'player',
         textureUrl: '/assets/player.png',
         spritesheetData: playerSpritesheetData,
+        speed: 0.1,
       },
     ];
     const playersByName = await ctx.runMutation(internal.init.addPlayers, {
