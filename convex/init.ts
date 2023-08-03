@@ -131,6 +131,7 @@ export const debugClearAll = internalMutation({
       }
     };
     await deleteAll('players');
+    await deleteAll('characters');
     await deleteAll('journal');
     await deleteAll('memories');
     await deleteAll('memoryAccesses');
