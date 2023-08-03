@@ -36,8 +36,8 @@ export const CONVERSATION_DEAD_THRESHOLD = 600_000; // In ms
 
 // TODO: add a cron to tick every minute or so
 export const tick = internalMutation({
-  args: { worldId: v.id('worlds'), forPlayer: v.optional(v.id('players')) },
-  handler: async (ctx, { worldId, forPlayer }) => {
+  args: { worldId: v.id('worlds'), forPlayers: v.optional(v.array(v.id('players'))) },
+  handler: async (ctx, { worldId, forPlayers }) => {
     const ts = Date.now();
     const playerDocs = await ctx.db
       .query('players')
@@ -60,7 +60,7 @@ export const tick = internalMutation({
       // try anyways and handle rejecting old actions.
       if (player.thinking) continue;
       // For ticks specific to a user, only run for that user.
-      if (forPlayer && player.id !== forPlayer) continue;
+      if (forPlayers && !forPlayers.includes(player.id)) continue;
 
       // TODO: If the player's path is blocked, stop or re-route.
       // If the player has arrived at their destination, update it.
@@ -136,13 +136,13 @@ export async function handlePlayerAction(
   const ts = Date.now();
   const playerDoc = (await ctx.db.get(playerId))!;
   const { worldId } = playerDoc;
-  const tick = async (at?: number, forPlayer?: Id<'players'>) => {
+  const tick = async (forPlayers?: Id<'players'>[], at?: number) => {
     if (noSchedule) return;
-    if (at) await ctx.scheduler.runAt(at, internal.engine.tick, { worldId, forPlayer });
-    else await ctx.scheduler.runAfter(0, internal.engine.tick, { worldId, forPlayer });
+    if (at) await ctx.scheduler.runAt(at, internal.engine.tick, { worldId, forPlayers });
+    else await ctx.scheduler.runAfter(0, internal.engine.tick, { worldId, forPlayers });
   };
   const player = await getPlayer(ctx.db, playerDoc);
-  // TODO: Check if the player shoudl still respond.
+  // TODO: Check if the player should still respond.
   switch (action.type) {
     case 'startConversation':
       // TODO: determine if other players are still available.
@@ -152,13 +152,13 @@ export async function handlePlayerAction(
         playerId,
         data: {
           type: 'talking',
-          // TODO: just limit to who's around.
+          // TODO: just limit to who's still around.
           audience: action.audience,
           content: action.content,
           conversationId,
         },
       });
-      await tick();
+      await tick(action.audience);
       break;
     case 'saySomething':
       // TODO: Check if these players are still nearby?
@@ -172,7 +172,7 @@ export async function handlePlayerAction(
           conversationId: action.conversationId,
         },
       });
-      await tick();
+      await tick(action.audience);
       break;
     case 'travel':
       // TODO: calculate obstacles to wake up?
@@ -184,7 +184,7 @@ export async function handlePlayerAction(
         playerId,
         data: { type: 'walking', route, startTs: ts, targetEndTs },
       });
-      await tick(targetEndTs, playerId);
+      await tick([playerId]);
       break;
     case 'done':
       await ctx.db.insert('journal', { ts, playerId, data: { type: 'done_thinking' } });
