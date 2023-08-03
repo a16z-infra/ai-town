@@ -26,6 +26,7 @@ import {
 import { asyncMap, pruneNull } from './lib/utils.js';
 import { findRoute, getPoseFromMotion, manhattanDistance, roundPose } from './lib/physics.js';
 import { clientMessageMapper } from './chat';
+import { getAllPlayers } from './players';
 
 export const NEARBY_DISTANCE = 10;
 export const TIME_PER_STEP = 50;
@@ -39,10 +40,7 @@ export const tick = internalMutation({
   args: { worldId: v.id('worlds'), forPlayers: v.optional(v.array(v.id('players'))) },
   handler: async (ctx, { worldId, forPlayers }) => {
     const ts = Date.now();
-    const playerDocs = await ctx.db
-      .query('players')
-      .withIndex('by_worldId', (q) => q.eq('worldId', worldId))
-      .collect();
+    const playerDocs = await getAllPlayers(ctx.db, worldId);
     // Make snapshot of world
     const playerSnapshots = await asyncMap(playerDocs, async (playerDoc) =>
       getPlayer(ctx.db, playerDoc),
@@ -109,12 +107,8 @@ export async function getAgentSnapshot(ctx: QueryCtx, playerId: Id<'players'>) {
   const player = await getPlayer(ctx.db, playerDoc);
   // Could potentially do a smarter filter in the future to only get
   // players that are nearby, but for now, just get all of them.
-  const allPlayers = await asyncMap(
-    await ctx.db
-      .query('players')
-      .withIndex('by_worldId', (q) => q.eq('worldId', playerDoc.worldId))
-      .collect(),
-    (playerDoc) => getPlayer(ctx.db, playerDoc),
+  const allPlayers = await asyncMap(await getAllPlayers(ctx.db, playerDoc.worldId), (playerDoc) =>
+    getPlayer(ctx.db, playerDoc),
   );
   const snapshot = await makeSnapshot(ctx.db, player, allPlayers);
   return snapshot;
