@@ -317,9 +317,9 @@ export const getRecentMessages = internalQuery({
         q.eq('playerId', playerId).eq('data.type', 'conversation'),
       )
       .order('desc')
-      .first()) as MemoryOfType<'conversation'>;
+      .first()) as MemoryOfType<'conversation'> | null;
 
-    if (lastSpokeTs < lastConversationMemory.ts) {
+    if (lastSpokeTs < (lastConversationMemory?.ts ?? 0)) {
       // We haven't spoken since a conversation memory, so not worth recording.
       return [];
     }
