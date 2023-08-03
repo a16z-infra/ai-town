@@ -320,7 +320,7 @@ export const getRecentMessages = internalQuery({
       .first()) as MemoryOfType<'conversation'> | null;
 
     if (lastSpokeTs < (lastConversationMemory?.ts ?? 0)) {
-      // We haven't spoken since a conversation memory, so not worth recording.
+      // We haven't spoken since a conversation memory, so probably not worth recording.
       return [];
     }
 
@@ -329,6 +329,7 @@ export const getRecentMessages = internalQuery({
       .withIndex('by_conversation', (q) => {
         const q2 = q.eq('data.conversationId', conversationId as any);
         if (lastConversationMemory?.data.conversationId === conversationId) {
+          // If we have a memory of this conversation, only look at messages after.
           return q2.gt('ts', lastConversationMemory.ts);
         }
         return q2;
@@ -339,15 +340,20 @@ export const getRecentMessages = internalQuery({
     // Only need to check from when the first message exists.
     // Only a slight optimization over the previous one, which might scan to the
     // beginning of time.
-    const previousConversationMemory = await ctx.db
-      .query('memories')
-      .withIndex('by_playerId_type_ts', (q) =>
-        q.eq('playerId', playerId).eq('data.type', 'conversation').gt('ts', allMessages[0].ts),
-      )
-      .order('desc')
-      .filter((q) => q.eq(q.field('data.conversationId'), conversationId))
-      .first();
-    const lastMemoryTs = previousConversationMemory?.ts ?? 0;
+    let lastMemoryTs: number;
+    if (lastConversationMemory && lastConversationMemory.data.conversationId === conversationId) {
+      lastMemoryTs = lastConversationMemory.ts;
+    } else {
+      const previousConversationMemory = await ctx.db
+        .query('memories')
+        .withIndex('by_playerId_type_ts', (q) =>
+          q.eq('playerId', playerId).eq('data.type', 'conversation').gt('ts', allMessages[0].ts),
+        )
+        .order('desc')
+        .filter((q) => q.eq(q.field('data.conversationId'), conversationId))
+        .first();
+      lastMemoryTs = previousConversationMemory?.ts ?? 0;
+    }
     return (await asyncMap(allMessages, clientMessageMapper(ctx.db))).filter(
       (m) => m.ts > lastMemoryTs && (m.from === playerId || m.to.includes(playerId)),
     );
