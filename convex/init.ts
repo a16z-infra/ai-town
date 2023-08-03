@@ -60,9 +60,9 @@ and he's very excited to tell people about it.`,
   },
 ];
 
-export const alreadySeeded = internalQuery({
-  handler: async (ctx) => {
-    return !!(await ctx.db.query('worlds').first());
+export const existingWorld = internalQuery({
+  handler: async (ctx): Promise<Doc<'worlds'> | null> => {
+    return await ctx.db.query('worlds').first();
   },
 });
 
@@ -112,7 +112,7 @@ export const addPlayers = internalMutation({
       });
       playersByName[name] = playerId;
     }
-    return playersByName;
+    return { playersByName, worldId };
   },
 });
 
@@ -143,15 +143,16 @@ export const reset = internalAction({
   args: {},
   handler: async (ctx, args) => {
     await ctx.runMutation(internal.init.debugClearAll, {});
-    await ctx.runAction(internal.init.seed, {});
+    const worldId = await ctx.runAction(internal.init.seed, {});
+    await ctx.runMutation(internal.engine.tick, { worldId });
   },
 });
 
 export const seed = internalAction({
   args: { newWorld: v.optional(v.boolean()) },
-  handler: async (ctx, { newWorld }) => {
-    const alreadySeeded = await ctx.runQuery(internal.init.alreadySeeded);
-    if (!newWorld && alreadySeeded) return;
+  handler: async (ctx, { newWorld }): Promise<Id<'worlds'>> => {
+    const existingWorldId = await ctx.runQuery(internal.init.existingWorld);
+    if (!newWorld && existingWorldId) return existingWorldId._id;
     const characters = [
       {
         name: 'player',
@@ -160,7 +161,7 @@ export const seed = internalAction({
         speed: 0.1,
       },
     ];
-    const playersByName = await ctx.runMutation(internal.init.addPlayers, {
+    const { playersByName, worldId } = await ctx.runMutation(internal.init.addPlayers, {
       newWorld,
       characters,
     });
@@ -193,6 +194,7 @@ export const seed = internalAction({
     // It will check the cache, calculate missing embeddings, and add them.
     // If it fails here, it won't be retried. But you could clear the memor
     await MemoryDB(ctx).addMemories(memories);
+    return worldId;
   },
 });
 
