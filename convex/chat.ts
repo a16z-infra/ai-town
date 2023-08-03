@@ -75,9 +75,13 @@ export const paginatePlayerMessages = query({
       )
       .order('desc')
       .paginate(args.paginationOpts)) as PaginationResult<EntryOfType<'talking'>>;
+    const clientMessage = clientMessageMapper(ctx.db);
     return {
       ...results,
-      page: await asyncMap(results.page, clientMessageMapper(ctx.db)),
+      page: await asyncMap(results.page, async (message) => ({
+        ...(await clientMessage(message)),
+        conversationId: message.data.conversationId,
+      })),
     };
   },
 });
