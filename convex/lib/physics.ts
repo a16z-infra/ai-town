@@ -58,6 +58,7 @@ export function getPoseFromRoute(route: Position[], fraction: number): Pose {
   };
 }
 
+// Assumes the motion has started in the past or currently.
 export function getRemainingPathFromMotion(motion: Motion, ts: number): Position[] {
   if (motion.type === 'stopped') {
     return [motion.pose.position];

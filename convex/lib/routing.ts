@@ -40,25 +40,28 @@ export function findRoute(walls: boolean[][], startMotion: Motion, end: Position
 
 export function wallsFromWorld(world: Doc<'worlds'>): boolean[][] {
   const walls: boolean[][] = [];
-  for (let x = 0; x < world.width; x++) {
-    walls[x] = [];
-    for (let y = 0; y < world.height; y++) {
-      walls[x][y] = false;
+  for (let y = 0; y < world.height; y++) {
+    walls[y] = [];
+    for (let x = 0; x < world.width; x++) {
+      walls[y][x] = false;
     }
   }
   for (const idx of world.walls) {
     const x = idx % world.width;
     const y = Math.floor(idx / world.width);
-    walls[x][y] = true;
+    walls[y][x] = true;
   }
   return walls;
 }
 
+// Assumes all motion has started in the past or currently.
+// Otherwise we'd need to know how far we'd go before it starts.
+// Assumes one square move per time unit, all together.
 export function findCollision(
   route: Position[],
   otherMotion: Motion[],
   ts: number,
-  distance: number,
+  strikeZone: number,
 ) {
   const densePath = makeDensePath(route);
   // Make Position[] for each player, starting at ts
@@ -71,7 +74,7 @@ export function findCollision(
     for (const otherPlayerPath of otherPlayerPaths) {
       // Assume the player will stop where the end walking
       const otherPlayerPos = otherPlayerPath[idx] ?? otherPlayerPath.at(-1);
-      if (manhattanDistance(pos, otherPlayerPos) <= distance) {
+      if (manhattanDistance(pos, otherPlayerPos) <= strikeZone) {
         // Return the first index where there is a collision
         return idx;
       }
@@ -80,7 +83,8 @@ export function findCollision(
   return null;
 }
 
-function makeDensePath(path: Position[]): Position[] {
+export function makeDensePath(path: Position[]): Position[] {
+  if (path.length <= 1) return path;
   const densePath = [];
   for (const [idx, nextPos] of path.slice(1).entries()) {
     const pos = path[idx];

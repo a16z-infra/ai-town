@@ -181,17 +181,19 @@ export async function handlePlayerAction(
       );
       const otherPlayerMotion = await asyncMap(
         (await getAllPlayers(ctx.db, world._id)).filter((p) => p._id !== player.id),
-        async (p) => getLatestPlayerMotion(ctx.db, p),
+        async (p) => getLatestPlayerMotion(ctx.db, p._id),
       );
       const nextCollisionDistance = findCollision(route, otherPlayerMotion, ts, NEARBY_DISTANCE);
-      const targetEndTs =
-        ts + (nextCollisionDistance === null ? distance : nextCollisionDistance) * TIME_PER_STEP;
+      const targetEndTs = ts + distance * TIME_PER_STEP;
       await ctx.db.insert('journal', {
         ts,
         playerId,
         data: { type: 'walking', route, startTs: ts, targetEndTs },
       });
-      await tick([playerId]);
+      await tick(
+        [playerId],
+        nextCollisionDistance === null ? targetEndTs : ts + nextCollisionDistance * TIME_PER_STEP,
+      );
       break;
     case 'done':
       await ctx.db.insert('journal', { ts, playerId, data: { type: 'done_thinking' } });
@@ -258,13 +260,13 @@ export async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): 
     thinking: lastThinking?.data.type === 'thinking',
     lastSpokeTs: lastChat?.ts ?? 0,
     lastSpokeConversationId: lastChat?.data.conversationId,
-    motion: await getLatestPlayerMotion(db, playerDoc),
+    motion: await getLatestPlayerMotion(db, playerDoc._id),
   };
 }
 
-async function getLatestPlayerMotion(db: DatabaseReader, playerDoc: Doc<'players'>) {
-  const lastStop = await latestEntryOfType(db, playerDoc._id, 'stopped');
-  const lastWalk = await latestEntryOfType(db, playerDoc._id, 'walking');
+export async function getLatestPlayerMotion(db: DatabaseReader, playerId: Id<'players'>) {
+  const lastStop = await latestEntryOfType(db, playerId, 'stopped');
+  const lastWalk = await latestEntryOfType(db, playerId, 'walking');
   const latestMotion = pruneNull([lastStop, lastWalk])
     .sort((a, b) => a.ts - b.ts)
     .pop()?.data;
