@@ -74,7 +74,7 @@ export async function converse(
   ];
   console.log('convers() stop: ', stop);
   const { content } = await chatGPTCompletion({ messages: prompt, max_tokens: 300, stop });
-  console.log('converse() prompt: ', prompt);
+  // console.log('converse() prompt: ', prompt);
   console.log('converse result through chatgpt: ', content);
   return content;
 }
