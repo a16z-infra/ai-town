@@ -12,12 +12,12 @@ export default defineSchema({
   }).index('by_worldId', ['worldId']),
 
   journal: Journal.table
-    .index('by_playerId_type_ts', ['playerId', 'data.type', 'ts'])
-    .index('by_conversation', ['data.conversationId', 'ts']),
+    .index('by_playerId_type', ['playerId', 'data.type'])
+    .index('by_conversation', ['data.conversationId']),
 
   memories: Memories.table
-    .index('by_playerId_embeddingId', ['playerId', 'embeddingId', 'ts'])
-    .index('by_playerId_type_ts', ['playerId', 'data.type', 'ts']),
+    .index('by_playerId_embeddingId', ['playerId', 'embeddingId'])
+    .index('by_playerId_type', ['playerId', 'data.type']),
 
   // To track recent accesses
   memoryAccesses: defineTable({

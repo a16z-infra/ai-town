@@ -20,7 +20,6 @@ export const debugAgentSnapshot = internalMutation({
   handler: async (ctx, { playerId }) => {
     const snapshot = await getAgentSnapshot(ctx, playerId);
     // await ctx.db.insert('journal', {
-    //   ts: Date.now(),
     //   playerId,
     //   data: {
     //     type: 'thinking',
@@ -62,7 +61,7 @@ export const debugListMessages = internalQuery({
       (playerId) =>
         ctx.db
           .query('journal')
-          .withIndex('by_playerId_type_ts', (q) =>
+          .withIndex('by_playerId_type', (q) =>
             q.eq('playerId', playerId as any).eq('data.type', 'talking'),
           )
           .collect() as Promise<EntryOfType<'talking'>[]>,

@@ -71,7 +71,6 @@ export const tick = internalMutation({
           pose: roundPose(getPoseFromMotion(player.motion, ts)),
         } as Motion;
         await ctx.db.insert('journal', {
-          ts,
           playerId: player.id,
           data: motion,
         });
@@ -85,7 +84,6 @@ export const tick = internalMutation({
       // We mark ourselves as thining AFTER the snapshot, so the snapshot can
       // access the previous plan.
       await ctx.db.insert('journal', {
-        ts,
         playerId: snapshot.player.id,
         data: {
           type: 'thinking',
@@ -144,7 +142,6 @@ export async function handlePlayerAction(
       // TODO: determine if other players are still available.
       const conversationId = await ctx.db.insert('conversations', { worldId });
       await ctx.db.insert('journal', {
-        ts,
         playerId,
         data: {
           type: 'talking',
@@ -159,7 +156,6 @@ export async function handlePlayerAction(
     case 'saySomething':
       // TODO: Check if these players are still nearby?
       await ctx.db.insert('journal', {
-        ts,
         playerId,
         data: {
           type: 'talking',
@@ -186,7 +182,6 @@ export async function handlePlayerAction(
       const nextCollisionDistance = findCollision(route, otherPlayerMotion, ts, NEARBY_DISTANCE);
       const targetEndTs = ts + distance * TIME_PER_STEP;
       await ctx.db.insert('journal', {
-        ts,
         playerId,
         data: { type: 'walking', route, startTs: ts, targetEndTs },
       });
@@ -196,11 +191,10 @@ export async function handlePlayerAction(
       );
       break;
     case 'done':
-      await ctx.db.insert('journal', { ts, playerId, data: { type: 'done_thinking' } });
+      await ctx.db.insert('journal', { playerId, data: { type: 'done_thinking' } });
       break;
     case 'stop':
       await ctx.db.insert('journal', {
-        ts,
         playerId,
         data: {
           type: 'stopped',
@@ -232,7 +226,7 @@ async function makeSnapshot(
   const planEntry = await latestMemoryOfType(db, player.id, 'plan');
   return {
     player,
-    lastPlan: planEntry ? { plan: planEntry.description, ts: planEntry.ts } : undefined,
+    lastPlan: planEntry ? { plan: planEntry.description, ts: planEntry._creationTime } : undefined,
     nearbyPlayers,
     nearbyConversations: await getNearbyConversations(
       db,
@@ -246,7 +240,7 @@ export async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): 
   const lastThinkStart = await latestEntryOfType(db, playerDoc._id, 'thinking');
   const lastThinkEnd = await latestEntryOfType(db, playerDoc._id, 'done_thinking');
   const lastThinking = pruneNull([lastThinkStart, lastThinkEnd])
-    .sort((a, b) => a.ts - b.ts)
+    .sort((a, b) => a._creationTime - b._creationTime)
     .pop();
   const lastChat = await latestEntryOfType(db, playerDoc._id, 'talking');
   const identityEntry = await latestMemoryOfType(db, playerDoc._id, 'identity');
@@ -258,7 +252,7 @@ export async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): 
     characterId: playerDoc.characterId,
     identity,
     thinking: lastThinking?.data.type === 'thinking',
-    lastSpokeTs: lastChat?.ts ?? 0,
+    lastSpokeTs: lastChat?._creationTime ?? 0,
     lastSpokeConversationId: lastChat?.data.conversationId,
     motion: await getLatestPlayerMotion(db, playerDoc._id),
   };
@@ -268,7 +262,7 @@ export async function getLatestPlayerMotion(db: DatabaseReader, playerId: Id<'pl
   const lastStop = await latestEntryOfType(db, playerId, 'stopped');
   const lastWalk = await latestEntryOfType(db, playerId, 'walking');
   const latestMotion = pruneNull([lastStop, lastWalk])
-    .sort((a, b) => a.ts - b.ts)
+    .sort((a, b) => a._creationTime - b._creationTime)
     .pop()?.data;
   return latestMotion ?? { type: 'stopped', reason: 'idle', pose: DEFAULT_START_POSE };
 }
@@ -294,11 +288,11 @@ async function getNearbyConversations(
     await asyncMap(playerIds, async (playerId) => await latestEntryOfType(db, playerId, 'talking')),
   )
     // Filter out old conversations
-    .filter((entry) => Date.now() - entry.ts < CONVERSATION_DEAD_THRESHOLD)
+    .filter((entry) => Date.now() - entry._creationTime < CONVERSATION_DEAD_THRESHOLD)
     // Get the latest message for each conversation, keyed by conversationId.
     .reduce<Record<Id<'conversations'>, EntryOfType<'talking'>>>((convos, entry) => {
       const existing = convos[entry.data.conversationId];
-      if (!existing || existing.ts < entry.ts) {
+      if (!existing || existing._creationTime < entry._creationTime) {
         convos[entry.data.conversationId] = entry;
       }
       return convos;
@@ -332,7 +326,7 @@ async function latestEntryOfType<T extends EntryType>(
 ) {
   const entry = await db
     .query('journal')
-    .withIndex('by_playerId_type_ts', (q) => q.eq('playerId', playerId).eq('data.type', type))
+    .withIndex('by_playerId_type', (q) => q.eq('playerId', playerId).eq('data.type', type))
     .order('desc')
     .first();
   if (!entry) return null;
@@ -346,7 +340,7 @@ async function latestMemoryOfType<T extends MemoryType>(
 ) {
   const entry = await db
     .query('memories')
-    .withIndex('by_playerId_type_ts', (q) => q.eq('playerId', playerId).eq('data.type', type))
+    .withIndex('by_playerId_type', (q) => q.eq('playerId', playerId).eq('data.type', type))
     .order('desc')
     .first();
   if (!entry) return null;
@@ -360,7 +354,7 @@ async function latestRelationshipMemoryWith(
 ) {
   const entry = await db
     .query('memories')
-    .withIndex('by_playerId_type_ts', (q) =>
+    .withIndex('by_playerId_type', (q) =>
       q.eq('playerId', playerId).eq('data.type', 'relationship'),
     )
     .order('desc')

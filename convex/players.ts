@@ -67,7 +67,6 @@ export const createPlayer = mutation({
     });
     await ctx.db.insert('journal', {
       playerId,
-      ts: Date.now(),
       data: { type: 'stopped', reason: 'idle', pose: args.pose },
     });
     await ctx.scheduler.runAfter(0, internal.engine.tick, {

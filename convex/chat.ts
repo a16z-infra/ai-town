@@ -41,7 +41,7 @@ export const paginatePlayerMessages = query({
   handler: async (ctx, args) => {
     const results = (await ctx.db
       .query('journal')
-      .withIndex('by_playerId_type_ts', (q) =>
+      .withIndex('by_playerId_type', (q) =>
         q.eq('playerId', args.playerId).eq('data.type', 'talking'),
       )
       .order('desc')
@@ -96,7 +96,7 @@ export function clientMessageMapper(db: DatabaseReader) {
       to: m.data.audience,
       toNames: await asyncMap(m.data.audience, getName),
       content: m.data.content,
-      ts: m.ts,
+      ts: m._creationTime,
     };
   };
   return clientMessage;

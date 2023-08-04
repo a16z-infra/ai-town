@@ -97,7 +97,6 @@ export const addPlayers = internalMutation({
       });
       await ctx.db.insert('journal', {
         playerId,
-        ts: Date.now(),
         data: {
           type: 'stopped',
           reason: 'idle',

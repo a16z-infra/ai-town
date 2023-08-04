@@ -1,15 +1,10 @@
 import { Infer, v } from 'convex/values';
 import { Table } from './lib/utils';
 
-// ts is milliseconds in game time
-const ts = v.number();
-export type GameTs = Infer<typeof ts>;
-
 // Hierarchical location within tree
 // TODO: build zone lookup from position, whether player-dependent or global.
-
-export const zone = v.array(v.string());
-export type Zone = Infer<typeof zone>;
+// export const zone = v.array(v.string());
+// export type Zone = Infer<typeof zone>;
 
 export const Worlds = Table('worlds', {
   // name: v.string(),
@@ -58,7 +53,7 @@ export const Message = v.object({
   to: v.array(v.id('players')),
   toNames: v.array(v.string()),
   content: v.string(),
-  ts,
+  ts: v.number(),
 });
 export type Message = Infer<typeof Message>;
 
@@ -92,7 +87,7 @@ export type Player = Infer<typeof Player>;
 
 export const Snapshot = v.object({
   player: Player,
-  lastPlan: v.optional(v.object({ plan: v.string(), ts })),
+  lastPlan: v.optional(v.object({ plan: v.string(), ts: v.number() })),
   // recentMemories: v.array(memoryValidator),
   nearbyPlayers: v.array(
     v.object({
@@ -109,8 +104,7 @@ export type Snapshot = Infer<typeof Snapshot>;
 
 // Journal documents are append-only, and define an player's state.
 export const Journal = Table('journal', {
-  // TODO: maybe we can just use _creationTime?
-  ts,
+  ts: v.optional(v.number()), // TODO: delete later
   playerId: v.id('players'),
   // emojiSummary: v.string(),
   data: v.union(
@@ -159,7 +153,7 @@ export const Memories = Table('memories', {
   description: v.string(),
   embeddingId: v.id('embeddings'),
   importance: v.number(),
-  ts,
+  ts: v.optional(v.number()), // TODO: delete later
   data: v.union(
     // Useful for seed memories, high level goals
     v.object({

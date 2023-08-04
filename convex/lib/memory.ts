@@ -154,7 +154,6 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
         {
           playerId,
           description,
-          ts: Date.now(),
           data: {
             type: 'conversation',
             conversationId,
@@ -319,13 +318,13 @@ export const getRecentMessages = internalQuery({
     // Fetch the last memory, whether it was this conversation or not.
     const lastConversationMemory = (await ctx.db
       .query('memories')
-      .withIndex('by_playerId_type_ts', (q) =>
+      .withIndex('by_playerId_type', (q) =>
         q.eq('playerId', playerId).eq('data.type', 'conversation'),
       )
       .order('desc')
       .first()) as MemoryOfType<'conversation'> | null;
 
-    if (lastSpokeTs < (lastConversationMemory?.ts ?? 0)) {
+    if (lastSpokeTs < (lastConversationMemory?._creationTime ?? 0)) {
       // We haven't spoken since a conversation memory, so probably not worth recording.
       return [];
     }
@@ -336,7 +335,7 @@ export const getRecentMessages = internalQuery({
         const q2 = q.eq('data.conversationId', conversationId as any);
         if (lastConversationMemory?.data.conversationId === conversationId) {
           // If we have a memory of this conversation, only look at messages after.
-          return q2.gt('ts', lastConversationMemory.ts);
+          return q2.gt('_creationTime', lastConversationMemory._creationTime);
         }
         return q2;
       })
@@ -348,17 +347,20 @@ export const getRecentMessages = internalQuery({
     // beginning of time.
     let lastMemoryTs: number;
     if (lastConversationMemory && lastConversationMemory.data.conversationId === conversationId) {
-      lastMemoryTs = lastConversationMemory.ts;
+      lastMemoryTs = lastConversationMemory._creationTime;
     } else {
       const previousConversationMemory = await ctx.db
         .query('memories')
-        .withIndex('by_playerId_type_ts', (q) =>
-          q.eq('playerId', playerId).eq('data.type', 'conversation').gt('ts', allMessages[0].ts),
+        .withIndex('by_playerId_type', (q) =>
+          q
+            .eq('playerId', playerId)
+            .eq('data.type', 'conversation')
+            .gt('_creationTime', allMessages[0]._creationTime),
         )
         .order('desc')
         .filter((q) => q.eq(q.field('data.conversationId'), conversationId))
         .first();
-      lastMemoryTs = previousConversationMemory?.ts ?? 0;
+      lastMemoryTs = previousConversationMemory?._creationTime ?? 0;
     }
     return (await asyncMap(allMessages, clientMessageMapper(ctx.db))).filter(
       (m) => m.ts > lastMemoryTs && (m.from === playerId || m.to.includes(playerId)),
