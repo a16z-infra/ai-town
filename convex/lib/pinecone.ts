@@ -9,6 +9,14 @@ function orThrow(env: string | undefined): string {
   return env;
 }
 
+export function pineconeAvailable(): boolean {
+  return (
+    !!process.env.PINECONE_API_KEY &&
+    !!process.env.PINECONE_ENVIRONMENT &&
+    !!process.env.PINECONE_INDEX_NAME
+  );
+}
+
 export async function pineconeIndex() {
   const client = new PineconeClient();
   await client.init({

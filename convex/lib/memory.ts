@@ -14,7 +14,7 @@ import { asyncMap } from './utils.js';
 import { EntryOfType, Memories, MemoryOfType } from '../types.js';
 import { chatGPTCompletion, fetchEmbeddingBatch } from './openai.js';
 import { clientMessageMapper } from '../chat.js';
-import { pineconeIndex } from './pinecone.js';
+import { pineconeAvailable, pineconeIndex, upsertVectors } from './pinecone.js';
 
 const { embeddingId: _, ...MemoryWithoutEmbeddingId } = Memories.fields;
 const NewMemory = { ...MemoryWithoutEmbeddingId, importance: v.optional(v.number()) };
@@ -33,12 +33,12 @@ export interface MemoryDB {
     queryEmbedding: number[],
     count?: number,
   ): Promise<{ memory: Doc<'memories'>; overallScore: number }[]>;
-  addMemories(memories: NewMemory[]): Promise<Id<'memories'>[]>;
+  addMemories(memories: NewMemory[]): Promise<void>;
   rememberConversation(
     playerId: Id<'players'>,
     conversationId: Id<'conversations'>,
     lastSpokeTs: number,
-  ): Promise<Id<'memories'> | null>;
+  ): Promise<boolean>;
 }
 
 export function MemoryDB(ctx: ActionCtx): MemoryDB {
@@ -51,17 +51,16 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
       limit,
     });
   };
+  let externalEmbeddingStore: (
+    embeddings: { id: Id<'embeddings'>; values: number[]; metadata: object }[],
+  ) => Promise<any>;
   // If Pinecone env variables are defined, use that.
-  if (
-    process.env.PINECONE_API_KEY &&
-    process.env.PINECONE_INDEX_NAME &&
-    process.env.PINECONE_ENVIRONMENT
-  ) {
+  if (pineconeAvailable()) {
     vectorSearch = async (embedding: number[], playerId: Id<'players'>, limit: number) => {
       const pinecone = await pineconeIndex();
       const { matches } = await pinecone.query({
         queryRequest: {
-          namespace: 'memories',
+          namespace: 'embeddings',
           topK: limit,
           vector: embedding,
           filter: { playerId },
@@ -75,6 +74,9 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
         score: number;
       }[];
     };
+    externalEmbeddingStore = async (
+      embeddings: { id: Id<'embeddings'>; values: number[]; metadata: object }[],
+    ) => upsertVectors('embeddings', embeddings);
   }
 
   return {
@@ -147,7 +149,16 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
           return { ...memory, embedding, importance: memory.importance };
         }
       });
-      return ctx.runMutation(internal.lib.memory.addMemories, { memories });
+      const embeddingIds = await ctx.runMutation(internal.lib.memory.addMemories, { memories });
+      if (externalEmbeddingStore) {
+        await externalEmbeddingStore(
+          embeddingIds.map((id, idx) => ({
+            id,
+            values: embeddings[idx],
+            metadata: { playerId: memories[idx].playerId },
+          })),
+        );
+      }
     },
 
     async rememberConversation(playerId, conversationId, lastSpokeTs) {
@@ -156,7 +167,7 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
         conversationId,
         lastSpokeTs,
       });
-      if (!messages.length) return null;
+      if (!messages.length) return false;
       const { content: description } = await chatGPTCompletion({
         messages: [
           {
@@ -174,7 +185,7 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
         ],
         max_tokens: 500,
       });
-      const memory = await this.addMemories([
+      await this.addMemories([
         {
           playerId,
           description,
@@ -184,7 +195,7 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
           },
         },
       ]);
-      return memory[0];
+      return true;
     },
   };
 }
@@ -286,12 +297,13 @@ function makeRange(values: number[]) {
 
 export const addMemories = internalMutation({
   args: { memories: v.array(v.object(NewMemoryWithEmbedding)) },
-  handler: async (ctx, args): Promise<Id<'memories'>[]> => {
+  handler: async (ctx, args): Promise<Id<'embeddings'>[]> => {
     return asyncMap(args.memories, async (memoryWithEmbedding) => {
       const { embedding, ...memory } = memoryWithEmbedding;
       const { playerId, description: text } = memory;
       const embeddingId = await ctx.db.insert('embeddings', { playerId, embedding, text });
-      return await ctx.db.insert('memories', { ...memory, embeddingId });
+      await ctx.db.insert('memories', { ...memory, embeddingId });
+      return embeddingId;
     });
   },
 });
