@@ -1,3 +1,4 @@
+// TODO: use node once vector search is available there, or w/ Pinecone
 // 'use node';
 // ^ This tells Convex to run this in a `node` environment.
 // Read more: https://docs.convex.dev/functions/runtimes
