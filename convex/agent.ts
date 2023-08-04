@@ -2,15 +2,16 @@
 // ^ This tells Convex to run this in a `node` environment.
 // Read more: https://docs.convex.dev/functions/runtimes
 import { v } from 'convex/values';
-import { api, internal } from './_generated/api';
+import { internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
 
-import { ActionCtx, internalAction } from './_generated/server';
+import { internalAction } from './_generated/server';
 import { MemoryDB } from './lib/memory';
 import { Message } from './lib/openai';
 import { Snapshot, Action, Position, Worlds } from './types';
 import { converse, startConversation, walkAway } from './conversation';
 
+export type ActionAPI = (action: Action) => Promise<boolean>;
 // 1. The engine kicks off this action.
 export const runAgent = internalAction({
   args: {
@@ -21,7 +22,13 @@ export const runAgent = internalAction({
   },
   handler: async (ctx, { snapshot, world, thinkId, noSchedule }) => {
     const memory = MemoryDB(ctx);
-    const actionAPI = ActionAPI(ctx, snapshot.player.id, noSchedule ?? false);
+    const actionAPI = (action: Action) =>
+      ctx.runMutation(internal.engine.handleAgentAction, {
+        playerId: snapshot.player.id,
+        action,
+        noSchedule,
+      });
+
     try {
       // 2. We run the agent loop
       await agentLoop(snapshot, memory, actionAPI, world);
@@ -32,17 +39,6 @@ export const runAgent = internalAction({
     }
   },
 });
-
-export function ActionAPI(ctx: ActionCtx, playerId: Id<'players'>, noSchedule: boolean) {
-  return (action: Action) => {
-    return ctx.runMutation(internal.engine.handleAgentAction, {
-      playerId,
-      action,
-      noSchedule,
-    });
-  };
-}
-export type ActionAPI = ReturnType<typeof ActionAPI>;
 
 export async function agentLoop(
   { player, nearbyPlayers, nearbyConversations, lastPlan }: Snapshot,
@@ -198,6 +194,12 @@ export const runConversation = internalAction({
         const { snapshot, thinkId } = await ctx.runMutation(internal.testing.debugAgentSnapshot, {
           playerId,
         });
+        const actionAPI = (action: Action) =>
+          ctx.runMutation(internal.engine.handleAgentAction, {
+            playerId,
+            action,
+            noSchedule: true,
+          });
         const { player, nearbyPlayers, nearbyConversations } = snapshot;
         if (nearbyPlayers.find(({ player }) => player.thinking)) {
           throw new Error('Unexpected thinking player ' + playerId);
