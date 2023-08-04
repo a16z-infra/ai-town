@@ -13,8 +13,13 @@ import { converse, startConversation, walkAway } from './conversation';
 
 // 1. The engine kicks off this action.
 export const runAgent = internalAction({
-  args: { snapshot: Snapshot, noSchedule: v.optional(v.boolean()), world: Worlds.doc },
-  handler: async (ctx, { snapshot, noSchedule, world }) => {
+  args: {
+    snapshot: Snapshot,
+    world: Worlds.doc,
+    thinkId: v.id('journal'),
+    noSchedule: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { snapshot, world, thinkId, noSchedule }) => {
     const memory = MemoryDB(ctx);
     const actionAPI = ActionAPI(ctx, snapshot.player.id, noSchedule ?? false);
     try {
@@ -23,7 +28,7 @@ export const runAgent = internalAction({
     } finally {
       // should only be called from here, to match the "thinking" entry.
       // 3. We mark the agent as done
-      await actionAPI({ type: 'done' });
+      await actionAPI({ type: 'done', thinkId });
     }
   },
 });
@@ -190,8 +195,7 @@ export const runConversation = internalAction({
     let ourConversationId: Id<'conversations'> | null = null;
     while (!done) {
       for (const playerId of playerIds) {
-        const actionAPI = ActionAPI(ctx, playerId, true);
-        const snapshot = await ctx.runMutation(internal.testing.debugAgentSnapshot, {
+        const { snapshot, thinkId } = await ctx.runMutation(internal.testing.debugAgentSnapshot, {
           playerId,
         });
         const { player, nearbyPlayers, nearbyConversations } = snapshot;
@@ -248,6 +252,7 @@ export const runConversation = internalAction({
             conversationId: conversationId,
           });
         }
+        await actionAPI({ type: 'done', thinkId });
       }
     }
     if (!ourConversationId) throw new Error('No conversationId');

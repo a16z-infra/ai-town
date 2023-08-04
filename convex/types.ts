@@ -43,6 +43,7 @@ export const Action = v.union(
   }),
   v.object({
     type: v.literal('done'),
+    thinkId: v.id('journal'),
   }),
 );
 export type Action = Infer<typeof Action>;
@@ -123,8 +124,10 @@ export const Journal = Table('journal', {
     v.object({
       type: v.literal('thinking'),
       snapshot: Snapshot,
+      finishedTs: v.optional(v.number()),
     }),
     // In case we don't do anything, confirm we're done thinking.
+    // Unused, clean up later:
     v.object({
       type: v.literal('done_thinking'),
     }),

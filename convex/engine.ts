@@ -83,7 +83,7 @@ export const tick = internalMutation({
       const snapshot = await makeSnapshot(ctx.db, player, playerSnapshots);
       // We mark ourselves as thining AFTER the snapshot, so the snapshot can
       // access the previous plan.
-      await ctx.db.insert('journal', {
+      const thinkId = await ctx.db.insert('journal', {
         playerId: snapshot.player.id,
         data: {
           type: 'thinking',
@@ -95,7 +95,7 @@ export const tick = internalMutation({
       // Replace it for other players.
       playerSnapshots[idx] = await getPlayer(ctx.db, playerDoc);
       // For players worth waking up: schedule action
-      await ctx.scheduler.runAfter(0, internal.agent.runAgent, { snapshot, world });
+      await ctx.scheduler.runAfter(0, internal.agent.runAgent, { snapshot, world, thinkId });
       // TODO: handle timeouts
       // Later: handle object ownership?
     }
@@ -191,7 +191,12 @@ export async function handlePlayerAction(
       );
       break;
     case 'done':
-      await ctx.db.insert('journal', { playerId, data: { type: 'done_thinking' } });
+      const thinkEntry = await latestEntryOfType(ctx.db, playerId, 'thinking');
+      if (thinkEntry?._id !== action.thinkId) {
+        throw new Error('Think ID does not match: ' + action.thinkId + ' vs ' + thinkEntry?._id);
+      }
+      thinkEntry.data.finishedTs = ts;
+      await ctx.db.replace(action.thinkId, thinkEntry);
       break;
     case 'stop':
       await ctx.db.insert('journal', {
@@ -237,11 +242,7 @@ async function makeSnapshot(
 }
 
 export async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): Promise<Player> {
-  const lastThinkStart = await latestEntryOfType(db, playerDoc._id, 'thinking');
-  const lastThinkEnd = await latestEntryOfType(db, playerDoc._id, 'done_thinking');
-  const lastThinking = pruneNull([lastThinkStart, lastThinkEnd])
-    .sort((a, b) => a._creationTime - b._creationTime)
-    .pop();
+  const lastThink = await latestEntryOfType(db, playerDoc._id, 'thinking');
   const lastChat = await latestEntryOfType(db, playerDoc._id, 'talking');
   const identityEntry = await latestMemoryOfType(db, playerDoc._id, 'identity');
   const identity = identityEntry?.description ?? 'I am a person.';
@@ -251,7 +252,7 @@ export async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): 
     name: playerDoc.name,
     characterId: playerDoc.characterId,
     identity,
-    thinking: lastThinking?.data.type === 'thinking',
+    thinking: !lastThink?.data.finishedTs,
     lastSpokeTs: lastChat?._creationTime ?? 0,
     lastSpokeConversationId: lastChat?.data.conversationId,
     motion: await getLatestPlayerMotion(db, playerDoc._id),
