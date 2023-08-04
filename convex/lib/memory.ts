@@ -12,7 +12,7 @@ import {
 } from '../_generated/server.js';
 import { asyncMap } from './utils.js';
 import { EntryOfType, Memories, MemoryOfType } from '../types.js';
-import { chatGPTCompletion, fetchEmbedding, fetchEmbeddingBatch } from './openai.js';
+import { chatGPTCompletion, fetchEmbeddingBatch } from './openai.js';
 import { clientMessageMapper } from '../chat.js';
 
 const { embeddingId: _, ...MemoryWithoutEmbeddingId } = Memories.fields;
@@ -94,14 +94,17 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
 
         if (memory.importance === undefined) {
           // TODO: make a better prompt based on the user's memories
-          const { content: importanceRaw } = await chatGPTCompletion([
-            { role: 'user', content: memory.description },
-            {
-              role: 'user',
-              content:
-                'How important is this? Answer on a scale of 0 to 9. Respond with number only, e.g. "5"',
-            },
-          ]);
+          const { content: importanceRaw } = await chatGPTCompletion({
+            messages: [
+              { role: 'user', content: memory.description },
+              {
+                role: 'user',
+                content:
+                  'How important is this? Answer on a scale of 0 to 9. Respond with number only, e.g. "5"',
+              },
+            ],
+            max_tokens: 1,
+          });
           let importance = NaN;
           for (let i = 0; i < importanceRaw.length; i++) {
             const number = parseInt(importanceRaw[i]);
@@ -130,20 +133,23 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
         lastSpokeTs,
       });
       if (!messages.length) return null;
-      const { content: description } = await chatGPTCompletion([
-        {
-          role: 'user',
-          content: `The following are messages. I would like you to summarize the conversation in a paragraph.`,
-        },
-        ...messages.map((m) => ({
-          role: 'user' as const,
-          content: `${m.fromName}: ${m.content}`,
-        })),
-        {
-          role: 'user',
-          content: `Summary:`,
-        },
-      ]);
+      const { content: description } = await chatGPTCompletion({
+        messages: [
+          {
+            role: 'user',
+            content: `The following are messages. I would like you to summarize the conversation in a paragraph.`,
+          },
+          ...messages.map((m) => ({
+            role: 'user' as const,
+            content: `${m.fromName}: ${m.content}`,
+          })),
+          {
+            role: 'user',
+            content: `Summary:`,
+          },
+        ],
+        max_tokens: 500,
+      });
       const memory = await this.addMemories([
         {
           playerId,

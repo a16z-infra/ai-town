@@ -27,8 +27,8 @@ export async function startConversation(
     },
   ];
   const stop = newFriendsNames.map((name) => name + ':');
-  const { content: description } = await chatGPTCompletion(prompt, 300, stop);
-  return description;
+  const { content } = await chatGPTCompletion({ messages: prompt, max_tokens: 300, stop });
+  return content;
 }
 
 export async function converse(
@@ -73,10 +73,10 @@ export async function converse(
     },
   ];
   console.log('convers() stop: ', stop);
-  const { content: description } = await chatGPTCompletion(prompt, 300, stop);
+  const { content } = await chatGPTCompletion({ messages: prompt, max_tokens: 300, stop });
   console.log('converse() prompt: ', prompt);
-  console.log('converse result through chatgpt: ', description);
-  return description;
+  console.log('converse result through chatgpt: ', content);
+  return content;
 }
 
 export async function walkAway(messages: Message[], player: Player): Promise<boolean> {
@@ -90,7 +90,7 @@ export async function walkAway(messages: Message[], player: Player): Promise<boo
     ...messages,
   ];
   console.log('walkAway prompt: ', prompt);
-  const { content: description } = await chatGPTCompletion(prompt, 2);
+  const { content: description } = await chatGPTCompletion({ messages: prompt, max_tokens: 2 });
   console.log('walkAway result: ', description);
   return description === '1';
 }
