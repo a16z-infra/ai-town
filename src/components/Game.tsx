@@ -1,5 +1,6 @@
 import { Stage } from '@pixi/react';
 import { useEffect, useRef, useState } from 'react';
+import { PixiStaticMap } from './PixiStaticMap';
 import { ConvexProvider, useConvex, useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Player } from './Player';
@@ -12,7 +13,9 @@ export const Game = () => {
   const { world, players } = worldState;
   console.log('worldId', world._id);
   return (
-    <Stage width={1200} height={800} options={{ backgroundColor: 0xffffff }}>
+    <Stage width={640} height={640} options={{ backgroundColor: 0xffffff }}>
+
+      <PixiStaticMap width={512} height={512}></PixiStaticMap>
       <ConvexProvider client={convex}>
         {players
           // .slice(0, 1)
