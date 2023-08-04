@@ -44,7 +44,7 @@ export const Character = ({
 
   const { x, y } = pose.position;
   return (
-    <Container x={x} y={y}>
+    <Container x={x * 5} y={y * 5}>
       {isThinking && (
         // TODO: We'll eventually have separate assets for thinking and speech animations.
         <Text x={-10} y={-10} scale={{ x: -0.5, y: 0.5 }} text={'💭'} anchor={{ x: 0.5, y: 0.5 }} />
