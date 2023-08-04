@@ -80,6 +80,7 @@ export const addPlayers = internalMutation({
         width: 100,
         height: 100,
         walls: [],
+        frozen: false,
       }));
     const charactersByName: Record<string, Id<'characters'>> = {};
     for (const character of args.characters) {
@@ -150,6 +151,7 @@ export const resetFrozen = internalAction({
   handler: async (ctx, args) => {
     await ctx.runMutation(internal.init.debugClearAll, {});
     await ctx.runAction(internal.init.seed, {});
+    await ctx.runMutation(internal.engine.freezeAll);
   },
 });
 

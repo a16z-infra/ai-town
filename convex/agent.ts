@@ -191,12 +191,12 @@ export const runConversation = internalAction({
     while (!done) {
       for (const playerId of playerIds) {
         const actionAPI = ActionAPI(ctx, playerId, true);
-        const snapshot = await ctx.runMutation(internal.testing.debugPlanAgent, {
+        const snapshot = await ctx.runMutation(internal.testing.debugAgentSnapshot, {
           playerId,
         });
         const { player, nearbyPlayers, nearbyConversations } = snapshot;
         if (nearbyPlayers.find(({ player }) => player.thinking)) {
-          throw new Error('Unexpected thinking player');
+          throw new Error('Unexpected thinking player ' + playerId);
         }
         const newFriends = nearbyPlayers.filter((a) => a.new).map(({ player }) => player);
         if (firstTime) {
@@ -220,12 +220,13 @@ export const runConversation = internalAction({
           }
           const { conversationId, messages } = nearbyConversations[0];
           if (!ourConversationId) {
+            ourConversationId = conversationId;
+          } else {
             if (conversationId !== ourConversationId) {
               throw new Error(
                 'Unexpected conversationId ' + conversationId + ' != ' + ourConversationId,
               );
             }
-            ourConversationId = conversationId;
           }
           const chatHistory: Message[] = [
             ...messages.map((m) => ({

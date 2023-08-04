@@ -12,7 +12,6 @@ import {
   query,
 } from './_generated/server';
 import {
-  GameTs,
   EntryType,
   EntryOfType,
   MemoryOfType,
@@ -42,6 +41,7 @@ export const tick = internalMutation({
   handler: async (ctx, { worldId, forPlayers }) => {
     const ts = Date.now();
     const world = (await ctx.db.get(worldId))!;
+    if (world.frozen) return;
     const playerDocs = await getAllPlayers(ctx.db, worldId);
     // Make snapshot of world
     const playerSnapshots = await asyncMap(playerDocs, async (playerDoc) =>
@@ -368,4 +368,25 @@ async function latestRelationshipMemoryWith(
   return entry as MemoryOfType<'relationship'>;
 }
 
-// function getPlayerStatus(entries: Entry[] /* latest first */): Status {}
+export const freezeAll = internalMutation({
+  args: {},
+  handler: async (ctx, args) => {
+    const worlds = await ctx.db.query('worlds').collect();
+    for (const world of worlds) {
+      await ctx.db.patch(world._id, { frozen: true });
+    }
+  },
+});
+
+export const unfreezeAll = internalMutation({
+  args: {},
+  handler: async (ctx, args) => {
+    const worlds = await ctx.db.query('worlds').collect();
+    for (const world of worlds) {
+      await ctx.db.patch(world._id, { frozen: false });
+    }
+    for (const world of worlds) {
+      await ctx.scheduler.runAfter(0, internal.engine.tick, { worldId: world._id });
+    }
+  },
+});

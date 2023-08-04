@@ -15,18 +15,18 @@ import { asyncMap } from './lib/utils';
 import { EntryOfType } from './types';
 import { clientMessageMapper } from './chat';
 
-export const debugPlanAgent = internalMutation({
+export const debugAgentSnapshot = internalMutation({
   args: { playerId: v.id('players') },
   handler: async (ctx, { playerId }) => {
     const snapshot = await getAgentSnapshot(ctx, playerId);
-    await ctx.db.insert('journal', {
-      ts: Date.now(),
-      playerId,
-      data: {
-        type: 'thinking',
-        snapshot,
-      },
-    });
+    // await ctx.db.insert('journal', {
+    //   ts: Date.now(),
+    //   playerId,
+    //   data: {
+    //     type: 'thinking',
+    //     snapshot,
+    //   },
+    // });
     return snapshot;
   },
 });

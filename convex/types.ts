@@ -17,6 +17,7 @@ export const Worlds = Table('worlds', {
   walls: v.array(v.number()),
   width: v.number(),
   height: v.number(),
+  frozen: v.boolean(),
 });
 
 export const Position = v.object({ x: v.number(), y: v.number() });

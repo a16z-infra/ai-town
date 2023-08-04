@@ -16,6 +16,7 @@ export function interpolatePosition(start: Position, end: Position, distance: nu
   };
 }
 
+// See types.Pose for definition of orientation.
 export function calculateOrientation(start: Position, end: Position): number {
   const dx = end.x - start.x;
   const dy = end.y - start.y;

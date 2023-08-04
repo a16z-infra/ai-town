@@ -10,6 +10,7 @@ export default defineSchema({
     worldId: v.id('worlds'),
     characterId: v.id('characters'),
   }).index('by_worldId', ['worldId']),
+
   journal: Journal.table
     .index('by_playerId_type_ts', ['playerId', 'data.type', 'ts'])
     .index('by_conversation', ['data.conversationId', 'ts']),
