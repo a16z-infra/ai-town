@@ -9,43 +9,6 @@ import Chats from './Chats';
 import Game from './Game';
 
 export default function Examples() {
-  const [QAModalOpen, setQAModalOpen] = useState(false);
-  const [CompParam, setCompParam] = useState({
-    name: '',
-    title: '',
-    imageUrl: '',
-  });
-  const [examples, setExamples] = useState([
-    {
-      name: '',
-      title: '',
-      imageUrl: '',
-      llm: '',
-      phone: '',
-    },
-  ]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const companions = await getCompanions();
-        let entries = JSON.parse(companions);
-        let setme = entries.map((entry: any) => ({
-          name: entry.name,
-          title: entry.title,
-          imageUrl: entry.imageUrl,
-          llm: entry.llm,
-          phone: entry.phone,
-        }));
-        setExamples(setme);
-      } catch (err) {
-        console.log(err);
-      }
-    };
-
-    fetchData();
-  }, []);
-
   return (
     <>
       <div className="mx-auto min-h-screen w-full max-w grow lg:flex xl:px-2 mt-7">
