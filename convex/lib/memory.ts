@@ -14,6 +14,7 @@ import { asyncMap } from './utils.js';
 import { EntryOfType, Memories, MemoryOfType } from '../types.js';
 import { chatGPTCompletion, fetchEmbeddingBatch } from './openai.js';
 import { clientMessageMapper } from '../chat.js';
+import { pineconeIndex } from './pinecone.js';
 
 const { embeddingId: _, ...MemoryWithoutEmbeddingId } = Memories.fields;
 const NewMemory = { ...MemoryWithoutEmbeddingId, importance: v.optional(v.number()) };
@@ -42,16 +43,44 @@ export interface MemoryDB {
 
 export function MemoryDB(ctx: ActionCtx): MemoryDB {
   // TODO: add pinecone option, if env variables are set
+  let vectorSearch = async (embedding: number[], playerId: Id<'players'>, limit: number) => {
+    return await ctx.vectorSearch('embeddings', 'embedding', {
+      vector: embedding,
+      vectorField: 'embedding',
+      filter: (q) => q.eq('playerId', playerId),
+      limit,
+    });
+  };
+  // If Pinecone env variables are defined, use that.
+  if (
+    process.env.PINECONE_API_KEY &&
+    process.env.PINECONE_INDEX_NAME &&
+    process.env.PINECONE_ENVIRONMENT
+  ) {
+    vectorSearch = async (embedding: number[], playerId: Id<'players'>, limit: number) => {
+      const pinecone = await pineconeIndex();
+      const { matches } = await pinecone.query({
+        queryRequest: {
+          namespace: 'memories',
+          topK: limit,
+          vector: embedding,
+          filter: { playerId },
+        },
+      });
+      if (!matches) {
+        throw new Error('Pinecone returned undefined results');
+      }
+      return matches.filter((m) => !!m.score).map(({ id, score }) => ({ _id: id, score })) as {
+        _id: Id<'embeddings'>;
+        score: number;
+      }[];
+    };
+  }
 
   return {
     // Finds memories but doesn't mark them as accessed.
     async search(playerId, queryEmbedding, limit = 100) {
-      const results = await ctx.vectorSearch('embeddings', 'embedding', {
-        vector: queryEmbedding,
-        vectorField: 'embedding',
-        filter: (q) => q.eq('playerId', playerId),
-        limit,
-      });
+      const results = await vectorSearch(queryEmbedding, playerId, limit);
       const embeddingIds = results.map((r) => r._id);
       const memories = await ctx.runQuery(internal.lib.memory.getMemories, {
         playerId,
@@ -61,12 +90,7 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
     },
 
     async accessMemories(playerId, queryEmbedding, count = 10) {
-      const results = await ctx.vectorSearch('embeddings', 'embedding', {
-        vector: queryEmbedding,
-        vectorField: 'embedding',
-        filter: (q) => q.eq('playerId', playerId),
-        limit: 10 * count,
-      });
+      const results = await vectorSearch(queryEmbedding, playerId, 10 * count);
       return await ctx.runMutation(internal.lib.memory.accessMemories, {
         playerId,
         candidates: results,
