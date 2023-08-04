@@ -37,29 +37,38 @@ export function getPoseFromMotion(motion: Motion, ts: number): Pose {
     return motion.pose;
   }
   const fraction = calculateFraction(motion.startTs, motion.targetEndTs, ts);
-  return getPoseFromRoute(motion.route, fraction);
+  return getPoseFromRoute(motion.route, fraction, motion.targetEndTs - motion.startTs, ts - motion.startTs);
 }
 
-export function getPoseFromRoute(route: Position[], fraction: number): Pose {
+export function getPoseFromRoute(route: Position[], fraction: number, totalTime: number, timeMoving: number): Pose {
   if (route.length === 1) return { position: route[0], orientation: 0 };
   const totalLength = route.reduce((sum, pos, idx) => {
     if (idx === 0) return sum;
     return sum + manhattanDistance(pos, route[idx - 1]);
   }, 0);
   const progressDistance = fraction * totalLength;
-  let soFar = 0;
+
+  let soFarDistance = 0;
+  let soFarTime = 0;
+  let timeForSegment = 0;
   let start = route[0]!;
   let end = route[1]!;
   for (const [idx, pos] of route.slice(1).entries()) {
-    soFar += manhattanDistance(route[idx], pos);
-    if (soFar >= progressDistance) {
+    const distance = manhattanDistance(route[idx], pos);
+    const fractionDistance = distance / totalLength;
+    timeForSegment = fractionDistance * totalTime;
+    soFarDistance += distance;
+    if (soFarDistance >= progressDistance) {
       start = route[idx];
       end = pos;
       break;
     }
+    soFarTime += timeForSegment;
   }
+  const timeInSegment =  timeMoving - soFarTime
+  const segmentFraction = calculateFraction(0, timeForSegment, timeInSegment)
   return {
-    position: interpolatePosition(start, end, fraction),
+    position: interpolatePosition(start, end, segmentFraction),
     orientation: calculateOrientation(start, end),
   };
 }
