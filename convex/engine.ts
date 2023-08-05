@@ -252,7 +252,7 @@ export async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): 
     name: playerDoc.name,
     characterId: playerDoc.characterId,
     identity,
-    thinking: !lastThink?.data.finishedTs,
+    thinking: !!lastThink && !lastThink?.data.finishedTs,
     lastSpokeTs: lastChat?._creationTime ?? 0,
     lastSpokeConversationId: lastChat?.data.conversationId,
     motion: await getLatestPlayerMotion(db, playerDoc._id),
