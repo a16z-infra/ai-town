@@ -149,6 +149,7 @@ export const runConversation = internalAction({
           const shouldWalkAway = await walkAway(chatHistory, player);
           if (shouldWalkAway) {
             done = true;
+            await actionAPI({ type: 'done', thinkId });
             break;
           }
           const playerCompletion = await converse(chatHistory, player, nearbyPlayers, memory);
