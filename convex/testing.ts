@@ -166,7 +166,17 @@ export const runConversation = internalAction({
     }
     if (!ourConversationId) throw new Error('No conversationId');
     for (const playerId of playerIds) {
-      await memory.rememberConversation(playerId, ourConversationId, Date.now());
+      const { snapshot } = await ctx.runMutation(internal.testing.debugAgentSnapshot, {
+        playerId,
+      });
+      const player = snapshot.player;
+      await memory.rememberConversation(
+        player.name,
+        playerId,
+        player.identity,
+        ourConversationId,
+        Date.now(),
+      );
     }
   },
 });

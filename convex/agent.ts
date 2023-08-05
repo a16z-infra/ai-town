@@ -77,7 +77,9 @@ export async function agentLoop(
         conversationId: player.lastSpokeConversationId,
       });
       await memory.rememberConversation(
+        player.name,
         player.id,
+        player.identity,
         player.lastSpokeConversationId,
         player.lastSpokeTs,
       );
@@ -99,7 +101,13 @@ export async function agentLoop(
       // It's to chatty here, let's go somewhere else.
       if (!imWalkingHere) {
         await actionAPI({ type: 'leaveConversation', conversationId });
-        await memory.rememberConversation(player.id, conversationId, player.lastSpokeTs);
+        await memory.rememberConversation(
+          player.name,
+          player.id,
+          player.identity,
+          conversationId,
+          player.lastSpokeTs,
+        );
         if (await actionAPI({ type: 'travel', position: getRandomPosition(world) })) {
           return;
         }
