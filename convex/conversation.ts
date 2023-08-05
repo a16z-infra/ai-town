@@ -94,5 +94,5 @@ export async function walkAway(messages: Message[], player: Player): Promise<boo
     ...messages,
   ];
   const { content: description } = await chatGPTCompletion({ messages: prompt, max_tokens: 2 });
-  return description === '1' || messages.length > 6;
+  return description === '1' || messages.length >= 2;
 }

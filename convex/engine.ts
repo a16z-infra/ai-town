@@ -110,6 +110,7 @@ export async function getAgentSnapshot(ctx: QueryCtx, playerId: Id<'players'>) {
     getPlayer(ctx.db, playerDoc),
   );
   const snapshot = await makeSnapshot(ctx.db, player, allPlayers);
+  console.log('getAgentSnapshot', snapshot);
   return snapshot;
 }
 
@@ -207,7 +208,8 @@ export async function handlePlayerAction(
         throw new Error('Think ID does not match: ' + action.thinkId + ' vs ' + thinkEntry?._id);
       }
       thinkEntry.data.finishedTs = ts;
-      await ctx.db.replace(action.thinkId, thinkEntry);
+      console.log('thinkEntry', thinkEntry);
+      console.log('db.replace', await ctx.db.replace(action.thinkId, thinkEntry));
       entryId = thinkEntry._id;
       break;
     case 'stop':
