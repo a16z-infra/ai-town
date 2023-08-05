@@ -1,18 +1,11 @@
 import { v } from 'convex/values';
 import { api, internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
-import {
-  action,
-  internalAction,
-  internalMutation,
-  internalQuery,
-  mutation,
-  query,
-} from './_generated/server';
+import { internalAction, internalMutation, internalQuery } from './_generated/server';
 import { getAgentSnapshot } from './engine';
 import { getAllPlayers } from './players';
 import { asyncMap } from './lib/utils';
-import { Action, EntryOfType } from './types';
+import { Action, Entry, EntryOfType } from './types';
 import { clientMessageMapper } from './chat';
 import { MemoryDB } from './lib/memory';
 import { converse, startConversation, walkAway } from './conversation';
@@ -117,13 +110,19 @@ export const runConversation = internalAction({
           if (nearbyConversations.length) {
             throw new Error('Unexpected conversations taking place');
           }
+          const conversationEntry = (await actionAPI({
+            type: 'startConversation',
+            audience: newFriends.map((a) => a.id),
+          })) as EntryOfType<'startConversation'>;
+          if (!conversationEntry) throw new Error('Unexpected failure to start conversation');
           const newFriendsNames = newFriends.map((a) => a.name);
           const playerCompletion = await startConversation(newFriendsNames, memory, player);
           if (
             !(await actionAPI({
-              type: 'startConversation',
+              type: 'talking',
               audience: newFriends.map((a) => a.id),
               content: playerCompletion,
+              conversationId: conversationEntry.data.conversationId,
             }))
           )
             throw new Error('Unexpected failure to start conversation');
@@ -155,7 +154,7 @@ export const runConversation = internalAction({
           const playerCompletion = await converse(chatHistory, player, nearbyPlayers, memory);
           // display the chat via actionAPI
           await actionAPI({
-            type: 'saySomething',
+            type: 'talking',
             audience: nearbyPlayers.map(({ player }) => player.id),
             content: playerCompletion,
             conversationId: conversationId,

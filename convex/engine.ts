@@ -137,51 +137,63 @@ export async function handlePlayerAction(
   };
   const player = await getPlayer(ctx.db, playerDoc);
   // TODO: Check if the player should still respond.
+  let entryId: Id<'journal'> | undefined;
   switch (action.type) {
     case 'startConversation':
-      // TODO: determine if other players are still available.
+      // TODO: determine if any players are available.
       const conversationId = await ctx.db.insert('conversations', { worldId });
-      await ctx.db.insert('journal', {
+      entryId = await ctx.db.insert('journal', {
         playerId,
         data: {
-          type: 'talking',
-          // TODO: just limit to who's still around.
-          audience: action.audience,
-          content: action.content,
+          ...action,
           conversationId,
         },
       });
       await tick(action.audience);
       break;
-    case 'saySomething':
-      // TODO: Check if these players are still nearby?
-      await ctx.db.insert('journal', {
+    case 'talking':
+      // TODO: Check if these players are still nearby
+      entryId = await ctx.db.insert('journal', {
         playerId,
-        data: {
-          type: 'talking',
-          audience: action.audience,
-          content: action.content,
-          conversationId: action.conversationId,
-        },
+        data: action,
       });
       await tick(action.audience);
       break;
+    case 'leaveConversation':
+      entryId = await ctx.db.insert('journal', {
+        playerId,
+        data: action,
+      });
+      break;
     case 'travel':
-      // TODO: calculate obstacles to wake up?
       const world = (await ctx.db.get(playerDoc.worldId))!;
-      const { route, distance } = findRoute(
-        wallsFromWorld(world),
-        player.motion,
-        action.position,
-        ts,
-      );
+      const pose = getPoseFromMotion(player.motion, ts);
       const otherPlayerMotion = await asyncMap(
         (await getAllPlayers(ctx.db, world._id)).filter((p) => p._id !== player.id),
         async (p) => getLatestPlayerMotion(ctx.db, p._id),
       );
-      const nextCollisionDistance = findCollision(route, otherPlayerMotion, ts, NEARBY_DISTANCE);
+      // TODO: Walk around other players along the way
+      const { route, distance } = findRoute(
+        wallsFromWorld(world),
+        player.motion,
+        otherPlayerMotion,
+        action.position,
+        ts,
+      );
+      // TODO: get the player IDs who we'll run into first, to schedule a tick.
+      const nextCollisionDistance = findCollision(
+        route,
+        otherPlayerMotion.filter(
+          // Filter out players we're already around.
+          (motion) =>
+            manhattanDistance(pose.position, getPoseFromMotion(motion, ts).position) >
+            NEARBY_DISTANCE,
+        ),
+        ts,
+        NEARBY_DISTANCE,
+      );
       const targetEndTs = ts + distance * TIME_PER_STEP;
-      await ctx.db.insert('journal', {
+      entryId = await ctx.db.insert('journal', {
         playerId,
         data: { type: 'walking', route, startTs: ts, targetEndTs },
       });
@@ -197,9 +209,10 @@ export async function handlePlayerAction(
       }
       thinkEntry.data.finishedTs = ts;
       await ctx.db.replace(action.thinkId, thinkEntry);
+      entryId = thinkEntry._id;
       break;
     case 'stop':
-      await ctx.db.insert('journal', {
+      entryId = await ctx.db.insert('journal', {
         playerId,
         data: {
           type: 'stopped',
@@ -210,8 +223,9 @@ export async function handlePlayerAction(
       break;
     default:
       const _exhaustiveCheck: never = action;
+      if (!entryId) throw new Error('unreachable');
   }
-  return true;
+  return (await ctx.db.get(entryId))!;
 }
 
 async function makeSnapshot(
@@ -302,8 +316,24 @@ async function getNearbyConversations(
   const conversations = Object.values(conversationsById).filter(
     (entry) => entry.data.audience.includes(playerId) || entry.playerId === playerId,
   );
+  const leftConversations = (
+    (await db
+      .query('journal')
+      .withIndex('by_playerId_type', (q) =>
+        q.eq('playerId', playerId).eq('data.type', 'leaveConversation'),
+      )
+      .filter((q) =>
+        q.or(
+          ...conversations.map((c) => q.eq(q.field('data.conversationId'), c.data.conversationId)),
+        ),
+      )
+      .collect()) as EntryOfType<'leaveConversation'>[]
+  ).map((e) => e.data.conversationId);
+  const stillInConversations = conversations.filter(
+    (c) => !leftConversations.includes(c.data.conversationId),
+  );
   return (
-    await asyncMap(conversations, async (entry) => ({
+    await asyncMap(stillInConversations, async (entry) => ({
       conversationId: entry.data.conversationId,
       messages: (
         await asyncMap(await fetchMessages(db, entry.data.conversationId), clientMessageMapper(db))
@@ -316,8 +346,11 @@ async function fetchMessages(db: DatabaseReader, conversationId: Id<'conversatio
   const messageEntries = await db
     .query('journal')
     .withIndex('by_conversation', (q) => q.eq('data.conversationId', conversationId as any))
+    .filter((q) => q.eq(q.field('data.type'), 'talking'))
     .collect();
-  return messageEntries as EntryOfType<'talking'>[];
+  return messageEntries.filter(
+    (e) => e.data.type !== 'leaveConversation' && e.data.type,
+  ) as EntryOfType<'talking'>[];
 }
 
 async function latestEntryOfType<T extends EntryType>(

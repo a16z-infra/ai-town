@@ -9,10 +9,10 @@ import { Doc, Id } from './_generated/dataModel';
 import { internalAction } from './_generated/server';
 import { MemoryDB } from './lib/memory';
 import { Message } from './lib/openai';
-import { Snapshot, Action, Position, Worlds } from './types';
+import { Snapshot, Action, Position, Worlds, EntryOfType } from './types';
 import { converse, startConversation, walkAway } from './conversation';
 
-export type ActionAPI = (action: Action) => Promise<boolean>;
+export type ActionAPI = (action: Action) => Promise<Doc<'journal'> | null>;
 // 1. The engine kicks off this action.
 export const runAgent = internalAction({
   args: {
@@ -72,6 +72,10 @@ export async function agentLoop(
   } else {
     if (player.lastSpokeConversationId) {
       // If we aren't part of a conversation anymore, remember it.
+      await actionAPI({
+        type: 'leaveConversation',
+        conversationId: player.lastSpokeConversationId,
+      });
       await memory.rememberConversation(
         player.id,
         player.lastSpokeConversationId,
@@ -94,6 +98,8 @@ export async function agentLoop(
     if (shouldWalkAway || messages.length >= 10) {
       // It's to chatty here, let's go somewhere else.
       if (!imWalkingHere) {
+        await actionAPI({ type: 'leaveConversation', conversationId });
+        await memory.rememberConversation(player.id, conversationId, player.lastSpokeTs);
         if (await actionAPI({ type: 'travel', position: getRandomPosition(world) })) {
           return;
         }
@@ -108,7 +114,7 @@ export async function agentLoop(
       const playerCompletion = await converse(chatHistory, player, nearbyPlayers, memory);
       // display the chat via actionAPI
       await actionAPI({
-        type: 'saySomething',
+        type: 'talking',
         audience: nearbyPlayers.map(({ player }) => player.id),
         content: playerCompletion,
         conversationId: conversationId,
@@ -140,16 +146,21 @@ export async function agentLoop(
     // Hey, new friends
     if (!othersThinking) {
       // Decide whether we want to talk
-      const newFriendsNames = newFriends.map((a) => a.name);
-      const playerCompletion = await startConversation(newFriendsNames, memory, player);
 
-      if (
+      const conversationEntry = (await actionAPI({
+        type: 'startConversation',
+        audience: newFriends.map((a) => a.id),
+      })) as EntryOfType<'startConversation'>;
+      if (conversationEntry) {
+        // We won the race to start the conversation
+        const newFriendsNames = newFriends.map((a) => a.name);
+        const playerCompletion = await startConversation(newFriendsNames, memory, player);
         await actionAPI({
-          type: 'startConversation',
+          type: 'talking',
           audience: newFriends.map((a) => a.id),
           content: playerCompletion,
-        })
-      ) {
+          conversationId: conversationEntry.data.conversationId,
+        });
         return;
       }
     }
@@ -171,96 +182,3 @@ export function getRandomPosition(world: Doc<'worlds'>): Position {
     y: Math.floor(Math.random() * world.height),
   };
 }
-
-// For making conversations happen without walking around.
-export const runConversation = internalAction({
-  args: { numPlayers: v.optional(v.boolean()) },
-  handler: async (ctx, args) => {
-    // To always clear all first:
-    await ctx.runAction(internal.init.resetFrozen);
-    // To always make a new world:
-    // await ctx.runAction(internal.init.seed, { newWorld: true });
-    // To just run with the existing agents:
-    //await ctx.runAction(internal.init.seed, {});
-
-    // Grabs the latest world
-    const { playerIds, world } = await ctx.runQuery(internal.testing.getDebugPlayerIds);
-    const memory = MemoryDB(ctx);
-    let done = false;
-
-    let firstTime = true;
-    let ourConversationId: Id<'conversations'> | null = null;
-    while (!done) {
-      for (const playerId of playerIds) {
-        const { snapshot, thinkId } = await ctx.runMutation(internal.testing.debugAgentSnapshot, {
-          playerId,
-        });
-        const actionAPI = (action: Action) =>
-          ctx.runMutation(internal.engine.handleAgentAction, {
-            playerId,
-            action,
-            noSchedule: true,
-          });
-        const { player, nearbyPlayers, nearbyConversations } = snapshot;
-        if (nearbyPlayers.find(({ player }) => player.thinking)) {
-          throw new Error('Unexpected thinking player ' + playerId);
-        }
-        const newFriends = nearbyPlayers.filter((a) => a.new).map(({ player }) => player);
-        if (firstTime) {
-          firstTime = false;
-          if (nearbyConversations.length) {
-            throw new Error('Unexpected conversations taking place');
-          }
-          const newFriendsNames = newFriends.map((a) => a.name);
-          const playerCompletion = await startConversation(newFriendsNames, memory, player);
-          if (
-            !(await actionAPI({
-              type: 'startConversation',
-              audience: newFriends.map((a) => a.id),
-              content: playerCompletion,
-            }))
-          )
-            throw new Error('Unexpected failure to start conversation');
-        } else {
-          if (nearbyConversations.length !== 1) {
-            throw new Error('Unexpected conversations taking place');
-          }
-          const { conversationId, messages } = nearbyConversations[0];
-          if (!ourConversationId) {
-            ourConversationId = conversationId;
-          } else {
-            if (conversationId !== ourConversationId) {
-              throw new Error(
-                'Unexpected conversationId ' + conversationId + ' != ' + ourConversationId,
-              );
-            }
-          }
-          const chatHistory: Message[] = [
-            ...messages.map((m) => ({
-              role: 'user' as const,
-              content: `${m.fromName} to ${m.toNames.join(',')}: ${m.content}\n`,
-            })),
-          ];
-          const shouldWalkAway = await walkAway(chatHistory, player);
-          if (shouldWalkAway) {
-            done = true;
-            break;
-          }
-          const playerCompletion = await converse(chatHistory, player, nearbyPlayers, memory);
-          // display the chat via actionAPI
-          await actionAPI({
-            type: 'saySomething',
-            audience: nearbyPlayers.map(({ player }) => player.id),
-            content: playerCompletion,
-            conversationId: conversationId,
-          });
-        }
-        await actionAPI({ type: 'done', thinkId });
-      }
-    }
-    if (!ourConversationId) throw new Error('No conversationId');
-    for (const playerId of playerIds) {
-      await memory.rememberConversation(playerId, ourConversationId, Date.now());
-    }
-  },
-});

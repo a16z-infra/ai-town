@@ -375,6 +375,7 @@ export const getRecentMessages = internalQuery({
         }
         return q2;
       })
+      .filter((q) => q.eq(q.field('data.type'), 'talking'))
       .collect()) as EntryOfType<'talking'>[];
     // Find if we have a memory of this conversation already.
     // This may be before the last conversation memory we've had.

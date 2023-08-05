@@ -22,18 +22,28 @@ export type Position = Infer<typeof Position>;
 export const Pose = v.object({ position: Position, orientation: v.number() });
 export type Pose = Infer<typeof Pose>;
 
+export const StartConversation = v.object({
+  type: v.literal('startConversation'),
+  audience: v.array(v.id('players')),
+});
+export const SaySomething = v.object({
+  type: v.literal('talking'),
+  // If they are speaking to a person in particular.
+  // If it's empty, it's just talking out loud.
+  audience: v.array(v.id('players')),
+  content: v.string(),
+  // Refers to the first message in the conversation.
+  conversationId: v.id('conversations'),
+});
+export const LeaveConversation = v.object({
+  type: v.literal('leaveConversation'),
+  conversationId: v.id('conversations'),
+});
+
 export const Action = v.union(
-  v.object({
-    type: v.literal('startConversation'),
-    audience: v.array(v.id('players')),
-    content: v.string(),
-  }),
-  v.object({
-    type: v.literal('saySomething'),
-    audience: v.array(v.id('players')),
-    content: v.string(),
-    conversationId: v.id('conversations'),
-  }),
+  StartConversation,
+  SaySomething,
+  LeaveConversation,
   v.object({
     type: v.literal('travel'),
     position: Position,
@@ -74,6 +84,7 @@ export const Walking = v.object({
 export const Motion = v.union(Walking, Stopped);
 export type Motion = Infer<typeof Motion>;
 
+// Materiailized from journal & memories for a snapshot.
 export const Player = v.object({
   id: v.id('players'),
   name: v.string(),
@@ -110,14 +121,12 @@ export const Journal = Table('journal', {
   // emojiSummary: v.string(),
   data: v.union(
     v.object({
-      type: v.literal('talking'),
-      // If they are speaking to a person in particular.
-      // If it's empty, it's just talking out loud.
+      type: v.literal('startConversation'),
       audience: v.array(v.id('players')),
-      content: v.string(),
-      // Refers to the first message in the conversation.
       conversationId: v.id('conversations'),
     }),
+    SaySomething,
+    LeaveConversation,
     Stopped,
     Walking,
     // When we run the agent loop.
@@ -127,7 +136,7 @@ export const Journal = Table('journal', {
       finishedTs: v.optional(v.number()),
     }),
     // In case we don't do anything, confirm we're done thinking.
-    // Unused, clean up later:
+    // TODO: Unused, clean up later:
     v.object({
       type: v.literal('done_thinking'),
     }),

@@ -58,7 +58,7 @@ and he's very excited to tell people about it.`,
         description: 'You want to hear all the gossip.',
       },
     ],
-    position: { x: 10, y: 11 },
+    position: { x: 12, y: 10 },
   },
 ];
 

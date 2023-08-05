@@ -7,7 +7,13 @@ import {
   roundPosition,
 } from './physics';
 
-export function findRoute(walls: boolean[][], startMotion: Motion, end: Position, ts: number) {
+export function findRoute(
+  walls: boolean[][],
+  startMotion: Motion,
+  otherPlayerMotion: Motion[],
+  end: Position,
+  ts: number,
+) {
   let distance = 0;
 
   const startPose = getPoseFromMotion(startMotion, ts);
