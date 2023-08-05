@@ -50,12 +50,10 @@ export function wallsFromWorld(world: Doc<'worlds'>): boolean[][] {
     walls[y] = [];
     for (let x = 0; x < world.width; x++) {
       walls[y][x] = false;
+      if (world.walls[y][x] != -1) {
+        walls[y][x] = true;
+      }
     }
-  }
-  for (const idx of world.walls) {
-    const x = idx % world.width;
-    const y = Math.floor(idx / world.width);
-    walls[y][x] = true;
   }
   return walls;
 }

@@ -5,6 +5,7 @@ import { internalAction, internalMutation, internalQuery } from './_generated/se
 import { MemoryDB } from './lib/memory';
 import { asyncMap } from './lib/utils';
 import { Characters } from './types';
+import { tiledim, screenxtiles, screenytiles, objmap} from './maps/firstmap';
 import { data as playerSpritesheetData } from './spritesheets/player';
 import { getRandomPosition } from './agent';
 
@@ -77,9 +78,10 @@ export const addPlayers = internalMutation({
     const worldId =
       (!args.newWorld && (await ctx.db.query('worlds').first())?._id) ||
       (await ctx.db.insert('worlds', {
-        width: 100,
-        height: 100,
-        walls: [],
+        tiledim: tiledim,
+        width: screenxtiles,
+        height: screenytiles,
+        walls: objmap,
         frozen: false,
       }));
     const charactersByName: Record<string, Id<'characters'>> = {};

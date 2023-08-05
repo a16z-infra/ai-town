@@ -9,9 +9,10 @@ import { Table } from './lib/utils';
 export const Worlds = Table('worlds', {
   // name: v.string(),
   // characterIds: v.array(v.id('characters')),
-  walls: v.array(v.number()),
-  width: v.number(),
-  height: v.number(),
+  walls: v.array(v.array(v.number())),
+  tiledim: v.number(), // tile size in pixels (assume square)
+  width: v.number(),   // number of tiles wide 
+  height: v.number(), 
   frozen: v.boolean(),
 });
 

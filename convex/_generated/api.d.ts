@@ -28,6 +28,7 @@ import type * as lib_physics from "../lib/physics";
 import type * as lib_pinecone from "../lib/pinecone";
 import type * as lib_routing from "../lib/routing";
 import type * as lib_utils from "../lib/utils";
+import type * as maps_firstmap from "../maps/firstmap";
 import type * as players from "../players";
 import type * as spritesheets_player from "../spritesheets/player";
 import type * as testing from "../testing";
@@ -56,6 +57,7 @@ declare const fullApi: ApiFromModules<{
   "lib/pinecone": typeof lib_pinecone;
   "lib/routing": typeof lib_routing;
   "lib/utils": typeof lib_utils;
+  "maps/firstmap": typeof maps_firstmap;
   players: typeof players;
   "spritesheets/player": typeof spritesheets_player;
   testing: typeof testing;
