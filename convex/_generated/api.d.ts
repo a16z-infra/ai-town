@@ -17,6 +17,7 @@ import type {
 import type * as agent from "../agent";
 import type * as chat from "../chat";
 import type * as conversation from "../conversation";
+import type * as crons from "../crons";
 import type * as engine from "../engine";
 import type * as init from "../init";
 import type * as lib_memory from "../lib/memory";
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   agent: typeof agent;
   chat: typeof chat;
   conversation: typeof conversation;
+  crons: typeof crons;
   engine: typeof engine;
   init: typeof init;
   "lib/memory": typeof lib_memory;

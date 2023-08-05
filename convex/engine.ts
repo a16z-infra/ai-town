@@ -35,7 +35,6 @@ export const DEFAULT_AGENT_IDLE = 30_000;
 export const DEFAULT_START_POSE: Pose = { position: { x: 0, y: 0 }, orientation: 0 };
 export const CONVERSATION_DEAD_THRESHOLD = 600_000; // In ms
 
-// TODO: add a cron to tick every minute or so
 export const tick = internalMutation({
   args: { worldId: v.id('worlds'), forPlayers: v.optional(v.array(v.id('players'))) },
   handler: async (ctx, { worldId, forPlayers }) => {
