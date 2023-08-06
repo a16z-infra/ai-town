@@ -17,17 +17,15 @@ export const Game = ({ onUpdateChat }: { onUpdateChat: (playerState: any) => voi
     <Stage width={640} height={640} options={{ backgroundColor: 0xffffff }}>
       <PixiStaticMap map={worldState.map}></PixiStaticMap>
       <ConvexProvider client={convex}>
-        {players
-          // .slice(0, 1)
-          .map((player) => (
-            <Player
-              key={player._id}
-              player={player}
-              offset={offset}
-              tileDim={worldState.map.tileDim}
-              onClick={(playerState: any) => onUpdateChat(playerState)}
-            />
-          ))}
+        {players.map((player) => (
+          <Player
+            key={player._id}
+            player={player}
+            offset={offset}
+            tileDim={worldState.map.tileDim}
+            onClick={(playerState: any) => onUpdateChat(playerState)}
+          />
+        ))}
       </ConvexProvider>
     </Stage>
   );

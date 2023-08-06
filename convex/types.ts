@@ -179,9 +179,6 @@ export const Journal = Table('journal', {
     // Exercises left to the reader:
 
     // v.object({
-    //   type: v.literal('reflecting'),
-    // }),
-    // v.object({
     //   type: v.literal('activity'),
     //   description: v.string(),
     // 	// objects: v.array(v.object({ id: v.id('objects'), action: v.string() })),
