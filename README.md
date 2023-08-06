@@ -18,6 +18,13 @@ a. **Set up Clerk**
 
 Go to https://dashboard.clerk.com/ -> "Add Application" -> Fill in Application name/select how your users should sign in -> Create Application
 
+Now you should see both `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` on the screen. Add to .env.local
+
+```bash
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_***
+CLERK_SECRET_KEY=sk_***
+```
+
 Then go to JWT Templates and create a new Convex template. You'll need to copy the JWKS end point URL for use below.
 
 b. **OpenAI API key**
