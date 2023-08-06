@@ -155,6 +155,7 @@ export const debugClearAll = internalMutation({
 export const reset = internalAction({
   args: {},
   handler: async (ctx, args) => {
+    await ctx.runMutation(internal.engine.freezeAll);
     await ctx.runMutation(internal.init.debugClearAll, {});
     const worldId = await ctx.runAction(internal.init.seed, {});
     await ctx.runMutation(internal.engine.tick, { worldId });
