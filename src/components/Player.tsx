@@ -40,7 +40,9 @@ export const Player = ({
       x={pose.position.x * tileDim + tileDim / 2}
       y={pose.position.y * tileDim + tileDim / 2}
       orientation={pose.orientation}
-      isMoving={playerState.motion.type === 'walking'}
+      isMoving={
+        playerState.motion.type === 'walking' && playerState.motion.targetEndTs >= time.current
+      }
       isThinking={playerState.thinking}
       isSpeaking={(playerState.lastSpokeTs ?? 0) > time.current - SpeechDurationMs}
       textureUrl={character.textureUrl}
