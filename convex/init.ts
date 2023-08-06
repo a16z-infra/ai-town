@@ -1,13 +1,17 @@
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { Doc, Id, TableNames } from './_generated/dataModel';
-import { internalAction, internalMutation, internalQuery } from './_generated/server';
+import {
+  DatabaseWriter,
+  internalAction,
+  internalMutation,
+  internalQuery,
+} from './_generated/server';
 import { MemoryDB } from './lib/memory';
 import { asyncMap } from './lib/utils';
 import { Characters } from './types';
-import { tiledim, screenxtiles, screenytiles, objmap} from './maps/firstmap';
+import { tiledim, objmap, tilefiledim, bgtiles, tilesetpath } from './maps/firstmap';
 import { data as playerSpritesheetData } from './spritesheets/player';
-import { getRandomPosition } from './agent';
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error(
@@ -69,6 +73,23 @@ export const existingWorld = internalQuery({
   },
 });
 
+async function makeWorld(db: DatabaseWriter) {
+  const mapId = await db.insert('maps', {
+    tileSetUrl: tilesetpath,
+    tileSetDim: tilefiledim,
+    tileDim: tiledim,
+    bgTiles: bgtiles,
+    objectTiles: objmap,
+  });
+  const worldId = await db.insert('worlds', {
+    width: bgtiles[0].length,
+    height: bgtiles[0][0].length,
+    mapId,
+    frozen: false,
+  });
+  return worldId;
+}
+
 export const addPlayers = internalMutation({
   args: {
     newWorld: v.optional(v.boolean()),
@@ -76,14 +97,7 @@ export const addPlayers = internalMutation({
   },
   handler: async (ctx, args) => {
     const worldId =
-      (!args.newWorld && (await ctx.db.query('worlds').first())?._id) ||
-      (await ctx.db.insert('worlds', {
-        tiledim: tiledim,
-        width: screenxtiles,
-        height: screenytiles,
-        walls: objmap,
-        frozen: false,
-      }));
+      (!args.newWorld && (await ctx.db.query('worlds').first())?._id) || (await makeWorld(ctx.db));
     const charactersByName: Record<string, Id<'characters'>> = {};
     for (const character of args.characters) {
       const characterId = await ctx.db.insert('characters', character);

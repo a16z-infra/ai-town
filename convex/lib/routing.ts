@@ -8,7 +8,7 @@ import {
 } from './physics';
 
 export function findRoute(
-  walls: boolean[][],
+  map: Doc<'maps'>,
   startMotion: Motion,
   otherPlayerMotion: Motion[],
   end: Position,
@@ -42,20 +42,6 @@ export function findRoute(
     horizontal = !horizontal;
   }
   return { route, distance };
-}
-
-export function wallsFromWorld(world: Doc<'worlds'>): boolean[][] {
-  const walls: boolean[][] = [];
-  for (let y = 0; y < world.height; y++) {
-    walls[y] = [];
-    for (let x = 0; x < world.width; x++) {
-      walls[y][x] = false;
-      if (world.walls[y][x] != -1) {
-        walls[y][x] = true;
-      }
-    }
-  }
-  return walls;
 }
 
 // Assumes all motion has started in the past or currently.

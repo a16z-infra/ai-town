@@ -3,17 +3,51 @@ import { Table } from './lib/utils';
 
 // Hierarchical location within tree
 // TODO: build zone lookup from position, whether player-dependent or global.
+// export const Zones = Table('zones', {
+//   mapId: v.id('maps'),
+//   name: v.string(),
+//   parent: v.id('zones'), // index of parent zone
+//   children: v.array(v.id('zones')), // index of children zones
+//   area:
+//     // v.union(
+//     //   // TODO: support polygons
+//     //   v.object({
+//     //     type: v.literal('polygon'),
+//     //     minX: v.number(),
+//     //     minY: v.number(),
+//     //     maxX: v.number(),
+//     //     maxY: v.number(),
+//     //     points: v.array(v.object({ x: v.number(), y: v.number() })),
+//     //   }),
+//     v.object({
+//       type: v.literal('rectangle'),
+//       x: v.number(),
+//       y: v.number(),
+//       width: v.number(),
+//       height: v.number(),
+//     }),
+//   // ),
+// });
 // export const zone = v.array(v.string());
 // export type Zone = Infer<typeof zone>;
 
 export const Worlds = Table('worlds', {
   // name: v.string(),
   // characterIds: v.array(v.id('characters')),
-  walls: v.array(v.array(v.number())),
-  tiledim: v.number(), // tile size in pixels (assume square)
-  width: v.number(),   // number of tiles wide 
-  height: v.number(), 
+  // TODO: remove these and instead have a Zone hierarchy
+  width: v.number(), // number of tiles wide
+  height: v.number(),
+  mapId: v.id('maps'),
   frozen: v.boolean(),
+});
+
+export const Maps = Table('maps', {
+  tileSetUrl: v.string(),
+  tileSetDim: v.number(), // Width & height of tileset image, px (assume square)
+  tileDim: v.number(), // tile size in pixels (assume square)
+  // An array of layers, which is a 2-d array of tile indices.
+  bgTiles: v.array(v.array(v.array(v.number()))),
+  objectTiles: v.array(v.array(v.number())),
 });
 
 export const Position = v.object({ x: v.number(), y: v.number() });

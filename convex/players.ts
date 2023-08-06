@@ -18,9 +18,15 @@ export const getWorld = query({
   handler: async (ctx, args) => {
     // TODO: based on auth, fetch the user's world
     const world = await ctx.db.query('worlds').first();
-    if (!world) throw new Error('No world found');
+    if (!world) {
+      console.error('No world found');
+      return null;
+    }
+    const map = await ctx.db.get(world.mapId);
+    if (!map) throw new Error('No map found for world ' + world._id);
     return {
       world,
+      map,
       players: await getAllPlayers(ctx.db, world._id),
     };
   },

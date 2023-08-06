@@ -14,8 +14,7 @@ export const Game = () => {
   console.log('worldId', world._id);
   return (
     <Stage width={640} height={640} options={{ backgroundColor: 0xffffff }}>
-
-      <PixiStaticMap width={512} height={512}></PixiStaticMap>
+      <PixiStaticMap map={worldState.map}></PixiStaticMap>
       <ConvexProvider client={convex}>
         {players
           // .slice(0, 1)

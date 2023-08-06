@@ -24,7 +24,7 @@ import {
 } from './types.js';
 import { asyncMap, pruneNull } from './lib/utils.js';
 import { getPoseFromMotion, manhattanDistance, roundPose } from './lib/physics.js';
-import { findCollision, findRoute, wallsFromWorld } from './lib/routing';
+import { findCollision, findRoute } from './lib/routing';
 import { clientMessageMapper } from './chat';
 import { getAllPlayers } from './players';
 
@@ -166,6 +166,7 @@ export async function handlePlayerAction(
       break;
     case 'travel':
       const world = (await ctx.db.get(playerDoc.worldId))!;
+      const map = (await ctx.db.get(world.mapId))!;
       const pose = getPoseFromMotion(player.motion, ts);
       const otherPlayerMotion = await asyncMap(
         (await getAllPlayers(ctx.db, world._id)).filter((p) => p._id !== player.id),
@@ -173,7 +174,7 @@ export async function handlePlayerAction(
       );
       // TODO: Walk around other players along the way
       const { route, distance } = findRoute(
-        wallsFromWorld(world),
+        map,
         player.motion,
         otherPlayerMotion,
         action.position,
