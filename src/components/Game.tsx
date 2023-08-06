@@ -5,9 +5,10 @@ import { ConvexProvider, useConvex, useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Player } from './Player';
 
-export const Game = () => {
+export const Game = ({ onUpdateChat }: { onUpdateChat: (playerState: any) => void }) => {
   const convex = useConvex();
   const worldState = useQuery(api.players.getWorld, {});
+
   const offset = useServerTimeOffset();
   if (!worldState) return null;
   const { world, players } = worldState;
@@ -24,6 +25,7 @@ export const Game = () => {
               player={player}
               offset={offset}
               tileDim={worldState.map.tileDim}
+              onClick={(playerState: any) => onUpdateChat(playerState)}
             />
           ))}
       </ConvexProvider>

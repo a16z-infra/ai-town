@@ -13,10 +13,12 @@ export const Player = ({
   player,
   offset,
   tileDim,
+  onClick,
 }: {
   player: Doc<'players'>;
   offset: number;
   tileDim: number;
+  onClick: (playerState: any) => void;
 }) => {
   const playerState = useQuery(api.players.playerState, {
     playerId: player._id,
@@ -48,6 +50,9 @@ export const Player = ({
       textureUrl={character.textureUrl}
       spritesheetData={character.spritesheetData}
       speed={character.speed}
+      onClick={() => {
+        onClick(playerState);
+      }}
     />
   );
 };

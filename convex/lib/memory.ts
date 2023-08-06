@@ -35,7 +35,9 @@ export interface MemoryDB {
   ): Promise<{ memory: Doc<'memories'>; overallScore: number }[]>;
   addMemories(memories: NewMemory[]): Promise<void>;
   rememberConversation(
+    playerName: string,
     playerId: Id<'players'>,
+    playerIdentity: string,
     conversationId: Id<'conversations'>,
     lastSpokeTs: number,
   ): Promise<boolean>;
@@ -161,7 +163,7 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
       }
     },
 
-    async rememberConversation(playerId, conversationId, lastSpokeTs) {
+    async rememberConversation(playerName, playerId, playerIdentity, conversationId, lastSpokeTs) {
       const messages = await ctx.runQuery(internal.lib.memory.getRecentMessages, {
         playerId,
         conversationId,
@@ -172,7 +174,8 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
         messages: [
           {
             role: 'user',
-            content: `The following are messages. I would like you to summarize the conversation in a paragraph.`,
+            content: `The following are messages. You are ${playerName}, and ${playerIdentity}
+            I would like you to summarize the conversation in a paragraph from your perspective. Add if you like or dislike this interaction.`,
           },
           ...messages.map((m) => ({
             role: 'user' as const,

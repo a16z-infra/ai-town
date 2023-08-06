@@ -41,9 +41,11 @@ export async function converse(
   const lastMessage: string | null | undefined = messages?.at(-1)?.content;
   const { embedding } = await fetchEmbedding(lastMessage ? lastMessage : '');
   const memories = await memory.accessMemories(player.id, embedding);
+  const conversationMemories = filterMemoriesType(['conversation'], memories);
+  const lastConversationTs = conversationMemories[0]?.memory._creationTime;
 
   const stop = nearbyPlaers.map((p) => p.player.name + ':');
-  const relevantMemories: string = filterMemoriesType(['conversation'], memories)
+  const relevantMemories: string = conversationMemories
     .slice(0, 2) // only use the first 2 memories
     .map((r) => r.memory.description)
     .join('\n');
@@ -55,6 +57,8 @@ export async function converse(
   nearbyPlaers.forEach((p) => {
     prefixPrompt += `\nAbout ${p.player.name}: ${p.player.identity}\n`;
   });
+
+  prefixPrompt += `Last time you chatted with some of ${nearbyPlayersNames} it was ${lastConversationTs}. It's now ${Date.now()}. You can cut this conversation short if you talked to this group of people within the last day. \n}`;
 
   prefixPrompt += `Below are relevant memories to this conversation you are having right now: ${relevantMemories}\n`;
 
@@ -89,8 +93,6 @@ export async function walkAway(messages: Message[], player: Player): Promise<boo
     },
     ...messages,
   ];
-  console.log('walkAway prompt: ', prompt);
   const { content: description } = await chatGPTCompletion({ messages: prompt, max_tokens: 2 });
-  console.log('walkAway result: ', description);
-  return description === '1';
+  return description === '1' || messages.length >= 2;
 }
