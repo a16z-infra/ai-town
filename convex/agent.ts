@@ -47,9 +47,8 @@ export async function agentLoop(
   actionAPI: ActionAPI,
   world: Doc<'worlds'>,
 ) {
-  const imWalkingHere = player.motion.type === 'walking';
+  const imWalkingHere = player.motion.type === 'walking' && player.motion.targetEndTs > Date.now();
   const newFriends = nearbyPlayers.filter((a) => a.new).map(({ player }) => player);
-  const othersThinking = newFriends.find((a) => a.thinking);
   const nearbyPlayerIds = nearbyPlayers.map(({ player }) => player.id);
   // Handle new observations
   //   Calculate scores
@@ -151,6 +150,7 @@ export async function agentLoop(
     if (imWalkingHere) {
       await actionAPI({ type: 'stop' });
     }
+    const othersThinking = newFriends.find((a) => a.thinking);
     // Hey, new friends
     if (!othersThinking) {
       // Decide whether we want to talk
