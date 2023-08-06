@@ -19,7 +19,12 @@ export const Game = () => {
         {players
           // .slice(0, 1)
           .map((player) => (
-            <Player key={player._id} player={player} offset={offset} />
+            <Player
+              key={player._id}
+              player={player}
+              offset={offset}
+              tileDim={worldState.map.tileDim}
+            />
           ))}
       </ConvexProvider>
     </Stage>
