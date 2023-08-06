@@ -9,7 +9,15 @@ import { Character } from './Character';
 
 const SpeechDurationMs = 3000;
 
-export const Player = ({ player, offset }: { player: Doc<'players'>; offset: number }) => {
+export const Player = ({
+  player,
+  offset,
+  onClick,
+}: {
+  player: Doc<'players'>;
+  offset: number;
+  onClick: (playerState: any) => void;
+}) => {
   const playerState = useQuery(api.players.playerState, {
     playerId: player._id,
   });
@@ -36,6 +44,9 @@ export const Player = ({ player, offset }: { player: Doc<'players'>; offset: num
       textureUrl={character.textureUrl}
       spritesheetData={character.spritesheetData}
       speed={character.speed}
+      onClick={() => {
+        onClick(playerState);
+      }}
     />
   );
 };

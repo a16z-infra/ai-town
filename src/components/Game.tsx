@@ -5,23 +5,30 @@ import { ConvexProvider, useConvex, useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Player } from './Player';
 
-export const Game = () => {
+export const Game = ({ onUpdateChat }: { onUpdateChat: (playerState: any) => void }) => {
   const convex = useConvex();
   const worldState = useQuery(api.players.getWorld, {});
+
   const offset = useServerTimeOffset();
   if (!worldState) return null;
   const { world, players } = worldState;
   console.log('worldId', world._id);
   return (
     <Stage width={640} height={640} options={{ backgroundColor: 0xffffff }}>
-
-      <PixiStaticMap width={512} height={512}></PixiStaticMap>
+      <PixiStaticMap width={640} height={640}></PixiStaticMap>
       <ConvexProvider client={convex}>
         {players
           // .slice(0, 1)
-          .map((player) => (
-            <Player key={player._id} player={player} offset={offset} />
-          ))}
+          .map((player) => {
+            return (
+              <Player
+                onClick={(playerState: any) => onUpdateChat(playerState)}
+                key={player._id}
+                player={player}
+                offset={offset}
+              />
+            );
+          })}
       </ConvexProvider>
     </Stage>
   );
