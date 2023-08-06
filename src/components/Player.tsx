@@ -4,10 +4,12 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { getPoseFromMotion } from '../../convex/lib/physics';
 import { Doc } from '../../convex/_generated/dataModel';
-import { Pose } from '../../convex/types';
+import { Player as PlayerState, Pose } from '../../convex/types';
 import { Character } from './Character';
 
 const SpeechDurationMs = 3000;
+
+export type SelectPlayer = (playerState: PlayerState) => void;
 
 export const Player = ({
   player,
@@ -18,7 +20,7 @@ export const Player = ({
   player: Doc<'players'>;
   offset: number;
   tileDim: number;
-  onClick: (playerState: any) => void;
+  onClick: SelectPlayer;
 }) => {
   const playerState = useQuery(api.players.playerState, {
     playerId: player._id,

@@ -2,38 +2,10 @@
 import { useState } from 'react';
 import Chats from './Chats';
 import Game from './Game';
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../convex/_generated/api';
+import { Player } from '../../convex/types';
 
-const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
-export type ChatMessage = {
-  id: number;
-  from: string;
-  content: string;
-  ts: number;
-};
 export default function Examples() {
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [chatPlayerState, setChatPlayerState] = useState<any>(null);
-
-  const handleChatUpdate = async (playerState: any) => {
-    const { lastSpokeConversationId } = playerState;
-    const messages = await client.query(api.chat.listMessages, {
-      conversationId: lastSpokeConversationId,
-    });
-    console.log(playerState);
-    const chatMessages: ChatMessage[] = messages.map((m: any, idx) => {
-      return {
-        id: idx,
-        from: m.fromName,
-        to: m.toName,
-        content: m.content,
-        ts: m.ts,
-      };
-    });
-    setChatMessages(chatMessages);
-    setChatPlayerState(playerState);
-  };
+  const [selectedPlayer, setSelectedPlayer] = useState<Player>();
 
   return (
     <>
@@ -41,7 +13,7 @@ export default function Examples() {
         {/* Left sidebar & main wrapper */}
         <div className="flex-1 xl:flex">
           <div className="px-4 py-6 sm:px-6 lg:pl-8 xl:flex-1 xl:pl-6 bg-slate-50">
-            <Game onUpdateChat={handleChatUpdate} />
+            <Game onUpdateChat={setSelectedPlayer} />
           </div>
         </div>
 
@@ -50,7 +22,7 @@ export default function Examples() {
           <h1 className="text-3xl font-bold leading-tight tracking-tight text-neutral-700">
             Conversations
           </h1>
-          <Chats messages={chatMessages} playerState={chatPlayerState} />
+          <Chats playerState={selectedPlayer} />
         </div>
       </div>
     </>
