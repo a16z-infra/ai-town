@@ -141,6 +141,7 @@ export async function handlePlayerAction(
   switch (action.type) {
     case 'startConversation':
       // TODO: determine if any players are available.
+      // TODO check if audience length is non-zero (or allow a player to talk to themselves)
       const conversationId = await ctx.db.insert('conversations', { worldId });
       entryId = await ctx.db.insert('journal', {
         playerId,

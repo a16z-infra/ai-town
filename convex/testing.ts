@@ -102,17 +102,8 @@ export const runConversationClear = internalAction({
     await runConversation(ctx, args);
   },
 });
-
 // For making conversations happen without walking around.
-export const runConversationClearV2 = internalAction({
-  args: { numPlayers: v.optional(v.boolean()) },
-  handler: async (ctx, args) => {
-    await ctx.runAction(internal.init.resetFrozen);
-    await runConversationV2(ctx, args);
-  },
-});
-// For making conversations happen without walking around.
-export const runConversationV2 = internalAction({
+export const runConversation = internalAction({
   args: { numPlayers: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
     const { playerIds, world } = await ctx.runQuery(internal.testing.getDebugPlayerIds);
@@ -190,123 +181,6 @@ export const runConversationV2 = internalAction({
             console.log('actionApi.done', await actionAPI({ type: 'done', thinkId }));
             console.log('Is walking away playername', player.name);
             continue;
-          }
-          const playerCompletion = await converse(chatHistory, player, nearbyPlayers, memory);
-          // display the chat via actionAPI
-          await actionAPI({
-            type: 'talking',
-            audience: nearbyPlayers.map(({ player }) => player.id),
-            content: playerCompletion,
-            conversationId: conversationId,
-          });
-        }
-        console.log('outside bracket done', await actionAPI({ type: 'done', thinkId }));
-        console.log('playername', player.name);
-      }
-    }
-    if (!ourConversationId) throw new Error('No conversationId');
-    for (const playerId of playerIds) {
-      const snapshot = await ctx.runQuery(internal.testing.debugPlayerIdSnapshot, {
-        playerId,
-      });
-      const player = snapshot.player;
-      await memory.rememberConversation(
-        player.name,
-        playerId,
-        player.identity,
-        ourConversationId,
-        Date.now(),
-      );
-    }
-  },
-});
-// For making conversations happen without walking around.
-export const runConversation = internalAction({
-  args: { numPlayers: v.optional(v.boolean()) },
-  handler: async (ctx, args) => {
-    // To always clear all first:
-    //await ctx.runAction(internal.init.resetFrozen);
-    // To always make a new world:
-    // await ctx.runAction(internal.init.seed, { newWorld: true });
-    // To just run with the existing agents:
-    //await ctx.runAction(internal.init.seed, {});
-
-    // Grabs the latest world
-    const { playerIds, world } = await ctx.runQuery(internal.testing.getDebugPlayerIds);
-    const memory = MemoryDB(ctx);
-    let done = false;
-
-    let firstTime = true;
-    let ourConversationId: Id<'conversations'> | null = null;
-    while (!done) {
-      for (const playerId of playerIds) {
-        console.log('playerId', playerId);
-        const { snapshot, thinkId } = await ctx.runMutation(internal.testing.debugAgentSnapshot, {
-          playerId,
-        });
-        const actionAPI = (action: Action) =>
-          ctx.runMutation(internal.engine.handleAgentAction, {
-            playerId,
-            action,
-            noSchedule: true,
-          });
-        const { player, nearbyPlayers, nearbyConversations } = snapshot;
-        if (nearbyPlayers.find(({ player }) => player.thinking)) {
-          throw new Error('Unexpected thinking player ' + playerId);
-        }
-        console.log('snapshot', snapshot);
-        const newFriends = nearbyPlayers.filter((a) => a.new).map(({ player }) => player);
-        if (firstTime) {
-          firstTime = false;
-          if (nearbyConversations.length) {
-            throw new Error('Unexpected conversations taking place');
-          }
-          const conversationEntry = (await actionAPI({
-            type: 'startConversation',
-            audience: newFriends.map((a) => a.id),
-          })) as EntryOfType<'startConversation'>;
-          console.log('conversationEntry', conversationEntry);
-          if (!conversationEntry) throw new Error('Unexpected failure to start conversation');
-          const newFriendsNames = newFriends.map((a) => a.name);
-          const playerCompletion = await startConversation(newFriendsNames, memory, player);
-          if (
-            !(await actionAPI({
-              type: 'talking',
-              audience: newFriends.map((a) => a.id),
-              content: playerCompletion,
-              conversationId: conversationEntry.data.conversationId,
-            }))
-          )
-            throw new Error('Unexpected failure to start conversation');
-        } else {
-          if (nearbyConversations.length !== 1) {
-            throw new Error('Unexpected conversations taking place');
-          }
-          const { conversationId, messages } = nearbyConversations[0];
-          if (!ourConversationId) {
-            ourConversationId = conversationId;
-          } else {
-            if (conversationId !== ourConversationId) {
-              throw new Error(
-                'Unexpected conversationId ' + conversationId + ' != ' + ourConversationId,
-              );
-            }
-          }
-          const chatHistory: Message[] = [
-            ...messages.map((m) => ({
-              role: 'user' as const,
-              content: `${m.fromName} to ${m.toNames.join(',')}: ${m.content}\n`,
-            })),
-          ];
-          const shouldWalkAway = await walkAway(chatHistory, player);
-
-          if (shouldWalkAway) {
-            done = true;
-            await actionAPI({ type: 'done', thinkId });
-            await actionAPI({ type: 'leaveConversation', conversationId });
-            console.log('actionApi.done', await actionAPI({ type: 'done', thinkId }));
-            console.log('playername', player.name);
-            break;
           }
           const playerCompletion = await converse(chatHistory, player, nearbyPlayers, memory);
           // display the chat via actionAPI
