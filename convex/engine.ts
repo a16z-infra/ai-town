@@ -28,7 +28,7 @@ import { getAllPlayers } from './players';
 
 export const NEARBY_DISTANCE = 3;
 export const TIME_PER_STEP = 1000;
-export const DEFAULT_AGENT_IDLE = 30_000;
+export const DEFAULT_AGENT_IDLE = 300_000;
 // If you don't set a start position, you'll start at 0,0.
 export const DEFAULT_START_POSE: Pose = { position: { x: 0, y: 0 }, orientation: 0 };
 export const CONVERSATION_DEAD_THRESHOLD = 600_000; // In ms
@@ -45,17 +45,21 @@ export const tick = internalMutation({
       getPlayer(ctx.db, playerDoc),
     );
 
-    // TODO: coordinate shared interactions (shared focus)
-
     // Sort players by how long ago they last spoke
     playerSnapshots.sort((a, b) => a.lastSpokeTs - b.lastSpokeTs);
 
     // For each player (oldest to newest? Or all on the same step?):
     for (let idx = 0; idx < playerSnapshots.length; idx++) {
       const player = playerSnapshots[idx];
-      // TODO: if the player hasn't finished for a long time,
+      // If the player hasn't finished for a long time,
       // try anyways and handle rejecting old actions.
-      if (player.thinking) continue;
+      if (player.thinking) {
+        if (player.lastThinkTs && player.lastThinkTs + DEFAULT_AGENT_IDLE < ts) {
+          console.error(`Player ${player.id} has been thinking for too long. Scheduling anyways.`);
+        } else {
+          continue;
+        }
+      }
       // For ticks specific to a user, only run for that user.
       if (forPlayers && !forPlayers.includes(player.id)) continue;
 
@@ -268,6 +272,8 @@ export async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): 
     characterId: playerDoc.characterId,
     identity,
     thinking: !!lastThink && !lastThink?.data.finishedTs,
+    lastThinkTs: lastThink?._creationTime,
+    lastThinkEndTs: lastThink?.data.finishedTs,
     lastSpokeTs: lastChat?._creationTime ?? 0,
     lastSpokeConversationId: lastChat?.data.conversationId,
     motion: await getLatestPlayerMotion(db, playerDoc._id),

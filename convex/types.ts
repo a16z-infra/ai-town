@@ -127,6 +127,8 @@ export const Player = v.object({
   identity: v.string(),
   motion: Motion,
   thinking: v.boolean(),
+  lastThinkTs: v.optional(v.number()),
+  lastThinkEndTs: v.optional(v.number()),
   lastSpokeTs: v.number(),
   lastSpokeConversationId: v.optional(v.id('conversations')),
 });
