@@ -28,7 +28,7 @@ import { findCollision, findRoute } from './lib/routing';
 import { clientMessageMapper } from './chat';
 import { getAllPlayers } from './players';
 
-export const NEARBY_DISTANCE = 10;
+export const NEARBY_DISTANCE = 4;
 export const TIME_PER_STEP = 250;
 export const DEFAULT_AGENT_IDLE = 30_000;
 // If you don't set a start position, you'll start at 0,0.
