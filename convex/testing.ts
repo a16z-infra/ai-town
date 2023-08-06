@@ -15,6 +15,14 @@ export const debugAgentSnapshot = internalMutation({
   args: { playerId: v.id('players') },
   handler: async (ctx, { playerId }) => {
     const snapshot = await getAgentSnapshot(ctx, playerId);
+    return snapshot;
+  },
+});
+
+export const debugAgentSnapshotWithThinking = internalMutation({
+  args: { playerId: v.id('players') },
+  handler: async (ctx, { playerId }) => {
+    const snapshot = await getAgentSnapshot(ctx, playerId);
     const thinkId = await ctx.db.insert('journal', {
       playerId,
       data: {
@@ -25,7 +33,6 @@ export const debugAgentSnapshot = internalMutation({
     return { snapshot, thinkId };
   },
 });
-
 export const getDebugPlayerIds = internalQuery({
   handler: async (ctx) => {
     const world = await ctx.db.query('worlds').order('desc').first();
@@ -94,9 +101,74 @@ export const debugListMessages = internalQuery({
   },
 });
 
+export const runAgentLoopClear = internalAction({
+  args: {
+    numberOfLoops: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.runAction(internal.init.resetFrozen);
+    await runAgentLoop(ctx, args);
+  }
+});
+
+export const runAgentLoop = internalAction({
+  args: {
+    numberOfLoops: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    console.log("Looping", args.numberOfLoops || 100)
+    const { playerIds, world } = await ctx.runQuery(internal.testing.getDebugPlayerIds);
+
+    // 1 Conversation is completed when 2 agents leaves the conversations?
+    let index = args.numberOfLoops || 100;
+    while (index-- != 0) {
+      for (const playerId of playerIds) {
+        console.log('playerId', playerId);
+
+        const actionAPI = (action: Action) =>
+          ctx.runMutation(internal.engine.handleAgentAction, {
+            playerId,
+            action,
+            noSchedule: true,
+          });
+
+        const { snapshot, thinkId } = await ctx.runMutation(internal.testing.debugAgentSnapshotWithThinking, {
+          playerId,
+        });
+
+        // console.log("snapshot.nearbyPlayers", snapshot.nearbyPlayers)
+
+        // console.log('Run Agent Loop. Think ID', thinkId);
+        // run the loop
+        await ctx.runAction(internal.agent.runAgent, {
+          snapshot,
+          world,
+          thinkId,
+          noSchedule: true
+        });
+
+
+        const afterSnapshot = await ctx.runMutation(internal.testing.debugAgentSnapshot, {
+          playerId,
+        });
+        const { player } = afterSnapshot;
+
+        // console.log('AfterSnapshot.player.motion', player.motion);
+        // Agent Loop might make them move. stop them so they're likely to talk on next loop
+        if (player.motion.type === 'walking') {
+          // console.log("Stopping player")
+          await actionAPI({
+            type: 'stop'
+          })
+        }
+      }
+    }
+  }
+});
+
 // For making conversations happen without walking around.
 export const runConversationClear = internalAction({
-  args: { numPlayers: v.optional(v.boolean()) },
+  args: { maxMessages: v.optional(v.number()) },
   handler: async (ctx, args) => {
     await ctx.runAction(internal.init.resetFrozen);
     await runConversation(ctx, args);
@@ -104,16 +176,22 @@ export const runConversationClear = internalAction({
 });
 // For making conversations happen without walking around.
 export const runConversation = internalAction({
-  args: { numPlayers: v.optional(v.boolean()) },
+  args: {
+    maxMessages: v.optional(v.number()),
+    conversationCount: v.optional(v.number())
+  },
   handler: async (ctx, args) => {
     const { playerIds, world } = await ctx.runQuery(internal.testing.getDebugPlayerIds);
     const memory = MemoryDB(ctx);
     let ourConversationId: Id<'conversations'> | null = null;
+    let maxConversationsCount = args.conversationCount || 1;
+    let conversationsCompleted = 0;
     let walkawayCount = 0;
-    while (walkawayCount != 2) {
+    // 1 Conversation is completed when 2 agents leaves the conversations?
+    while (maxConversationsCount * 2 > conversationsCompleted) {
       for (const playerId of playerIds) {
         console.log('playerId', playerId);
-        const { snapshot, thinkId } = await ctx.runMutation(internal.testing.debugAgentSnapshot, {
+        const { snapshot, thinkId } = await ctx.runMutation(internal.testing.debugAgentSnapshotWithThinking, {
           playerId,
         });
         const actionAPI = (action: Action) =>
@@ -172,7 +250,7 @@ export const runConversation = internalAction({
               content: `${m.fromName} to ${m.toNames.join(',')}: ${m.content}\n`,
             })),
           ];
-          const shouldWalkAway = await walkAway(chatHistory, player);
+          const shouldWalkAway = (args.maxMessages && args.maxMessages >= messages.length) || await walkAway(chatHistory, player);
 
           if (shouldWalkAway) {
             walkawayCount++;
