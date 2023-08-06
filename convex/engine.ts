@@ -8,8 +8,6 @@ import {
   QueryCtx,
   internalMutation,
   internalQuery,
-  mutation,
-  query,
 } from './_generated/server';
 import {
   EntryType,
@@ -28,8 +26,8 @@ import { findCollision, findRoute } from './lib/routing';
 import { clientMessageMapper } from './chat';
 import { getAllPlayers } from './players';
 
-export const NEARBY_DISTANCE = 4;
-export const TIME_PER_STEP = 250;
+export const NEARBY_DISTANCE = 3;
+export const TIME_PER_STEP = 1000;
 export const DEFAULT_AGENT_IDLE = 30_000;
 // If you don't set a start position, you'll start at 0,0.
 export const DEFAULT_START_POSE: Pose = { position: { x: 0, y: 0 }, orientation: 0 };
