@@ -1,36 +1,79 @@
 # AI Town 🏠🙍👷‍♀️💻💌
 
-<img width="1225" alt="Screen Shot 2023-07-20 at 11 32 35 PM" src="https://github.com/a16z-infra/AI-town/assets/3489963/17a60b28-63fd-4b11-b44c-707180a32dca">
-
 
 ## Installation
 
-Client:
+### Clone repo and Install packages
 
 ```bash
-cd game
-npm install       # install the dependencies
-npm run build     # bundling up resources
-npm start         # start server
+git clone https://github.com/a16z-infra/AI-town
+cd AI-town
+npm install 
+npx convex dev # select a new project 
 ```
 
-Server:
+nox convex dev will fail asking for OPENAI_API_KEY. ^C out
+
+a. **Set up Clerk** 
+
+Go to https://dashboard.clerk.com/ -> "Add Application" -> Fill in Application name/select how your users should sign in -> Create Application
+
+Then go to JWT Templates and create a new Convex template. You'll need to copy the JWKS end point URL for use below.
+
+b. **OpenAI API key**
+
+Visit https://platform.openai.com/account/api-keys to get your OpenAI API key if you're using OpenAI for your language model.
+
+e. **Add secrets to the convex dashboard**
 
 ```bash
-npm install
+npx convex dashboard
+```
+
+Go to "settings" and add the following environment varables. CLERK_ISSUER_URL should be the URL from the JWKS end point.
+
+```bash
+OPENAI_API_KEY  sk-*******
+CLERK_ISSUER_URL  https://****
+```
+
+### Run the code
+
+To run both the front and and back end:
+
+```bash
 npm run dev
 ```
-
 You can now visit http://localhost:[PORT_NUMBER]/ai-town
 
-## Stack
-- Clerk
-- Convex
-- Upstash
-- OpenAI
-...
+### Various commands to run / test / debug
 
-## Credits
+The following commands will clear the backend, seed it, and start it running
 
-- Original phaser project was from https://github.com/pierpo/phaser3-simple-rpg. We have made heavy modifications, but are thankful for the OSS community!
-- Original assets by [ansimuz](https://opengameart.org/content/tiny-rpg-forest)
+```bash
+npx convex run init:reset
+npx convex run init:seed
+npx convex run engine:tick '{"worldId": "<world ID>"}'
+```
+
+*To freeze the back end*
+
+```bash
+npx convex run engine:freezeAll 
+npx convex run engine:unfreezeAll  # when ready to rerun
+```
+
+*To clear all databases*
+
+```bash
+npx convex run --no-push init:debugClearAll # clear all tables
+```
+
+*To Snoop on messages*
+
+Run the following in a side terminal 
+
+```bash
+npx convex run chat:debugListMessages --no-push --watch off on a side terminal
+```
+
