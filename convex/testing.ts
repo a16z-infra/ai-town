@@ -14,7 +14,7 @@ export const debugAgentSnapshotWithThinking = internalMutation({
   args: { playerId: v.id('players') },
   handler: async (ctx, { playerId }) => {
     const snapshot = await getAgentSnapshot(ctx, playerId);
-    console.log('getAgentSnapshot', snapshot);
+    // console.log('getAgentSnapshot', snapshot);
     const thinkId = await ctx.db.insert('journal', {
       playerId,
       data: {
