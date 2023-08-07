@@ -63,23 +63,6 @@ export const tick = internalMutation({
       // For ticks specific to a user, only run for that user.
       if (forPlayers && !forPlayers.includes(player.id)) continue;
 
-      // TODO: If the player's path is blocked, stop or re-route.
-      // If the player has arrived at their destination, update it.
-      if (player.motion.type === 'walking' && player.motion.targetEndTs <= ts) {
-        const motion = {
-          type: 'stopped',
-          reason: 'idle',
-          pose: roundPose(getPoseFromMotion(player.motion, ts)),
-        } as Motion;
-        await ctx.db.insert('journal', {
-          playerId: player.id,
-          data: motion,
-        });
-        // Give the snapshot the latest player state.
-        // A bit hacky, we could re-create the player state, but fine for now.
-        player.motion = motion;
-      }
-
       // TODO: Determine if any players are not worth waking up
       const snapshot = await makeSnapshot(ctx.db, player, playerSnapshots);
       // We mark ourselves as thining AFTER the snapshot, so the snapshot can
