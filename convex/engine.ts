@@ -33,6 +33,8 @@ export const DEFAULT_AGENT_IDLE = 300_000;
 // If you don't set a start position, you'll start at 0,0.
 export const DEFAULT_START_POSE: Pose = { position: { x: 0, y: 0 }, orientation: 0 };
 export const CONVERSATION_DEAD_THRESHOLD = 600_000; // In ms
+export const HEARTBEAT_PERIOD = 30_000; // In ms
+export const WORLD_IDLE_THRESHOLD = 300_000; // In ms
 
 export const tick = internalMutation({
   args: { worldId: v.id('worlds'), forPlayers: v.optional(v.array(v.id('players'))) },
@@ -40,6 +42,11 @@ export const tick = internalMutation({
     const ts = Date.now();
     const world = (await ctx.db.get(worldId))!;
     if (world.frozen) return;
+    const lastHeartbeat = await ctx.db.query('heartbeats').order('desc').first();
+    if (!lastHeartbeat || lastHeartbeat._creationTime + WORLD_IDLE_THRESHOLD < ts) {
+      console.log("Didn't tick: no heartbeat recently");
+      return;
+    }
     const playerDocs = await getAllPlayers(ctx.db, worldId);
     // Make snapshot of world
     const playerSnapshots = await asyncMap(playerDocs, async (playerDoc) =>
