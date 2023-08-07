@@ -154,7 +154,7 @@ export async function handlePlayerAction(
     case 'talking':
       console.log('talking ', action.conversationId);
       action.audience = await asyncFilter(action.audience, async (playerId) =>
-        playerAvailableForConversation(ctx.db, playerId, conversationId),
+        playerAvailableForConversation(ctx.db, playerId, action.conversationId),
       );
       if (action.audience.length === 0) {
         console.log("Didn't talk");
@@ -169,7 +169,7 @@ export async function handlePlayerAction(
     case 'leaveConversation':
       console.log('leaving ', action.conversationId);
       action.audience = await asyncFilter(action.audience, async (playerId) =>
-        playerAvailableForConversation(ctx.db, playerId, conversationId),
+        playerAvailableForConversation(ctx.db, playerId, action.conversationId),
       );
       entryId = await ctx.db.insert('journal', {
         playerId,
