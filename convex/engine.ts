@@ -28,6 +28,8 @@ import { clientMessageMapper } from './chat';
 import { getAllPlayers } from './players';
 
 export const NEARBY_DISTANCE = 3;
+// Close enough to stop and observe something.
+export const CLOSE_DISTANCE = 2;
 export const TIME_PER_STEP = 1000;
 export const DEFAULT_AGENT_IDLE = 300_000;
 // If you don't set a start position, you'll start at 0,0.
@@ -186,6 +188,11 @@ export async function handlePlayerAction(
         action.position,
         ts,
       );
+      const targetEndTs = ts + distance * TIME_PER_STEP;
+      entryId = await ctx.db.insert('journal', {
+        playerId,
+        data: { type: 'walking', route, startTs: ts, targetEndTs },
+      });
       // TODO: get the player IDs who we'll run into first, to schedule a tick.
       const nextCollisionDistance = findCollision(
         route,
@@ -196,13 +203,8 @@ export async function handlePlayerAction(
             NEARBY_DISTANCE,
         ),
         ts,
-        NEARBY_DISTANCE,
+        CLOSE_DISTANCE,
       );
-      const targetEndTs = ts + distance * TIME_PER_STEP;
-      entryId = await ctx.db.insert('journal', {
-        playerId,
-        data: { type: 'walking', route, startTs: ts, targetEndTs },
-      });
       await tick(
         [playerId],
         nextCollisionDistance === null ? targetEndTs : ts + nextCollisionDistance * TIME_PER_STEP,
