@@ -5,7 +5,7 @@ import { internalAction, internalMutation, internalQuery } from './_generated/se
 import { getAgentSnapshot } from './engine';
 import { getAllPlayers } from './players';
 import { asyncMap } from './lib/utils';
-import { Action, Entry, EntryOfType } from './types';
+import { Action, Entry, EntryOfType, Motion, Player, Pose } from './types';
 import { clientMessageMapper } from './chat';
 import { MemoryDB } from './lib/memory';
 import { converse, startConversation, walkAway } from './conversation';
@@ -119,11 +119,21 @@ export const runAgentLoop = internalAction({
     console.log("Looping", args.numberOfLoops || 100)
     const { playerIds, world } = await ctx.runQuery(internal.testing.getDebugPlayerIds);
 
-    // 1 Conversation is completed when 2 agents leaves the conversations?
     let index = args.numberOfLoops || 100;
+    let randomX: number[] = [];
+    let displacement = 25;
+    for (let i = 0; i < playerIds.length; i++) {
+      randomX.push(displacement * i);
+    }
+
     while (index-- != 0) {
-      for (const playerId of playerIds) {
-        console.log('playerId', playerId);
+      for (const [playerIndex, playerId] of playerIds.entries()) {
+        // console.log('playerId', playerId);
+
+        // hacky way of geting agents at different location trigger as "new"
+        let x = index % 2 == 0 ? 0 : randomX[playerIndex]
+        // move them nearby each other 
+        ctx.runMutation(internal.testing.movePlayer, { playerId, x: x, y: 0 })
 
         const actionAPI = (action: Action) =>
           ctx.runMutation(internal.engine.handleAgentAction, {
@@ -166,7 +176,22 @@ export const runAgentLoop = internalAction({
   }
 });
 
-// For making conversations happen without walking around.
+export const movePlayer = internalMutation({
+  args: { playerId: v.id("players"), x: v.number(), y: v.number() },
+  handler: async (ctx, args) => {
+    const motion = {
+      type: 'stopped',
+      reason: 'idle',
+      pose: { position: { x: args.x, y: args.y }, orientation: 0 } as Pose,
+    } as Motion;
+    await ctx.db.insert('journal', {
+      playerId: args.playerId,
+      data: motion,
+    });
+  },
+});
+
+// For making conversations happen without walking around, clear before conversation start.
 export const runConversationClear = internalAction({
   args: { maxMessages: v.optional(v.number()) },
   handler: async (ctx, args) => {
