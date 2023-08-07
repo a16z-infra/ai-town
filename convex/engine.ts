@@ -126,11 +126,10 @@ export async function handlePlayerAction(
     case 'startConversation':
       const available = pruneNull(
         await asyncMap(action.audience, async (playerId) => {
-          const latestStart = await latestEntryOfType(ctx.db, playerId, 'startConversation');
-          const latestTalk = await latestEntryOfType(ctx.db, playerId, 'talking');
+          const latestConversation = await getLatestPlayerConversation(ctx.db, playerId);
           const latestLeft = await latestEntryOfType(ctx.db, playerId, 'leaveConversation');
           return (latestLeft?._creationTime ?? Date.now()) >
-            Math.max(latestStart?._creationTime ?? 0, latestTalk?._creationTime ?? 0)
+            (latestConversation?._creationTime ?? 0)
             ? playerId
             : null;
         }),
@@ -256,7 +255,7 @@ async function makeSnapshot(
 
 export async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): Promise<Player> {
   const lastThink = await latestEntryOfType(db, playerDoc._id, 'thinking');
-  const lastChat = await latestEntryOfType(db, playerDoc._id, 'talking'); //does this include conversations agent left?
+  const latestConversation = await getLatestPlayerConversation(db, playerDoc._id);
   const identityEntry = await latestMemoryOfType(db, playerDoc._id, 'identity');
   const identity = identityEntry?.description ?? 'I am a person.';
 
@@ -268,8 +267,8 @@ export async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): 
     thinking: !!lastThink && !lastThink?.data.finishedTs,
     lastThinkTs: lastThink?._creationTime,
     lastThinkEndTs: lastThink?.data.finishedTs,
-    lastSpokeTs: lastChat?._creationTime ?? 0,
-    lastSpokeConversationId: lastChat?.data.conversationId,
+    lastSpokeTs: latestConversation?._creationTime ?? 0,
+    lastSpokeConversationId: latestConversation?.data.conversationId,
     motion: await getLatestPlayerMotion(db, playerDoc._id),
   };
 }
@@ -281,6 +280,16 @@ export async function getLatestPlayerMotion(db: DatabaseReader, playerId: Id<'pl
     .sort((a, b) => a._creationTime - b._creationTime)
     .pop()?.data;
   return latestMotion ?? { type: 'stopped', reason: 'idle', pose: DEFAULT_START_POSE };
+}
+
+async function getLatestPlayerConversation(db: DatabaseReader, playerId: Id<'players'>) {
+  const lastChat = await latestEntryOfType(db, playerId, 'talking');
+  const lastStartChat = await latestEntryOfType(db, playerId, 'startConversation');
+  return (
+    pruneNull([lastChat, lastStartChat])
+      .sort((a, b) => a._creationTime - b._creationTime)
+      .pop() ?? null
+  );
 }
 
 function getNearbyPlayers(target: Player, others: Player[]) {
@@ -301,18 +310,21 @@ async function getNearbyConversations(
   playerIds: Id<'players'>[],
 ): Promise<Snapshot['nearbyConversations']> {
   const conversationsById = pruneNull(
-    await asyncMap(playerIds, async (playerId) => await latestEntryOfType(db, playerId, 'talking')),
+    await asyncMap(playerIds, (playerId) => getLatestPlayerConversation(db, playerId)),
   )
     // Filter out old conversations
     .filter((entry) => Date.now() - entry._creationTime < CONVERSATION_DEAD_THRESHOLD)
     // Get the latest message for each conversation, keyed by conversationId.
-    .reduce<Record<Id<'conversations'>, EntryOfType<'talking'>>>((convos, entry) => {
-      const existing = convos[entry.data.conversationId];
-      if (!existing || existing._creationTime < entry._creationTime) {
-        convos[entry.data.conversationId] = entry;
-      }
-      return convos;
-    }, {});
+    .reduce<Record<Id<'conversations'>, EntryOfType<'talking' | 'startConversation'>>>(
+      (convos, entry) => {
+        const existing = convos[entry.data.conversationId];
+        if (!existing || existing._creationTime < entry._creationTime) {
+          convos[entry.data.conversationId] = entry;
+        }
+        return convos;
+      },
+      {},
+    );
   // Now, filter out conversations that did't include the observer.
   const conversations = Object.values(conversationsById).filter(
     (entry) => entry.data.audience.includes(playerId) || entry.playerId === playerId,
