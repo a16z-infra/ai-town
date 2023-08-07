@@ -5,7 +5,7 @@ import { ConvexProvider, useConvex, useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Player, SelectPlayer } from './Player';
 
-export const Game = ({ onUpdateChat }: { onUpdateChat: SelectPlayer }) => {
+export const Game = ({ setSelectedPlayer }: { setSelectedPlayer: SelectPlayer }) => {
   const convex = useConvex();
   const worldState = useQuery(api.players.getWorld, {});
 
@@ -23,7 +23,7 @@ export const Game = ({ onUpdateChat }: { onUpdateChat: SelectPlayer }) => {
             player={player}
             offset={offset}
             tileDim={worldState.map.tileDim}
-            onClick={onUpdateChat}
+            onClick={setSelectedPlayer}
           />
         ))}
       </ConvexProvider>

@@ -112,7 +112,6 @@ export async function getAgentSnapshot(ctx: QueryCtx, playerId: Id<'players'>) {
     getPlayer(ctx.db, playerDoc),
   );
   const snapshot = await makeSnapshot(ctx.db, player, allPlayers);
-  console.log('getAgentSnapshot', snapshot);
   return snapshot;
 }
 
@@ -212,8 +211,7 @@ export async function handlePlayerAction(
         throw new Error('Think ID does not match: ' + action.thinkId + ' vs ' + thinkEntry?._id);
       }
       thinkEntry.data.finishedTs = ts;
-      console.log('thinkEntry', thinkEntry);
-      console.log('db.replace', await ctx.db.replace(action.thinkId, thinkEntry));
+      await ctx.db.replace(action.thinkId, thinkEntry);
       entryId = thinkEntry._id;
       break;
     case 'stop':
@@ -355,9 +353,7 @@ async function fetchMessages(db: DatabaseReader, conversationId: Id<'conversatio
     .withIndex('by_conversation', (q) => q.eq('data.conversationId', conversationId as any))
     .filter((q) => q.eq(q.field('data.type'), 'talking'))
     .collect();
-  return messageEntries.filter(
-    (e) => e.data.type !== 'leaveConversation' && e.data.type,
-  ) as EntryOfType<'talking'>[];
+  return messageEntries as EntryOfType<'talking'>[];
 }
 
 async function latestEntryOfType<T extends EntryType>(

@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import { Id } from './_generated/dataModel';
 import { DatabaseReader, query } from './_generated/server';
-import { Entry, EntryOfType } from './types';
+import { EntryOfType } from './types';
 import { PaginationResult, paginationOptsValidator } from 'convex/server';
 import { Message } from './types';
 import { asyncMap } from './lib/utils';
@@ -55,10 +55,7 @@ export const listMessages = query({
     const messages = (await conversationQuery(ctx.db, args.conversationId).take(
       1000,
     )) as EntryOfType<'talking'>[];
-    const filteredMessages = messages.filter((m) => {
-      if (m.data.type === 'talking') return m;
-    });
-    return asyncMap(filteredMessages, clientMessageMapper(ctx.db));
+    return asyncMap(messages, clientMessageMapper(ctx.db));
   },
 });
 

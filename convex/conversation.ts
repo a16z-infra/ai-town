@@ -20,9 +20,9 @@ export async function startConversation(
   const prompt: Message[] = [
     {
       role: 'user',
-      content: `You are ${player.name}. You just saw ${newFriendsNames}. You should greet them and start a conversation with them. Below are some of your memories about ${newFriendsNames}: 
+      content: `You are ${player.name}. You just saw ${newFriendsNames}. You should greet them and start a conversation with them. Below are some of your memories about ${newFriendsNames}:
       ${relationshipMemories}
-      
+
       ${player.name}:`,
     },
   ];
@@ -52,7 +52,7 @@ export async function converse(
 
   console.log('relevantMemories: ', relevantMemories);
 
-  let prefixPrompt = `Your name is ${player.name}. About you: ${player.identity}. 
+  let prefixPrompt = `Your name is ${player.name}. About you: ${player.identity}.
   You are talking to ${nearbyPlayersNames}, below are something about them: `;
   nearbyPlaers.forEach((p) => {
     prefixPrompt += `\nAbout ${p.player.name}: ${p.player.identity}\n`;
@@ -87,12 +87,12 @@ export async function walkAway(messages: Message[], player: Player): Promise<boo
   const prompt: Message[] = [
     {
       role: 'user',
-      content: `Below is a chat history among a few people who ran into each other. You are ${player.name}. You want to conclude this conversation when you think it's time to go.   
-    
+      content: `Below is a chat history among a few people who ran into each other. You are ${player.name}. You want to conclude this conversation when you think it's time to go.
+
       Return 1 if you want to walk away from the conversation and 0 if you want to continue to chat.`,
     },
     ...messages,
   ];
   const { content: description } = await chatGPTCompletion({ messages: prompt, max_tokens: 2 });
-  return description === '1' || messages.length >= 2;
+  return description === '1' || messages.length > 6;
 }

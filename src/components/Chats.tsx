@@ -25,12 +25,7 @@ function Messages({ conversationId }: { conversationId: Id<'conversations'> }) {
             ) : null}
             <div className="relative flex space-x-3">
               <div>
-                <span
-                  className={classNames(
-                    'bg-gray-400',
-                    'h-2 w-2 rounded-full flex items-center justify-center ring-3 ring-white',
-                  )}
-                ></span>
+                <span className="h-2 w-2 rounded-full flex items-center justify-center ring-3 ring-white bg-gray-400"></span>
               </div>
               <div className="flex flex-col min-w-0 flex-1 justify-between space-x-4 pt-1.5">
                 <div className="whitespace-nowrap text-top text-sm text-gray-500">

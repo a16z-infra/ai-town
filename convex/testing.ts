@@ -1,4 +1,4 @@
-import { GenericId, v } from 'convex/values';
+import { v } from 'convex/values';
 import { api, internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
 import { internalAction, internalMutation, internalQuery } from './_generated/server';
@@ -15,6 +15,7 @@ export const debugAgentSnapshot = internalMutation({
   args: { playerId: v.id('players') },
   handler: async (ctx, { playerId }) => {
     const snapshot = await getAgentSnapshot(ctx, playerId);
+    console.log('getAgentSnapshot', snapshot);
     const thinkId = await ctx.db.insert('journal', {
       playerId,
       data: {
@@ -176,10 +177,10 @@ export const runConversation = internalAction({
 
           if (shouldWalkAway) {
             walkawayCount++;
-            await actionAPI({ type: 'done', thinkId });
             await actionAPI({ type: 'leaveConversation', conversationId });
-            console.log('actionApi.done', await actionAPI({ type: 'done', thinkId }));
             console.log('Is walking away playername', player.name);
+            const done = await actionAPI({ type: 'done', thinkId });
+            console.log('actionApi.done', done);
             continue;
           }
           const playerCompletion = await converse(chatHistory, player, nearbyPlayers, memory);
@@ -191,7 +192,8 @@ export const runConversation = internalAction({
             conversationId: conversationId,
           });
         }
-        console.log('outside bracket done', await actionAPI({ type: 'done', thinkId }));
+        const done = await actionAPI({ type: 'done', thinkId });
+        console.log('outside bracket done', done);
         console.log('playername', player.name);
       }
     }
