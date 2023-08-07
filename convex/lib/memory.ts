@@ -15,6 +15,7 @@ import { EntryOfType, Memories, MemoryOfType } from '../types.js';
 import { chatGPTCompletion, fetchEmbeddingBatch } from './openai.js';
 import { clientMessageMapper } from '../chat.js';
 import { pineconeAvailable, pineconeIndex, upsertVectors } from './pinecone.js';
+import { chatHistoryFromMessages } from '../conversation.js';
 
 const { embeddingId: _, ...MemoryWithoutEmbeddingId } = Memories.fields;
 const NewMemory = { ...MemoryWithoutEmbeddingId, importance: v.optional(v.number()) };
@@ -177,10 +178,7 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
             content: `The following are messages. You are ${playerName}, and ${playerIdentity}
             I would like you to summarize the conversation in a paragraph from your perspective. Add if you like or dislike this interaction.`,
           },
-          ...messages.map((m) => ({
-            role: 'user' as const,
-            content: `${m.fromName}: ${m.content}`,
-          })),
+          ...chatHistoryFromMessages(messages),
           {
             role: 'user',
             content: `Summary:`,

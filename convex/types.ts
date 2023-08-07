@@ -73,6 +73,7 @@ export const SaySomething = v.object({
 export const LeaveConversation = v.object({
   type: v.literal('leaveConversation'),
   conversationId: v.id('conversations'),
+  audience: v.array(v.id('players')),
 });
 
 export const Action = v.union(
@@ -98,10 +99,24 @@ export const Message = v.object({
   fromName: v.string(),
   to: v.array(v.id('players')),
   toNames: v.array(v.string()),
-  content: v.string(),
+  data: v.union(
+    v.object({
+      type: v.literal('started'),
+    }),
+    v.object({
+      type: v.literal('responded'),
+      content: v.string(),
+    }),
+    v.object({
+      type: v.literal('left'),
+    }),
+  ),
   ts: v.number(),
 });
 export type Message = Infer<typeof Message>;
+// export type ResponseMessage = Omit<Message, 'data'> & {
+//   data: Extract<Message['data'], { type: 'responded' }>;
+// };
 
 export const Stopped = v.object({
   type: v.literal('stopped'),

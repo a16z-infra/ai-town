@@ -49,12 +49,13 @@ export const paginatePlayerMessages = query({
   },
 });
 
+type MessageEntry = EntryOfType<'talking' | 'startConversation' | 'leaveConversation'>;
 export const listMessages = query({
   args: { conversationId: v.id('conversations') },
   handler: async (ctx, args) => {
     const messages = (await conversationQuery(ctx.db, args.conversationId).take(
       1000,
-    )) as EntryOfType<'talking'>[];
+    )) as MessageEntry[];
     return asyncMap(messages, clientMessageMapper(ctx.db));
   },
 });
@@ -64,7 +65,7 @@ export const paginateMessages = query({
   handler: async (ctx, args) => {
     const messages = (await conversationQuery(ctx.db, args.conversationId).paginate(
       args.paginationOpts,
-    )) as PaginationResult<EntryOfType<'talking'>>;
+    )) as PaginationResult<MessageEntry>;
     return {
       ...messages,
       page: await asyncMap(messages.page, clientMessageMapper(ctx.db)),
@@ -73,23 +74,42 @@ export const paginateMessages = query({
 });
 
 function conversationQuery(db: DatabaseReader, conversationId: Id<'conversations'>) {
-  return db
-    .query('journal')
-    .withIndex('by_conversation', (q) => q.eq('data.conversationId', conversationId as any))
-    .order('desc');
+  return (
+    db
+      .query('journal')
+      .withIndex('by_conversation', (q) => q.eq('data.conversationId', conversationId as any))
+      // .filter((q) => q.eq(q.field('data.type'), 'talking'))
+      .order('desc')
+  );
 }
 
 export function clientMessageMapper(db: DatabaseReader) {
   const getName = async (id: Id<'players'>) => (await db.get(id))?.name || '<Anonymous>';
-  const clientMessage = async (m: EntryOfType<'talking'>): Promise<Message> => {
-    return {
+  const clientMessage = async (m: MessageEntry): Promise<Message> => {
+    const common = {
       from: m.playerId,
       fromName: await getName(m.playerId),
       to: m.data.audience,
       toNames: await asyncMap(m.data.audience, getName),
-      content: m.data.content,
       ts: m._creationTime,
     };
+    return m.data.type === 'talking'
+      ? {
+          ...common,
+          data: {
+            type: 'responded',
+            content: m.data.content,
+          },
+        }
+      : m.data.type === 'startConversation'
+      ? {
+          ...common,
+          data: { type: 'started' },
+        }
+      : {
+          ...common,
+          data: { type: 'left' },
+        };
   };
   return clientMessage;
 }

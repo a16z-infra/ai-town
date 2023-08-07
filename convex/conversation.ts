@@ -1,34 +1,58 @@
-import { Id } from './_generated/dataModel';
 import { MemoryDB, filterMemoriesType } from './lib/memory';
 import { GPTMessage, chatGPTCompletion, fetchEmbedding } from './lib/openai';
-import { Player, Snapshot } from './types';
+import { Message, Player, Snapshot } from './types';
 
 export async function startConversation(
-  newFriendsNames: string[],
+  relationships: { name: string; relationship: string }[],
   memory: MemoryDB,
   player: Player,
 ): Promise<string> {
+  const newFriendsNames = relationships.map((r) => r.name);
+
   const { embedding } = await fetchEmbedding(
     `What do you think about ${newFriendsNames.join(',')}?`,
   );
   const memories = await memory.accessMemories(player.id, embedding);
 
-  const relationshipMemories: string = filterMemoriesType(['relationship'], memories)
-    .map((r) => r.memory.description)
-    .join('\n');
+  const convoMemories = filterMemoriesType(['conversation'], memories);
 
   const prompt: GPTMessage[] = [
     {
       role: 'user',
-      content: `You are ${player.name}. You just saw ${newFriendsNames}. You should greet them and start a conversation with them. Below are some of your memories about ${newFriendsNames}:
-      ${relationshipMemories}
-
-      ${player.name}:`,
+      content:
+        `You are ${player.name}. You just saw ${newFriendsNames}. You should greet them and start a conversation with them. Below are some of your memories about ${newFriendsNames}:` +
+        relationships.map((r) => r.relationship).join('\n') +
+        convoMemories.map((r) => r.memory.description).join('\n') +
+        `\n${player.name}:`,
     },
   ];
   const stop = newFriendsNames.map((name) => name + ':');
   const { content } = await chatGPTCompletion({ messages: prompt, max_tokens: 300, stop });
   return content;
+}
+
+function messageContent(m: Message): string {
+  switch (m.data.type) {
+    case 'started':
+      return `${m.fromName} started the conversation.`;
+    case 'left':
+      return `${m.fromName} left the conversation.`;
+    case 'responded':
+      return `${m.fromName} to ${m.toNames.join(',')}: ${m.data.content}\n`;
+  }
+}
+
+export function chatHistoryFromMessages(messages: Message[]): GPTMessage[] {
+  return (
+    messages
+      // For now, just use the message content.
+      // However, we could give it context on who started / left the convo
+      .filter((m) => m.data.type === 'responded')
+      .map((m) => ({
+        role: 'user',
+        content: messageContent(m),
+      }))
+  );
 }
 
 export async function converse(

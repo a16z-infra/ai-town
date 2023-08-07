@@ -14,36 +14,48 @@ function Messages({ conversationId }: { conversationId: Id<'conversations'> }) {
     }) || [];
   return (
     <>
-      {messages.map((message, messageIdx) => (
-        <li key={message.ts}>
-          <div className="relative pb-8">
-            {messageIdx !== messages.length - 1 ? (
-              <span
-                className="absolute left-1 top-2 -ml-px h-full w-0.5 bg-gray-200"
-                aria-hidden="true"
-              />
-            ) : null}
-            <div className="relative flex space-x-3">
-              <div>
-                <span className="h-2 w-2 rounded-full flex items-center justify-center ring-3 ring-white bg-gray-400"></span>
-              </div>
-              <div className="flex flex-col min-w-0 flex-1 justify-between space-x-4 pt-1.5">
-                <div className="whitespace-nowrap text-top text-sm text-gray-500">
-                  <time dateTime={message.ts.toString()}>
-                    {new Date(message.ts).toLocaleString()}
-                  </time>
-                </div>
+      {[...messages]
+        .reverse()
+        // We can filter out the "started" and "left" conversations with this:
+        // .filter((m) => m.data.type === 'responded')
+        .map((message, messageIdx) => (
+          <li key={message.ts}>
+            <div className="relative pb-8">
+              {messageIdx !== messages.length - 1 ? (
+                <span
+                  className="absolute left-1 top-2 -ml-px h-full w-0.5 bg-gray-200"
+                  aria-hidden="true"
+                />
+              ) : null}
+              <div className="relative flex space-x-3">
                 <div>
-                  <p className="text-sm text-gray-500">
-                    <b>{message.fromName}: </b>
-                    {message.content}{' '}
-                  </p>
+                  <span className="h-2 w-2 rounded-full flex items-center justify-center ring-3 ring-white bg-gray-400"></span>
+                </div>
+                <div className="flex flex-col min-w-0 flex-1 justify-between space-x-4 pt-1.5">
+                  <div className="whitespace-nowrap text-top text-sm text-gray-500">
+                    <time dateTime={message.ts.toString()}>
+                      {new Date(message.ts).toLocaleString()}
+                    </time>
+                  </div>
+                  <div>
+                    {message.data.type === 'responded' ? (
+                      <p className="text-sm text-gray-500">
+                        <b>{message.fromName}: </b>
+                        {message.data.content}{' '}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-400">
+                        <b>{message.fromName} </b>
+                        {message.data.type === 'left' ? 'left' : 'started'}
+                        {' the conversation'}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </li>
-      ))}
+          </li>
+        ))}
     </>
   );
 }

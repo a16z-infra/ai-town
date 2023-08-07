@@ -8,8 +8,7 @@ import { asyncMap } from './lib/utils';
 import { Action, Entry, EntryOfType } from './types';
 import { clientMessageMapper } from './chat';
 import { MemoryDB } from './lib/memory';
-import { converse, startConversation, walkAway } from './conversation';
-import { GPTMessage } from './lib/openai';
+import { chatHistoryFromMessages, converse, startConversation, walkAway } from './conversation';
 
 export const debugAgentSnapshot = internalMutation({
   args: { playerId: v.id('players') },
@@ -131,24 +130,28 @@ export const runConversation = internalAction({
           throw new Error('Unexpected thinking player ' + playerId);
         }
         console.log('snapshot', snapshot);
+        const players = nearbyPlayers.map(({ player }) => player);
+        const audience = players.map((a) => a.id);
         if (!currentConversation && ourConversationId == null) {
           // If we're not in a conversation, start one.
           if (nearbyConversations.length) {
             throw new Error('Unexpected conversations taking place');
           }
-          const audience = nearbyPlayers.map(({ player }) => player);
           const conversationEntry = (await actionAPI({
             type: 'startConversation',
-            audience: audience.map((a) => a.id),
+            audience,
           })) as EntryOfType<'startConversation'>;
           console.log('conversationEntry', conversationEntry);
           if (!conversationEntry) throw new Error('Unexpected failure to start conversation');
-          const audienceNames = audience.map((a) => a.name);
-          const playerCompletion = await startConversation(audienceNames, memory, player);
+          const relationships = nearbyPlayers.map((a) => ({
+            name: a.player.name,
+            relationship: a.relationship,
+          }));
+          const playerCompletion = await startConversation(relationships, memory, player);
           if (
             !(await actionAPI({
               type: 'talking',
-              audience: audience.map((a) => a.id),
+              audience,
               content: playerCompletion,
               conversationId: conversationEntry.data.conversationId,
             }))
@@ -167,17 +170,12 @@ export const runConversation = internalAction({
           }
           const { conversationId, messages } = nearbyConversations[0];
 
-          const chatHistory: GPTMessage[] = [
-            ...messages.map((m) => ({
-              role: 'user' as const,
-              content: `${m.fromName} to ${m.toNames.join(',')}: ${m.content}\n`,
-            })),
-          ];
+          const chatHistory = chatHistoryFromMessages(messages);
           const shouldWalkAway = await walkAway(chatHistory, player);
 
           if (shouldWalkAway) {
             walkawayCount++;
-            await actionAPI({ type: 'leaveConversation', conversationId });
+            await actionAPI({ type: 'leaveConversation', audience, conversationId });
             console.log('Is walking away playername', player.name);
             const done = await actionAPI({ type: 'done', thinkId });
             console.log('actionApi.done', done);
