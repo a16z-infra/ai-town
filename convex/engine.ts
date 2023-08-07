@@ -170,6 +170,7 @@ export async function handlePlayerAction(
         playerId,
         data: action,
       });
+      await tick(action.audience);
       break;
     case 'travel':
       const world = (await ctx.db.get(playerDoc.worldId))!;
