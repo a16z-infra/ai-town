@@ -3,11 +3,17 @@ import { internal } from './_generated/api';
 import { getPlayer } from './engine';
 import { Id } from './_generated/dataModel';
 import { internalMutation } from './_generated/server';
+import { getAllPlayers } from './players';
 
 export const recoverAgents = internalMutation({
   args: {},
   handler: async (ctx, args) => {
-    const players = await ctx.db.query('players').collect();
+    const world = await ctx.db.query('worlds').order('desc').first();
+    if (!world) throw new Error('No world found');
+    const players = await getAllPlayers(ctx.db, world._id);
+    // TODO: in the future, we can check all players, but for now let's just
+    // check the most recent world.
+    // const players = await ctx.db.query('players').collect();
     const playersByWorldId: { [worldId: Id<'worlds'>]: Id<'players'>[] } = {};
     for (const playerDoc of players) {
       const player = await getPlayer(ctx.db, playerDoc);
