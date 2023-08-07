@@ -33,6 +33,29 @@ export async function asyncMap<FromType, ToType>(
 }
 
 /**
+ * asyncFilter returns the results of applying an async function over an list.
+ *
+ * @param list - Iterable object of items, e.g. an Array, Set, Object.keys
+ * @param asyncTransform
+ * @returns
+ */
+export async function asyncFilter<T>(
+  list: Iterable<T>,
+  asyncTransform: (item: T, index: number) => Promise<any>,
+): Promise<T[]> {
+  const promises: Promise<boolean>[] = [];
+  const results: T[] = [];
+  let idx = 0;
+  for (const item of list) {
+    promises.push(asyncTransform(item, idx));
+    results.push(item);
+    idx += 1;
+  }
+  const mask = await Promise.all(promises);
+  return results.filter((_, idx) => !!mask[idx]);
+}
+
+/**
  * getAll returns a list of Documents corresponding to the `Id`s passed in.
  * @param db A database object, usually passed from a mutation or query ctx.
  * @param ids An list (or other iterable) of Ids pointing to a table.

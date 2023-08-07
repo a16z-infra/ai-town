@@ -21,7 +21,7 @@ import {
   Motion,
   Message,
 } from './types.js';
-import { asyncMap, pruneNull } from './lib/utils.js';
+import { asyncFilter, asyncMap, pruneNull } from './lib/utils.js';
 import { getPoseFromMotion, manhattanDistance, roundPose } from './lib/physics.js';
 import { findCollision, findRoute } from './lib/routing';
 import { clientMessageMapper } from './chat';
@@ -135,19 +135,13 @@ export async function handlePlayerAction(
   switch (action.type) {
     case 'startConversation':
       // Find players available to talk to.
-      const available = pruneNull(
-        await asyncMap(action.audience, async (playerId) => {
-          const latestConversation = await getLatestPlayerConversation(ctx.db, playerId);
-          return !latestConversation || latestConversation?.data.type === 'leaveConversation'
-            ? playerId
-            : null;
-        }),
+      const conversationId = await ctx.db.insert('conversations', { worldId });
+      action.audience = await asyncFilter(action.audience, async (playerId) =>
+        playerAvailableForConversation(ctx.db, playerId, conversationId),
       );
-      if (available.length === 0) {
+      if (action.audience.length === 0) {
         return null;
       }
-      action.audience = available;
-      const conversationId = await ctx.db.insert('conversations', { worldId });
       entryId = await ctx.db.insert('journal', {
         playerId,
         data: {
@@ -158,7 +152,14 @@ export async function handlePlayerAction(
       await tick(action.audience);
       break;
     case 'talking':
-      // TODO: Check if these players are still nearby
+      console.log('talking ', action.conversationId);
+      action.audience = await asyncFilter(action.audience, async (playerId) =>
+        playerAvailableForConversation(ctx.db, playerId, conversationId),
+      );
+      if (action.audience.length === 0) {
+        console.log("Didn't talk");
+        return null;
+      }
       entryId = await ctx.db.insert('journal', {
         playerId,
         data: action,
@@ -166,11 +167,19 @@ export async function handlePlayerAction(
       await tick(action.audience);
       break;
     case 'leaveConversation':
+      console.log('leaving ', action.conversationId);
+      action.audience = await asyncFilter(action.audience, async (playerId) =>
+        playerAvailableForConversation(ctx.db, playerId, conversationId),
+      );
       entryId = await ctx.db.insert('journal', {
         playerId,
         data: action,
       });
-      await tick(action.audience);
+      if (action.audience.length === 0) {
+        console.log('No one left in convo');
+      } else {
+        await tick(action.audience);
+      }
       break;
     case 'travel':
       const world = (await ctx.db.get(playerDoc.worldId))!;
@@ -234,6 +243,31 @@ export async function handlePlayerAction(
       if (!entryId) throw new Error('unreachable');
   }
   return (await ctx.db.get(entryId))!;
+}
+
+async function playerAvailableForConversation(
+  db: DatabaseReader,
+  playerId: Id<'players'>,
+  conversationId: Id<'conversations'>,
+) {
+  const latestConversation = await getLatestPlayerConversation(db, playerId);
+  if (!latestConversation) return true;
+  if (latestConversation.data.conversationId === conversationId) {
+    if (latestConversation.data.type === 'leaveConversation') {
+      // The left our conversation
+      return false;
+    }
+    // They are in our conversation, and haven't left
+    return true;
+  } else {
+    // They left another conversation, so they're available to chat.
+    // Future: technically we could check if they've already left our convo?
+    if (latestConversation.data.type === 'leaveConversation') {
+      return true;
+    }
+    // They're still in another conversation
+    return false;
+  }
 }
 
 async function makeSnapshot(
