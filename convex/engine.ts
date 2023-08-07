@@ -134,12 +134,11 @@ export async function handlePlayerAction(
   let entryId: Id<'journal'> | undefined;
   switch (action.type) {
     case 'startConversation':
+      // Find players available to talk to.
       const available = pruneNull(
         await asyncMap(action.audience, async (playerId) => {
           const latestConversation = await getLatestPlayerConversation(ctx.db, playerId);
-          const latestLeft = await latestEntryOfType(ctx.db, playerId, 'leaveConversation');
-          return (latestLeft?._creationTime ?? Date.now()) >
-            (latestConversation?._creationTime ?? 0)
+          return !latestConversation || latestConversation?.data.type === 'leaveConversation'
             ? playerId
             : null;
         }),
