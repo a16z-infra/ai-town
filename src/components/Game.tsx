@@ -38,12 +38,10 @@ const useServerTimeOffset = () => {
   const prev = useRef<number[]>([]);
   useEffect(() => {
     const updateOffset = async () => {
-      console.log('fetching server time');
       const serverTime = await serverNow();
       const newOffset = serverTime - Date.now();
       prev.current.push(newOffset);
       if (prev.current.length > 5) prev.current.shift();
-      console.log(prev.current);
       const rollingOffset =
         prev.current.length === 1
           ? prev.current
@@ -53,7 +51,7 @@ const useServerTimeOffset = () => {
       setOffset(avgOffset);
     };
     void updateOffset();
-    const interval = setInterval(updateOffset, 1000); // TODO: 10000);
+    const interval = setInterval(updateOffset, 10000);
     return () => clearInterval(interval);
   }, []);
   return offset;
