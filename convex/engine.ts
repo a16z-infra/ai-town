@@ -256,7 +256,7 @@ async function makeSnapshot(
 
 export async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): Promise<Player> {
   const lastThink = await latestEntryOfType(db, playerDoc._id, 'thinking');
-  const lastChat = await latestEntryOfType(db, playerDoc._id, 'talking');
+  const lastChat = await latestEntryOfType(db, playerDoc._id, 'talking'); //does this include conversations agent left?
   const identityEntry = await latestMemoryOfType(db, playerDoc._id, 'identity');
   const identity = identityEntry?.description ?? 'I am a person.';
 
