@@ -8,7 +8,7 @@ import { Doc, Id } from './_generated/dataModel';
 
 import { internalAction } from './_generated/server';
 import { MemoryDB } from './lib/memory';
-import { Message } from './lib/openai';
+import { GPTMessage } from './lib/openai';
 import { Snapshot, Action, Position, Worlds, EntryOfType } from './types';
 import { converse, startConversation, walkAway } from './conversation';
 
@@ -86,7 +86,7 @@ export async function agentLoop(
   }
 
   for (const { conversationId, messages } of relevantConversations) {
-    const chatHistory: Message[] = [
+    const chatHistory: GPTMessage[] = [
       ...messages.map((m) => ({
         role: 'user' as const,
         content: `${m.fromName} to ${m.toNames.join(',')}: ${m.content}\n`,

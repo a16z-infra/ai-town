@@ -9,7 +9,7 @@ import { Action, Entry, EntryOfType } from './types';
 import { clientMessageMapper } from './chat';
 import { MemoryDB } from './lib/memory';
 import { converse, startConversation, walkAway } from './conversation';
-import { Message } from './lib/openai';
+import { GPTMessage } from './lib/openai';
 
 export const debugAgentSnapshot = internalMutation({
   args: { playerId: v.id('players') },
@@ -167,7 +167,7 @@ export const runConversation = internalAction({
           }
           const { conversationId, messages } = nearbyConversations[0];
 
-          const chatHistory: Message[] = [
+          const chatHistory: GPTMessage[] = [
             ...messages.map((m) => ({
               role: 'user' as const,
               content: `${m.fromName} to ${m.toNames.join(',')}: ${m.content}\n`,

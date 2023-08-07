@@ -1,6 +1,6 @@
 import { Id } from './_generated/dataModel';
 import { MemoryDB, filterMemoriesType } from './lib/memory';
-import { Message, chatGPTCompletion, fetchEmbedding } from './lib/openai';
+import { GPTMessage, chatGPTCompletion, fetchEmbedding } from './lib/openai';
 import { Player, Snapshot } from './types';
 
 export async function startConversation(
@@ -17,7 +17,7 @@ export async function startConversation(
     .map((r) => r.memory.description)
     .join('\n');
 
-  const prompt: Message[] = [
+  const prompt: GPTMessage[] = [
     {
       role: 'user',
       content: `You are ${player.name}. You just saw ${newFriendsNames}. You should greet them and start a conversation with them. Below are some of your memories about ${newFriendsNames}:
@@ -32,7 +32,7 @@ export async function startConversation(
 }
 
 export async function converse(
-  messages: Message[],
+  messages: GPTMessage[],
   player: Player,
   nearbyPlaers: Snapshot['nearbyPlayers'],
   memory: MemoryDB,
@@ -65,7 +65,7 @@ export async function converse(
   prefixPrompt +=
     'Below are the current chat history between you and the other folks mentioned above. DO NOT greet the other people more than once. Only greet ONCE. Response should be brief and within 200 characters: \n';
 
-  const prompt: Message[] = [
+  const prompt: GPTMessage[] = [
     {
       role: 'user',
       content: prefixPrompt,
@@ -83,8 +83,8 @@ export async function converse(
   return content;
 }
 
-export async function walkAway(messages: Message[], player: Player): Promise<boolean> {
-  const prompt: Message[] = [
+export async function walkAway(messages: GPTMessage[], player: Player): Promise<boolean> {
+  const prompt: GPTMessage[] = [
     {
       role: 'user',
       content: `Below is a chat history among a few people who ran into each other. You are ${player.name}. You want to conclude this conversation when you think it's time to go.
