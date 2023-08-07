@@ -124,8 +124,21 @@ export async function handlePlayerAction(
   let entryId: Id<'journal'> | undefined;
   switch (action.type) {
     case 'startConversation':
-      // TODO: determine if any players are available.
-      // TODO check if audience length is non-zero (or allow a player to talk to themselves)
+      const available = pruneNull(
+        await asyncMap(action.audience, async (playerId) => {
+          const latestStart = await latestEntryOfType(ctx.db, playerId, 'startConversation');
+          const latestTalk = await latestEntryOfType(ctx.db, playerId, 'talking');
+          const latestLeft = await latestEntryOfType(ctx.db, playerId, 'leaveConversation');
+          return (latestLeft?._creationTime ?? Date.now()) >
+            Math.max(latestStart?._creationTime ?? 0, latestTalk?._creationTime ?? 0)
+            ? playerId
+            : null;
+        }),
+      );
+      if (available.length === 0) {
+        return null;
+      }
+      action.audience = available;
       const conversationId = await ctx.db.insert('conversations', { worldId });
       entryId = await ctx.db.insert('journal', {
         playerId,
