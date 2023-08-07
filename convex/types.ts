@@ -170,7 +170,6 @@ export type Snapshot = Infer<typeof Snapshot>;
 
 // Journal documents are append-only, and define an player's state.
 export const Journal = Table('journal', {
-  ts: v.optional(v.number()), // TODO: delete later
   playerId: v.id('players'),
   // emojiSummary: v.string(),
   data: v.union(
@@ -186,13 +185,10 @@ export const Journal = Table('journal', {
     // When we run the agent loop.
     v.object({
       type: v.literal('thinking'),
+      // We can technically snip this, and re-create it on-demand at a
+      // given timestamp. However, it's convenient to have it here for now.
       snapshot: Snapshot,
       finishedTs: v.optional(v.number()),
-    }),
-    // In case we don't do anything, confirm we're done thinking.
-    // TODO: Unused, clean up later:
-    v.object({
-      type: v.literal('done_thinking'),
     }),
 
     // Exercises left to the reader:
@@ -216,7 +212,6 @@ export const Memories = Table('memories', {
   description: v.string(),
   embeddingId: v.id('embeddings'),
   importance: v.number(),
-  ts: v.optional(v.number()), // TODO: delete later
   data: v.union(
     // Useful for seed memories, high level goals
     v.object({
