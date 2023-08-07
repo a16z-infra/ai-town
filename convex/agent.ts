@@ -89,6 +89,10 @@ export async function agentLoop(
       await actionAPI({ type: 'stop' });
       stopped = true;
     }
+    if (messages.length === 1 && messages[0].type === 'started') {
+      // If someone started a conversation, don't reply to it first.
+      continue;
+    }
     const chatHistory = chatHistoryFromMessages(messages);
     const shouldWalkAway = await walkAway(chatHistory, player);
     console.log('shouldWalkAway: ', shouldWalkAway);
