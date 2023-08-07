@@ -58,61 +58,55 @@ export async function agentLoop(
   // Based on plan and observations, determine next action:
   //   if so, add new memory for new plan, and return new action
 
-  // Check if any messages are from players still nearby.
-  let relevantConversations = nearbyConversations.filter(
-    (c) => c.messages.filter((m) => nearbyPlayerIds.includes(m.from)).length,
-  );
-  const lastConversation = relevantConversations.find(
-    (c) => c.conversationId === player.lastSpokeConversationId,
-  );
-  if (lastConversation) {
-    relevantConversations = [lastConversation];
-  } else {
-    if (player.lastSpokeConversationId) {
+  let relevantConversations = nearbyConversations;
+  if (player.lastChat && player.lastChat.message.type !== 'left') {
+    const lastConversation = nearbyConversations.find(
+      (c) => c.conversationId === player.lastChat?.conversationId,
+    );
+    if (lastConversation) {
+      relevantConversations = [lastConversation];
+    } else {
       // If we aren't part of a conversation anymore, remember it.
       await actionAPI({
         type: 'leaveConversation',
-        conversationId: player.lastSpokeConversationId,
+        conversationId: player.lastChat.conversationId,
         audience: nearbyPlayerIds,
       });
       await memory.rememberConversation(
         player.name,
         player.id,
         player.identity,
-        player.lastSpokeConversationId,
-        player.lastSpokeTs,
+        player.lastChat.conversationId,
+        player.lastChat.message.ts,
       );
     }
   }
 
+  let stopped = false;
   for (const { conversationId, messages } of relevantConversations) {
+    if (imWalkingHere && messages.at(-1)!.to.includes(player.id)) {
+      // If we're walking, and someone said something to us, stop.
+      await actionAPI({ type: 'stop' });
+      stopped = true;
+    }
     const chatHistory = chatHistoryFromMessages(messages);
     const shouldWalkAway = await walkAway(chatHistory, player);
     console.log('shouldWalkAway: ', shouldWalkAway);
 
     // Decide if we keep talking.
-    if (shouldWalkAway || messages.length >= 10) {
+    if (shouldWalkAway) {
       // It's to chatty here, let's go somewhere else.
-      if (!imWalkingHere) {
-        await actionAPI({ type: 'leaveConversation', audience: nearbyPlayerIds, conversationId });
-        await memory.rememberConversation(
-          player.name,
-          player.id,
-          player.identity,
-          conversationId,
-          player.lastSpokeTs,
-        );
-        if (await actionAPI({ type: 'travel', position: getRandomPosition(world) })) {
-          return;
-        }
-      }
-      break;
-    } else if (messages.at(-1)?.from !== player.id) {
-      // Let's stop and be social
-      if (imWalkingHere) {
-        await actionAPI({ type: 'stop' });
-      }
-
+      await actionAPI({ type: 'leaveConversation', audience: nearbyPlayerIds, conversationId });
+      await memory.rememberConversation(
+        player.name,
+        player.id,
+        player.identity,
+        conversationId,
+        player.lastChat?.message.ts,
+      );
+      continue;
+    }
+    if (messages.at(-1)?.from !== player.id) {
       const playerCompletion = await converse(chatHistory, player, nearbyPlayers, memory);
       // display the chat via actionAPI
       await actionAPI({
@@ -122,58 +116,54 @@ export async function agentLoop(
         content: playerCompletion,
         conversationId: conversationId,
       });
-      // Now that we're remembering the conversation overall,
-      // don't store every message. We'll have the messages history for that.
-      // await memory.addMemories([
-      //   {
-      //     playerId: player.id,
-      //     description: playerCompletion,
-      //     ts: Date.now(),
-      //     data: {
-      //       type: 'conversation',
-      //       conversationId: conversationId,
-      //     },
-      //   },
-      // ]);
-
       // Only message in one conversation
       return;
     }
+    // We sent a message, let's wait for a reply.
   }
+
   // We didn't say anything in a conversation yet.
   if (newFriends.length) {
     // Let's stop and be social
-    if (imWalkingHere) {
+    if (imWalkingHere && !stopped) {
+      stopped = true;
       await actionAPI({ type: 'stop' });
     }
     const othersThinking = newFriends.find((a) => a.thinking);
     // Hey, new friends
-    if (!othersThinking) {
-      // Decide whether we want to talk
-
-      const conversationEntry = (await actionAPI({
-        type: 'startConversation',
+    // Decide whether we want to talk
+    const conversationEntry = (await actionAPI({
+      type: 'startConversation',
+      audience: newFriends.map((a) => a.id),
+    })) as EntryOfType<'startConversation'>;
+    if (conversationEntry) {
+      // We won the race to start the conversation
+      const relationships = nearbyPlayers.map((a) => ({
+        name: a.player.name,
+        relationship: a.relationship,
+      }));
+      const playerCompletion = await startConversation(relationships, memory, player);
+      await actionAPI({
+        type: 'talking',
         audience: newFriends.map((a) => a.id),
-      })) as EntryOfType<'startConversation'>;
-      if (conversationEntry) {
-        // We won the race to start the conversation
-        const relationships = nearbyPlayers.map((a) => ({
-          name: a.player.name,
-          relationship: a.relationship,
-        }));
-        const playerCompletion = await startConversation(relationships, memory, player);
-        await actionAPI({
-          type: 'talking',
-          audience: newFriends.map((a) => a.id),
-          content: playerCompletion,
-          conversationId: conversationEntry.data.conversationId,
-        });
-        return;
-      }
+        content: playerCompletion,
+        conversationId: conversationEntry.data.conversationId,
+      });
+      return;
+    } else if (othersThinking) {
+      // Wait for someone else to say something
+      return;
+    }
+  }
+  if (stopped) {
+    if (player.motion.type !== 'walking') throw new Error('Expected to be walking');
+    // Pick up where we were going beforehand
+    if (await actionAPI({ type: 'travel', position: player.motion.route.at(-1)! })) {
+      return;
     }
   }
   if (!imWalkingHere) {
-    // TODO: make a better plan
+    // TODO: go to a random location by name, not position.
     const success = await actionAPI({ type: 'travel', position: getRandomPosition(world) });
     if (success) {
       return;

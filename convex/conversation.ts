@@ -32,13 +32,13 @@ export async function startConversation(
 }
 
 function messageContent(m: Message): string {
-  switch (m.data.type) {
+  switch (m.type) {
     case 'started':
       return `${m.fromName} started the conversation.`;
     case 'left':
       return `${m.fromName} left the conversation.`;
     case 'responded':
-      return `${m.fromName} to ${m.toNames.join(',')}: ${m.data.content}\n`;
+      return `${m.fromName} to ${m.toNames.join(',')}: ${m.content}\n`;
   }
 }
 
@@ -47,7 +47,7 @@ export function chatHistoryFromMessages(messages: Message[]): GPTMessage[] {
     messages
       // For now, just use the message content.
       // However, we could give it context on who started / left the convo
-      .filter((m) => m.data.type === 'responded')
+      .filter((m) => m.type === 'responded')
       .map((m) => ({
         role: 'user',
         content: messageContent(m),

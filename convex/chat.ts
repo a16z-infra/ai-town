@@ -96,19 +96,17 @@ export function clientMessageMapper(db: DatabaseReader) {
     return m.data.type === 'talking'
       ? {
           ...common,
-          data: {
-            type: 'responded',
-            content: m.data.content,
-          },
+          type: 'responded',
+          content: m.data.content,
         }
       : m.data.type === 'startConversation'
       ? {
           ...common,
-          data: { type: 'started' },
+          type: 'started',
         }
       : {
           ...common,
-          data: { type: 'left' },
+          type: 'left',
         };
   };
   return clientMessage;

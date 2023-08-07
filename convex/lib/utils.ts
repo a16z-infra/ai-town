@@ -4,12 +4,12 @@ import { Doc, Id, TableNames } from '../_generated/dataModel';
 import { DatabaseReader } from '../_generated/server';
 
 /**
- * Filters out null elements from an array.
+ * Filters out null and undefined elements from an array.
  * @param list List of elements that might be null.
  * @returns List of elements with nulls removed.
  */
-export function pruneNull<T>(list: (T | null)[]): T[] {
-  return list.filter((i) => i !== null) as T[];
+export function pruneNull<T>(list: (T | null | undefined)[]): T[] {
+  return list.filter((i) => i !== null && i !== undefined) as T[];
 }
 
 /**

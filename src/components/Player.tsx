@@ -48,7 +48,10 @@ export const Player = ({
         playerState.motion.type === 'walking' && playerState.motion.targetEndTs >= time.current
       }
       isThinking={playerState.thinking}
-      isSpeaking={(playerState.lastSpokeTs ?? 0) > time.current - SpeechDurationMs}
+      isSpeaking={
+        playerState.lastChat?.message.type === 'responded' &&
+        (playerState.lastChat.message.ts ?? 0) > time.current - SpeechDurationMs
+      }
       textureUrl={character.textureUrl}
       spritesheetData={character.spritesheetData}
       speed={character.speed}

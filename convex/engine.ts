@@ -19,6 +19,7 @@ import {
   Pose,
   Snapshot,
   Motion,
+  Message,
 } from './types.js';
 import { asyncMap, pruneNull } from './lib/utils.js';
 import { getPoseFromMotion, manhattanDistance, roundPose } from './lib/physics.js';
@@ -46,7 +47,7 @@ export const tick = internalMutation({
     );
 
     // Sort players by how long ago they last spoke
-    playerSnapshots.sort((a, b) => a.lastSpokeTs - b.lastSpokeTs);
+    playerSnapshots.sort((a, b) => (a.lastChat?.message.ts ?? 0) - (b.lastChat?.message.ts ?? 0));
 
     // For each player (oldest to newest? Or all on the same step?):
     for (let idx = 0; idx < playerSnapshots.length; idx++) {
@@ -245,11 +246,7 @@ async function makeSnapshot(
     player,
     lastPlan: planEntry ? { plan: planEntry.description, ts: planEntry._creationTime } : undefined,
     nearbyPlayers,
-    nearbyConversations: await getNearbyConversations(
-      db,
-      player.id,
-      otherPlayersAndMe.map(({ id }) => id),
-    ),
+    nearbyConversations: await getNearbyConversations(db, player.id, otherPlayersAndMe),
   };
 }
 
@@ -267,8 +264,10 @@ export async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): 
     thinking: !!lastThink && !lastThink?.data.finishedTs,
     lastThinkTs: lastThink?._creationTime,
     lastThinkEndTs: lastThink?.data.finishedTs,
-    lastSpokeTs: latestConversation?._creationTime ?? 0,
-    lastSpokeConversationId: latestConversation?.data.conversationId,
+    lastChat: latestConversation && {
+      message: await clientMessageMapper(db)(latestConversation),
+      conversationId: latestConversation.data.conversationId,
+    },
     motion: await getLatestPlayerMotion(db, playerDoc._id),
   };
 }
@@ -285,11 +284,10 @@ export async function getLatestPlayerMotion(db: DatabaseReader, playerId: Id<'pl
 async function getLatestPlayerConversation(db: DatabaseReader, playerId: Id<'players'>) {
   const lastChat = await latestEntryOfType(db, playerId, 'talking');
   const lastStartChat = await latestEntryOfType(db, playerId, 'startConversation');
-  return (
-    pruneNull([lastChat, lastStartChat])
-      .sort((a, b) => a._creationTime - b._creationTime)
-      .pop() ?? null
-  );
+  const lastLeaveChat = await latestEntryOfType(db, playerId, 'leaveConversation');
+  return pruneNull([lastChat, lastStartChat, lastLeaveChat])
+    .sort((a, b) => a._creationTime - b._creationTime)
+    .pop();
 }
 
 function getNearbyPlayers(target: Player, others: Player[]) {
@@ -307,19 +305,23 @@ function getNearbyPlayers(target: Player, others: Player[]) {
 async function getNearbyConversations(
   db: DatabaseReader,
   playerId: Id<'players'>,
-  playerIds: Id<'players'>[],
+  players: Player[],
 ): Promise<Snapshot['nearbyConversations']> {
-  const conversationsById = pruneNull(
-    await asyncMap(playerIds, (playerId) => getLatestPlayerConversation(db, playerId)),
-  )
+  const playersById = players.reduce<Record<Id<'players'>, Player>>((byId, player) => {
+    byId[player.id] = player;
+    return byId;
+  }, {});
+  const conversationsById = pruneNull(players.map((p) => p.lastChat))
+    // Filter out conversations they left
+    .filter((chat) => chat.message.type !== 'left')
     // Filter out old conversations
-    .filter((entry) => Date.now() - entry._creationTime < CONVERSATION_DEAD_THRESHOLD)
+    .filter((chat) => Date.now() - chat.message.ts < CONVERSATION_DEAD_THRESHOLD)
     // Get the latest message for each conversation, keyed by conversationId.
-    .reduce<Record<Id<'conversations'>, EntryOfType<'talking' | 'startConversation'>>>(
-      (convos, entry) => {
-        const existing = convos[entry.data.conversationId];
-        if (!existing || existing._creationTime < entry._creationTime) {
-          convos[entry.data.conversationId] = entry;
+    .reduce<Record<Id<'conversations'>, { message: Message; conversationId: Id<'conversations'> }>>(
+      (convos, chat) => {
+        const existing = convos[chat.conversationId];
+        if (!existing || existing.message.ts < chat.message.ts) {
+          convos[chat.conversationId] = chat;
         }
         return convos;
       },
@@ -327,7 +329,7 @@ async function getNearbyConversations(
     );
   // Now, filter out conversations that did't include the observer.
   const conversations = Object.values(conversationsById).filter(
-    (entry) => entry.data.audience.includes(playerId) || entry.playerId === playerId,
+    (chat) => chat.message.to.includes(playerId) || chat.message.from === playerId,
   );
   const leftConversations = (
     (await db
@@ -336,23 +338,27 @@ async function getNearbyConversations(
         q.eq('playerId', playerId).eq('data.type', 'leaveConversation'),
       )
       .filter((q) =>
-        q.or(
-          ...conversations.map((c) => q.eq(q.field('data.conversationId'), c.data.conversationId)),
-        ),
+        q.or(...conversations.map((c) => q.eq(q.field('data.conversationId'), c.conversationId))),
       )
       .collect()) as EntryOfType<'leaveConversation'>[]
   ).map((e) => e.data.conversationId);
   const stillInConversations = conversations.filter(
-    (c) => !leftConversations.includes(c.data.conversationId),
+    (c) => !leftConversations.includes(c.conversationId),
   );
+  const otherIds = new Set(players.map((p) => p.id));
+  otherIds.delete(playerId);
   return (
-    await asyncMap(stillInConversations, async (entry) => ({
-      conversationId: entry.data.conversationId,
-      messages: (
-        await asyncMap(await fetchMessages(db, entry.data.conversationId), clientMessageMapper(db))
-      ).filter((message) => message.to.includes(playerId) || message.from === playerId),
-    }))
-  ).filter((c) => c.messages.length > 0);
+    (
+      await asyncMap(stillInConversations, async (entry) => ({
+        conversationId: entry.conversationId,
+        messages: (
+          await asyncMap(await fetchMessages(db, entry.conversationId), clientMessageMapper(db))
+        ).filter((message) => message.to.includes(playerId) || message.from === playerId),
+      }))
+    )
+      // Filter out any conversations where all other message senders are not present
+      .filter((c) => c.messages.filter((m) => otherIds.has(m.from)).length > 0)
+  );
 }
 
 async function fetchMessages(db: DatabaseReader, conversationId: Id<'conversations'>) {

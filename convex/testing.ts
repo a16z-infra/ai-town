@@ -225,7 +225,7 @@ export const runConversation = internalAction({
           });
         const { player, nearbyPlayers, nearbyConversations } = snapshot;
         const currentConversation = nearbyConversations.find(
-          (a) => a.conversationId == player.lastSpokeConversationId,
+          (a) => a.conversationId == player.lastChat?.conversationId,
         );
         if (nearbyPlayers.find(({ player }) => player.thinking)) {
           throw new Error('Unexpected thinking player ' + playerId);

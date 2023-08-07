@@ -94,25 +94,28 @@ export const Action = v.union(
 );
 export type Action = Infer<typeof Action>;
 
-export const Message = v.object({
+const commonFields = {
   from: v.id('players'),
   fromName: v.string(),
   to: v.array(v.id('players')),
   toNames: v.array(v.string()),
-  data: v.union(
-    v.object({
-      type: v.literal('started'),
-    }),
-    v.object({
-      type: v.literal('responded'),
-      content: v.string(),
-    }),
-    v.object({
-      type: v.literal('left'),
-    }),
-  ),
   ts: v.number(),
-});
+};
+export const Message = v.union(
+  v.object({
+    ...commonFields,
+    type: v.literal('started'),
+  }),
+  v.object({
+    ...commonFields,
+    type: v.literal('responded'),
+    content: v.string(),
+  }),
+  v.object({
+    ...commonFields,
+    type: v.literal('left'),
+  }),
+);
 export type Message = Infer<typeof Message>;
 // export type ResponseMessage = Omit<Message, 'data'> & {
 //   data: Extract<Message['data'], { type: 'responded' }>;
@@ -144,8 +147,7 @@ export const Player = v.object({
   thinking: v.boolean(),
   lastThinkTs: v.optional(v.number()),
   lastThinkEndTs: v.optional(v.number()),
-  lastSpokeTs: v.number(),
-  lastSpokeConversationId: v.optional(v.id('conversations')),
+  lastChat: v.optional(v.object({ message: Message, conversationId: v.id('conversations') })),
 });
 export type Player = Infer<typeof Player>;
 

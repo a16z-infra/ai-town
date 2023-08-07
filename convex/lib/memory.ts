@@ -40,7 +40,7 @@ export interface MemoryDB {
     playerId: Id<'players'>,
     playerIdentity: string,
     conversationId: Id<'conversations'>,
-    lastSpokeTs: number,
+    lastSpokeTs?: number,
   ): Promise<boolean>;
 }
 
@@ -349,7 +349,7 @@ export const getRecentMessages = internalQuery({
   args: {
     playerId: v.id('players'),
     conversationId: v.id('conversations'),
-    lastSpokeTs: v.number(),
+    lastSpokeTs: v.optional(v.number()),
   },
   handler: async (ctx, { playerId, conversationId, lastSpokeTs }) => {
     // Fetch the last memory, whether it was this conversation or not.
@@ -361,7 +361,7 @@ export const getRecentMessages = internalQuery({
       .order('desc')
       .first()) as MemoryOfType<'conversation'> | null;
 
-    if (lastSpokeTs < (lastConversationMemory?._creationTime ?? 0)) {
+    if (lastSpokeTs && lastSpokeTs < (lastConversationMemory?._creationTime ?? 0)) {
       // We haven't spoken since a conversation memory, so probably not worth recording.
       return [];
     }

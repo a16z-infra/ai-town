@@ -38,15 +38,15 @@ function Messages({ conversationId }: { conversationId: Id<'conversations'> }) {
                     </time>
                   </div>
                   <div>
-                    {message.data.type === 'responded' ? (
+                    {message.type === 'responded' ? (
                       <p className="text-sm text-gray-500">
                         <b>{message.fromName}: </b>
-                        {message.data.content}{' '}
+                        {message.content}{' '}
                       </p>
                     ) : (
                       <p className="text-sm text-gray-400">
                         <b>{message.fromName} </b>
-                        {message.data.type === 'left' ? 'left' : 'started'}
+                        {message.type === 'left' ? 'left' : 'started'}
                         {' the conversation'}
                       </p>
                     )}
@@ -73,8 +73,8 @@ export default function Chats({ playerState }: { playerState: PlayerState | unde
               <span>{playerState.identity}</span>
             </p>
           </li>
-          {playerState.lastSpokeConversationId && (
-            <Messages conversationId={playerState.lastSpokeConversationId} />
+          {playerState.lastChat?.conversationId && (
+            <Messages conversationId={playerState.lastChat?.conversationId} />
           )}
         </ul>
       )}
