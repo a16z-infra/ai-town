@@ -179,10 +179,6 @@ export const seed = internalAction({
           playerId,
           data,
           description: memory.description,
-          // You can add custom importances to override the calculated ones.
-          // importance: memory.importance,
-          // Set the memories in the past, so they don't all have the same ts.
-          ts: Date.now() - (memories.length - idx) * 1000,
         };
 
         return newMemory;
