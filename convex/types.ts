@@ -212,6 +212,7 @@ export const Memories = Table('memories', {
   description: v.string(),
   embeddingId: v.id('embeddings'),
   importance: v.number(),
+  ts: v.optional(v.number()), // TODO: delete later
   data: v.union(
     // Useful for seed memories, high level goals
     v.object({

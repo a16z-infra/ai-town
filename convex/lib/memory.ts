@@ -223,7 +223,8 @@ export const accessMemories = internalMutation({
         .order('desc')
         .first();
       if (!access) return 1;
-      return 0.99 ^ Math.floor((ts - access._creationTime) / 1000 / 60 / 60);
+      const accessTime = access ? access._creationTime : memory._creationTime;
+      return 0.99 ^ Math.floor((ts - accessTime) / 1000 / 60 / 60);
     });
     const relevanceRange = makeRange(candidates.map((c) => c.score));
     const importanceRange = makeRange(relatedMemories.map((m) => m.importance));
