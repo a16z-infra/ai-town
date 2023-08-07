@@ -14,7 +14,7 @@ import { asyncMap } from './utils.js';
 import { EntryOfType, Memories, MemoryOfType } from '../types.js';
 import { chatGPTCompletion, fetchEmbeddingBatch } from './openai.js';
 import { clientMessageMapper } from '../chat.js';
-import { pineconeAvailable, pineconeIndex, upsertVectors } from './pinecone.js';
+import { pineconeAvailable, pineconeIndex, queryVectors, upsertVectors } from './pinecone.js';
 import { chatHistoryFromMessages } from '../conversation.js';
 
 const { embeddingId: _, ...MemoryWithoutEmbeddingId } = Memories.fields;
@@ -59,24 +59,8 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
   ) => Promise<any>;
   // If Pinecone env variables are defined, use that.
   if (pineconeAvailable()) {
-    vectorSearch = async (embedding: number[], playerId: Id<'players'>, limit: number) => {
-      const pinecone = await pineconeIndex();
-      const { matches } = await pinecone.query({
-        queryRequest: {
-          namespace: 'embeddings',
-          topK: limit,
-          vector: embedding,
-          filter: { playerId },
-        },
-      });
-      if (!matches) {
-        throw new Error('Pinecone returned undefined results');
-      }
-      return matches.filter((m) => !!m.score).map(({ id, score }) => ({ _id: id, score })) as {
-        _id: Id<'embeddings'>;
-        score: number;
-      }[];
-    };
+    vectorSearch = async (embedding: number[], playerId: Id<'players'>, limit: number) =>
+      queryVectors('embeddings', embedding, { playerId }, limit);
     externalEmbeddingStore = async (
       embeddings: { id: Id<'embeddings'>; values: number[]; metadata: object }[],
     ) => upsertVectors('embeddings', embeddings);

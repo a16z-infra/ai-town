@@ -27,7 +27,7 @@ export async function pineconeIndex() {
 }
 
 export async function upsertVectors<TableName extends TableNames>(
-  namespace: TableName,
+  tableName: TableName,
   vectors: { id: Id<TableName>; values: number[]; metadata: object }[],
   index?: VectorOperationsApi,
 ) {
@@ -42,7 +42,7 @@ export async function upsertVectors<TableName extends TableNames>(
     results.push(
       await index.upsert({
         upsertRequest: {
-          namespace,
+          namespace: tableName + process.env.CONVEX_CLOUD_URL,
           vectors: vectors.slice(i, i + MaxUpsertBatchLimit),
         },
       }),
@@ -53,4 +53,28 @@ export async function upsertVectors<TableName extends TableNames>(
     pineconeUpsertMs: Date.now() - start,
   });
   return results;
+}
+
+export async function queryVectors<TableName extends TableNames>(
+  tableName: TableName,
+  embedding: number[],
+  filter: object,
+  limit: number,
+) {
+  const pinecone = await pineconeIndex();
+  const { matches } = await pinecone.query({
+    queryRequest: {
+      namespace: tableName + process.env.CONVEX_CLOUD_URL,
+      topK: limit,
+      vector: embedding,
+      filter,
+    },
+  });
+  if (!matches) {
+    throw new Error('Pinecone returned undefined results');
+  }
+  return matches.filter((m) => !!m.score).map(({ id, score }) => ({ _id: id, score })) as {
+    _id: Id<TableName>;
+    score: number;
+  }[];
 }
