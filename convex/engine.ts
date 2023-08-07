@@ -408,6 +408,7 @@ async function fetchMessages(db: DatabaseReader, conversationId: Id<'conversatio
   const messageEntries = await db
     .query('journal')
     .withIndex('by_conversation', (q) => q.eq('data.conversationId', conversationId as any))
+    // We are fetching all message types, including starting convo & leaving
     // .filter((q) => q.eq(q.field('data.type'), 'talking'))
     .collect();
   return messageEntries as EntryOfType<'talking'>[];
