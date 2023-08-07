@@ -17,7 +17,7 @@ export const getWorld = query({
   args: {},
   handler: async (ctx, args) => {
     // TODO: based on auth, fetch the user's world
-    const world = await ctx.db.query('worlds').first();
+    const world = await ctx.db.query('worlds').order('desc').first();
     if (!world) {
       console.error('No world found');
       return null;
