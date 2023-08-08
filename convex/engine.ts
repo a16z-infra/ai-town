@@ -42,13 +42,13 @@ export const tick = internalMutation({
   args: { worldId: v.id('worlds'), forPlayers: v.optional(v.array(v.id('players'))) },
   handler: async (ctx, { worldId, forPlayers }) => {
     const ts = Date.now();
-    const world = (await ctx.db.get(worldId))!;
-    if (world.frozen) return;
     const lastHeartbeat = await ctx.db.query('heartbeats').order('desc').first();
     if (!lastHeartbeat || lastHeartbeat._creationTime + WORLD_IDLE_THRESHOLD < ts) {
       console.log("Didn't tick: no heartbeat recently");
       return;
     }
+    const world = (await ctx.db.get(worldId))!;
+    if (world.frozen) return;
     const playerDocs = await getAllPlayers(ctx.db, worldId);
     // Make snapshot of world
     const playerSnapshots = await asyncMap(playerDocs, async (playerDoc) =>
