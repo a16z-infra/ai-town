@@ -277,7 +277,8 @@ async function makeSnapshot(
 ): Promise<Snapshot> {
   const lastThink = await latestEntryOfType(db, player.id, 'thinking');
   const otherPlayers = otherPlayersAndMe.filter((d) => d.id !== player.id);
-  const nearbyPlayers = await asyncMap(getNearbyPlayers(player, otherPlayers), async (other) => ({
+  const nearbyOthers = getNearbyPlayers(player, otherPlayers);
+  const nearbyPlayers = await asyncMap(nearbyOthers, async (other) => ({
     player: other,
     relationship:
       (await latestRelationshipMemoryWith(db, player.id, other.id))?.description ??
@@ -289,7 +290,7 @@ async function makeSnapshot(
     player,
     lastPlan: planEntry ? { plan: planEntry.description, ts: planEntry._creationTime } : undefined,
     nearbyPlayers,
-    nearbyConversations: await getNearbyConversations(db, player.id, otherPlayersAndMe),
+    nearbyConversations: await getNearbyConversations(db, player, nearbyOthers),
   };
 }
 
@@ -347,14 +348,10 @@ function getNearbyPlayers(target: Player, others: Player[]) {
 
 async function getNearbyConversations(
   db: DatabaseReader,
-  playerId: Id<'players'>,
-  players: Player[],
+  player: Player,
+  otherPlayers: Player[],
 ): Promise<Snapshot['nearbyConversations']> {
-  const playersById = players.reduce<Record<Id<'players'>, Player>>((byId, player) => {
-    byId[player.id] = player;
-    return byId;
-  }, {});
-  const conversationsById = pruneNull(players.map((p) => p.lastChat))
+  const conversationsById = pruneNull([...otherPlayers, player].map((p) => p.lastChat))
     // Filter out conversations they left
     .filter((chat) => chat.message.type !== 'left')
     // Filter out old conversations
@@ -372,13 +369,13 @@ async function getNearbyConversations(
     );
   // Now, filter out conversations that did't include the observer.
   const conversations = Object.values(conversationsById).filter(
-    (chat) => chat.message.to.includes(playerId) || chat.message.from === playerId,
+    (chat) => chat.message.to.includes(player.id) || chat.message.from === player.id,
   );
   const leftConversations = (
     (await db
       .query('journal')
       .withIndex('by_playerId_type', (q) =>
-        q.eq('playerId', playerId).eq('data.type', 'leaveConversation'),
+        q.eq('playerId', player.id).eq('data.type', 'leaveConversation'),
       )
       .filter((q) =>
         q.or(...conversations.map((c) => q.eq(q.field('data.conversationId'), c.conversationId))),
@@ -388,15 +385,14 @@ async function getNearbyConversations(
   const stillInConversations = conversations.filter(
     (c) => !leftConversations.includes(c.conversationId),
   );
-  const otherIds = new Set(players.map((p) => p.id));
-  otherIds.delete(playerId);
+  const otherIds = new Set(otherPlayers.map((p) => p.id));
   return (
     (
       await asyncMap(stillInConversations, async (entry) => ({
         conversationId: entry.conversationId,
         messages: (
           await asyncMap(await fetchMessages(db, entry.conversationId), clientMessageMapper(db))
-        ).filter((message) => message.to.includes(playerId) || message.from === playerId),
+        ).filter((message) => message.to.includes(player.id) || message.from === player.id),
       }))
     )
       // Filter out any conversations where all other message senders are not present
