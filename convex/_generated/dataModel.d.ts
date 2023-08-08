@@ -9,25 +9,29 @@
  * @module
  */
 
-import type { DataModelFromSchemaDefinition } from "convex/server";
-import type { DocumentByName, TableNamesInDataModel } from "convex/server";
+import { AnyDataModel } from "convex/server";
 import type { GenericId } from "convex/values";
-import schema from "../schema";
+
+/**
+ * No `schema.ts` file found!
+ *
+ * This generated code has permissive types like `Doc = any` because
+ * Convex doesn't know your schema. If you'd like more type safety, see
+ * https://docs.convex.dev/using/schemas for instructions on how to add a
+ * schema file.
+ *
+ * After you change a schema, rerun codegen with `npx convex dev`.
+ */
 
 /**
  * The names of all of your Convex tables.
  */
-export type TableNames = TableNamesInDataModel<DataModel>;
+export type TableNames = string;
 
 /**
  * The type of a document stored in Convex.
- *
- * @typeParam TableName - A string literal type of the table name (like "users").
  */
-export type Doc<TableName extends TableNames> = DocumentByName<
-  DataModel,
-  TableName
->;
+export type Doc = any;
 
 /**
  * An identifier for a document in Convex.
@@ -39,10 +43,9 @@ export type Doc<TableName extends TableNames> = DocumentByName<
  *
  * IDs are just strings at runtime, but this type can be used to distinguish them from other
  * strings when type checking.
- *
- * @typeParam TableName - A string literal type of the table name (like "users").
  */
-export type Id<TableName extends TableNames> = GenericId<TableName>;
+export type Id<TableName extends TableNames = TableNames> =
+  GenericId<TableName>;
 
 /**
  * A type describing your Convex data model.
@@ -53,4 +56,4 @@ export type Id<TableName extends TableNames> = GenericId<TableName>;
  * This type is used to parameterize methods like `queryGeneric` and
  * `mutationGeneric` to make them type-safe.
  */
-export type DataModel = DataModelFromSchemaDefinition<typeof schema>;
+export type DataModel = AnyDataModel;
