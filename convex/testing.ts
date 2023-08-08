@@ -76,7 +76,7 @@ export const debugAllPlayerSnapshot = internalQuery({
 export const debugPlayerSnapshot = internalQuery({
   args: {},
   handler: async (ctx, args) => {
-    const player = await ctx.db.query('players').first();
+    const player = await ctx.db.query('players').order('desc').first();
     if (!player) return null;
     const snapshot = await getAgentSnapshot(ctx, player._id);
     return snapshot;
