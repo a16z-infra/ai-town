@@ -49,7 +49,7 @@ export async function upsertVectors<TableName extends TableNames>(
     );
   }
   console.log({
-    count: vectors.length,
+    upserted: vectors.length,
     pineconeUpsertMs: Date.now() - start,
   });
   return results;
@@ -61,6 +61,7 @@ export async function queryVectors<TableName extends TableNames>(
   filter: object,
   limit: number,
 ) {
+  const start = Date.now();
   const pinecone = await pineconeIndex();
   const { matches } = await pinecone.query({
     queryRequest: {
@@ -69,6 +70,10 @@ export async function queryVectors<TableName extends TableNames>(
       vector: embedding,
       filter,
     },
+  });
+  console.log({
+    queried: matches?.length,
+    pineconeQueryMs: Date.now() - start,
   });
   if (!matches) {
     throw new Error('Pinecone returned undefined results');

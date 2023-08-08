@@ -7,14 +7,12 @@ import {
   internalAction,
   internalMutation,
   internalQuery,
-  mutation,
-  query,
 } from '../_generated/server.js';
 import { asyncMap } from './utils.js';
 import { EntryOfType, Memories, MemoryOfType } from '../types.js';
 import { chatGPTCompletion, fetchEmbeddingBatch } from './openai.js';
 import { clientMessageMapper } from '../chat.js';
-import { pineconeAvailable, pineconeIndex, queryVectors, upsertVectors } from './pinecone.js';
+import { pineconeAvailable, queryVectors, upsertVectors } from './pinecone.js';
 import { chatHistoryFromMessages } from '../conversation.js';
 
 const { embeddingId: _, ...MemoryWithoutEmbeddingId } = Memories.fields;
