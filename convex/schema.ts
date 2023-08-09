@@ -244,7 +244,7 @@ export default defineSchema(
       thinking: v.boolean(),
       nextWakeTs: v.number(),
       lastWakeTs: v.number(),
-      alsoWake: v.array(v.id('agents')),
+      alsoWake: v.optional(v.array(v.id('agents'))),
       scheduled: v.boolean(),
     }).index('by_worldId_thinking', ['worldId', 'thinking', 'nextWakeTs']),
 

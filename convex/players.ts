@@ -94,19 +94,18 @@ export const createAgent = mutation({
     });
     const agentId = await ctx.db.insert('agents', {
       playerId,
-      scheduled: false,
+      scheduled: true,
       thinking: false,
       worldId,
       nextWakeTs: Date.now(),
       lastWakeTs: Date.now(),
-      alsoWake: [],
     });
     await ctx.db.patch(playerId, { agentId });
     await ctx.db.insert('journal', {
       playerId,
       data: { type: 'stopped', reason: 'idle', pose: args.pose },
     });
-    await enqueueAgentWake(ctx.db, agentId, []);
+    await enqueueAgentWake(ctx, agentId, worldId, Date.now());
     return playerId;
   },
 });

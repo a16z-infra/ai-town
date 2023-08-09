@@ -1,13 +1,13 @@
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
-import { DatabaseReader, DatabaseWriter, internalMutation } from './_generated/server';
+import { DatabaseReader, DatabaseWriter, MutationCtx, internalMutation } from './_generated/server';
 import { WORLD_IDLE_THRESHOLD } from './config';
 import { asyncMap, pruneNull } from './lib/utils';
 
 export const tick = internalMutation({
-  args: { worldId: v.id('worlds'), agentIds: v.optional(v.array(v.id('agents'))) },
-  handler: async (ctx, { worldId, agentIds }) => {
+  args: { worldId: v.id('worlds') },
+  handler: async (ctx, { worldId }) => {
     const ts = Date.now();
     // Fetch the first recent heartbeat.
     if (!(await getRecentHeartbeat(ctx.db, worldId))) {
@@ -16,7 +16,7 @@ export const tick = internalMutation({
     }
     const world = await ctx.db.get(worldId);
     if (!world) {
-      console.error('No world found');
+      console.error("Didn't tick: No world found");
       return;
     }
     if (world.frozen) {
@@ -25,7 +25,6 @@ export const tick = internalMutation({
     }
 
     // Fetch agents to wake up: not already thinking
-    // TODO: only fetch agentIds if specified
     const agentDocs = await ctx.db
       .query('agents')
       .withIndex(
@@ -42,18 +41,18 @@ export const tick = internalMutation({
     const agentsEagerToWake = agentDocs.filter((a) => a.nextWakeTs && a.nextWakeTs <= ts);
     if (!agentsEagerToWake.length) {
       console.log("Didn't tick: spurious, no agents eager to wake up");
-      const firstToWake = agentDocs.find((a) => !!a.nextWakeTs);
+      const firstToWake = agentDocs[0];
       if (firstToWake && !firstToWake.scheduled) {
         console.log('Scheduling for the next agent');
-        await ctx.scheduler.runAt(firstToWake.nextWakeTs!, internal.engine.tick, {
+        await ctx.db.patch(firstToWake._id, { scheduled: true });
+        await ctx.scheduler.runAt(firstToWake.nextWakeTs, internal.engine.tick, {
           worldId,
-          agentIds: [firstToWake._id, ...firstToWake.alsoWake],
         });
       }
       return;
     }
     const agentIdsToWake = [
-      ...new Set([...agentsEagerToWake.flatMap((a) => [a._id, ...a.alsoWake])]),
+      ...new Set([...agentsEagerToWake.flatMap((a) => [a._id, ...(a.alsoWake ?? [])])]),
     ];
     const agentsToWake = pruneNull(await asyncMap(agentIdsToWake, ctx.db.get)).filter(
       (a) => !a.thinking,
@@ -93,41 +92,66 @@ export const agentDone = internalMutation({
   args: {
     agentId: v.id('agents'),
     otherAgentIds: v.optional(v.array(v.id('agents'))),
-    wakeTs: v.optional(v.number()),
+    wakeTs: v.number(),
     noSchedule: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    // Update thinking to false, etc
-    // Assert that the agent was thinking
-    if (args.noSchedule) {
-      console.log(
-        `would have scheduled at ${args.wakeTs} for ${args.agentId} and ${args.otherAgentIds}`,
-      );
-    } else {
-      await enqueueAgentWake(ctx.db, args.agentId, args.otherAgentIds, args.wakeTs);
+    const agentDoc = await ctx.db.get(args.agentId);
+    if (!agentDoc) throw new Error(`Agent ${args.agentId} not found`);
+    if (!agentDoc.thinking) {
+      throw new Error('Agent was not thinking: did you call agentDone twice for the same agent?');
     }
+    await ctx.db.replace(args.agentId, {
+      playerId: agentDoc.playerId,
+      worldId: agentDoc.worldId,
+      thinking: false,
+      lastWakeTs: agentDoc.nextWakeTs,
+      nextWakeTs: args.wakeTs,
+      alsoWake: args.otherAgentIds,
+      scheduled: await enqueueAgentWake(
+        ctx,
+        args.agentId,
+        agentDoc.worldId,
+        args.wakeTs,
+        args.noSchedule,
+      ),
+    });
   },
 });
 
 export async function enqueueAgentWake(
-  db: DatabaseWriter,
+  ctx: MutationCtx,
   agentId: Id<'agents'>,
-  otherAgentIds?: Id<'agents'>[],
-  atTs?: number,
+  worldId: Id<'worlds'>,
+  atTs: number,
+  noSchedule?: boolean,
 ) {
-  const ts = atTs ?? Date.now();
-  const agentDoc = (await db.get(agentId))!;
-  const patch = { nextWakeTs: ts, scheduled: true };
-  if (agentDoc.nextWakeTs) {
-    if (agentDoc.nextWakeTs < ts) {
-      console.log(
-        `Agent was${agentDoc.scheduled ? '' : ' not'} scheduled to wake up sooner, bumping out.`,
-      );
-
-      return;
+  // Future: Debounce wakups by looking 100ms into the future.
+  const nextScheduled = await ctx.db
+    .query('agents')
+    .withIndex('by_worldId_thinking', (q) =>
+      q.eq('worldId', worldId).eq('thinking', false).lte('nextWakeTs', atTs),
+    )
+    .first();
+  if (nextScheduled) {
+    if (!nextScheduled.scheduled) {
+      throw new Error("Next scheduled agent isn't scheduled: " + JSON.stringify(nextScheduled));
+    }
+    // We are effectively scheduled since it'll wake up at the same time.
+    if (nextScheduled.nextWakeTs === atTs) {
+      console.log('Not scheduling: next scheduled is at the same time: ', nextScheduled.nextWakeTs);
+      return true;
+    }
+    // Another agent will be scheduled before us
+    if (nextScheduled._id !== agentId) {
+      console.log('Not scheduling: next scheduled agent is before us: ', nextScheduled.nextWakeTs);
+      return false;
     }
   }
-  // TODO: finish impl
+  if (noSchedule) return false;
+  console.log('Scheduling for ', atTs);
+  await ctx.scheduler.runAt(atTs, internal.engine.tick, { worldId });
+  return true;
 }
 
 export const freezeAll = internalMutation({

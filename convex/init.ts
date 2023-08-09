@@ -116,7 +116,6 @@ export const addPlayers = internalMutation({
         scheduled: false,
         thinking: false,
         worldId,
-        alsoWake: [],
         nextWakeTs: Date.now(),
         lastWakeTs: Date.now(),
       });

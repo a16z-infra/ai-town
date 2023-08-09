@@ -1,5 +1,4 @@
 import { cronJobs } from 'convex/server';
-import { internal } from './_generated/api';
 import { internalMutation } from './_generated/server';
 import { getLatestPlayerMotion } from './journal';
 import { AGENT_THINKING_TOO_LONG } from './config';
@@ -12,23 +11,22 @@ export const recoverThinkingAgents = internalMutation({
     if (!world) throw new Error('No world found');
     // TODO: in the future, we can check all players, but for now let's just
     // check the most recent world.
+    const ts = Date.now();
     const agentDocs = await ctx.db
       .query('agents')
       .withIndex('by_worldId_thinking', (q) => q.eq('worldId', world._id).eq('thinking', true))
       .filter((q) => q.lt(q.field('lastWakeTs'), Date.now() - AGENT_THINKING_TOO_LONG))
       .collect();
-    for (const agentDoc of agentDocs) {
-      await ctx.db.patch(agentDoc._id, {
-        thinking: false,
-        alsoWake: [],
-        nextWakeTs: undefined,
-        scheduled: false,
-      });
-    }
-    const agentIds = agentDocs.map((a) => a._id);
-    if (agentIds.length === 0) return;
-    for (const agentId of agentIds) {
-      await enqueueAgentWake(ctx.db, agentId, []);
+    if (agentDocs.length !== 0) {
+      // We can just enqueue one, since they're all at the same time.
+      const scheduled = await enqueueAgentWake(ctx, agentDocs[0]._id, world._id, ts);
+      for (const agentDoc of agentDocs) {
+        await ctx.db.patch(agentDoc._id, {
+          thinking: false,
+          nextWakeTs: ts,
+          scheduled,
+        });
+      }
     }
   },
 });
@@ -38,22 +36,23 @@ export const recoverStoppedAgents = internalMutation({
   handler: async (ctx, args) => {
     const world = await ctx.db.query('worlds').order('desc').first();
     if (!world) throw new Error('No world found');
+    if (world.frozen) {
+      console.log("Didn't tick: world frozen");
+      return;
+    }
     // TODO: in the future, we can check all players, but for now let's just
     // check the most recent world.
     const agentDocs = await ctx.db
       .query('agents')
       .withIndex('by_worldId_thinking', (q) => q.eq('worldId', world._id).eq('thinking', false))
       .collect();
-    const agentIds = [];
     for (const agentDoc of agentDocs) {
       const motion = await getLatestPlayerMotion(ctx.db, agentDoc.playerId);
       if (motion.type === 'stopped' || motion.targetEndTs < Date.now()) {
-        agentIds.push(agentDoc._id);
+        console.error("We found a stationary agent that's not thinking. Tick time");
+        await enqueueAgentWake(ctx, agentDoc._id, world._id, Date.now());
+        return;
       }
-    }
-    if (agentIds.length === 0) return;
-    for (const agentId of agentIds) {
-      await enqueueAgentWake(ctx.db, agentId, []);
     }
   },
 });
