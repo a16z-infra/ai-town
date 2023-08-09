@@ -29,13 +29,20 @@ import { asyncMap, pruneNull } from './lib/utils';
 import { getAllPlayers } from './players';
 import { CLOSE_DISTANCE, DEFAULT_START_POSE, NEARBY_DISTANCE, TIME_PER_STEP } from './config';
 import { findCollision, findRoute } from './lib/routing';
-import { getPoseFromMotion, manhattanDistance, roundPose } from './lib/physics';
+import {
+  getPoseFromMotion,
+  getRemainingPathFromMotion,
+  getRouteDistance,
+  manhattanDistance,
+  roundPose,
+} from './lib/physics';
 import { clientMessageMapper } from './chat';
 
 type DoneFn = (
-  agentId: Id<'agents'>,
-  otherAgentIds?: Id<'agents'>[],
-  wakeTs?: number,
+  agentId: Id<'agents'> | undefined,
+  activity:
+    | { type: 'walk'; ignore: Id<'players'>[] }
+    | { type: 'continue'; ignore: Id<'players'>[] },
 ) => Promise<void>;
 export const runAgentBatch = internalAction({
   args: {
@@ -44,15 +51,7 @@ export const runAgentBatch = internalAction({
   },
   handler: async (ctx, { playerIds, noSchedule }) => {
     const memory = MemoryDB(ctx);
-    const done: DoneFn = async (agentId, otherAgentIds, wakeTs) => {
-      await ctx.runMutation(internal.engine.agentDone, {
-        agentId,
-        otherAgentIds,
-        wakeTs,
-        noSchedule,
-      });
-    };
-
+    const done: DoneFn = handleDone(ctx, noSchedule);
     // Get the current state of the world
     const { players } = await ctx.runQuery(internal.agent.getSnapshot, { playerIds });
     const playerById = new Map(players.map((p) => [p.id, p]));
@@ -94,6 +93,36 @@ export const runAgentBatch = internalAction({
   },
 });
 
+function handleDone(ctx: ActionCtx, noSchedule?: boolean): DoneFn {
+  return async (agentId, activity) => {
+    if (!agentId) return;
+    let walkResult;
+    switch (activity.type) {
+      case 'walk':
+        walkResult = await ctx.runMutation(internal.agent.walk, {
+          agentId,
+          ignore: activity.ignore,
+        });
+        break;
+      case 'continue':
+        walkResult = await ctx.runQuery(internal.agent.nextCollision, {
+          agentId,
+          ignore: activity.ignore,
+        });
+        break;
+      default:
+        const _exhaustiveCheck: never = activity;
+        throw new Error(`Unhandled activity: ${JSON.stringify(activity)}`);
+    }
+    await ctx.runMutation(internal.engine.agentDone, {
+      agentId,
+      otherAgentIds: walkResult.nextCollision?.agentIds,
+      wakeTs: walkResult.nextCollision?.ts ?? walkResult.targetEndTs,
+      noSchedule,
+    });
+  };
+}
+
 async function handleAgentSolo(ctx: ActionCtx, player: Player, memory: MemoryDB, done: DoneFn) {
   // Handle new observations
   //   Calculate scores
@@ -102,17 +131,10 @@ async function handleAgentSolo(ctx: ActionCtx, player: Player, memory: MemoryDB,
   //  might include new observations -> add to memory with openai embeddings
   // Based on plan and observations, determine next action:
   //   if so, add new memory for new plan, and return new action
-  if (player.agentId) {
-    if (player.motion.type === 'stopped' || player.motion.targetEndTs > Date.now()) {
-      const { nextCollision, targetEndTs } = await ctx.runMutation(internal.agent.walk, {
-        playerId: player.id,
-        ignore: [],
-      });
-      await done(player.agentId, nextCollision?.agentIds, nextCollision?.ts ?? targetEndTs);
-    } else {
-      await done(player.agentId);
-    }
-  }
+  const walk = player.motion.type === 'stopped' || player.motion.targetEndTs > Date.now();
+  // Ignore everyone we last said something to.
+  const ignore = player.lastChat?.message.to ?? [];
+  await done(player.agentId, { type: walk ? 'walk' : 'continue', ignore });
 }
 
 export async function handleAgentInteraction(
@@ -181,13 +203,7 @@ export async function handleAgentInteraction(
 
   for (const player of players) {
     await memory.rememberConversation(player.name, player.id, player.identity, conversationId);
-    const { nextCollision, targetEndTs } = await ctx.runMutation(internal.agent.walk, {
-      playerId: player.id,
-      ignore: players.map((p) => p.id),
-    });
-    if (player.agentId) {
-      await done(player.agentId, nextCollision?.agentIds ?? [], nextCollision?.ts ?? targetEndTs);
-    }
+    await done(player.agentId, { type: 'walk', ignore: players.map((p) => p.id) });
   }
 }
 
@@ -421,15 +437,16 @@ export const stop = internalMutation({
 
 // TODO: allow specifying a specific place to go, ideally a named Zone.
 export const walk = internalMutation({
-  args: { playerId: v.id('players'), ignore: v.array(v.id('players')) },
-  handler: async (ctx, { playerId, ignore, ...args }) => {
+  args: { agentId: v.id('agents'), ignore: v.array(v.id('players')) },
+  handler: async (ctx, { agentId, ignore, ...args }) => {
     const ts = Date.now();
-    const playerDoc = (await ctx.db.get(playerId))!;
-    const world = (await ctx.db.get(playerDoc.worldId))!;
+    const agentDoc = (await ctx.db.get(agentId))!;
+    const { playerId, worldId } = agentDoc;
+    const world = (await ctx.db.get(worldId))!;
     const map = (await ctx.db.get(world.mapId))!;
     const exclude = new Set([...ignore, playerId]);
     const otherPlayers = await asyncMap(
-      (await getAllPlayers(ctx.db, playerDoc.worldId)).filter((p) => !exclude.has(p._id)),
+      (await getAllPlayers(ctx.db, worldId)).filter((p) => !exclude.has(p._id)),
       async (p) => ({ id: p.agentId, motion: await getLatestPlayerMotion(ctx.db, p._id) }),
     );
     const ourMotion = await getLatestPlayerMotion(ctx.db, playerId);
@@ -446,6 +463,32 @@ export const walk = internalMutation({
       playerId,
       data: { type: 'walking', route, startTs: ts, targetEndTs },
     });
+    return {
+      targetEndTs,
+      nextCollision: collisions && {
+        ts: collisions.distance * TIME_PER_STEP + ts,
+        agentIds: pruneNull(collisions.ids),
+      },
+    };
+  },
+});
+
+export const nextCollision = internalQuery({
+  args: { agentId: v.id('agents'), ignore: v.array(v.id('players')) },
+  handler: async (ctx, { agentId, ignore, ...args }) => {
+    const ts = Date.now();
+    const agentDoc = (await ctx.db.get(agentId))!;
+    const { playerId, worldId } = agentDoc;
+    const exclude = new Set([...ignore, playerId]);
+    const otherPlayers = await asyncMap(
+      (await getAllPlayers(ctx.db, worldId)).filter((p) => !exclude.has(p._id)),
+      async (p) => ({ id: p.agentId, motion: await getLatestPlayerMotion(ctx.db, p._id) }),
+    );
+    const ourMotion = await getLatestPlayerMotion(ctx.db, playerId);
+    const route = getRemainingPathFromMotion(ourMotion, ts);
+    const distance = getRouteDistance(route);
+    const targetEndTs = ts + distance * TIME_PER_STEP;
+    const collisions = findCollision(route, otherPlayers, ts, CLOSE_DISTANCE);
     return {
       targetEndTs,
       nextCollision: collisions && {

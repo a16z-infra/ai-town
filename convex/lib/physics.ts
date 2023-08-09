@@ -35,10 +35,7 @@ export function getPoseFromMotion(motion: Motion, ts: number): Pose {
 
 export function getPoseFromRoute(route: Position[], fraction: number): Pose {
   if (route.length === 1) return { position: route[0], orientation: 0 };
-  const totalLength = route.reduce((sum, pos, idx) => {
-    if (idx === 0) return sum;
-    return sum + manhattanDistance(pos, route[idx - 1]);
-  }, 0);
+  const totalLength = getRouteDistance(route);
   const progressDistance = fraction * totalLength;
   let soFar = 0;
   let start = route[0]!;
@@ -65,10 +62,7 @@ export function getRemainingPathFromMotion(motion: Motion, ts: number): Position
   }
   const route = motion.route;
   if (route.length === 1) return route;
-  const totalLength = route.reduce((sum, pos, idx) => {
-    if (idx === 0) return sum;
-    return sum + manhattanDistance(pos, route[idx - 1]);
-  }, 0);
+  const totalLength = getRouteDistance(route);
   const fraction = calculateFraction(motion.startTs, motion.targetEndTs, ts);
   const progressDistance = fraction * totalLength;
   let soFar = 0;
@@ -87,6 +81,14 @@ export function getRemainingPathFromMotion(motion: Motion, ts: number): Position
     interpolatePosition(route[start], route[end], progressDistance - soFar),
     ...route.slice(start + 1),
   ];
+}
+
+export function getRouteDistance(route: Position[]): number {
+  if (route.length === 1) return 0;
+  return route.reduce((sum, pos, idx) => {
+    if (idx === 0) return sum;
+    return sum + manhattanDistance(pos, route[idx - 1]);
+  }, 0);
 }
 
 export function roundPosition(pos: Position): Position {
