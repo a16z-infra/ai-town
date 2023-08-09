@@ -52,32 +52,32 @@ function Messages({
 }
 
 export default function Chats({ playerState }: { playerState: PlayerState | undefined }) {
+  if (!playerState) {
+    return (
+      <div className="h-full text-xl flex text-center items-center p-4">
+        Click on an agent on the map to see chat history.
+      </div>
+    );
+  }
+
   return (
-    <div>
-      {!playerState ? (
-        <div className="relative pb-8">Click on an agent on the map to see chat history</div>
-      ) : (
-        <ul role="list" className="-mb-8 overflow-auto">
-          <li className="mb-5">
-            <div className="box mb-4">
-              <h2 className="bg-brown-700 p-2 font-display text-4xl tracking-wider shadow-solid text-center">
-                {playerState.name}
-              </h2>
-            </div>
-            <p className="text-sm">
-              <span>{playerState.identity}</span>
-            </p>
-          </li>
-          {playerState.lastChat?.conversationId && (
-            <div className="bg-brown-200 text-black p-6">
-              <Messages
-                conversationId={playerState.lastChat?.conversationId}
-                currentPlayerId={playerState.id}
-              />
-            </div>
-          )}
-        </ul>
+    <>
+      <div className="box">
+        <h2 className="bg-brown-700 p-2 font-display text-4xl tracking-wider shadow-solid text-center">
+          {playerState.name}
+        </h2>
+      </div>
+
+      <p className="leading-tight my-8">{playerState.identity}</p>
+
+      {playerState.lastChat?.conversationId && (
+        <div className="bg-brown-200 text-black p-6">
+          <Messages
+            conversationId={playerState.lastChat?.conversationId}
+            currentPlayerId={playerState.id}
+          />
+        </div>
       )}
-    </div>
+    </>
   );
 }
