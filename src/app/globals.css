@@ -38,3 +38,16 @@ body {
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(0px 0.08em 0px #6e2146);
 }
+
+.game-frame {
+  border-width: 36px;
+  border-image-source: url(../../assets/ui/frame.svg);
+  border-image-repeat: stretch;
+  border-image-slice: 25%;
+}
+
+@media screen and (min-width: 640px) {
+  .game-frame {
+    border-width: 48px;
+  }
+}

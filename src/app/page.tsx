@@ -1,8 +1,6 @@
 import Navbar from '@/components/Navbar';
 import Examples from '@/components/Examples';
 
-import background from '../../assets/u';
-
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-between font-body game-background">
