@@ -28,11 +28,36 @@ export const runAgentBatch = internalAction({
     const { groups, solos } = divideIntoGroups(players);
     // Run a conversation for each group.
     const groupPromises = groups.map(async (group) => {
-      await handleAgentInteraction(ctx, group, memory, done);
+      const finished = new Set<Id<'agents'>>();
+      try {
+        await handleAgentInteraction(ctx, group, memory, (agentId, activity) => {
+          if (agentId) finished.add(agentId);
+          return done(agentId, activity);
+        });
+      } catch (e) {
+        console.error(
+          'group failed, going for a walk: ',
+          group.map((p) => p.agentId),
+        );
+        for (const player of group) {
+          if (player.agentId && !finished.has(player.agentId)) {
+            await done(player.agentId, { type: 'walk', ignore: group.map((p) => p.id) });
+          }
+        }
+        throw e;
+      }
     });
     // For those not in a group, run the solo agent loop.
     const soloPromises = solos.map(async (player) => {
-      await handleAgentSolo(ctx, player, memory, done);
+      try {
+        if (player.agentId) {
+          await handleAgentSolo(ctx, player, memory, done);
+        }
+      } catch (e) {
+        console.error('agent failed, going for a walk: ', player.agentId);
+        await done(player.agentId!, { type: 'walk', ignore: [] });
+        throw e;
+      }
     });
 
     // Make a structure that resolves when the agent yields.
