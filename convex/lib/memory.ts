@@ -161,21 +161,26 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
     },
 
     async reflectOnMemories(playerId: Id<'players'>, name: string) {
-      let messages = await ctx.runQuery(internal.lib.memory.getRecentMemories, {
-        playerId,
-        numberOfItems: 100,
-      });
-      console.log('messages length', messages.length);
+      const { memories, lastReflectionTs } = await ctx.runQuery(
+        internal.lib.memory.getReflectionMemories,
+        {
+          playerId,
+          numberOfItems: 100,
+        },
+      );
+      console.log('messages length', memories.length);
 
       // should only reflect if lastest 100 items have importance score of >30
-      const sumOfImportanceScore = messages.reduce((acc, curr) => acc + curr.importance, 0);
+      const sumOfImportanceScore = memories
+        .filter((m) => m._creationTime > (lastReflectionTs ?? 0))
+        .reduce((acc, curr) => acc + curr.importance, 0);
       console.log('sum of importance score = ', sumOfImportanceScore);
       const shouldReflect = sumOfImportanceScore > 500;
 
       if (shouldReflect) {
         console.log('Reflecting...');
         let prompt = `[no prose]\n [Output only JSON] \nYou are ${name}, statements about you:\n`;
-        messages.forEach((m, idx) => {
+        memories.forEach((m, idx) => {
           prompt += `Statement ${idx}: ${m.description}\n`;
         });
         prompt += `What 2 high-level insights can you infer from the above statements?
@@ -196,7 +201,7 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
           const insights: { insight: string; statementIds: number[] }[] = JSON.parse(reflection);
           let memoriesToSave: MemoryOfType<'reflection'>[] = [];
           insights.forEach((item) => {
-            const relatedMemoryIds = item.statementIds.map((idx: number) => messages[idx]._id);
+            const relatedMemoryIds = item.statementIds.map((idx: number) => memories[idx]._id);
             const reflectionMemory = {
               playerId,
               description: item.insight,
@@ -342,7 +347,7 @@ async function getMemoryByEmbeddingId(
   return doc;
 }
 
-export const getRecentMemories = internalQuery({
+export const getReflectionMemories = internalQuery({
   args: { playerId: v.id('players'), numberOfItems: v.number() },
   handler: async (ctx, { playerId, numberOfItems }) => {
     const conversations = await ctx.db
@@ -363,10 +368,20 @@ export const getRecentMemories = internalQuery({
       .order('desc')
       .take(numberOfItems);
 
+    const lastReflection = await ctx.db
+      .query('memories')
+      .withIndex('by_playerId_type', (q) =>
+        q.eq('playerId', playerId).eq('data.type', 'reflection'),
+      )
+      .order('desc')
+      .first();
     const mergedList = reflections.concat(conversations);
     mergedList.sort((a, b) => b._creationTime - a._creationTime);
 
-    return mergedList.slice(0, numberOfItems);
+    return {
+      memories: mergedList.slice(0, numberOfItems),
+      lastReflectionTs: lastReflection?._creationTime,
+    };
   },
 });
 
