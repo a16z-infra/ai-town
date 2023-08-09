@@ -1,7 +1,7 @@
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
-import { Player as PlayerState } from '../../convex/types';
+import type { Player as PlayerState } from '../../convex/schema';
 
 function classNames(...classes: any) {
   return classes.filter(Boolean).join(' ');

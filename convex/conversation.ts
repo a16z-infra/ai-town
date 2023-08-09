@@ -1,6 +1,6 @@
 import { MemoryDB, filterMemoriesType } from './lib/memory';
 import { GPTMessage, chatGPTCompletion, fetchEmbedding } from './lib/openai';
-import { Message, Player, Snapshot } from './types';
+import { Message, Player, Snapshot } from './schema';
 
 export async function startConversation(
   relationships: { name: string; relationship: string }[],

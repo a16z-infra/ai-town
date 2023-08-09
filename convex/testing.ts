@@ -5,7 +5,7 @@ import { internalAction, internalMutation, internalQuery } from './_generated/se
 import { getAgentSnapshot, handlePlayerAction } from './engine';
 import { getAllPlayers } from './players';
 import { asyncMap } from './lib/utils';
-import { Action, Entry, EntryOfType, Motion, Player, Pose } from './types';
+import { Action, Entry, EntryOfType, Motion, Player, Pose } from './schema';
 import { clientMessageMapper } from './chat';
 import { MemoryDB } from './lib/memory';
 import { chatHistoryFromMessages, converse, startConversation, walkAway } from './conversation';

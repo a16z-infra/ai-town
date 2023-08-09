@@ -1,5 +1,5 @@
 import { Doc } from '../_generated/dataModel';
-import { Motion, Position } from '../types';
+import { Motion, Position } from '../schema';
 import {
   getPoseFromMotion,
   getRemainingPathFromMotion,

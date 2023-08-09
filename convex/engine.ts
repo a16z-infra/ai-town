@@ -20,7 +20,7 @@ import {
   Snapshot,
   Motion,
   Message,
-} from './types.js';
+} from './schema.js';
 import { asyncFilter, asyncMap, pruneNull } from './lib/utils.js';
 import { getPoseFromMotion, manhattanDistance, roundPose } from './lib/physics.js';
 import { findCollision, findRoute } from './lib/routing';

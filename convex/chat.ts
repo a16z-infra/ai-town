@@ -1,9 +1,9 @@
 import { v } from 'convex/values';
 import { Id } from './_generated/dataModel';
 import { DatabaseReader, query } from './_generated/server';
-import { EntryOfType } from './types';
+import { EntryOfType } from './schema';
 import { PaginationResult, paginationOptsValidator } from 'convex/server';
-import { Message } from './types';
+import { Message } from './schema';
 import { asyncMap } from './lib/utils';
 
 export const listConversations = query({

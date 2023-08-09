@@ -8,7 +8,7 @@ import { Doc, Id } from './_generated/dataModel';
 
 import { internalAction } from './_generated/server';
 import { MemoryDB } from './lib/memory';
-import { Snapshot, Action, Position, Worlds, EntryOfType } from './types';
+import { Snapshot, Action, Position, Worlds, EntryOfType } from './schema';
 import { chatHistoryFromMessages, converse, startConversation, walkAway } from './conversation';
 
 export type ActionAPI = (action: Action) => Promise<Doc<'journal'> | null>;
