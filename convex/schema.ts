@@ -242,9 +242,8 @@ export default defineSchema(
       worldId: v.id('worlds'),
       playerId: v.id('players'),
       thinking: v.boolean(),
-      lastWakeTs: v.optional(v.number()),
-      // If set, the agent next wants to wake up at this time.
-      nextWakeTs: v.optional(v.number()),
+      nextWakeTs: v.number(),
+      lastWakeTs: v.number(),
       alsoWake: v.array(v.id('agents')),
       scheduled: v.boolean(),
     }).index('by_worldId_thinking', ['worldId', 'thinking', 'nextWakeTs']),

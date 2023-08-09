@@ -117,6 +117,8 @@ export const addPlayers = internalMutation({
         thinking: false,
         worldId,
         alsoWake: [],
+        nextWakeTs: Date.now(),
+        lastWakeTs: Date.now(),
       });
       await ctx.db.patch(playerId, { agentId });
       await ctx.db.insert('journal', {

@@ -97,6 +97,8 @@ export const createAgent = mutation({
       scheduled: false,
       thinking: false,
       worldId,
+      nextWakeTs: Date.now(),
+      lastWakeTs: Date.now(),
       alsoWake: [],
     });
     await ctx.db.patch(playerId, { agentId });
