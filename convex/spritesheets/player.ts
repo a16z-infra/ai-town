@@ -1,4 +1,4 @@
-import { SpritesheetData } from '../types';
+import { SpritesheetData } from '../schema';
 
 export const data: SpritesheetData = {
   frames: {

@@ -1,6 +1,5 @@
 import { BaseTexture, ISpritesheetData, Spritesheet } from 'pixi.js';
 import { useState, useEffect } from 'react';
-import { Pose } from '../../convex/types';
 import { AnimatedSprite, Container, Text } from '@pixi/react';
 
 export const Character = ({

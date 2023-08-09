@@ -11,7 +11,7 @@ import {
   query,
 } from './_generated/server';
 import { HEARTBEAT_PERIOD, getPlayer, handlePlayerAction } from './engine';
-import { Action, Pose } from './types';
+import { Action, Pose } from './schema';
 
 export const getWorld = query({
   args: {},

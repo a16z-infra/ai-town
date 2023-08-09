@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Chats from './Chats';
 import Game from './Game';
-import { Player } from '../../convex/types';
+import type { Player } from '../../convex/schema';
 
 export default function Examples() {
   const [selectedPlayer, setSelectedPlayer] = useState<Player>();

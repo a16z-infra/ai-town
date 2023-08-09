@@ -32,7 +32,6 @@ import type * as maps_firstmap from "../maps/firstmap";
 import type * as players from "../players";
 import type * as spritesheets_player from "../spritesheets/player";
 import type * as testing from "../testing";
-import type * as types from "../types";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -61,7 +60,6 @@ declare const fullApi: ApiFromModules<{
   players: typeof players;
   "spritesheets/player": typeof spritesheets_player;
   testing: typeof testing;
-  types: typeof types;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

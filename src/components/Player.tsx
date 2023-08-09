@@ -4,7 +4,7 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { getPoseFromMotion } from '../../convex/lib/physics';
 import { Doc } from '../../convex/_generated/dataModel';
-import { Player as PlayerState, Pose } from '../../convex/types';
+import type { Player as PlayerState, Pose } from '../../convex/schema';
 import { Character } from './Character';
 
 const SpeechDurationMs = 3000;
