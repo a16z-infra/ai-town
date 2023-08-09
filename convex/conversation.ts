@@ -1,6 +1,10 @@
+import { Id } from './_generated/dataModel';
 import { MemoryDB, filterMemoriesType } from './lib/memory';
 import { GPTMessage, chatGPTCompletion, fetchEmbedding } from './lib/openai';
-import { Message, Player, Snapshot } from './schema';
+import { Message } from './schema';
+
+type Player = { id: Id<'players'>; name: string; identity: string };
+type Relation = Player & { relationship: string };
 
 export async function startConversation(
   relationships: { name: string; relationship: string }[],
@@ -58,17 +62,17 @@ export function chatHistoryFromMessages(messages: Message[]): GPTMessage[] {
 export async function converse(
   messages: GPTMessage[],
   player: Player,
-  nearbyPlaers: Snapshot['nearbyPlayers'],
+  nearbyPlaers: Relation[],
   memory: MemoryDB,
 ): Promise<string> {
-  const nearbyPlayersNames = nearbyPlaers.map((p) => p.player.name).join(', ');
+  const nearbyPlayersNames = nearbyPlaers.map((p) => p.name).join(', ');
   const lastMessage: string | null | undefined = messages?.at(-1)?.content;
   const { embedding } = await fetchEmbedding(lastMessage ? lastMessage : '');
   const memories = await memory.accessMemories(player.id, embedding);
   const conversationMemories = filterMemoriesType(['conversation'], memories);
   const lastConversationTs = conversationMemories[0]?.memory._creationTime;
 
-  const stop = nearbyPlaers.map((p) => p.player.name + ':');
+  const stop = nearbyPlaers.map((p) => p.name + ':');
   const relevantMemories: string = conversationMemories
     .slice(0, 2) // only use the first 2 memories
     .map((r) => r.memory.description)
@@ -79,7 +83,7 @@ export async function converse(
   let prefixPrompt = `Your name is ${player.name}. About you: ${player.identity}.
   You are talking to ${nearbyPlayersNames}, below are something about them: `;
   nearbyPlaers.forEach((p) => {
-    prefixPrompt += `\nAbout ${p.player.name}: ${p.player.identity}\n`;
+    prefixPrompt += `\nAbout ${p.name}: ${p.identity}\n`;
   });
 
   prefixPrompt += `Last time you chatted with some of ${nearbyPlayersNames} it was ${lastConversationTs}. It's now ${Date.now()}. You can cut this conversation short if you talked to this group of people within the last day. \n}`;

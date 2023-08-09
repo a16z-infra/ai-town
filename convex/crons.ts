@@ -1,43 +1,66 @@
 import { cronJobs } from 'convex/server';
 import { internal } from './_generated/api';
-import { getPlayer } from './engine';
-import { Id } from './_generated/dataModel';
 import { internalMutation } from './_generated/server';
-import { getAllPlayers } from './players';
+import { getLatestPlayerMotion } from './agent';
+import { AGENT_THINKING_TOO_LONG } from './config';
+import { enqueueAgentWake } from './engine';
 
-export const recoverAgents = internalMutation({
+export const recoverThinkingAgents = internalMutation({
   args: {},
   handler: async (ctx, args) => {
     const world = await ctx.db.query('worlds').order('desc').first();
     if (!world) throw new Error('No world found');
-    const players = await getAllPlayers(ctx.db, world._id);
     // TODO: in the future, we can check all players, but for now let's just
     // check the most recent world.
-    // const players = await ctx.db.query('players').collect();
-    const playersByWorldId: { [worldId: Id<'worlds'>]: Id<'players'>[] } = {};
-    for (const playerDoc of players) {
-      const player = await getPlayer(ctx.db, playerDoc);
-      if (
-        !player.thinking &&
-        (player.motion.type === 'stopped' || player.motion.targetEndTs < Date.now())
-      ) {
-        const existing = playersByWorldId[playerDoc.worldId];
-        if (!existing) {
-          playersByWorldId[playerDoc.worldId] = [player.id];
-        } else {
-          existing.push(player.id);
-        }
+    const agentDocs = await ctx.db
+      .query('agents')
+      .withIndex('by_worldId_thinking', (q) => q.eq('worldId', world._id).eq('thinking', true))
+      .filter((q) => q.lt(q.field('lastWakeTs'), Date.now() - AGENT_THINKING_TOO_LONG))
+      .collect();
+    for (const agentDoc of agentDocs) {
+      await ctx.db.patch(agentDoc._id, {
+        thinking: false,
+        alsoWake: [],
+        nextWakeTs: undefined,
+        scheduled: false,
+      });
+    }
+    const agentIds = agentDocs.map((a) => a._id);
+    if (agentIds.length === 0) return;
+    for (const agentId of agentIds) {
+      await enqueueAgentWake(ctx.db, agentId, []);
+    }
+  },
+});
+
+export const recoverStoppedAgents = internalMutation({
+  args: {},
+  handler: async (ctx, args) => {
+    const world = await ctx.db.query('worlds').order('desc').first();
+    if (!world) throw new Error('No world found');
+    // TODO: in the future, we can check all players, but for now let's just
+    // check the most recent world.
+    const agentDocs = await ctx.db
+      .query('agents')
+      .withIndex('by_worldId_thinking', (q) => q.eq('worldId', world._id).eq('thinking', false))
+      .collect();
+    const agentIds = [];
+    for (const agentDoc of agentDocs) {
+      const motion = await getLatestPlayerMotion(ctx.db, agentDoc.playerId);
+      if (motion.type === 'stopped' || motion.targetEndTs < Date.now()) {
+        agentIds.push(agentDoc._id);
       }
     }
-    for (const [worldId, forPlayers] of Object.entries(playersByWorldId)) {
-      await ctx.scheduler.runAfter(0, internal.engine.tick, {
-        worldId: worldId as Id<'worlds'>,
-        forPlayers,
-      });
+    if (agentIds.length === 0) return;
+    for (const agentId of agentIds) {
+      await enqueueAgentWake(ctx.db, agentId, []);
     }
   },
 });
 
 const crons = cronJobs();
-crons.interval('restart idle agents', { seconds: 60 }, internal.crons.recoverAgents);
+// TODO: enable this to recover stopped agents
+// crons.interval('restart idle agents', { seconds: 60 }, internal.crons.recoverStoppedAgents);
+// TODO: enable this to recover perma-thinking agents
+// crons.interval('restart thinking agents', { seconds: 60 }, internal.crons.recoverThinkingAgents);
 export default crons;

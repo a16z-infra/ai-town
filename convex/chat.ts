@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import { Id } from './_generated/dataModel';
 import { DatabaseReader, query } from './_generated/server';
-import { EntryOfType } from './schema';
+import { EntryOfType, MessageEntry } from './schema';
 import { PaginationResult, paginationOptsValidator } from 'convex/server';
 import { Message } from './schema';
 import { asyncMap } from './lib/utils';
@@ -49,7 +49,6 @@ export const paginatePlayerMessages = query({
   },
 });
 
-type MessageEntry = EntryOfType<'talking' | 'startConversation' | 'leaveConversation'>;
 export const listMessages = query({
   args: { conversationId: v.id('conversations') },
   handler: async (ctx, args) => {

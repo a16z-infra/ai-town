@@ -28,43 +28,6 @@ export type Position = Infer<typeof Position>;
 export const Pose = v.object({ position: Position, orientation: v.number() });
 export type Pose = Infer<typeof Pose>;
 
-export const StartConversation = v.object({
-  type: v.literal('startConversation'),
-  audience: v.array(v.id('players')),
-});
-export const SaySomething = v.object({
-  type: v.literal('talking'),
-  // If they are speaking to a person in particular.
-  // If it's empty, it's just talking out loud.
-  audience: v.array(v.id('players')),
-  content: v.string(),
-  // Refers to the first message in the conversation.
-  conversationId: v.id('conversations'),
-});
-export const LeaveConversation = v.object({
-  type: v.literal('leaveConversation'),
-  conversationId: v.id('conversations'),
-  audience: v.array(v.id('players')),
-});
-
-export const Action = v.union(
-  StartConversation,
-  SaySomething,
-  LeaveConversation,
-  v.object({
-    type: v.literal('travel'),
-    position: Position,
-  }),
-  v.object({
-    type: v.literal('stop'),
-  }),
-  v.object({
-    type: v.literal('done'),
-    thinkId: v.id('journal'),
-  }),
-);
-export type Action = Infer<typeof Action>;
-
 const commonFields = {
   from: v.id('players'),
   fromName: v.string(),
@@ -112,32 +75,15 @@ export type Motion = Infer<typeof Motion>;
 export const Player = v.object({
   id: v.id('players'),
   name: v.string(),
+  agentId: v.optional(v.id('agents')),
   characterId: v.id('characters'),
   identity: v.string(),
   motion: Motion,
   thinking: v.boolean(),
-  lastThinkTs: v.optional(v.number()),
-  lastThinkEndTs: v.optional(v.number()),
+  lastPlan: v.optional(v.object({ plan: v.string(), ts: v.number() })),
   lastChat: v.optional(v.object({ message: Message, conversationId: v.id('conversations') })),
 });
 export type Player = Infer<typeof Player>;
-
-export const Snapshot = v.object({
-  player: Player,
-  lastPlan: v.optional(v.object({ plan: v.string(), ts: v.number() })),
-  // recentMemories: v.array(memoryValidator),
-  nearbyPlayers: v.array(
-    v.object({
-      player: Player,
-      new: v.boolean(),
-      relationship: v.string(),
-    }),
-  ),
-  nearbyConversations: v.array(
-    v.object({ conversationId: v.id('conversations'), messages: v.array(Message) }),
-  ),
-});
-export type Snapshot = Infer<typeof Snapshot>;
 
 // Journal documents are append-only, and define an player's state.
 export const Journal = Table('journal', {
@@ -149,18 +95,22 @@ export const Journal = Table('journal', {
       audience: v.array(v.id('players')),
       conversationId: v.id('conversations'),
     }),
-    SaySomething,
-    LeaveConversation,
+    v.object({
+      type: v.literal('talking'),
+      // If they are speaking to a person in particular.
+      // If it's empty, it's just talking out loud.
+      audience: v.array(v.id('players')),
+      content: v.string(),
+      // Refers to the first message in the conversation.
+      conversationId: v.id('conversations'),
+    }),
+    v.object({
+      type: v.literal('leaveConversation'),
+      conversationId: v.id('conversations'),
+      audience: v.array(v.id('players')),
+    }),
     Stopped,
     Walking,
-    // When we run the agent loop.
-    v.object({
-      type: v.literal('thinking'),
-      // We can technically snip this, and re-create it on-demand at a
-      // given timestamp. However, it's convenient to have it here for now.
-      snapshot: Snapshot,
-      finishedTs: v.optional(v.number()),
-    }),
 
     // Exercises left to the reader:
 
@@ -177,6 +127,7 @@ export type EntryType = Entry['data']['type'];
 export type EntryOfType<T extends EntryType> = Omit<Entry, 'data'> & {
   data: Extract<Entry['data'], { type: T }>;
 };
+export type MessageEntry = EntryOfType<'talking' | 'startConversation' | 'leaveConversation'>;
 
 export const Memories = Table('memories', {
   playerId: v.id('players'),
@@ -282,8 +233,21 @@ export default defineSchema(
     players: defineTable({
       name: v.string(),
       worldId: v.id('worlds'),
+      // For NPCs, this is set to the agent's state.
+      agentId: v.optional(v.id('agents')),
       characterId: v.id('characters'),
     }).index('by_worldId', ['worldId']),
+    // For tracking the engine's processing of agents
+    agents: defineTable({
+      worldId: v.id('worlds'),
+      playerId: v.id('players'),
+      thinking: v.boolean(),
+      lastWakeTs: v.optional(v.number()),
+      // If set, the agent next wants to wake up at this time.
+      nextWakeTs: v.optional(v.number()),
+      alsoWake: v.array(v.id('agents')),
+      scheduled: v.boolean(),
+    }).index('by_worldId_thinking', ['worldId', 'thinking', 'nextWakeTs']),
 
     journal: Journal.table
       .index('by_playerId_type', ['playerId', 'data.type'])

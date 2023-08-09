@@ -1,17 +1,10 @@
 import { v } from 'convex/values';
-import { api, internal } from './_generated/api';
-import { Doc, Id } from './_generated/dataModel';
-import {
-  DatabaseReader,
-  action,
-  internalAction,
-  internalMutation,
-  internalQuery,
-  mutation,
-  query,
-} from './_generated/server';
-import { HEARTBEAT_PERIOD, getPlayer, handlePlayerAction } from './engine';
-import { Action, Pose } from './schema';
+import { Id } from './_generated/dataModel';
+import { DatabaseReader, mutation, query } from './_generated/server';
+import { enqueueAgentWake } from './engine';
+import { HEARTBEAT_PERIOD } from './config';
+import { Pose } from './schema';
+import { getPlayer } from './agent';
 
 export const getWorld = query({
   args: {},
@@ -69,29 +62,49 @@ export const createPlayer = mutation({
     worldId: v.id('worlds'),
     characterId: v.id('characters'),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, { name, worldId, characterId, ...args }) => {
     // TODO: associate this with an authed user
     const playerId = await ctx.db.insert('players', {
-      name: args.name,
-      characterId: args.characterId,
-      worldId: args.worldId,
+      name,
+      characterId,
+      worldId,
     });
     await ctx.db.insert('journal', {
       playerId,
       data: { type: 'stopped', reason: 'idle', pose: args.pose },
     });
-    await ctx.scheduler.runAfter(0, internal.engine.tick, {
-      worldId: args.worldId,
-    });
     return playerId;
   },
 });
 
-export const handleUserAction = mutation({
-  // TODO: use auth instead of passing up playerId
-  args: { playerId: v.id('players'), action: Action },
-  handler: async (ctx, args) => {
-    return await handlePlayerAction(ctx, args);
+export const createAgent = mutation({
+  args: {
+    pose: Pose,
+    name: v.string(),
+    worldId: v.id('worlds'),
+    characterId: v.id('characters'),
+  },
+  handler: async (ctx, { name, worldId, characterId, ...args }) => {
+    // TODO: associate this with an authed user
+    const playerId = await ctx.db.insert('players', {
+      name,
+      characterId,
+      worldId,
+    });
+    const agentId = await ctx.db.insert('agents', {
+      playerId,
+      scheduled: false,
+      thinking: false,
+      worldId,
+      alsoWake: [],
+    });
+    await ctx.db.patch(playerId, { agentId });
+    await ctx.db.insert('journal', {
+      playerId,
+      data: { type: 'stopped', reason: 'idle', pose: args.pose },
+    });
+    await enqueueAgentWake(ctx.db, agentId, []);
+    return playerId;
   },
 });
 

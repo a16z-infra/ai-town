@@ -10,6 +10,7 @@ import {
 export function findRoute(
   map: Doc<'maps'>,
   startMotion: Motion,
+  // TODO: Walk around other players along the way
   otherPlayerMotion: Motion[],
   end: Position,
   ts: number,
@@ -47,27 +48,34 @@ export function findRoute(
 // Assumes all motion has started in the past or currently.
 // Otherwise we'd need to know how far we'd go before it starts.
 // Assumes one square move per time unit, all together.
-export function findCollision(
+export function findCollision<T>(
   route: Position[],
-  otherMotion: Motion[],
+  others: { id: T; motion: Motion }[],
   ts: number,
   strikeZone: number,
 ) {
   const densePath = makeDensePath(route);
   // Make Position[] for each player, starting at ts
-  const otherPlayerPaths = otherMotion
-    .map((motion) => getRemainingPathFromMotion(motion, ts))
+  const otherPlayerPaths = others
+    .map(({ motion }) => getRemainingPathFromMotion(motion, ts))
     .map(makeDensePath);
 
   // For each position index, check if any other player is nearby.
   for (const [idx, pos] of densePath.entries()) {
+    const collisions = [];
     for (const otherPlayerPath of otherPlayerPaths) {
       // Assume the player will stop where the end walking
       const otherPlayerPos = otherPlayerPath[idx] ?? otherPlayerPath.at(-1);
       if (manhattanDistance(pos, otherPlayerPos) <= strikeZone) {
         // Return the first index where there is a collision
-        return idx;
+        collisions.push(others[idx].id);
       }
+    }
+    if (collisions.length > 0) {
+      return {
+        ids: collisions,
+        distance: idx,
+      };
     }
   }
   return null;
