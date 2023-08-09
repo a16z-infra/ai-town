@@ -4,6 +4,7 @@ import { PixiStaticMap } from './PixiStaticMap';
 import { ConvexProvider, useConvex, useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Player, SelectPlayer } from './Player';
+import PixiViewport from './PixiViewport';
 
 export const Game = ({ setSelectedPlayer }: { setSelectedPlayer: SelectPlayer }) => {
   const convex = useConvex();
@@ -15,18 +16,25 @@ export const Game = ({ setSelectedPlayer }: { setSelectedPlayer: SelectPlayer })
   console.log('worldId', world._id);
   return (
     <Stage width={640} height={640} options={{ backgroundColor: 0xffffff }}>
-      <PixiStaticMap map={worldState.map}></PixiStaticMap>
-      <ConvexProvider client={convex}>
-        {players.map((player) => (
-          <Player
-            key={player._id}
-            player={player}
-            offset={offset}
-            tileDim={worldState.map.tileDim}
-            onClick={setSelectedPlayer}
-          />
-        ))}
-      </ConvexProvider>
+      <PixiViewport
+        screenWidth={640}
+        screenHeight={640}
+        worldWidth={worldState.map.tileSetDim}
+        worldHeight={worldState.map.tileSetDim}
+      >
+        <PixiStaticMap map={worldState.map}></PixiStaticMap>
+        <ConvexProvider client={convex}>
+          {players.map((player) => (
+            <Player
+              key={player._id}
+              player={player}
+              offset={offset}
+              tileDim={worldState.map.tileDim}
+              onClick={setSelectedPlayer}
+            />
+          ))}
+        </ConvexProvider>
+      </PixiViewport>
     </Stage>
   );
 };

@@ -36,6 +36,7 @@
     "next": "13.4.4",
     "phaser": "^3.60.0",
     "phaser3spectorjs": "^0.0.8",
+    "pixi-viewport": "^5.0.1",
     "pixi.js": "^7.2.4",
     "postcss": "8.4.24",
     "react": "18.2.0",

@@ -2,6 +2,7 @@ import { BaseTexture, ISpritesheetData, Spritesheet } from 'pixi.js';
 import { useState, useEffect } from 'react';
 import { Pose } from '../../convex/types';
 import { AnimatedSprite, Container, Text } from '@pixi/react';
+import * as PIXI from 'pixi.js';
 
 export const Character = ({
   textureUrl,
@@ -35,7 +36,12 @@ export const Character = ({
   const [spriteSheet, setSpriteSheet] = useState<Spritesheet>();
   useEffect(() => {
     const parseSheet = async () => {
-      const sheet = new Spritesheet(BaseTexture.from(textureUrl), spritesheetData);
+      const sheet = new Spritesheet(
+        BaseTexture.from(textureUrl, {
+          scaleMode: PIXI.SCALE_MODES.NEAREST,
+        }),
+        spritesheetData,
+      );
       await sheet.parse();
       setSpriteSheet(sheet);
     };
