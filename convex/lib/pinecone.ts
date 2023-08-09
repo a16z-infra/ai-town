@@ -48,7 +48,7 @@ export async function upsertVectors<TableName extends TableNames>(
       }),
     );
   }
-  console.log({
+  console.debug({
     upserted: vectors.length,
     pineconeUpsertMs: Date.now() - start,
   });
@@ -71,7 +71,7 @@ export async function queryVectors<TableName extends TableNames>(
       filter,
     },
   });
-  console.log({
+  console.debug({
     queried: matches?.length,
     pineconeQueryMs: Date.now() - start,
   });
