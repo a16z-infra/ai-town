@@ -14,10 +14,12 @@ export default function Examples() {
 
   return (
     <>
-      <div className="mx-auto flex-1 w-full max-w mt-7 grid grid-rows-[240px_1fr] lg:grid-rows-[1fr] lg:grid-cols-[1fr_auto] lg:max-h-[900px] max-w-[1400px]">
+      <div className="mx-auto flex-1 w-full max-w mt-7 grid grid-rows-[240px_1fr] lg:grid-rows-[1fr] lg:grid-cols-[1fr_auto] lg:max-h-[900px] max-w-[1400px] min-h-[480px]">
         {/* Game area */}
-        <div className="overflow-hidden bg-slate-400 lg:h-full" ref={gameWrapperRef}>
-          <Game width={width} height={height} setSelectedPlayer={setSelectedPlayer} />
+        <div className="relative overflow-hidden bg-slate-400" ref={gameWrapperRef}>
+          <div className="absolute inset-0">
+            <Game width={width} height={height} setSelectedPlayer={setSelectedPlayer} />
+          </div>
         </div>
 
         {/* Right column area */}
