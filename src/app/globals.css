@@ -51,3 +51,7 @@ body {
     border-width: 48px;
   }
 }
+
+.shadow-solid {
+  text-shadow: 0 0.1em 0 rgba(0, 0, 0, 0.5);
+}
