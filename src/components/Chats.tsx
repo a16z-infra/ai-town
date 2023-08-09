@@ -19,7 +19,7 @@ function Messages({ conversationId }: { conversationId: Id<'conversations'> }) {
         // We can filter out the "started" and "left" conversations with this:
         // .filter((m) => m.data.type === 'responded')
         .map((message, messageIdx) => (
-          <li key={message.ts}>
+          <div key={message.ts}>
             <div className="relative pb-8">
               <div className="relative flex space-x-3">
                 <div className="flex flex-col min-w-0 flex-1 justify-between space-x-4 pt-1.5">
@@ -47,7 +47,7 @@ function Messages({ conversationId }: { conversationId: Id<'conversations'> }) {
                 </div>
               </div>
             </div>
-          </li>
+          </div>
         ))}
     </>
   );
@@ -55,19 +55,25 @@ function Messages({ conversationId }: { conversationId: Id<'conversations'> }) {
 
 export default function Chats({ playerState }: { playerState: PlayerState | undefined }) {
   return (
-    <div className="bg-brown-200 text-black p-6">
+    <div>
       {!playerState ? (
         <div className="relative pb-8">Click on an agent on the map to see chat history</div>
       ) : (
         <ul role="list" className="-mb-8 overflow-auto">
           <li className="mb-5">
-            <h3 className="text-base font-semibold leading-6">{playerState.name}</h3>
+            <div className="box mb-4">
+              <h2 className="bg-brown-700 p-2 font-display text-4xl tracking-wider shadow-solid text-center">
+                {playerState.name}
+              </h2>
+            </div>
             <p className="text-sm">
               <span>{playerState.identity}</span>
             </p>
           </li>
           {playerState.lastChat?.conversationId && (
-            <Messages conversationId={playerState.lastChat?.conversationId} />
+            <div className="bg-brown-200 text-black p-6">
+              <Messages conversationId={playerState.lastChat?.conversationId} />
+            </div>
           )}
         </ul>
       )}

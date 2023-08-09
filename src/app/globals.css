@@ -62,3 +62,10 @@ body {
   border-image-repeat: stretch;
   border-image-slice: 40%;
 }
+
+.box {
+  border-width: 12px;
+  border-image-source: url(../../assets/ui/box.svg);
+  border-image-repeat: stretch;
+  border-image-slice: 12.5%;
+}
