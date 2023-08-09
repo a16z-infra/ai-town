@@ -68,14 +68,18 @@ export default function Chats({ playerState }: { playerState: PlayerState | unde
         </h2>
       </div>
 
-      <p className="leading-tight my-8">{playerState.identity}</p>
+      <div className="desc my-6">
+        <p className="leading-tight -m-4 bg-brown-700 text-lg">{playerState.identity}</p>
+      </div>
 
       {playerState.lastChat?.conversationId && (
-        <div className="bg-brown-200 text-black p-6">
-          <Messages
-            conversationId={playerState.lastChat?.conversationId}
-            currentPlayerId={playerState.id}
-          />
+        <div className="chats">
+          <div className="bg-brown-200 text-black p-2">
+            <Messages
+              conversationId={playerState.lastChat?.conversationId}
+              currentPlayerId={playerState.id}
+            />
+          </div>
         </div>
       )}
     </>
