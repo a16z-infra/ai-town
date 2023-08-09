@@ -8,7 +8,7 @@ import {
   internalQuery,
 } from '../_generated/server.js';
 import { asyncMap } from './utils.js';
-import { EntryOfType, Memories, MemoryOfType } from '../schema.js';
+import { EntryOfType, Memories, MemoryOfType, MemoryType } from '../schema.js';
 import { chatGPTCompletion, fetchEmbeddingBatch } from './openai.js';
 import { clientMessageMapper } from '../chat.js';
 import { pineconeAvailable, queryVectors, upsertVectors } from './pinecone.js';
@@ -169,13 +169,13 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
   };
 }
 
-export const filterMemoriesType = (
-  memoryTypes: string[],
+export const filterMemoriesType = <T extends MemoryType>(
+  memoryTypes: T[],
   memories: { memory: Doc<'memories'>; overallScore: number }[],
 ) => {
-  return memories.filter((m: any) => {
-    return memoryTypes.includes(m.memory.data.type);
-  });
+  return memories.filter((m) => {
+    return memoryTypes.includes(m.memory.data.type as T);
+  }) as { memory: MemoryOfType<T>; overallScore: number }[];
 };
 
 export const getMemories = internalQuery({
