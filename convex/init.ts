@@ -9,7 +9,7 @@ import {
 } from './_generated/server';
 import { MemoryDB } from './lib/memory';
 import { asyncMap } from './lib/utils';
-import { Characters } from './types';
+import { Characters } from './schema';
 import { tiledim, objmap, tilefiledim, bgtiles, tilesetpath } from './maps/firstmap';
 import { data as playerSpritesheetData } from './spritesheets/player';
 

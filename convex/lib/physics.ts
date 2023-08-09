@@ -1,4 +1,4 @@
-import { Motion, Pose, Position } from '../types';
+import { Motion, Pose, Position } from '../schema';
 
 export function manhattanDistance(p1: Position, p2: Position) {
   return Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y);
