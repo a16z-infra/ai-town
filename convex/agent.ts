@@ -51,10 +51,13 @@ function divideIntoGroups(players: Player[]) {
     playerById.delete(player.id);
     const nearbyPlayers = getNearbyPlayers(player, [...playerById.values()]);
     if (nearbyPlayers.length > 0) {
-      groups.push([player, ...nearbyPlayers]);
-      for (const nearbyPlayer of nearbyPlayers) {
-        playerById.delete(nearbyPlayer.id);
-      }
+      groups.push([player, nearbyPlayers[0]]);
+      playerById.delete(nearbyPlayers[0].id);
+      // Future: do more than 1:1 conversations by adding them all.
+      // groups.push([player, ...nearbyPlayers]);
+      // for (const nearbyPlayer of nearbyPlayers) {
+      //   playerById.delete(nearbyPlayer.id);
+      // }
     } else {
       solos.push(player);
     }
