@@ -58,7 +58,7 @@ export default function Navbar() {
                 ))}
                 <div className="px-3 py-2 text-gray-300">
                   <iframe
-                    src="https://ghbtns.com/github-btn.html?user=a16z-infra&repo=companion-app&type=star&count=true"
+                    src="https://ghbtns.com/github-btn.html?user=a16z-infra&repo=ai-town&type=star&count=true"
                     frameBorder="0"
                     scrolling="0"
                     width="150"
