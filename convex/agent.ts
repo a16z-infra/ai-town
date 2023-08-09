@@ -9,7 +9,7 @@ import { Id } from './_generated/dataModel';
 import { ActionCtx, internalAction } from './_generated/server';
 import { MemoryDB } from './lib/memory';
 import { Message, Player } from './schema';
-import { chatHistoryFromMessages, converse, walkAway } from './conversation';
+import { chatHistoryFromMessages, converse, startConversation, walkAway } from './conversation';
 import { NEARBY_DISTANCE } from './config';
 import { getPoseFromMotion, manhattanDistance } from './lib/physics';
 
@@ -117,8 +117,6 @@ export async function handleAgentInteraction(
     const audience = players.filter((p) => p.id !== player.id).map((p) => p.id);
     // Converse
     const shouldWalkAway = await walkAway(chatHistory, player);
-    console.log('shouldWalkAway: ', shouldWalkAway);
-
     // Decide if we keep talking.
     if (shouldWalkAway) {
       // It's to chatty here, let's go somewhere else.
@@ -129,9 +127,14 @@ export async function handleAgentInteraction(
       });
       // TODO: remove this player from the audience list
     }
-    const playerRelations = relationshipsByPlayerId.get(player.id)!;
-    // TODO: stream the response and write to the mutation for every sentence.
-    const playerCompletion = await converse(chatHistory, player, playerRelations, memory);
+    const playerRelations = relationshipsByPlayerId.get(player.id) ?? [];
+    let playerCompletion;
+    if (messages.length === 0) {
+      playerCompletion = await startConversation(playerRelations, memory, player);
+    } else {
+      // TODO: stream the response and write to the mutation for every sentence.
+      playerCompletion = await converse(chatHistory, player, playerRelations, memory);
+    }
     const message = await ctx.runMutation(internal.journal.talk, {
       playerId,
       audience,

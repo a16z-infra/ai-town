@@ -62,17 +62,17 @@ export function chatHistoryFromMessages(messages: Message[]): GPTMessage[] {
 export async function converse(
   messages: GPTMessage[],
   player: Player,
-  nearbyPlaers: Relation[],
+  nearbyPlayers: Relation[],
   memory: MemoryDB,
 ): Promise<string> {
-  const nearbyPlayersNames = nearbyPlaers.map((p) => p.name).join(', ');
+  const nearbyPlayersNames = nearbyPlayers.map((p) => p.name).join(', ');
   const lastMessage: string | null | undefined = messages?.at(-1)?.content;
   const { embedding } = await fetchEmbedding(lastMessage ? lastMessage : '');
   const memories = await memory.accessMemories(player.id, embedding);
   const conversationMemories = filterMemoriesType(['conversation'], memories);
   const lastConversationTs = conversationMemories[0]?.memory._creationTime;
 
-  const stop = nearbyPlaers.map((p) => p.name + ':');
+  const stop = nearbyPlayers.map((p) => p.name + ':');
   const relevantMemories: string = conversationMemories
     .slice(0, 2) // only use the first 2 memories
     .map((r) => r.memory.description)
@@ -82,7 +82,7 @@ export async function converse(
 
   let prefixPrompt = `Your name is ${player.name}. About you: ${player.identity}.
   You are talking to ${nearbyPlayersNames}, below are something about them: `;
-  nearbyPlaers.forEach((p) => {
+  nearbyPlayers.forEach((p) => {
     prefixPrompt += `\nAbout ${p.name}: ${p.identity}\n`;
   });
 

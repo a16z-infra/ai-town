@@ -61,8 +61,13 @@ export async function fetchEmbeddingBatch(texts: string[]) {
       input: texts.map((text) => text.replace(/\n/g, ' ')),
     }),
   });
+  if (!result.ok) {
+    throw new Error(
+      `Unexpected result from OpenAI: ${result.status} ${result.statusText}\n` +
+        JSON.stringify(result),
+    );
+  }
   const ms = Date.now() - start;
-
   const jsonresults = (await result.json()) as CreateEmbeddingResponse;
   if (jsonresults.data.length !== texts.length) {
     console.error(result);
