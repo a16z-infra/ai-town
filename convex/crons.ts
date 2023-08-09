@@ -1,7 +1,7 @@
 import { cronJobs } from 'convex/server';
 import { internal } from './_generated/api';
 import { internalMutation } from './_generated/server';
-import { getLatestPlayerMotion } from './agent';
+import { getLatestPlayerMotion } from './journal';
 import { AGENT_THINKING_TOO_LONG } from './config';
 import { enqueueAgentWake } from './engine';
 

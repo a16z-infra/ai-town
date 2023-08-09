@@ -4,7 +4,7 @@ import { DatabaseReader, mutation, query } from './_generated/server';
 import { enqueueAgentWake } from './engine';
 import { HEARTBEAT_PERIOD } from './config';
 import { Pose } from './schema';
-import { getPlayer } from './agent';
+import { getPlayer } from './journal';
 
 export const getWorld = query({
   args: {},
@@ -77,6 +77,7 @@ export const createPlayer = mutation({
   },
 });
 
+// Future: this could allow creating an agent
 export const createAgent = mutation({
   args: {
     pose: Pose,

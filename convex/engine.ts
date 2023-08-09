@@ -2,12 +2,8 @@ import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
 import { DatabaseReader, DatabaseWriter, internalMutation } from './_generated/server';
-import { DEFAULT_START_POSE, TIME_PER_STEP, WORLD_IDLE_THRESHOLD } from './config';
+import { WORLD_IDLE_THRESHOLD } from './config';
 import { asyncMap, pruneNull } from './lib/utils';
-import { getLatestPlayerMotion } from './agent';
-import { findCollision } from './lib/routing';
-import { getAllPlayers } from './players';
-import { manhattanDistance } from './lib/physics';
 
 export const tick = internalMutation({
   args: { worldId: v.id('worlds'), agentIds: v.optional(v.array(v.id('agents'))) },

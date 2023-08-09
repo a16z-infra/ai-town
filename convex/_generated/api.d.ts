@@ -16,10 +16,12 @@ import type {
 } from "convex/server";
 import type * as agent from "../agent";
 import type * as chat from "../chat";
+import type * as config from "../config";
 import type * as conversation from "../conversation";
 import type * as crons from "../crons";
 import type * as engine from "../engine";
 import type * as init from "../init";
+import type * as journal from "../journal";
 import type * as lib_memory from "../lib/memory";
 import type * as lib_migrations from "../lib/migrations";
 import type * as lib_node_openai from "../lib/node_openai";
@@ -44,10 +46,12 @@ import type * as testing from "../testing";
 declare const fullApi: ApiFromModules<{
   agent: typeof agent;
   chat: typeof chat;
+  config: typeof config;
   conversation: typeof conversation;
   crons: typeof crons;
   engine: typeof engine;
   init: typeof init;
+  journal: typeof journal;
   "lib/memory": typeof lib_memory;
   "lib/migrations": typeof lib_migrations;
   "lib/node_openai": typeof lib_node_openai;
