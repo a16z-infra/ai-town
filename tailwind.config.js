@@ -10,7 +10,19 @@ module.exports = {
       display: ['var(--font-display)', 'sans-serif'],
       body: ['var(--font-body)', 'monospace'],
     },
-    extend: {},
+    extend: {
+      colors: {
+        brown: {
+          100: '#FFFFFF',
+          200: '#EAD4AA',
+          300: '#E4A672',
+          500: '#B86F50',
+          700: '#743F39',
+          800: '#3F2832',
+          900: '#181425',
+        },
+      },
+    },
   },
   plugins: [require('@tailwindcss/forms')],
 };

@@ -55,3 +55,10 @@ body {
 .shadow-solid {
   text-shadow: 0 0.1em 0 rgba(0, 0, 0, 0.5);
 }
+
+.bubble {
+  border-width: 36px;
+  border-image-source: url(../../assets/ui/bubble-left.svg);
+  border-image-repeat: stretch;
+  border-image-slice: 40%;
+}
