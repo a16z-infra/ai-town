@@ -43,26 +43,15 @@ export interface MemoryDB {
 }
 
 export function MemoryDB(ctx: ActionCtx): MemoryDB {
-  // TODO: add pinecone option, if env variables are set
-  let vectorSearch = async (embedding: number[], playerId: Id<'players'>, limit: number) => {
-    return await ctx.vectorSearch('embeddings', 'embedding', {
-      vector: embedding,
-      vectorField: 'embedding',
-      filter: (q) => q.eq('playerId', playerId),
-      limit,
-    });
-  };
-  let externalEmbeddingStore: (
-    embeddings: { id: Id<'embeddings'>; values: number[]; metadata: object }[],
-  ) => Promise<any>;
-  // If Pinecone env variables are defined, use that.
-  if (pineconeAvailable()) {
-    vectorSearch = async (embedding: number[], playerId: Id<'players'>, limit: number) =>
-      queryVectors('embeddings', embedding, { playerId }, limit);
-    externalEmbeddingStore = async (
-      embeddings: { id: Id<'embeddings'>; values: number[]; metadata: object }[],
-    ) => upsertVectors('embeddings', embeddings);
+  if (!pineconeAvailable()) {
+    throw new Error('Pinecone environment variables not set. See the README.');
   }
+  // If Pinecone env variables are defined, use that.
+  const vectorSearch = async (embedding: number[], playerId: Id<'players'>, limit: number) =>
+    queryVectors('embeddings', embedding, { playerId }, limit);
+  const externalEmbeddingStore = async (
+    embeddings: { id: Id<'embeddings'>; values: number[]; metadata: object }[],
+  ) => upsertVectors('embeddings', embeddings);
 
   return {
     // Finds memories but doesn't mark them as accessed.

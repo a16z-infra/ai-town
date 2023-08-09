@@ -31,11 +31,6 @@ export default defineSchema(
       text: v.string(),
       embedding: v.array(v.number()),
     })
-      .vectorIndex('embedding', {
-        vectorField: 'embedding',
-        filterFields: ['playerId'],
-        dimension: 1536,
-      })
       // To avoid recomputing embeddings, we can use this table as a cache.
       // IMPORTANT: don't re-use the object, as it has a reference to the playerId.
       // Just copy the embedding to a new document when needed.
