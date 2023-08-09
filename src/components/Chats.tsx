@@ -2,12 +2,19 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import type { Player as PlayerState } from '../../convex/schema';
+import clsx from 'clsx';
 
 function classNames(...classes: any) {
   return classes.filter(Boolean).join(' ');
 }
 
-function Messages({ conversationId }: { conversationId: Id<'conversations'> }) {
+function Messages({
+  conversationId,
+  currentPlayerId,
+}: {
+  conversationId: Id<'conversations'>;
+  currentPlayerId: Id<'players'>;
+}) {
   const messages =
     useQuery(api.chat.listMessages, {
       conversationId,
@@ -18,35 +25,26 @@ function Messages({ conversationId }: { conversationId: Id<'conversations'> }) {
         .reverse()
         // We can filter out the "started" and "left" conversations with this:
         // .filter((m) => m.data.type === 'responded')
-        .map((message, messageIdx) => (
-          <div key={message.ts}>
-            <div className="relative pb-8">
-              <div className="relative flex space-x-3">
-                <div className="flex flex-col min-w-0 flex-1 justify-between space-x-4 pt-1.5">
-                  <div className="whitespace-nowrap text-top text-sm">
-                    <time dateTime={message.ts.toString()}>
-                      {new Date(message.ts).toLocaleString()}
-                    </time>
-                  </div>
-                  <div>
-                    {message.type === 'responded' ? (
-                      <div className="text-sm">
-                        <b>{message.fromName}: </b>
-                        <p className="bubble">
-                          <div className="bg-white">{message.content}</div>
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-sm">
-                        <b>{message.fromName} </b>
-                        {message.type === 'left' ? 'left' : 'started'}
-                        {' the conversation'}
-                      </p>
-                    )}
-                  </div>
+        .map((message) => (
+          <div className="leading-tight mb-6" key={message.ts}>
+            {message.type === 'responded' ? (
+              <>
+                <div className="flex gap-4">
+                  <span className="uppercase flex-grow">{message.fromName}</span>
+                  <time dateTime={message.ts.toString()}>
+                    {new Date(message.ts).toLocaleString()}
+                  </time>
                 </div>
-              </div>
-            </div>
+                <p className={clsx('bubble', message.from === currentPlayerId && 'bubble-mine')}>
+                  <div className="bg-white -mx-3 -my-1">{message.content}</div>
+                </p>
+              </>
+            ) : (
+              <p className="text-brown-700 text-center">
+                {message.fromName} {message.type === 'left' ? 'left' : 'started'}
+                {' the conversation.'}
+              </p>
+            )}
           </div>
         ))}
     </>
@@ -72,7 +70,10 @@ export default function Chats({ playerState }: { playerState: PlayerState | unde
           </li>
           {playerState.lastChat?.conversationId && (
             <div className="bg-brown-200 text-black p-6">
-              <Messages conversationId={playerState.lastChat?.conversationId} />
+              <Messages
+                conversationId={playerState.lastChat?.conversationId}
+                currentPlayerId={playerState.id}
+              />
             </div>
           )}
         </ul>
