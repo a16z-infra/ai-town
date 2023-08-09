@@ -11,7 +11,9 @@ export const PixiStaticMap = PixiComponent('StaticMap', {
   create: ({ map }: { map: Doc<'maps'> }) => {
     const numytiles = map.tileSetDim / map.tileDim;
 
-    const bt = PIXI.BaseTexture.from(map.tileSetUrl);
+    const bt = PIXI.BaseTexture.from(map.tileSetUrl, {
+      scaleMode: PIXI.SCALE_MODES.NEAREST,
+    });
 
     let tiles = [];
     for (let x = 0; x < numytiles; x++) {
