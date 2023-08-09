@@ -171,6 +171,10 @@ export const seed = internalAction({
       newWorld,
       characters,
     });
+    console.log(`Created world
+    ${worldId}
+    with players
+    ${Object.values(playersByName).join(', ')}\n`);
     const memories = Data.flatMap(({ name, memories }) => {
       const playerId = playersByName[name]!;
       return memories.map((memory, idx) => {
