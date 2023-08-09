@@ -1,6 +1,6 @@
 // That's right! No imports and no dependencies 🤯
 
-export async function chatGPTCompletion(
+export async function chatCompletion(
   body: Omit<CreateChatCompletionRequest, 'model'> & {
     model?: CreateChatCompletionRequest['model'];
   },
@@ -88,7 +88,7 @@ export async function fetchEmbedding(text: string) {
 }
 
 // Lifted from openai's package
-export interface GPTMessage {
+export interface LLMMessage {
   /**
    * The contents of the message. `content` is required for all messages, and may be
    * null for assistant messages with function calls.
@@ -182,7 +182,7 @@ export interface CreateChatCompletionRequest {
    * @type {Array<ChatCompletionRequestMessage>}
    * @memberof CreateChatCompletionRequest
    */
-  messages: GPTMessage[];
+  messages: LLMMessage[];
   /**
    * What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.  We generally recommend altering this or `top_p` but not both.
    * @type {number}

@@ -9,7 +9,7 @@ import {
 } from '../_generated/server.js';
 import { asyncMap } from './utils.js';
 import { EntryOfType, Memories, MemoryOfType, MemoryType } from '../schema.js';
-import { chatGPTCompletion, fetchEmbeddingBatch } from './openai.js';
+import { chatCompletion, fetchEmbeddingBatch } from './openai.js';
 import { clientMessageMapper } from '../chat.js';
 import { pineconeAvailable, queryVectors, upsertVectors } from './pinecone.js';
 import { chatHistoryFromMessages } from '../conversation.js';
@@ -92,7 +92,7 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
 
         if (memory.importance === undefined) {
           // TODO: make a better prompt based on the user's memories
-          const { content: importanceRaw } = await chatGPTCompletion({
+          const { content: importanceRaw } = await chatCompletion({
             messages: [
               { role: 'user', content: memory.description },
               {
@@ -139,7 +139,7 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
         conversationId,
       });
       if (!messages.length) return false;
-      const { content: description } = await chatGPTCompletion({
+      const { content: description } = await chatCompletion({
         messages: [
           {
             role: 'user',

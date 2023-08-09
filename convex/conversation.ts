@@ -1,6 +1,6 @@
 import { Id } from './_generated/dataModel';
 import { MemoryDB, filterMemoriesType } from './lib/memory';
-import { GPTMessage, chatGPTCompletion, fetchEmbedding } from './lib/openai';
+import { LLMMessage, chatCompletion, fetchEmbedding } from './lib/openai';
 import { Message } from './schema';
 
 type Player = { id: Id<'players'>; name: string; identity: string };
@@ -20,7 +20,7 @@ export async function startConversation(
 
   const convoMemories = filterMemoriesType(['conversation'], memories);
 
-  const prompt: GPTMessage[] = [
+  const prompt: LLMMessage[] = [
     {
       role: 'user',
       content:
@@ -31,7 +31,7 @@ export async function startConversation(
     },
   ];
   const stop = newFriendsNames.map((name) => name + ':');
-  const { content } = await chatGPTCompletion({ messages: prompt, max_tokens: 300, stop });
+  const { content } = await chatCompletion({ messages: prompt, max_tokens: 300, stop });
   return content;
 }
 
@@ -46,7 +46,7 @@ function messageContent(m: Message): string {
   }
 }
 
-export function chatHistoryFromMessages(messages: Message[]): GPTMessage[] {
+export function chatHistoryFromMessages(messages: Message[]): LLMMessage[] {
   return (
     messages
       // For now, just use the message content.
@@ -60,7 +60,7 @@ export function chatHistoryFromMessages(messages: Message[]): GPTMessage[] {
 }
 
 export async function converse(
-  messages: GPTMessage[],
+  messages: LLMMessage[],
   player: Player,
   nearbyPlayers: Relation[],
   memory: MemoryDB,
@@ -93,7 +93,7 @@ export async function converse(
   prefixPrompt +=
     'Below are the current chat history between you and the other folks mentioned above. DO NOT greet the other people more than once. Only greet ONCE. Response should be brief and within 200 characters: \n';
 
-  const prompt: GPTMessage[] = [
+  const prompt: LLMMessage[] = [
     {
       role: 'user',
       content: prefixPrompt,
@@ -105,14 +105,14 @@ export async function converse(
     },
   ];
   console.log('convers() stop: ', stop);
-  const { content } = await chatGPTCompletion({ messages: prompt, max_tokens: 300, stop });
+  const { content } = await chatCompletion({ messages: prompt, max_tokens: 300, stop });
   // console.log('converse() prompt: ', prompt);
   console.log('converse result through chatgpt: ', content);
   return content;
 }
 
-export async function walkAway(messages: GPTMessage[], player: Player): Promise<boolean> {
-  const prompt: GPTMessage[] = [
+export async function walkAway(messages: LLMMessage[], player: Player): Promise<boolean> {
+  const prompt: LLMMessage[] = [
     {
       role: 'user',
       content: `Below is a chat history among a few people who ran into each other. You are ${player.name}. You want to conclude this conversation when you think it's time to go.
@@ -121,6 +121,6 @@ export async function walkAway(messages: GPTMessage[], player: Player): Promise<
     },
     ...messages,
   ];
-  const { content: description } = await chatGPTCompletion({ messages: prompt, max_tokens: 2 });
+  const { content: description } = await chatCompletion({ messages: prompt, max_tokens: 2 });
   return description === '1';
 }
