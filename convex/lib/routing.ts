@@ -61,11 +61,11 @@ export function findCollision<T>(
     .map(makeDensePath);
 
   // For each position index, check if any other player is nearby.
-  for (const [idx, pos] of densePath.entries()) {
+  for (const [distance, pos] of densePath.entries()) {
     const collisions = [];
-    for (const otherPlayerPath of otherPlayerPaths) {
+    for (const [idx, otherPlayerPath] of otherPlayerPaths.entries()) {
       // Assume the player will stop where the end walking
-      const otherPlayerPos = otherPlayerPath[idx] ?? otherPlayerPath.at(-1);
+      const otherPlayerPos = otherPlayerPath[distance] ?? otherPlayerPath.at(-1);
       if (manhattanDistance(pos, otherPlayerPos) <= strikeZone) {
         // Return the first index where there is a collision
         collisions.push(others[idx].id);
@@ -74,7 +74,7 @@ export function findCollision<T>(
     if (collisions.length > 0) {
       return {
         ids: collisions,
-        distance: idx,
+        distance,
       };
     }
   }
