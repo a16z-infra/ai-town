@@ -256,7 +256,7 @@ export const walk = internalMutation({
     const collisions = findCollision(route, otherPlayers, ts, CLOSE_DISTANCE);
     await ctx.db.insert('journal', {
       playerId,
-      data: { type: 'walking', route, startTs: ts, targetEndTs },
+      data: { type: 'walking', route, ignore, startTs: ts, targetEndTs },
     });
     return {
       targetEndTs,

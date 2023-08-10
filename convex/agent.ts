@@ -118,7 +118,8 @@ async function handleAgentSolo(ctx: ActionCtx, player: Player, memory: MemoryDB,
   //   if so, add new memory for new plan, and return new action
   const walk = player.motion.type === 'stopped' || player.motion.targetEndTs < Date.now();
   // Ignore everyone we last said something to.
-  const ignore = player.lastChat?.message.to ?? [];
+  const ignore =
+    player.motion.type === 'walking' ? player.motion.ignore : player.lastChat?.message.to ?? [];
   await done(player.agentId, { type: walk ? 'walk' : 'continue', ignore });
 }
 

@@ -64,6 +64,7 @@ export const Stopped = v.object({
 export const Walking = v.object({
   type: v.literal('walking'),
   route: v.array(Position),
+  ignore: v.array(v.id('players')),
   startTs: v.number(),
   targetEndTs: v.number(),
 });
