@@ -11,7 +11,7 @@ import { MemoryDB } from './lib/memory';
 import { Message, Player } from './schema';
 import { chatHistoryFromMessages, converse, startConversation, walkAway } from './conversation';
 import { NEARBY_DISTANCE } from './config';
-import { getPoseFromMotion, manhattanDistance } from './lib/physics';
+import { getNearbyPlayers, getPoseFromMotion, manhattanDistance } from './lib/physics';
 
 export const runAgentBatch = internalAction({
   args: {
@@ -91,7 +91,7 @@ function divideIntoGroups(players: Player[]) {
   while (playerById.size > 0) {
     const player = playerById.values().next().value;
     playerById.delete(player.id);
-    const nearbyPlayers = getNearbyPlayers(player, [...playerById.values()]);
+    const nearbyPlayers = getNearbyPlayers(player.motion, [...playerById.values()]);
     if (nearbyPlayers.length > 0) {
       groups.push([player, nearbyPlayers[0]]);
       playerById.delete(nearbyPlayers[0].id);

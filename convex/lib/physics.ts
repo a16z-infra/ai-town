@@ -1,3 +1,4 @@
+import { NEARBY_DISTANCE } from '../config';
 import { Motion, Pose, Position } from '../schema';
 
 export function manhattanDistance(p1: Position, p2: Position) {
@@ -100,4 +101,16 @@ export function roundPose(pose: Pose): Pose {
     position: roundPosition(pose.position),
     orientation: 90 * Math.round(pose.orientation / 90),
   };
+}
+
+export function getNearbyPlayers<T extends { motion: Motion }>(target: Motion, others: T[]) {
+  const ts = Date.now();
+  const targetPose = getPoseFromMotion(target, ts);
+  return others.filter((a) => {
+    const distance = manhattanDistance(
+      targetPose.position,
+      getPoseFromMotion(a.motion, ts).position,
+    );
+    return distance < NEARBY_DISTANCE;
+  });
 }

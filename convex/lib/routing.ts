@@ -48,9 +48,9 @@ export function findRoute(
 // Assumes all motion has started in the past or currently.
 // Otherwise we'd need to know how far we'd go before it starts.
 // Assumes one square move per time unit, all together.
-export function findCollision<T>(
+export function findCollision<T extends { motion: Motion }>(
   route: Position[],
-  others: { id: T; motion: Motion }[],
+  others: T[],
   ts: number,
   strikeZone: number,
 ) {
@@ -62,18 +62,18 @@ export function findCollision<T>(
 
   // For each position index, check if any other player is nearby.
   for (const [distance, pos] of densePath.entries()) {
-    const collisions = [];
+    const hits = [];
     for (const [idx, otherPlayerPath] of otherPlayerPaths.entries()) {
       // Assume the player will stop where the end walking
       const otherPlayerPos = otherPlayerPath[distance] ?? otherPlayerPath.at(-1);
       if (manhattanDistance(pos, otherPlayerPos) <= strikeZone) {
         // Return the first index where there is a collision
-        collisions.push(others[idx].id);
+        hits.push(others[idx]);
       }
     }
-    if (collisions.length > 0) {
+    if (hits.length > 0) {
       return {
-        ids: collisions,
+        hits,
         distance,
       };
     }

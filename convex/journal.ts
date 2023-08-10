@@ -15,6 +15,7 @@ import { getAllPlayers } from './players';
 import { CLOSE_DISTANCE, DEFAULT_START_POSE, TIME_PER_STEP } from './config';
 import { findCollision, findRoute } from './lib/routing';
 import {
+  getNearbyPlayers,
   getPoseFromMotion,
   getRemainingPathFromMotion,
   getRouteDistance,
@@ -235,7 +236,7 @@ export const walk = internalMutation({
     const exclude = new Set([...ignore, playerId]);
     const otherPlayers = await asyncMap(
       (await getAllPlayers(ctx.db, worldId)).filter((p) => !exclude.has(p._id)),
-      async (p) => ({ id: p.agentId, motion: await getLatestPlayerMotion(ctx.db, p._id) }),
+      async (p) => ({ ...p, motion: await getLatestPlayerMotion(ctx.db, p._id) }),
     );
     const targetPosition = target
       ? getPoseFromMotion(await getLatestPlayerMotion(ctx.db, target), ts).position
@@ -258,7 +259,7 @@ export const walk = internalMutation({
       targetEndTs,
       nextCollision: collisions && {
         ts: collisions.distance * TIME_PER_STEP + ts,
-        agentIds: pruneNull(collisions.ids),
+        agentIds: pruneNull(collisions.hits.map(({ agentId }) => agentId)),
       },
     };
   },
@@ -273,18 +274,21 @@ export const nextCollision = internalQuery({
     const exclude = new Set([...ignore, playerId]);
     const otherPlayers = await asyncMap(
       (await getAllPlayers(ctx.db, worldId)).filter((p) => !exclude.has(p._id)),
-      async (p) => ({ id: p.agentId, motion: await getLatestPlayerMotion(ctx.db, p._id) }),
+      async (p) => ({ ...p, motion: await getLatestPlayerMotion(ctx.db, p._id) }),
     );
     const ourMotion = await getLatestPlayerMotion(ctx.db, playerId);
+    const nearby = getNearbyPlayers(ourMotion, otherPlayers);
+    nearby.forEach(({ _id: id }) => exclude.add(id));
+    const othersNotNearby = otherPlayers.filter(({ _id }) => !exclude.has(_id));
     const route = getRemainingPathFromMotion(ourMotion, ts);
     const distance = getRouteDistance(route);
     const targetEndTs = ts + distance * TIME_PER_STEP;
-    const collisions = findCollision(route, otherPlayers, ts, CLOSE_DISTANCE);
+    const collisions = findCollision(route, othersNotNearby, ts, CLOSE_DISTANCE);
     return {
       targetEndTs,
       nextCollision: collisions && {
         ts: collisions.distance * TIME_PER_STEP + ts,
-        agentIds: pruneNull(collisions.ids),
+        agentIds: pruneNull(collisions.hits.map(({ agentId }) => agentId)),
       },
     };
   },
