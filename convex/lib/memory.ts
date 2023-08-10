@@ -14,7 +14,7 @@ import { clientMessageMapper } from '../chat.js';
 import { pineconeAvailable, queryVectors, upsertVectors } from './pinecone.js';
 import { chatHistoryFromMessages } from '../conversation.js';
 import { MEMORY_ACCESS_THROTTLE } from '../config.js';
-import { fetchEmbeddingBatch } from './cached_llm.js';
+import { fetchEmbeddingBatchWithCache } from './cached_llm.js';
 
 const { embeddingId: _, lastAccess, ...MemoryWithoutEmbeddingId } = Memories.fields;
 const NewMemory = { ...MemoryWithoutEmbeddingId, importance: v.optional(v.number()) };
@@ -75,10 +75,8 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
     },
 
     async addMemories(memoriesWithoutEmbedding) {
-      const { embeddings } = await fetchEmbeddingBatch(
-        ctx,
-        memoriesWithoutEmbedding.map((memory) => memory.description),
-      );
+      const texts = memoriesWithoutEmbedding.map((memory) => memory.description);
+      const { embeddings } = await fetchEmbeddingBatchWithCache(ctx, texts);
       // NB: The cache gets populated by addMemories, so no need to do it here.
 
       const memories = await asyncMap(memoriesWithoutEmbedding, async (memory, idx) => {

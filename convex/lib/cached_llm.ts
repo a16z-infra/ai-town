@@ -4,7 +4,11 @@ import { ActionCtx, internalMutation, internalQuery } from '../_generated/server
 import * as openai from './openai';
 import { asyncMap, pruneNull } from './utils';
 
-export async function fetchEmbeddingBatch(ctx: ActionCtx, texts: string[], write = false) {
+export async function fetchEmbeddingBatchWithCache(
+  ctx: ActionCtx,
+  texts: string[],
+  opts: { write: boolean } = { write: false },
+) {
   const start = Date.now();
   const cachedEmbeddings = await ctx.runQuery(internal.lib.cached_llm.getEmbeddingsByText, {
     texts,
@@ -16,11 +20,12 @@ export async function fetchEmbeddingBatch(ctx: ActionCtx, texts: string[], write
   missingEmbeddings.reverse();
   // Swap the cache misses with calculated embeddings
   const embeddings = cachedEmbeddings.map((cached) => cached || missingEmbeddings.pop()!);
-  if (write) {
+  if (opts.write && cacheMisses.length) {
     await ctx.runMutation(internal.lib.cached_llm.writeEmbeddings, {
-      embeddings: texts.map((text, idx) => ({ text, embedding: embeddings[idx] })),
+      embeddings: texts
+        .map((text, idx) => ({ text, embedding: embeddings[idx] }))
+        .filter((_, idx) => cachedEmbeddings[idx] === null),
     });
-    throw new Error('Writeback not yet implemented for fetchEmbeddingBatch');
   }
   return {
     embeddings,
@@ -29,8 +34,12 @@ export async function fetchEmbeddingBatch(ctx: ActionCtx, texts: string[], write
   };
 }
 
-export async function fetchEmbedding(ctx: ActionCtx, text: string, write = false) {
-  const { embeddings, ...stats } = await fetchEmbeddingBatch(ctx, [text], write);
+export async function fetchEmbeddingWithCache(
+  ctx: ActionCtx,
+  text: string,
+  opts: { write: boolean } = { write: false },
+) {
+  const { embeddings, ...stats } = await fetchEmbeddingBatchWithCache(ctx, [text], opts);
   return { embedding: embeddings[0], ...stats };
 }
 
@@ -38,7 +47,7 @@ export async function fetchEmbedding(ctx: ActionCtx, text: string, write = false
 export const writeEmbeddings = internalMutation({
   args: { embeddings: v.array(v.object({ text: v.string(), embedding: v.array(v.number()) })) },
   handler: async (ctx, args) => {
-    return asyncMap(args.embeddings, async ({ text, embedding }) =>
+    return asyncMap(args.embeddings, ({ text, embedding }) =>
       ctx.db.insert('embeddings', { text, embedding }),
     );
   },
