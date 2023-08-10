@@ -36,6 +36,7 @@ const commonFields = {
   ts: v.number(),
 };
 export const Message = v.union(
+  // TODO: maybe just switch back to regular messages
   v.object({
     ...commonFields,
     type: v.literal('started'),
@@ -198,7 +199,7 @@ export const Characters = Table('characters', {
 export type SpritesheetData = Infer<(typeof Characters.fields)['spritesheetData']>;
 
 // Hierarchical location within tree
-// TODO: build zone lookup from position, whether player-dependent or global.
+// Future: build zone lookup from position, whether player-dependent or global.
 // export const Zones = Table('zones', {
 //   mapId: v.id('maps'),
 //   name: v.string(),
@@ -206,7 +207,7 @@ export type SpritesheetData = Infer<(typeof Characters.fields)['spritesheetData'
 //   children: v.array(v.id('zones')), // index of children zones
 //   area:
 //     // v.union(
-//     //   // TODO: support polygons
+//     //   // Future: support polygons
 //     //   v.object({
 //     //     type: v.literal('polygon'),
 //     //     minX: v.number(),

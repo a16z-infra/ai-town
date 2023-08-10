@@ -109,6 +109,7 @@ function divideIntoGroups(players: Player[]) {
 
 async function handleAgentSolo(ctx: ActionCtx, player: Player, memory: MemoryDB, done: DoneFn) {
   console.debug('handleAgentSolo: ', player.name, player.id);
+  // TODO: Find nearby players, observe them, and add them to the ignore list.
   // Handle new observations: it can look at the agent's lastWakeTs for a delta.
   //   Calculate scores
   //   If there's enough observation score, trigger reflection?
@@ -136,6 +137,13 @@ export async function handleAgentInteraction(
     const imWalkingHere =
       player.motion.type === 'walking' && player.motion.targetEndTs > Date.now();
     // TODO: Get players to walk together and face each other
+    // if (player.agentId) {
+    //   await ctx.runMutation(internal.journal.walk, {
+    //     agentId: player.agentId,
+    //     target: leader.id,
+    //     ignore: players.map((p) => p.id),
+    //   });
+    // }
     if (imWalkingHere) {
       await ctx.runMutation(internal.journal.stop, { playerId: player.id });
     }
