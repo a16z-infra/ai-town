@@ -58,7 +58,6 @@ const useServerTimeOffset = () => {
         serverTime = await serverNow();
       } catch (e) {
         // If we failed to get it, just skip this one
-        console.error(e);
         return;
       }
       const newOffset = serverTime - Date.now();
