@@ -110,15 +110,19 @@ export async function handleAgentInteraction(
   memory: MemoryDB,
   done: DoneFn,
 ) {
+  // TODO: pick a better conversation starter
+  const leader = players[0];
   for (const player of players) {
     const imWalkingHere =
       player.motion.type === 'walking' && player.motion.targetEndTs > Date.now();
     // TODO: Get players to walk together and face each other
+    if (imWalkingHere) {
+      await ctx.runMutation(internal.journal.stop, { playerId: player.id });
+    }
   }
 
-  // TODO: pick a better conversation starter
   const conversationId = await ctx.runMutation(internal.journal.makeConversation, {
-    playerId: players[0].id,
+    playerId: leader.id,
     audience: players.slice(1).map((p) => p.id),
   });
 
