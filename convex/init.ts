@@ -12,6 +12,9 @@ import { asyncMap } from './lib/utils';
 import { Characters } from './schema';
 import { tiledim, objmap, tilefiledim, bgtiles, tilesetpath } from './maps/firstmap';
 import { data as playerSpritesheetData } from './spritesheets/player';
+import { data as p1SpritesheetData } from './spritesheets/p1';
+import { data as p2SpritesheetData } from './spritesheets/p2';
+import { data as p3SpritesheetData } from './spritesheets/p3';
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error(
@@ -47,7 +50,7 @@ const Data = [
   },
   {
     name: 'Lucky',
-    character: 'player',
+    character: 'p1',
     memories: [
       {
         type: 'identity' as const,
@@ -64,6 +67,41 @@ and he's very excited to tell people about it.`,
       },
     ],
     position: { x: 12, y: 10 },
+  },
+  {
+    name: 'Bob',
+    character: 'p2',
+    memories: [
+      {
+        type: 'identity' as const,
+        description: `Bob is always grumpy and he loves trees. He spends
+most of his time gardening by himself. When spoken to he'll respond but try
+and get out of the conversation as quickly as possible. Secretely he resents
+that he never went to college.`,  
+      },
+      {
+        type: 'plan' as const,
+        description: 'You want to avoid people as much as possible.',
+      },
+    ],
+    position: { x: 4, y: 4 },
+  },
+  {
+    name: 'Alice',
+    character: 'p3',
+    memories: [
+      {
+        type: 'identity' as const,
+        description: `Alice is a famous scientist. She is smarter than everyone else and has
+        discovered mysteries of the universe noone else can understand. As a result she often
+        speaks in oblique riddles. She comes across as confused and forgetful.`, 
+      },
+      {
+        type: 'plan' as const,
+        description: 'You want to figure out how the world works.',
+      },
+    ],
+    position: { x: 4, y: 4 },
   },
 ];
 
@@ -171,6 +209,24 @@ export const seed = internalAction({
         name: 'player',
         textureUrl: '/assets/player.png',
         spritesheetData: playerSpritesheetData,
+        speed: 0.1,
+      },
+      {
+        name: 'p1',
+        textureUrl: '/assets/folks.png',
+        spritesheetData: p1SpritesheetData,
+        speed: 0.1,
+      },
+      {
+        name: 'p2',
+        textureUrl: '/assets/folks.png',
+        spritesheetData: p2SpritesheetData,
+        speed: 0.1,
+      },
+      {
+        name: 'p3',
+        textureUrl: '/assets/folks.png',
+        spritesheetData: p3SpritesheetData,
         speed: 0.1,
       },
     ];
