@@ -17,4 +17,4 @@ export const WORLD_IDLE_THRESHOLD = 300_000; // In ms
 // How long to wait before update a memory's last access time.
 export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
 // We round tick times to debounce events. They'll get rounded up to the nearest multiple of this.
-export const TICK_DEBOUNCE = 500; // In ms
+export const TICK_DEBOUNCE = 10; // In ms
