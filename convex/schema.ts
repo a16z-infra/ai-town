@@ -137,6 +137,7 @@ export const Memories = Table('memories', {
   description: v.string(),
   embeddingId: v.id('embeddings'),
   importance: v.number(),
+  lastAccess: v.number(),
   data: v.union(
     // Useful for seed memories, high level goals
     v.object({
@@ -258,11 +259,6 @@ export default defineSchema(
     memories: Memories.table
       .index('by_playerId_embeddingId', ['playerId', 'embeddingId'])
       .index('by_playerId_type', ['playerId', 'data.type']),
-
-    // To track recent accesses
-    memoryAccesses: defineTable({
-      memoryId: v.id('memories'),
-    }).index('by_memoryId', ['memoryId']),
 
     embeddings: defineTable({
       playerId: v.id('players'),

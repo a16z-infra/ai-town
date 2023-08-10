@@ -13,3 +13,5 @@ export const CONVERSATION_DEAD_THRESHOLD = 600_000; // In ms
 export const HEARTBEAT_PERIOD = 30_000; // In ms
 
 export const WORLD_IDLE_THRESHOLD = 300_000; // In ms
+// How long to wait before update a memory's last access time.
+export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms

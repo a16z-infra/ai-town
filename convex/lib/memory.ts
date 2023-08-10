@@ -13,8 +13,9 @@ import { chatCompletion, fetchEmbeddingBatch } from './openai.js';
 import { clientMessageMapper } from '../chat.js';
 import { pineconeAvailable, queryVectors, upsertVectors } from './pinecone.js';
 import { chatHistoryFromMessages } from '../conversation.js';
+import { MEMORY_ACCESS_THROTTLE } from '../config.js';
 
-const { embeddingId: _, ...MemoryWithoutEmbeddingId } = Memories.fields;
+const { embeddingId: _, lastAccess, ...MemoryWithoutEmbeddingId } = Memories.fields;
 const NewMemory = { ...MemoryWithoutEmbeddingId, importance: v.optional(v.number()) };
 const NewMemoryWithEmbedding = { ...MemoryWithoutEmbeddingId, embedding: v.array(v.number()) };
 const NewMemoryObject = v.object(NewMemory);
@@ -200,15 +201,8 @@ export const accessMemories = internalMutation({
     );
     // TODO: fetch <count> recent memories and <count> important memories
     // so we don't miss them in case they were a little less relevant.
-    const recencyScore = await asyncMap(relatedMemories, async (memory) => {
-      const access = await ctx.db
-        .query('memoryAccesses')
-        .withIndex('by_memoryId', (q) => q.eq('memoryId', memory._id))
-        .order('desc')
-        .first();
-      if (!access) return 1;
-      const accessTime = access ? access._creationTime : memory._creationTime;
-      return 0.99 ^ Math.floor((ts - accessTime) / 1000 / 60 / 60);
+    const recencyScore = relatedMemories.map((memory) => {
+      return 0.99 ^ Math.floor((ts - memory.lastAccess) / 1000 / 60 / 60);
     });
     const relevanceRange = makeRange(candidates.map((c) => c.score));
     const importanceRange = makeRange(relatedMemories.map((m) => m.importance));
@@ -222,9 +216,11 @@ export const accessMemories = internalMutation({
     }));
     memoryScores.sort((a, b) => b.overallScore - a.overallScore);
     const accessed = memoryScores.slice(0, count);
-    await Promise.all(
-      accessed.map(({ memory }) => ctx.db.insert('memoryAccesses', { memoryId: memory._id })),
-    );
+    await asyncMap(accessed, async ({ memory }) => {
+      if (memory.lastAccess < ts - MEMORY_ACCESS_THROTTLE) {
+        await ctx.db.patch(memory._id, { lastAccess: ts });
+      }
+    });
     return accessed;
   },
 });
@@ -272,7 +268,7 @@ export const addMemories = internalMutation({
       const { embedding, ...memory } = memoryWithEmbedding;
       const { playerId, description: text } = memory;
       const embeddingId = await ctx.db.insert('embeddings', { playerId, embedding, text });
-      await ctx.db.insert('memories', { ...memory, embeddingId });
+      await ctx.db.insert('memories', { ...memory, lastAccess: Date.now(), embeddingId });
       return embeddingId;
     });
   },
