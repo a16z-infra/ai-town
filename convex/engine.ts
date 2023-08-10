@@ -138,15 +138,12 @@ export const freezeAll = internalMutation({
   },
 });
 
-export const unfreezeAll = internalMutation({
-  args: {},
+export const unfreeze = internalMutation({
+  args: { worldId: v.optional(v.id('worlds')) },
   handler: async (ctx, args) => {
-    const worlds = await ctx.db.query('worlds').collect();
-    for (const world of worlds) {
-      await ctx.db.patch(world._id, { frozen: false });
-    }
-    for (const world of worlds) {
-      await ctx.scheduler.runAfter(0, internal.engine.tick, { worldId: world._id });
-    }
+    const world = await ctx.db.query('worlds').order('desc').first();
+    if (!world) throw new Error("Didn't unfreeze: No world found");
+    await ctx.db.patch(world._id, { frozen: false });
+    await ctx.scheduler.runAfter(0, internal.engine.tick, { worldId: world._id });
   },
 });
