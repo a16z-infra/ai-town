@@ -169,6 +169,7 @@ export async function handleAgentInteraction(
 
   // TODO: real logic. this just sends one message each!
 
+  const endAfterTs = Date.now() + 5 * 60_000;
   // Choose who should speak next:
   let endConversation = false;
   let lastSpeakerId = leader.id;
@@ -188,7 +189,7 @@ export async function handleAgentInteraction(
     const shouldWalkAway = audience.length === 0 || (await walkAway(chatHistory, speaker));
 
     // Decide if we keep talking.
-    if (shouldWalkAway) {
+    if (shouldWalkAway || Date.now() > endAfterTs) {
       // It's to chatty here, let's go somewhere else.
       await ctx.runMutation(internal.journal.leaveConversation, {
         playerId: speaker.id,
