@@ -25,7 +25,10 @@ export async function chatCompletion(
     body: JSON.stringify(body),
   });
   if (!result.ok) {
-    throw new Error('Unexpected result from OpenAI: ' + JSON.stringify(result));
+    throw new Error(
+      `Unexpected result from OpenAI: ${result.status} ${result.statusText}\n` +
+        JSON.stringify(result),
+    );
   }
   const completion = (await result.json()) as CreateChatCompletionResponse;
   const ms = Date.now() - start;
