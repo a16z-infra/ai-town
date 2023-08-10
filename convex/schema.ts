@@ -282,5 +282,5 @@ export default defineSchema(
   // We disable it while iterating on the schema, to avoid needing to clear
   // tables all the time or write migrations while iterating quickly.
   // Instead, we just create new worlds with the correct data schema for now.
-  { schemaValidation: false },
+  { schemaValidation: true },
 );
