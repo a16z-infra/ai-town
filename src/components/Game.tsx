@@ -53,7 +53,14 @@ const useServerTimeOffset = () => {
   const prev = useRef<number[]>([]);
   useEffect(() => {
     const updateOffset = async () => {
-      const serverTime = await serverNow();
+      let serverTime;
+      try {
+        serverTime = await serverNow();
+      } catch (e) {
+        // If we failed to get it, just skip this one
+        console.error(e);
+        return;
+      }
       const newOffset = serverTime - Date.now();
       prev.current.push(newOffset);
       if (prev.current.length > 5) prev.current.shift();
