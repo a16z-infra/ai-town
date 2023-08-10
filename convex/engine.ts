@@ -2,7 +2,7 @@ import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
 import { DatabaseReader, DatabaseWriter, MutationCtx, internalMutation } from './_generated/server';
-import { WORLD_IDLE_THRESHOLD } from './config';
+import { TICK_DEBOUNCE, WORLD_IDLE_THRESHOLD } from './config';
 import { asyncMap, pruneNull } from './lib/utils';
 
 export const tick = internalMutation({
@@ -79,18 +79,20 @@ export const agentDone = internalMutation({
     if (!agentDoc.thinking) {
       throw new Error('Agent was not thinking: did you call agentDone twice for the same agent?');
     }
+
+    const nextWakeTs = Math.ceil(args.wakeTs / TICK_DEBOUNCE) * TICK_DEBOUNCE;
     await ctx.db.replace(args.agentId, {
       playerId: agentDoc.playerId,
       worldId: agentDoc.worldId,
       thinking: false,
       lastWakeTs: agentDoc.nextWakeTs,
-      nextWakeTs: args.wakeTs,
+      nextWakeTs,
       alsoWake: args.otherAgentIds,
       scheduled: await enqueueAgentWake(
         ctx,
         args.agentId,
         agentDoc.worldId,
-        args.wakeTs,
+        nextWakeTs,
         args.noSchedule,
       ),
     });
