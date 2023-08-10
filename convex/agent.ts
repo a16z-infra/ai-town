@@ -9,7 +9,13 @@ import { Id } from './_generated/dataModel';
 import { ActionCtx, internalAction } from './_generated/server';
 import { MemoryDB } from './lib/memory';
 import { Message, Player } from './schema';
-import { chatHistoryFromMessages, converse, startConversation, walkAway } from './conversation';
+import {
+  chatHistoryFromMessages,
+  decideWhoSpeaksNext,
+  converse,
+  startConversation,
+  walkAway,
+} from './conversation';
 import { NEARBY_DISTANCE } from './config';
 import { getNearbyPlayers, getPoseFromMotion, manhattanDistance } from './lib/physics';
 
@@ -163,38 +169,59 @@ export async function handleAgentInteraction(
   const messages: Message[] = [];
 
   // TODO: real logic. this just sends one message each!
-  for (const player of players) {
-    const playerId = player.id;
+
+  // Choose who should speak next:
+  let endConversation = false;
+  let lastSpeakerId = leader.id;
+  let remainingPlayers = players;
+  while (!endConversation) {
+    // leader speaks first
     const chatHistory = chatHistoryFromMessages(messages);
-    const audience = players.filter((p) => p.id !== player.id).map((p) => p.id);
-    // Converse
-    const shouldWalkAway = await walkAway(chatHistory, player);
+    const speaker =
+      messages.length === 0
+        ? leader
+        : await decideWhoSpeaksNext(
+            remainingPlayers.filter((p) => p.id !== lastSpeakerId),
+            chatHistory,
+          );
+    lastSpeakerId = speaker.id;
+    const audience = players.filter((p) => p.id !== speaker.id).map((p) => p.id);
+    const shouldWalkAway = audience.length === 0 || (await walkAway(chatHistory, speaker));
+
     // Decide if we keep talking.
     if (shouldWalkAway) {
       // It's to chatty here, let's go somewhere else.
       await ctx.runMutation(internal.journal.leaveConversation, {
-        playerId,
+        playerId: speaker.id,
         audience,
         conversationId,
       });
+      // Update remaining players
+      remainingPlayers = remainingPlayers.filter((p) => p.id !== speaker.id);
+      // End the interaction if there's no one left to talk to.
+      endConversation = audience.length === 0;
+
       // TODO: remove this player from the audience list
       break;
     }
-    const playerRelations = relationshipsByPlayerId.get(player.id) ?? [];
+
+    const playerRelations = relationshipsByPlayerId.get(speaker.id) ?? [];
     let playerCompletion;
     if (messages.length === 0) {
-      playerCompletion = await startConversation(playerRelations, memory, player);
+      playerCompletion = await startConversation(playerRelations, memory, speaker);
     } else {
       // TODO: stream the response and write to the mutation for every sentence.
-      playerCompletion = await converse(chatHistory, player, playerRelations, memory);
+      playerCompletion = await converse(chatHistory, speaker, playerRelations, memory);
     }
+
     const message = await ctx.runMutation(internal.journal.talk, {
-      playerId,
+      playerId: speaker.id,
       audience,
       content: playerCompletion.content,
       relatedMemoryIds: playerCompletion.memoryIds,
       conversationId,
     });
+
     if (message) {
       messages.push(message);
     }

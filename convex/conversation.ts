@@ -59,6 +59,37 @@ export function chatHistoryFromMessages(messages: Message[]): LLMMessage[] {
   );
 }
 
+export async function decideWhoSpeaksNext(
+  players: Player[],
+  chatHistory: LLMMessage[],
+): Promise<Player> {
+  if (players.length === 1) {
+    return players[0];
+  }
+
+  const promptStr = `[no prose]\n [Output only JSON]
+  
+  ${JSON.stringify(players)} 
+  Here is a list of people in the conversation, return BOTH name and ID of the person who should speak next based on the chat history provided below. 
+  Return in JSON format, example: {"name": "Alex", id: "1234"}
+  ${chatHistory.map((m) => m.content).join('\n')}`;
+  const prompt: LLMMessage[] = [
+    {
+      role: 'user',
+      content: promptStr,
+    },
+  ];
+  const { content } = await chatCompletion({ messages: prompt, max_tokens: 300 });
+  let speakerId: string;
+  try {
+    speakerId = JSON.parse(content).id;
+  } catch (e) {
+    console.error('error parsing speakerId: ', e);
+  }
+  const randomIdx = Math.floor(Math.random() * players.length);
+  return players.find((p) => p.id.toString() === speakerId) || players[randomIdx];
+}
+
 export async function converse(
   messages: LLMMessage[],
   player: Player,
@@ -119,6 +150,10 @@ export async function walkAway(messages: LLMMessage[], player: Player): Promise<
     },
     ...messages,
   ];
-  const { content: description } = await chatCompletion({ messages: prompt, max_tokens: 2 });
+  const { content: description } = await chatCompletion({
+    messages: prompt,
+    max_tokens: 1,
+    temperature: 0,
+  });
   return description === '1';
 }
