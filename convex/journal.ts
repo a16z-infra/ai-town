@@ -239,7 +239,7 @@ export const walk = internalMutation({
     );
     const targetPosition = target
       ? getPoseFromMotion(await getLatestPlayerMotion(ctx.db, target), ts).position
-      : getRandomPosition(world);
+      : getRandomPosition(map);
     const ourMotion = await getLatestPlayerMotion(ctx.db, playerId);
     const { route, distance } = findRoute(
       map,
@@ -290,9 +290,9 @@ export const nextCollision = internalQuery({
   },
 });
 
-export function getRandomPosition(world: Doc<'worlds'>): Position {
+export function getRandomPosition(map: Doc<'maps'>): Position {
   return {
-    x: Math.floor(Math.random() * world.width),
-    y: Math.floor(Math.random() * world.height),
+    x: Math.floor(Math.random() * map.bgTiles[0].length),
+    y: Math.floor(Math.random() * map.bgTiles.length),
   };
 }
