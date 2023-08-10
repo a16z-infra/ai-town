@@ -1,0 +1,11 @@
+<!-- Based on Pixel Art GUI Elements by Mounir Tohami (https://mounirtohami.itch.io/pixel-art-gui-elements) -->
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="1" y="2" width="14" height="13" fill="#181425"/>
+<rect x="2" y="1" width="12" height="15" fill="#181425"/>
+<rect y="3" width="16" height="11" fill="#181425"/>
+<rect x="2" y="14" width="12" height="1" fill="#262B44"/>
+<rect x="1" y="3" width="14" height="11" fill="#3A4466"/>
+<rect x="2" y="2" width="12" height="9" fill="#3A4466"/>
+<rect x="1" y="13" width="1" height="1" fill="#262B44"/>
+<rect x="14" y="13" width="1" height="1" fill="#262B44"/>
+</svg>

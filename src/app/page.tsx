@@ -19,9 +19,23 @@ export default function Home() {
 
         <Examples />
 
-        <div className="h-16"></div>
+        <footer className="absolute bottom-0 left-0 w-full flex items-center mt-4 gap-6 p-6 flex-wrap">
+          <div className="flex gap-4 flex-grow">
+            <a
+              className="button text-white shadow-solid text-2xl"
+              href="https://github.com/a16z-infra/ai-town"
+            >
+              <div className="inline-block bg-clay-800">
+                <span>
+                  <div className="inline-flex items-center gap-4">
+                    <img className="w-6 h-6" src="/assets/star.svg" />
+                    Star
+                  </div>
+                </span>
+              </div>
+            </a>
+          </div>
 
-        <footer className="absolute bottom-0 right-0 flex justify-end mt-4 gap-6 p-6">
           <a href="https://a16z.com">
             <img className="w-14 h-14" src="/a16z.png" alt="a16z" />
           </a>

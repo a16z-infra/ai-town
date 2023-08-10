@@ -88,3 +88,24 @@ body {
   border-image-repeat: stretch;
   border-image-slice: 40%;
 }
+
+.button {
+  border-width: 24px;
+  border-image-source: url(../../assets/ui/button.svg);
+  border-image-repeat: stretch;
+  border-image-slice: 25%;
+}
+
+.button span {
+  display: inline-block;
+  transform: translateY(-15%);
+}
+
+.button:active {
+  /* Inlining this image to avoid flashing during loading */
+  border-image-source: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='1' y='2' width='14' height='13' fill='%23181425'/%3E%3Crect x='2' y='1' width='12' height='15' fill='%23181425'/%3E%3Crect y='3' width='16' height='11' fill='%23181425'/%3E%3Crect x='2' y='14' width='12' height='1' fill='%23262B44'/%3E%3Crect x='1' y='3' width='14' height='11' fill='%233A4466'/%3E%3Crect x='2' y='2' width='12' height='9' fill='%233A4466'/%3E%3Crect x='1' y='13' width='1' height='1' fill='%23262B44'/%3E%3Crect x='14' y='13' width='1' height='1' fill='%23262B44'/%3E%3C/svg%3E%0A");
+}
+
+.button:active span {
+  transform: none;
+}
