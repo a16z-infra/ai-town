@@ -187,7 +187,8 @@ export async function handleAgentInteraction(
     const message = await ctx.runMutation(internal.journal.talk, {
       playerId,
       audience,
-      content: playerCompletion,
+      content: playerCompletion.content,
+      relatedMemoryIds: playerCompletion.memoryIds,
       conversationId,
     });
     if (message) {

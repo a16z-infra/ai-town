@@ -104,6 +104,7 @@ export const Journal = Table('journal', {
       content: v.string(),
       // Refers to the first message in the conversation.
       conversationId: v.id('conversations'),
+      relatedMemoryIds: v.optional(v.array(v.id('memories'))),
     }),
     v.object({
       type: v.literal('leaveConversation'),

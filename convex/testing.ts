@@ -7,7 +7,6 @@ import { asyncMap, pruneNull } from './lib/utils';
 import { Entry, EntryOfType, Motion, Pose } from './schema';
 import { clientMessageMapper } from './chat';
 import { MemoryDB } from './lib/memory';
-import { chatHistoryFromMessages, converse, startConversation, walkAway } from './conversation';
 import { getPlayer, stop, walk } from './journal';
 import { handleAgentInteraction } from './agent';
 

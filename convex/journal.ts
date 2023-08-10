@@ -169,15 +169,16 @@ export const talk = internalMutation({
     audience: v.array(v.id('players')),
     conversationId: v.id('conversations'),
     content: v.string(),
+    relatedMemoryIds: v.array(v.id('memories')),
   },
-  handler: async (ctx, { playerId, audience, conversationId, content, ...args }) => {
-    if (audience.length === 0) {
+  handler: async (ctx, { playerId, ...args }) => {
+    if (args.audience.length === 0) {
       console.log("Didn't talk");
       return null;
     }
     const entryId = await ctx.db.insert('journal', {
       playerId,
-      data: { type: 'talking', audience, conversationId, content },
+      data: { type: 'talking', ...args },
     });
     return await clientMessageMapper(ctx.db)((await ctx.db.get(entryId))! as MessageEntry);
   },

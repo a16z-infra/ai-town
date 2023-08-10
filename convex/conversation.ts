@@ -10,7 +10,7 @@ export async function startConversation(
   relationships: { name: string; relationship: string }[],
   memory: MemoryDB,
   player: Player,
-): Promise<string> {
+) {
   const newFriendsNames = relationships.map((r) => r.name);
 
   const { embedding } = await fetchEmbedding(
@@ -32,7 +32,7 @@ export async function startConversation(
   ];
   const stop = newFriendsNames.map((name) => name + ':');
   const { content } = await chatCompletion({ messages: prompt, max_tokens: 300, stop });
-  return content;
+  return { content, memoryIds: memories.map((m) => m.memory._id) };
 }
 
 function messageContent(m: Message): string {
@@ -64,7 +64,7 @@ export async function converse(
   player: Player,
   nearbyPlayers: Relation[],
   memory: MemoryDB,
-): Promise<string> {
+) {
   const nearbyPlayersNames = nearbyPlayers.map((p) => p.name).join(', ');
   const lastMessage: string | null | undefined = messages?.at(-1)?.content;
   const { embedding } = await fetchEmbedding(lastMessage ? lastMessage : '');
@@ -108,7 +108,7 @@ export async function converse(
   const { content } = await chatCompletion({ messages: prompt, max_tokens: 300, stop });
   // console.log('converse() prompt: ', prompt);
   console.log('converse result through chatgpt: ', content);
-  return content;
+  return { content, memoryIds: memories.map((m) => m.memory._id) };
 }
 
 export async function walkAway(messages: LLMMessage[], player: Player): Promise<boolean> {
