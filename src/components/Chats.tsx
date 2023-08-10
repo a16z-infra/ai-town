@@ -35,9 +35,9 @@ function Messages({
                     {new Date(message.ts).toLocaleString()}
                   </time>
                 </div>
-                <p className={clsx('bubble', message.from === currentPlayerId && 'bubble-mine')}>
-                  <div className="bg-white -mx-3 -my-1">{message.content}</div>
-                </p>
+                <div className={clsx('bubble', message.from === currentPlayerId && 'bubble-mine')}>
+                  <p className="bg-white -mx-3 -my-1">{message.content}</p>
+                </div>
               </>
             ) : (
               <p className="text-brown-700 text-center">
