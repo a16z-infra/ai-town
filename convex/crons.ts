@@ -111,7 +111,7 @@ crons.interval('vacuum old journal entries', { hours: 1 }, internal.crons.vacuum
 });
 crons.interval('vacuum old memory entries', { hours: 6 }, internal.crons.vacuumOldEntries, {
   table: 'memories',
-  age: 14 * VACUUM_MEMORIES_AGE,
+  age: VACUUM_MEMORIES_AGE,
   cursor: null,
   soFar: 0,
 });
