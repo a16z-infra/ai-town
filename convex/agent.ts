@@ -176,9 +176,11 @@ export async function handleAgentInteraction(
     }
   }
 
-  for (const player of players) {
-    await memory.rememberConversation(player.name, player.id, player.identity, conversationId);
-    await done(player.agentId, { type: 'walk', ignore: players.map((p) => p.id) });
+  if (messages.length > 0) {
+    for (const player of players) {
+      await memory.rememberConversation(player.name, player.id, player.identity, conversationId);
+      await done(player.agentId, { type: 'walk', ignore: players.map((p) => p.id) });
+    }
   }
 }
 
