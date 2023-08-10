@@ -89,8 +89,15 @@ body {
   border-image-slice: 40%;
 }
 
+.login-prompt {
+  border-width: 48px;
+  border-image-source: url(../../assets/ui/jewel_box.svg);
+  border-image-repeat: stretch;
+  border-image-slice: 40%;
+}
+
 .button {
-  border-width: 24px;
+  border-width: 1em;
   border-image-source: url(../../assets/ui/button.svg);
   border-image-repeat: stretch;
   border-image-slice: 25%;

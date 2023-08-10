@@ -3,6 +3,8 @@ import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import type { Player as PlayerState } from '../../convex/schema';
 import clsx from 'clsx';
+import { useAuth } from '@clerk/clerk-react';
+import LoginButton from './LoginButton';
 
 function classNames(...classes: any) {
   return classes.filter(Boolean).join(' ');
@@ -52,6 +54,8 @@ function Messages({
 }
 
 export default function Chats({ playerState }: { playerState: PlayerState | undefined }) {
+  const { userId } = useAuth();
+
   if (!playerState) {
     return (
       <div className="h-full text-xl flex text-center items-center p-4">
@@ -72,13 +76,25 @@ export default function Chats({ playerState }: { playerState: PlayerState | unde
         <p className="leading-tight -m-4 bg-brown-700 text-lg">{playerState.identity}</p>
       </div>
 
-      {playerState.lastChat?.conversationId && (
-        <div className="chats">
-          <div className="bg-brown-200 text-black p-2">
-            <Messages
-              conversationId={playerState.lastChat?.conversationId}
-              currentPlayerId={playerState.id}
-            />
+      {userId ? (
+        playerState.lastChat?.conversationId && (
+          <div className="chats">
+            <div className="bg-brown-200 text-black p-2">
+              <Messages
+                conversationId={playerState.lastChat?.conversationId}
+                currentPlayerId={playerState.id}
+              />
+            </div>
+          </div>
+        )
+      ) : (
+        <div className="login-prompt">
+          <div className="bg-clay-300 text-clay-900 -m-6">
+            <p className="text-center">You need to be logged in to read the conversations.</p>
+
+            <div className="text-center mt-4 text-xl">
+              <LoginButton />
+            </div>
           </div>
         </div>
       )}

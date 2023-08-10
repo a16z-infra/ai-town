@@ -1,11 +1,14 @@
-import { UserButton } from '@clerk/nextjs';
+import { UserButton, auth } from '@clerk/nextjs';
 import Examples from '@/components/Examples';
+import LoginButton from '@/components/LoginButton';
 
 export default function Home() {
+  const { userId } = auth();
+
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-between font-body game-background">
-      <div className="p-6 absolute top-0 right-0 z-10">
-        <UserButton afterSignOutUrl="/" />
+      <div className="p-6 absolute top-0 right-0 z-10 text-2xl">
+        {userId ? <UserButton afterSignOutUrl="/" /> : <LoginButton />}
       </div>
 
       <div className="w-full min-h-screen relative isolate overflow-hidden p-6 lg:p-8 shadow-2xl flex flex-col justify-center">
@@ -25,7 +28,7 @@ export default function Home() {
               className="button text-white shadow-solid text-2xl"
               href="https://github.com/a16z-infra/ai-town"
             >
-              <div className="inline-block bg-clay-800">
+              <div className="inline-block bg-clay-700">
                 <span>
                   <div className="inline-flex items-center gap-4">
                     <img className="w-6 h-6" src="/assets/star.svg" />
