@@ -9,7 +9,7 @@ import { getPlayer } from './journal';
 export const getWorld = query({
   args: {},
   handler: async (ctx, args) => {
-    // TODO: based on auth, fetch the user's world
+    // Future: based on auth, fetch the user's world
     const world = await ctx.db.query('worlds').order('desc').first();
     if (!world) {
       console.error('No world found');
@@ -28,7 +28,7 @@ export const getWorld = query({
 export const now = mutation({
   args: {},
   handler: async (ctx, args) => {
-    // TODO: based on auth, heartbeat for that user for presence
+    // Future: based on auth, heartbeat for that user for presence
     const lastHeartbeat = await ctx.db.query('heartbeats').order('desc').first();
     if (!lastHeartbeat || lastHeartbeat._creationTime + HEARTBEAT_PERIOD < Date.now()) {
       await ctx.db.insert('heartbeats', {});
@@ -63,7 +63,7 @@ export const createPlayer = mutation({
     characterId: v.id('characters'),
   },
   handler: async (ctx, { name, worldId, characterId, ...args }) => {
-    // TODO: associate this with an authed user
+    // Future: associate this with an authed user
     const playerId = await ctx.db.insert('players', {
       name,
       characterId,
@@ -86,7 +86,7 @@ export const createAgent = mutation({
     characterId: v.id('characters'),
   },
   handler: async (ctx, { name, worldId, characterId, ...args }) => {
-    // TODO: associate this with an authed user
+    // Future: associate this with an authed user
     const playerId = await ctx.db.insert('players', {
       name,
       characterId,

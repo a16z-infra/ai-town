@@ -177,7 +177,6 @@ export const runConversation = internalAction({
       conversationIdx < (args.conversationCount ?? 1);
       conversationIdx++
     ) {
-      await ctx.runMutation(internal.testing.setThinking, { playerIds });
       await handleAgentInteraction(ctx, players, memory, async (agentId, activity) => {
         console.log({ agentId, activity });
       });

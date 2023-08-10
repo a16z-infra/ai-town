@@ -173,7 +173,7 @@ export const talk = internalMutation({
   },
   handler: async (ctx, { playerId, ...args }) => {
     if (args.audience.length === 0) {
-      console.log("Didn't talk");
+      console.debug("Didn't talk: no audience");
       return null;
     }
     const entryId = await ctx.db.insert('journal', {
@@ -191,11 +191,6 @@ export const leaveConversation = internalMutation({
     conversationId: v.id('conversations'),
   },
   handler: async (ctx, { playerId, audience, conversationId, ...args }) => {
-    if (audience.length === 0) {
-      console.log('No one left in convo');
-    } else {
-      console.log(playerId, 'Left', conversationId, 'with', audience);
-    }
     await ctx.db.insert('journal', {
       playerId,
       data: { type: 'leaveConversation', audience, conversationId },
@@ -214,7 +209,7 @@ export const stop = internalMutation({
       data: {
         type: 'stopped',
         reason: 'interrupted',
-        // TODO: maybe model stopping as a path of length 1 or 2 instead of
+        // Future: maybe model stopping as a path of length 1 or 2 instead of
         // its own type. Then we can continue along the existing path instead of
         // snapping to the final location.
         // A path of length 2 could start in the past to make it smooth.
@@ -223,12 +218,12 @@ export const stop = internalMutation({
     });
   },
 });
-// TODO: allow specifying a specific place to go, ideally a named Zone.
 
 export const walk = internalMutation({
   args: {
     agentId: v.id('agents'),
     ignore: v.array(v.id('players')),
+    // Future: allow specifying a specific place to go, ideally a named Zone.
     target: v.optional(v.id('players')),
   },
   handler: async (ctx, { agentId, ignore, target }) => {

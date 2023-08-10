@@ -24,7 +24,6 @@ import type * as init from "../init";
 import type * as journal from "../journal";
 import type * as lib_memory from "../lib/memory";
 import type * as lib_migrations from "../lib/migrations";
-import type * as lib_node_openai from "../lib/node_openai";
 import type * as lib_openai from "../lib/openai";
 import type * as lib_physics from "../lib/physics";
 import type * as lib_pinecone from "../lib/pinecone";
@@ -54,7 +53,6 @@ declare const fullApi: ApiFromModules<{
   journal: typeof journal;
   "lib/memory": typeof lib_memory;
   "lib/migrations": typeof lib_migrations;
-  "lib/node_openai": typeof lib_node_openai;
   "lib/openai": typeof lib_openai;
   "lib/physics": typeof lib_physics;
   "lib/pinecone": typeof lib_pinecone;

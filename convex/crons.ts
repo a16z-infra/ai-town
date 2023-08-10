@@ -3,14 +3,14 @@ import { internalMutation } from './_generated/server';
 import { getLatestPlayerMotion } from './journal';
 import { AGENT_THINKING_TOO_LONG } from './config';
 import { enqueueAgentWake } from './engine';
+import { internal } from './_generated/api';
 
 export const recoverThinkingAgents = internalMutation({
   args: {},
   handler: async (ctx, args) => {
     const world = await ctx.db.query('worlds').order('desc').first();
     if (!world) throw new Error('No world found');
-    // TODO: in the future, we can check all players, but for now let's just
-    // check the most recent world.
+    // Future: we can check all players, but for now just the most recent world.
     const ts = Date.now();
     const agentDocs = await ctx.db
       .query('agents')
@@ -37,11 +37,10 @@ export const recoverStoppedAgents = internalMutation({
     const world = await ctx.db.query('worlds').order('desc').first();
     if (!world) throw new Error('No world found');
     if (world.frozen) {
-      console.log("Didn't tick: world frozen");
+      console.debug("Didn't tick: world frozen");
       return;
     }
-    // TODO: in the future, we can check all players, but for now let's just
-    // check the most recent world.
+    // Future: we can check all players, but for now just the most recent world.
     const agentDocs = await ctx.db
       .query('agents')
       .withIndex('by_worldId_thinking', (q) => q.eq('worldId', world._id).eq('thinking', false))
@@ -58,8 +57,6 @@ export const recoverStoppedAgents = internalMutation({
 });
 
 const crons = cronJobs();
-// TODO: enable this to recover stopped agents
-// crons.interval('restart idle agents', { seconds: 60 }, internal.crons.recoverStoppedAgents);
-// TODO: enable this to recover perma-thinking agents
-// crons.interval('restart thinking agents', { seconds: 60 }, internal.crons.recoverThinkingAgents);
+crons.interval('restart idle agents', { seconds: 60 }, internal.crons.recoverStoppedAgents);
+crons.interval('restart thinking agents', { seconds: 60 }, internal.crons.recoverThinkingAgents);
 export default crons;

@@ -113,7 +113,7 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
           }
           importance = parseFloat(importanceRaw);
           if (isNaN(importance)) {
-            console.log('importance is NaN', importanceRaw);
+            console.debug('importance is NaN', importanceRaw);
             importance = 5;
           }
           return { ...memory, embedding, importance };

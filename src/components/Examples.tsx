@@ -10,7 +10,6 @@ export default function Examples() {
   const [selectedPlayer, setSelectedPlayer] = useState<Player>();
 
   const [gameWrapperRef, { width, height }] = useElementSize();
-  console.log({ width, height });
 
   return (
     <>

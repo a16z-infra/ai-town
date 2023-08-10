@@ -11,31 +11,20 @@ export const tick = internalMutation({
     const ts = Date.now();
     // Fetch the first recent heartbeat.
     if (!(await getRecentHeartbeat(ctx.db, worldId))) {
-      console.log("Didn't tick: no heartbeat recently");
+      console.debug("Didn't tick: no heartbeat recently");
       return;
     }
     const world = await ctx.db.get(worldId);
-    if (!world) {
-      console.error("Didn't tick: No world found");
-      return;
-    }
-    if (world.frozen && !noSchedule) {
-      console.log("Didn't tick: world frozen");
-      return;
-    }
+    if (!world) throw new Error("Didn't tick: No world found");
+    if (world.frozen && !noSchedule) throw new Error("Didn't tick: world frozen");
 
     // Fetch agents to wake up: not already thinking
     const agentDocs = await ctx.db
       .query('agents')
-      .withIndex(
-        'by_worldId_thinking',
-        (q) => q.eq('worldId', worldId).eq('thinking', false),
-        // TODO: try to limit to just the users who need waking:
-        // .lte('nextWakeTs', ts)
-      )
+      .withIndex('by_worldId_thinking', (q) => q.eq('worldId', worldId).eq('thinking', false))
       .collect();
     if (!agentDocs.length) {
-      console.log("Didn't tick: all agents thinking");
+      console.debug("Didn't tick: all agents thinking");
       return;
     }
     const agentsEagerToWake = agentDocs.filter((a) => a.nextWakeTs && a.nextWakeTs <= ts);
@@ -44,14 +33,13 @@ export const tick = internalMutation({
     ]);
     const nextToWake = agentDocs.find((a) => !agentIdsToWake.has(a._id) && a.nextWakeTs > ts);
     if (nextToWake && !nextToWake.scheduled) {
-      console.log('Scheduling for the next agent');
       await ctx.db.patch(nextToWake._id, { scheduled: true });
       await ctx.scheduler.runAt(nextToWake.nextWakeTs, internal.engine.tick, {
         worldId,
       });
     }
     if (!agentsEagerToWake.length) {
-      console.log("Didn't tick: spurious, no agents eager to wake up");
+      console.debug("Didn't tick: spurious, no agents eager to wake up");
       return;
     }
     const agentsToWake = pruneNull(await asyncMap(agentIdsToWake, ctx.db.get)).filter(
@@ -61,10 +49,7 @@ export const tick = internalMutation({
       await ctx.db.patch(agentDoc._id, { thinking: true, lastWakeTs: ts });
     }
     const playerIds = agentsToWake.map((a) => a.playerId);
-    console.log('Running agents for players: ', playerIds);
     await ctx.scheduler.runAfter(0, internal.agent.runAgentBatch, { playerIds, noSchedule });
-    // TODO: handle timeouts
-    // Later: handle object ownership?
   },
 });
 
@@ -132,16 +117,13 @@ export async function enqueueAgentWake(
     }
     // We are effectively scheduled since it'll wake up at the same time.
     if (nextScheduled.nextWakeTs === atTs) {
-      console.log('Not scheduling: next scheduled is at the same time: ', nextScheduled.nextWakeTs);
       return true;
     }
     // Another agent will be scheduled before us
     if (nextScheduled._id !== agentId) {
-      console.log('Not scheduling: next scheduled agent is before us: ', nextScheduled.nextWakeTs);
       return false;
     }
   }
-  console.log('Scheduling for ', atTs);
   if (!noSchedule) await ctx.scheduler.runAt(atTs, internal.engine.tick, { worldId });
   return true;
 }

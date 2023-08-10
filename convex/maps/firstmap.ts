@@ -1,8 +1,6 @@
 // --
 // Definition of a very basic map
 //
-// TODO : move tileset parsing logic here to keep in one file. Can return array of tiles to FE
-//        when called
 
 // - Curremtly pulls tiles from a 1600x1600 pixel tilemap of 32x32pixel tiles
 // - Map has two layers, the first are background tiles that the characters can walk on
