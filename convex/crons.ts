@@ -1,9 +1,15 @@
 import { cronJobs } from 'convex/server';
 import { internalMutation } from './_generated/server';
 import { getLatestPlayerMotion } from './journal';
-import { AGENT_THINKING_TOO_LONG } from './config';
+import {
+  AGENT_THINKING_TOO_LONG,
+  VACUUM_BATCH_SIZE,
+  VACUUM_JOURNAL_AGE,
+  VACUUM_MEMORIES_AGE,
+} from './config';
 import { enqueueAgentWake } from './engine';
 import { internal } from './_generated/api';
+import { TableNames } from './_generated/dataModel';
 
 export const recoverThinkingAgents = internalMutation({
   args: {},
@@ -56,7 +62,56 @@ export const recoverStoppedAgents = internalMutation({
   },
 });
 
+export const vacuumOldEntries = internalMutation({
+  handler: async (
+    ctx,
+    {
+      table,
+      age,
+      ...args
+    }: {
+      table: TableNames;
+      untilTs?: number;
+      age: number;
+      cursor: null | string;
+      soFar: number;
+    },
+  ) => {
+    const untilTs = args.untilTs ?? Date.now() - age;
+    const results = await ctx.db
+      .query(table)
+      .withIndex('by_creation_time', (q) => q.lt('_creationTime', untilTs))
+      .paginate({ cursor: args.cursor, numItems: VACUUM_BATCH_SIZE });
+    for (const doc of results.page) {
+      await ctx.db.delete(doc._id);
+    }
+    if (results.isDone) {
+      console.debug(`Vacuumed ${results.page.length} old ${table} entries.`);
+    } else {
+      await ctx.scheduler.runAfter(0, internal.crons.vacuumOldEntries, {
+        table,
+        untilTs,
+        age,
+        cursor: results.continueCursor,
+        soFar: args.soFar + results.page.length,
+      });
+    }
+  },
+});
+
 const crons = cronJobs();
 crons.interval('restart idle agents', { seconds: 60 }, internal.crons.recoverStoppedAgents);
 crons.interval('restart thinking agents', { seconds: 60 }, internal.crons.recoverThinkingAgents);
+crons.interval('vacuum old journal entries', { hours: 1 }, internal.crons.vacuumOldEntries, {
+  table: 'journal',
+  age: VACUUM_JOURNAL_AGE,
+  cursor: null,
+  soFar: 0,
+});
+crons.interval('vacuum old memory entries', { hours: 6 }, internal.crons.vacuumOldEntries, {
+  table: 'memories',
+  age: 14 * VACUUM_MEMORIES_AGE,
+  cursor: null,
+  soFar: 0,
+});
 export default crons;

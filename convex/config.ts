@@ -18,3 +18,10 @@ export const WORLD_IDLE_THRESHOLD = 300_000; // In ms
 export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
 // We round tick times to debounce events. They'll get rounded up to the nearest multiple of this.
 export const TICK_DEBOUNCE = 10; // In ms
+// This is a balance of how busy to make the DB at once.
+export const VACUUM_BATCH_SIZE = 50;
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+export const VACUUM_JOURNAL_AGE = 7 * DAY;
+export const VACUUM_MEMORIES_AGE = 14 * DAY;
