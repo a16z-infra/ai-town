@@ -27,6 +27,7 @@ export const recoverThinkingAgents = internalMutation({
       // We can just enqueue one, since they're all at the same time.
       const scheduled = await enqueueAgentWake(ctx, agentDocs[0]._id, world._id, ts);
       for (const agentDoc of agentDocs) {
+        console.error(`Agent ${agentDoc._id} was thinking too long. Resetting`);
         await ctx.db.patch(agentDoc._id, {
           thinking: false,
           nextWakeTs: ts,
