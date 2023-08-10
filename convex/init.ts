@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
-import { Doc, Id, TableNames } from './_generated/dataModel';
+import { Doc, Id } from './_generated/dataModel';
 import {
   DatabaseWriter,
   internalAction,
@@ -8,7 +8,6 @@ import {
   internalQuery,
 } from './_generated/server';
 import { MemoryDB } from './lib/memory';
-import { asyncMap } from './lib/utils';
 import { Characters } from './schema';
 import { tiledim, objmap, tilefiledim, bgtiles, tilesetpath } from './maps/firstmap';
 import { data as playerSpritesheetData } from './spritesheets/player';
@@ -77,7 +76,7 @@ and he's very excited to tell people about it.`,
         description: `Bob is always grumpy and he loves trees. He spends
 most of his time gardening by himself. When spoken to he'll respond but try
 and get out of the conversation as quickly as possible. Secretely he resents
-that he never went to college.`,  
+that he never went to college.`,
       },
       {
         type: 'plan' as const,
@@ -94,7 +93,7 @@ that he never went to college.`,
         type: 'identity' as const,
         description: `Alice is a famous scientist. She is smarter than everyone else and has
         discovered mysteries of the universe noone else can understand. As a result she often
-        speaks in oblique riddles. She comes across as confused and forgetful.`, 
+        speaks in oblique riddles. She comes across as confused and forgetful.`,
       },
       {
         type: 'plan' as const,

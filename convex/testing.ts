@@ -1,10 +1,10 @@
 import { v } from 'convex/values';
-import { api, internal } from './_generated/api';
-import { Doc, Id, TableNames } from './_generated/dataModel';
+import { internal } from './_generated/api';
+import { TableNames } from './_generated/dataModel';
 import { internalAction, internalMutation, internalQuery } from './_generated/server';
 import { getAllPlayers } from './players';
 import { asyncMap, pruneNull } from './lib/utils';
-import { Entry, EntryOfType, Motion, Pose } from './schema';
+import { EntryOfType } from './schema';
 import { clientMessageMapper } from './chat';
 import { MemoryDB } from './lib/memory';
 import { getPlayer, stop, walk } from './journal';
@@ -171,13 +171,8 @@ export const runConversation = internalAction({
   },
   handler: async (ctx, args) => {
     const { players, world } = await ctx.runQuery(internal.testing.getDebugPlayers);
-    const playerIds = players.map((p) => p.id);
     const memory = MemoryDB(ctx);
-    for (
-      let conversationIdx = 0;
-      conversationIdx < (args.conversationCount ?? 1);
-      conversationIdx++
-    ) {
+    for (let i = 0; i < (args.conversationCount ?? 1); i++) {
       await handleAgentInteraction(ctx, players, memory, async (agentId, activity) => {
         console.log({ agentId, activity });
       });
