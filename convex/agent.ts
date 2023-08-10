@@ -26,6 +26,12 @@ export const runAgentBatch = internalAction({
     const { players } = await ctx.runQuery(internal.journal.getSnapshot, { playerIds });
     // Segment users by location
     const { groups, solos } = divideIntoGroups(players);
+    console.log(
+      'groups: ',
+      groups.map((g) => g.map((p) => p.id)),
+      ' solos: ',
+      solos.map((p) => p.id),
+    );
     // Run a conversation for each group.
     const groupPromises = groups.map(async (group) => {
       const finished = new Set<Id<'agents'>>();
@@ -63,7 +69,18 @@ export const runAgentBatch = internalAction({
     // Make a structure that resolves when the agent yields.
     // It should fail to do any actions if the agent has already yielded.
 
-    await Promise.allSettled([...groupPromises, ...soloPromises]);
+    console.log('waiting for agent batch to finish', Date.now);
+    // While testing if you want failures to show up more loudly, use this instead:
+    await Promise.all([...groupPromises, ...soloPromises]);
+    // Otherwise, this will allow each group / solo to complete:
+    // const results = await Promise.allSettled([...groupPromises, ...soloPromises]);
+    // for (const result of results) {
+    //   if (result.status === 'rejected') {
+    //     console.error(result.reason, playerIds);
+    //   }
+    // }
+
+    console.log('agent batch finished', Date.now());
   },
 });
 
@@ -91,7 +108,8 @@ function divideIntoGroups(players: Player[]) {
 }
 
 async function handleAgentSolo(ctx: ActionCtx, player: Player, memory: MemoryDB, done: DoneFn) {
-  // Handle new observations
+  console.log('handleAgentSolo: ', player.name, player.id);
+  // Handle new observations: it can look at the agent's lastWakeTs for a delta.
   //   Calculate scores
   //   If there's enough observation score, trigger reflection?
   // Future: Store observations about seeing players?
@@ -193,6 +211,7 @@ type DoneFn = (
 
 function handleDone(ctx: ActionCtx, noSchedule?: boolean): DoneFn {
   return async (agentId, activity) => {
+    console.log('handleDone: ', agentId, activity);
     if (!agentId) return;
     let walkResult;
     switch (activity.type) {

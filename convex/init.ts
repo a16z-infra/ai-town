@@ -150,7 +150,14 @@ export const resetFrozen = internalAction({
   args: {},
   handler: async (ctx, args) => {
     await ctx.runMutation(internal.engine.freezeAll);
-    await ctx.runAction(internal.init.seed, { newWorld: true });
+    const worldId = await ctx.runAction(internal.init.seed, { newWorld: true });
+    console.log('To test one batch a time: npx convex run --no-push engine:tick');
+    console.log(
+      JSON.stringify({
+        worldId,
+        noSchedule: true,
+      }),
+    );
   },
 });
 
@@ -171,10 +178,7 @@ export const seed = internalAction({
       newWorld,
       characters,
     });
-    console.log(`Created world
-    ${worldId}
-    with players
-    ${Object.values(playersByName).join(', ')}\n`);
+    console.log(`Created world ${worldId}`);
     const memories = Data.flatMap(({ name, memories }) => {
       const playerId = playersByName[name]!;
       return memories.map((memory, idx) => {
