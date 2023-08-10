@@ -78,7 +78,7 @@ export async function converse(
     .map((r) => r.memory.description)
     .join('\n');
 
-  console.debug('relevantMemories: ', relevantMemories);
+  // console.debug('relevantMemories: ', relevantMemories);
 
   let prefixPrompt = `Your name is ${player.name}. About you: ${player.identity}.
   You are talking to ${nearbyPlayersNames}, below are something about them: `;
@@ -105,7 +105,7 @@ export async function converse(
     },
   ];
   const { content } = await chatCompletion({ messages: prompt, max_tokens: 300, stop });
-  console.debug('converse result through chatgpt: ', content);
+  // console.debug('converse result through chatgpt: ', content);
   return { content, memoryIds: memories.map((m) => m.memory._id) };
 }
 

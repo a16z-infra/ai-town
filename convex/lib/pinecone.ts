@@ -48,10 +48,7 @@ export async function upsertVectors<TableName extends TableNames>(
       }),
     );
   }
-  console.debug({
-    upserted: vectors.length,
-    pineconeUpsertMs: Date.now() - start,
-  });
+  // console.debug(`Pinecone upserted ${vectors.length} vectors in ${Date.now() - start}ms`);
   return results;
 }
 
@@ -71,10 +68,7 @@ export async function queryVectors<TableName extends TableNames>(
       filter,
     },
   });
-  console.debug({
-    queried: matches?.length,
-    pineconeQueryMs: Date.now() - start,
-  });
+  // console.debug(`Pinecone queried ${matches?.length} vectors in ${Date.now() - start}ms`);
   if (!matches) {
     throw new Error('Pinecone returned undefined results');
   }

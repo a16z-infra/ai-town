@@ -26,12 +26,6 @@ export const runAgentBatch = internalAction({
     const { players } = await ctx.runQuery(internal.journal.getSnapshot, { playerIds });
     // Segment users by location
     const { groups, solos } = divideIntoGroups(players);
-    console.debug(
-      'groups: ',
-      groups.map((g) => g.map((p) => p.id)),
-      ' solos: ',
-      solos.map((p) => p.id),
-    );
     // Run a conversation for each group.
     const groupPromises = groups.map(async (group) => {
       const finished = new Set<Id<'agents'>>();
@@ -69,7 +63,7 @@ export const runAgentBatch = internalAction({
     // Make a structure that resolves when the agent yields.
     // It should fail to do any actions if the agent has already yielded.
 
-    console.debug('waiting for agent batch to finish', Date.now());
+    const start = Date.now();
     // While testing if you want failures to show up more loudly, use this instead:
     await Promise.all([...groupPromises, ...soloPromises]);
     // Otherwise, this will allow each group / solo to complete:
@@ -80,7 +74,9 @@ export const runAgentBatch = internalAction({
     //   }
     // }
 
-    console.debug('agent batch finished', Date.now());
+    console.debug(
+      `agent batch (${groups.length}g ${solos.length}s) finished: ${Date.now() - start}ms`,
+    );
   },
 });
 
@@ -108,12 +104,11 @@ function divideIntoGroups(players: Player[]) {
 }
 
 async function handleAgentSolo(ctx: ActionCtx, player: Player, memory: MemoryDB, done: DoneFn) {
-  console.debug('handleAgentSolo: ', player.name, player.id);
-  // TODO: Find nearby players, observe them, and add them to the ignore list.
+  // console.debug('handleAgentSolo: ', player.name, player.id);
   // Handle new observations: it can look at the agent's lastWakeTs for a delta.
   //   Calculate scores
   //   If there's enough observation score, trigger reflection?
-  // Future: Store observations about seeing players?
+  // Future: Store observations about seeing players in conversation
   //  might include new observations -> add to memory with openai embeddings
   // Later: handle object ownership?
   // Based on plan and observations, determine next action:
@@ -222,7 +217,7 @@ type DoneFn = (
 
 function handleDone(ctx: ActionCtx, noSchedule?: boolean): DoneFn {
   const doIt: DoneFn = async (agentId, activity) => {
-    console.debug('handleDone: ', agentId, activity);
+    // console.debug('handleDone: ', agentId, activity);
     if (!agentId) return;
     let walkResult;
     switch (activity.type) {
