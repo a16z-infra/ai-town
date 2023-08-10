@@ -30,7 +30,7 @@ export async function chatCompletion(
   const completion = (await result.json()) as CreateChatCompletionResponse;
   const ms = Date.now() - start;
   const content = completion.choices[0].message?.content;
-  if (!content) {
+  if (content === undefined) {
     throw new Error('Unexpected result from OpenAI: ' + JSON.stringify(completion));
   }
   return {
