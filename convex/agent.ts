@@ -98,7 +98,7 @@ async function handleAgentSolo(ctx: ActionCtx, player: Player, memory: MemoryDB,
   //  might include new observations -> add to memory with openai embeddings
   // Based on plan and observations, determine next action:
   //   if so, add new memory for new plan, and return new action
-  const walk = player.motion.type === 'stopped' || player.motion.targetEndTs > Date.now();
+  const walk = player.motion.type === 'stopped' || player.motion.targetEndTs < Date.now();
   // Ignore everyone we last said something to.
   const ignore = player.lastChat?.message.to ?? [];
   await done(player.agentId, { type: walk ? 'walk' : 'continue', ignore });
@@ -151,6 +151,7 @@ export async function handleAgentInteraction(
         conversationId,
       });
       // TODO: remove this player from the audience list
+      break;
     }
     const playerRelations = relationshipsByPlayerId.get(player.id) ?? [];
     let playerCompletion;

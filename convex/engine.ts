@@ -6,8 +6,8 @@ import { WORLD_IDLE_THRESHOLD } from './config';
 import { asyncMap, pruneNull } from './lib/utils';
 
 export const tick = internalMutation({
-  args: { worldId: v.id('worlds') },
-  handler: async (ctx, { worldId }) => {
+  args: { worldId: v.id('worlds'), noSchedule: v.optional(v.boolean()) },
+  handler: async (ctx, { worldId, noSchedule }) => {
     const ts = Date.now();
     // Fetch the first recent heartbeat.
     if (!(await getRecentHeartbeat(ctx.db, worldId))) {
@@ -19,7 +19,7 @@ export const tick = internalMutation({
       console.error("Didn't tick: No world found");
       return;
     }
-    if (world.frozen) {
+    if (world.frozen && !noSchedule) {
       console.log("Didn't tick: world frozen");
       return;
     }
@@ -39,37 +39,30 @@ export const tick = internalMutation({
       return;
     }
     const agentsEagerToWake = agentDocs.filter((a) => a.nextWakeTs && a.nextWakeTs <= ts);
+    const agentIdsToWake = new Set([
+      ...agentsEagerToWake.flatMap((a) => [a._id, ...(a.alsoWake ?? [])]),
+    ]);
+    const nextToWake = agentDocs.find((a) => !agentIdsToWake.has(a._id) && a.nextWakeTs > ts);
+    if (nextToWake && !nextToWake.scheduled) {
+      console.log('Scheduling for the next agent');
+      await ctx.db.patch(nextToWake._id, { scheduled: true });
+      await ctx.scheduler.runAt(nextToWake.nextWakeTs, internal.engine.tick, {
+        worldId,
+      });
+    }
     if (!agentsEagerToWake.length) {
       console.log("Didn't tick: spurious, no agents eager to wake up");
-      const firstToWake = agentDocs[0];
-      if (firstToWake && !firstToWake.scheduled) {
-        console.log('Scheduling for the next agent');
-        await ctx.db.patch(firstToWake._id, { scheduled: true });
-        await ctx.scheduler.runAt(firstToWake.nextWakeTs, internal.engine.tick, {
-          worldId,
-        });
-      }
       return;
     }
-    const agentIdsToWake = [
-      ...new Set([...agentsEagerToWake.flatMap((a) => [a._id, ...(a.alsoWake ?? [])])]),
-    ];
     const agentsToWake = pruneNull(await asyncMap(agentIdsToWake, ctx.db.get)).filter(
       (a) => !a.thinking,
     );
     for (const agentDoc of agentsToWake) {
-      const patch: Partial<Doc<'agents'>> = { thinking: true, lastWakeTs: ts };
-      if (agentDoc.nextWakeTs && agentDoc.nextWakeTs <= ts) {
-        // Reset their desired wake state.
-        patch.nextWakeTs = undefined;
-        patch.alsoWake = [];
-        patch.scheduled = false;
-      }
-      await ctx.db.patch(agentDoc._id, patch);
+      await ctx.db.patch(agentDoc._id, { thinking: true, lastWakeTs: ts });
     }
     const playerIds = agentsToWake.map((a) => a.playerId);
     console.log('Running agents for players: ', playerIds);
-    await ctx.scheduler.runAfter(0, internal.agent.runAgentBatch, { playerIds });
+    await ctx.scheduler.runAfter(0, internal.agent.runAgentBatch, { playerIds, noSchedule });
     // TODO: handle timeouts
     // Later: handle object ownership?
   },
@@ -148,9 +141,8 @@ export async function enqueueAgentWake(
       return false;
     }
   }
-  if (noSchedule) return false;
   console.log('Scheduling for ', atTs);
-  await ctx.scheduler.runAt(atTs, internal.engine.tick, { worldId });
+  if (!noSchedule) await ctx.scheduler.runAt(atTs, internal.engine.tick, { worldId });
   return true;
 }
 
