@@ -221,7 +221,7 @@ type DoneFn = (
 ) => Promise<void>;
 
 function handleDone(ctx: ActionCtx, noSchedule?: boolean): DoneFn {
-  return async (agentId, activity) => {
+  const doIt: DoneFn = async (agentId, activity) => {
     console.debug('handleDone: ', agentId, activity);
     if (!agentId) return;
     let walkResult;
@@ -249,16 +249,16 @@ function handleDone(ctx: ActionCtx, noSchedule?: boolean): DoneFn {
       noSchedule,
     });
   };
-}
-
-function getNearbyPlayers(target: Player, others: Player[]) {
-  const ts = Date.now();
-  const targetPose = getPoseFromMotion(target.motion, ts);
-  return others.filter((a) => {
-    const distance = manhattanDistance(
-      targetPose.position,
-      getPoseFromMotion(a.motion, ts).position,
-    );
-    return distance < NEARBY_DISTANCE;
-  });
+  // Simple serialization: only one agent finishes at a time.
+  let queue = new Set<Promise<unknown>>();
+  return async (agentId, activity) => {
+    let unlock;
+    const wait = new Promise((resolve) => (unlock = resolve));
+    const toAwait = [...queue];
+    queue.add(wait);
+    await Promise.allSettled(toAwait);
+    await doIt(agentId, activity);
+    unlock!();
+    queue.delete(wait);
+  };
 }
