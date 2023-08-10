@@ -16,8 +16,7 @@ import {
   startConversation,
   walkAway,
 } from './conversation';
-import { NEARBY_DISTANCE } from './config';
-import { getNearbyPlayers, getPoseFromMotion, manhattanDistance } from './lib/physics';
+import { getNearbyPlayers } from './lib/physics';
 
 export const runAgentBatch = internalAction({
   args: {
@@ -278,9 +277,12 @@ function handleDone(ctx: ActionCtx, noSchedule?: boolean): DoneFn {
     const wait = new Promise((resolve) => (unlock = resolve));
     const toAwait = [...queue];
     queue.add(wait);
-    await Promise.allSettled(toAwait);
-    await doIt(agentId, activity);
-    unlock!();
-    queue.delete(wait);
+    try {
+      await Promise.allSettled(toAwait);
+      await doIt(agentId, activity);
+    } finally {
+      unlock!();
+      queue.delete(wait);
+    }
   };
 }
