@@ -1,14 +1,18 @@
-import { UserButton, auth } from '@clerk/nextjs';
+import { SignedIn, SignedOut, UserButton, auth } from '@clerk/nextjs';
 import Examples from '@/components/Examples';
 import LoginButton from '@/components/LoginButton';
 
 export default function Home() {
-  const { userId } = auth();
-
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-between font-body game-background">
       <div className="p-6 absolute top-0 right-0 z-10 text-2xl">
-        {userId ? <UserButton afterSignOutUrl="/" /> : <LoginButton />}
+        <SignedIn>
+          <UserButton afterSignOutUrl="/" />
+        </SignedIn>
+
+        <SignedOut>
+          <LoginButton />
+        </SignedOut>
       </div>
 
       <div className="w-full min-h-screen relative isolate overflow-hidden p-6 lg:p-8 shadow-2xl flex flex-col justify-center">

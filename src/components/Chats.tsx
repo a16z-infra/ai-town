@@ -3,8 +3,8 @@ import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import type { Player as PlayerState } from '../../convex/schema';
 import clsx from 'clsx';
-import { useAuth } from '@clerk/clerk-react';
 import LoginButton from './LoginButton';
+import { SignedIn, SignedOut } from '@clerk/nextjs';
 
 function classNames(...classes: any) {
   return classes.filter(Boolean).join(' ');
@@ -54,8 +54,6 @@ function Messages({
 }
 
 export default function Chats({ playerState }: { playerState: PlayerState | undefined }) {
-  const { userId } = useAuth();
-
   if (!playerState) {
     return (
       <div className="h-full text-xl flex text-center items-center p-4">
@@ -76,8 +74,13 @@ export default function Chats({ playerState }: { playerState: PlayerState | unde
         <p className="leading-tight -m-4 bg-brown-700 text-lg">{playerState.identity}</p>
       </div>
 
-      {userId ? (
-        playerState.lastChat?.conversationId && (
+      {/*
+      We could also check authentication on the backend side,
+      but it’s not a priority at the moment since logged in users don’t really
+      get special permissions.
+      */}
+      <SignedIn>
+        {playerState.lastChat?.conversationId && (
           <div className="chats">
             <div className="bg-brown-200 text-black p-2">
               <Messages
@@ -86,8 +89,10 @@ export default function Chats({ playerState }: { playerState: PlayerState | unde
               />
             </div>
           </div>
-        )
-      ) : (
+        )}
+      </SignedIn>
+
+      <SignedOut>
         <div className="login-prompt">
           <div className="bg-clay-300 text-clay-900 -m-6">
             <p className="text-center">You need to be logged in to read the conversations.</p>
@@ -97,7 +102,7 @@ export default function Chats({ playerState }: { playerState: PlayerState | unde
             </div>
           </div>
         </div>
-      )}
+      </SignedOut>
     </>
   );
 }
