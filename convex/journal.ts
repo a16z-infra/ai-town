@@ -225,8 +225,12 @@ export const stop = internalMutation({
 // TODO: allow specifying a specific place to go, ideally a named Zone.
 
 export const walk = internalMutation({
-  args: { agentId: v.id('agents'), ignore: v.array(v.id('players')) },
-  handler: async (ctx, { agentId, ignore, ...args }) => {
+  args: {
+    agentId: v.id('agents'),
+    ignore: v.array(v.id('players')),
+    target: v.optional(v.id('players')),
+  },
+  handler: async (ctx, { agentId, ignore, target }) => {
     const ts = Date.now();
     const agentDoc = (await ctx.db.get(agentId))!;
     const { playerId, worldId } = agentDoc;
@@ -237,12 +241,15 @@ export const walk = internalMutation({
       (await getAllPlayers(ctx.db, worldId)).filter((p) => !exclude.has(p._id)),
       async (p) => ({ id: p.agentId, motion: await getLatestPlayerMotion(ctx.db, p._id) }),
     );
+    const targetPosition = target
+      ? getPoseFromMotion(await getLatestPlayerMotion(ctx.db, target), ts).position
+      : getRandomPosition(world);
     const ourMotion = await getLatestPlayerMotion(ctx.db, playerId);
     const { route, distance } = findRoute(
       map,
       ourMotion,
       otherPlayers.map(({ motion }) => motion),
-      getRandomPosition(world),
+      targetPosition,
       ts,
     );
     const targetEndTs = ts + distance * TIME_PER_STEP;
