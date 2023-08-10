@@ -92,10 +92,15 @@ npx convex run --no-push engine:unfreeze  # when ready to rerun (defaults to lat
 
 *To clear all databases*
 
+Many options:
+
 - Go to the dashboard `npx convex dashboard` and clear tables from there.
-- Alternatively, if you want to delete the tables, you can check out the
-  `origin/reset-town` branch. Doing `npm run dev` from there will clear your
-  schema, allowing you to delete your tables entirely.
+- Adjust the variables in [`crons.ts`](./convex/crons.ts) to automatically clear
+  up space from old journal and memory entries.
+- Run `npx convex run --no-push testing:debugClearAll` to wipe all the tables.
+- As a fallback, if things are stuck, you can check out the `origin/reset-town`
+  git branch. Doing `npm run dev` from there will clear your schema, stop your
+  functions, and allow you to delete your tables in the dashboard.
 
 *To Snoop on messages*
 

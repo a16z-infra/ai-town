@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import { api, internal } from './_generated/api';
-import { Doc, Id } from './_generated/dataModel';
+import { Doc, Id, TableNames } from './_generated/dataModel';
 import { internalAction, internalMutation, internalQuery } from './_generated/server';
 import { getAllPlayers } from './players';
 import { asyncMap, pruneNull } from './lib/utils';
@@ -9,6 +9,7 @@ import { clientMessageMapper } from './chat';
 import { MemoryDB } from './lib/memory';
 import { getPlayer, stop, walk } from './journal';
 import { handleAgentInteraction } from './agent';
+import schema from './schema';
 
 export const converge = internalMutation({
   args: {},
@@ -179,6 +180,20 @@ export const runConversation = internalAction({
     ) {
       await handleAgentInteraction(ctx, players, memory, async (agentId, activity) => {
         console.log({ agentId, activity });
+      });
+    }
+  },
+});
+
+export const debugClearAll = internalMutation({
+  args: {},
+  handler: async (ctx, args) => {
+    for (const table in schema.tables) {
+      await ctx.scheduler.runAfter(0, internal.crons.vacuumOldEntries, {
+        table: table as TableNames,
+        age: -1_000, // Delete 1 second into the future
+        cursor: null,
+        soFar: 0,
       });
     }
   },
