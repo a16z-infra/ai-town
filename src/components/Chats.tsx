@@ -2,12 +2,19 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import type { Player as PlayerState } from '../../convex/schema';
+import clsx from 'clsx';
 
 function classNames(...classes: any) {
   return classes.filter(Boolean).join(' ');
 }
 
-function Messages({ conversationId }: { conversationId: Id<'conversations'> }) {
+function Messages({
+  conversationId,
+  currentPlayerId,
+}: {
+  conversationId: Id<'conversations'>;
+  currentPlayerId: Id<'players'>;
+}) {
   const messages =
     useQuery(api.chat.listMessages, {
       conversationId,
@@ -18,66 +25,63 @@ function Messages({ conversationId }: { conversationId: Id<'conversations'> }) {
         .reverse()
         // We can filter out the "started" and "left" conversations with this:
         // .filter((m) => m.data.type === 'responded')
-        .map((message, messageIdx) => (
-          <li key={message.ts}>
-            <div className="relative pb-8">
-              {messageIdx !== messages.length - 1 ? (
-                <span
-                  className="absolute left-1 top-2 -ml-px h-full w-0.5 bg-gray-200"
-                  aria-hidden="true"
-                />
-              ) : null}
-              <div className="relative flex space-x-3">
-                <div>
-                  <span className="h-2 w-2 rounded-full flex items-center justify-center ring-3 ring-white bg-gray-400"></span>
+        .map((message) => (
+          <div className="leading-tight mb-6" key={message.ts}>
+            {message.type === 'responded' ? (
+              <>
+                <div className="flex gap-4">
+                  <span className="uppercase flex-grow">{message.fromName}</span>
+                  <time dateTime={message.ts.toString()}>
+                    {new Date(message.ts).toLocaleString()}
+                  </time>
                 </div>
-                <div className="flex flex-col min-w-0 flex-1 justify-between space-x-4 pt-1.5">
-                  <div className="whitespace-nowrap text-top text-sm text-gray-500">
-                    <time dateTime={message.ts.toString()}>
-                      {new Date(message.ts).toLocaleString()}
-                    </time>
-                  </div>
-                  <div>
-                    {message.type === 'responded' ? (
-                      <p className="text-sm text-gray-500">
-                        <b>{message.fromName}: </b>
-                        {message.content}{' '}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-gray-400">
-                        <b>{message.fromName} </b>
-                        {message.type === 'left' ? 'left' : 'started'}
-                        {' the conversation'}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </li>
+                <p className={clsx('bubble', message.from === currentPlayerId && 'bubble-mine')}>
+                  <div className="bg-white -mx-3 -my-1">{message.content}</div>
+                </p>
+              </>
+            ) : (
+              <p className="text-brown-700 text-center">
+                {message.fromName} {message.type === 'left' ? 'left' : 'started'}
+                {' the conversation.'}
+              </p>
+            )}
+          </div>
         ))}
     </>
   );
 }
 
 export default function Chats({ playerState }: { playerState: PlayerState | undefined }) {
+  if (!playerState) {
+    return (
+      <div className="h-full text-xl flex text-center items-center p-4">
+        Click on an agent on the map to see chat history.
+      </div>
+    );
+  }
+
   return (
-    <div className="flow-root  max-h-full">
-      {!playerState ? (
-        <div className="relative pb-8">Click on an agent on the map to see chat history</div>
-      ) : (
-        <ul role="list" className="-mb-8 overflow-auto">
-          <li className="mb-5">
-            <h3 className="text-base font-semibold leading-6 text-gray-900">{playerState.name}</h3>
-            <p className="text-sm text-gray-500">
-              <span>{playerState.identity}</span>
-            </p>
-          </li>
-          {playerState.lastChat?.conversationId && (
-            <Messages conversationId={playerState.lastChat?.conversationId} />
-          )}
-        </ul>
+    <>
+      <div className="box">
+        <h2 className="bg-brown-700 p-2 font-display text-4xl tracking-wider shadow-solid text-center">
+          {playerState.name}
+        </h2>
+      </div>
+
+      <div className="desc my-6">
+        <p className="leading-tight -m-4 bg-brown-700 text-lg">{playerState.identity}</p>
+      </div>
+
+      {playerState.lastChat?.conversationId && (
+        <div className="chats">
+          <div className="bg-brown-200 text-black p-2">
+            <Messages
+              conversationId={playerState.lastChat?.conversationId}
+              currentPlayerId={playerState.id}
+            />
+          </div>
+        </div>
       )}
-    </div>
+    </>
   );
 }
