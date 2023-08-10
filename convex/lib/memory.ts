@@ -9,11 +9,12 @@ import {
 } from '../_generated/server.js';
 import { asyncMap } from './utils.js';
 import { EntryOfType, Memories, MemoryOfType, MemoryType } from '../schema.js';
-import { chatCompletion, fetchEmbeddingBatch } from './openai.js';
+import { chatCompletion } from './openai.js';
 import { clientMessageMapper } from '../chat.js';
 import { pineconeAvailable, queryVectors, upsertVectors } from './pinecone.js';
 import { chatHistoryFromMessages } from '../conversation.js';
 import { MEMORY_ACCESS_THROTTLE } from '../config.js';
+import { fetchEmbeddingBatch } from './cached_llm.js';
 
 const { embeddingId: _, lastAccess, ...MemoryWithoutEmbeddingId } = Memories.fields;
 const NewMemory = { ...MemoryWithoutEmbeddingId, importance: v.optional(v.number()) };
@@ -74,19 +75,11 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
     },
 
     async addMemories(memoriesWithoutEmbedding) {
-      const cachedEmbeddings = await ctx.runQuery(internal.lib.memory.getEmbeddingsByText, {
-        texts: memoriesWithoutEmbedding.map((memory) => memory.description),
-      });
-      const cacheMisses = memoriesWithoutEmbedding
-        .filter((memory, idx) => !cachedEmbeddings[idx])
-        .map((memory) => memory.description);
-      const { embeddings: missingEmbeddings } = cacheMisses.length
-        ? await fetchEmbeddingBatch(cacheMisses)
-        : { embeddings: [] };
+      const { embeddings } = await fetchEmbeddingBatch(
+        ctx,
+        memoriesWithoutEmbedding.map((memory) => memory.description),
+      );
       // NB: The cache gets populated by addMemories, so no need to do it here.
-      missingEmbeddings.reverse();
-      // Swap the cache misses with calculated embeddings
-      const embeddings = cachedEmbeddings.map((cached) => cached || missingEmbeddings.pop()!);
 
       const memories = await asyncMap(memoriesWithoutEmbedding, async (memory, idx) => {
         const embedding = embeddings[idx];
@@ -291,24 +284,6 @@ async function getMemoryByEmbeddingId(
   if (!doc) throw new Error(`No memory found for player ${playerId} and embedding ${embeddingId}`);
   return doc;
 }
-
-export async function checkEmbeddingCache(db: DatabaseReader, texts: string[]) {
-  return asyncMap(texts, async (text) => {
-    const existing = await db
-      .query('embeddings')
-      .withIndex('by_text', (q) => q.eq('text', text))
-      .first();
-    if (existing) return existing.embedding;
-    return null;
-  });
-}
-
-export const getEmbeddingsByText = internalQuery({
-  args: { texts: v.array(v.string()) },
-  handler: async (ctx, args) => {
-    return checkEmbeddingCache(ctx.db, args.texts);
-  },
-});
 
 export const getRecentMessages = internalQuery({
   args: {

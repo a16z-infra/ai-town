@@ -1,12 +1,15 @@
 import { Id } from './_generated/dataModel';
+import { ActionCtx } from './_generated/server';
+import { fetchEmbedding } from './lib/cached_llm';
 import { MemoryDB, filterMemoriesType } from './lib/memory';
-import { LLMMessage, chatCompletion, fetchEmbedding } from './lib/openai';
+import { LLMMessage, chatCompletion } from './lib/openai';
 import { Message } from './schema';
 
 type Player = { id: Id<'players'>; name: string; identity: string };
 type Relation = Player & { relationship: string };
 
 export async function startConversation(
+  ctx: ActionCtx,
   relationships: { name: string; relationship: string }[],
   memory: MemoryDB,
   player: Player,
@@ -14,6 +17,7 @@ export async function startConversation(
   const newFriendsNames = relationships.map((r) => r.name);
 
   const { embedding } = await fetchEmbedding(
+    ctx,
     `What do you think about ${newFriendsNames.join(',')}?`,
   );
   const memories = await memory.accessMemories(player.id, embedding);
@@ -68,9 +72,9 @@ export async function decideWhoSpeaksNext(
   }
 
   const promptStr = `[no prose]\n [Output only JSON]
-  
-  ${JSON.stringify(players)} 
-  Here is a list of people in the conversation, return BOTH name and ID of the person who should speak next based on the chat history provided below. 
+
+  ${JSON.stringify(players)}
+  Here is a list of people in the conversation, return BOTH name and ID of the person who should speak next based on the chat history provided below.
   Return in JSON format, example: {"name": "Alex", id: "1234"}
   ${chatHistory.map((m) => m.content).join('\n')}`;
   const prompt: LLMMessage[] = [
@@ -91,6 +95,7 @@ export async function decideWhoSpeaksNext(
 }
 
 export async function converse(
+  ctx: ActionCtx,
   messages: LLMMessage[],
   player: Player,
   nearbyPlayers: Relation[],
@@ -98,7 +103,7 @@ export async function converse(
 ) {
   const nearbyPlayersNames = nearbyPlayers.map((p) => p.name).join(', ');
   const lastMessage: string | null | undefined = messages?.at(-1)?.content;
-  const { embedding } = await fetchEmbedding(lastMessage ? lastMessage : '');
+  const { embedding } = await fetchEmbedding(ctx, lastMessage ? lastMessage : '');
   const memories = await memory.accessMemories(player.id, embedding);
   const conversationMemories = filterMemoriesType(['conversation'], memories);
   const lastConversationTs = conversationMemories[0]?.memory._creationTime;

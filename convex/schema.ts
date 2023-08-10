@@ -261,7 +261,7 @@ export default defineSchema(
       .index('by_playerId_type', ['playerId', 'data.type']),
 
     embeddings: defineTable({
-      playerId: v.id('players'),
+      playerId: v.optional(v.id('players')),
       text: v.string(),
       embedding: v.array(v.number()),
     })

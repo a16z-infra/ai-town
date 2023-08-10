@@ -22,6 +22,7 @@ import type * as crons from "../crons";
 import type * as engine from "../engine";
 import type * as init from "../init";
 import type * as journal from "../journal";
+import type * as lib_cached_llm from "../lib/cached_llm";
 import type * as lib_memory from "../lib/memory";
 import type * as lib_migrations from "../lib/migrations";
 import type * as lib_openai from "../lib/openai";
@@ -54,6 +55,7 @@ declare const fullApi: ApiFromModules<{
   engine: typeof engine;
   init: typeof init;
   journal: typeof journal;
+  "lib/cached_llm": typeof lib_cached_llm;
   "lib/memory": typeof lib_memory;
   "lib/migrations": typeof lib_migrations;
   "lib/openai": typeof lib_openai;

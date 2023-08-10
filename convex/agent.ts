@@ -208,10 +208,10 @@ export async function handleAgentInteraction(
     const playerRelations = relationshipsByPlayerId.get(speaker.id) ?? [];
     let playerCompletion;
     if (messages.length === 0) {
-      playerCompletion = await startConversation(playerRelations, memory, speaker);
+      playerCompletion = await startConversation(ctx, playerRelations, memory, speaker);
     } else {
       // TODO: stream the response and write to the mutation for every sentence.
-      playerCompletion = await converse(chatHistory, speaker, playerRelations, memory);
+      playerCompletion = await converse(ctx, chatHistory, speaker, playerRelations, memory);
     }
 
     const message = await ctx.runMutation(internal.journal.talk, {
