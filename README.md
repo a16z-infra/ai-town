@@ -117,3 +117,41 @@ npx convex run testing:latestPlayer --no-push --watch
 ```
 
 See more functions in [`testing.ts`](./convex/testing.ts).
+
+### Deploy the app
+
+#### Deploy to fly.io
+
+- Register an account on fly.io and then [install flyctl](https://fly.io/docs/hands-on/install-flyctl/)
+- **If you are using Github Codespaces**: You will need to [install flyctl](https://fly.io/docs/hands-on/install-flyctl/) and authenticate from your codespaces cli by running `fly auth login`.
+
+- Run `fly launch` under project root. This will generate a `fly.toml` that includes all the configurations you will need
+- Modify generated `fly.toml` to include `NEXT_PUBLIC_*` during build time for NextJS to access client side.
+``` 
+[build]
+  [build.args]
+    NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in"
+    NEXT_PUBLIC_CLERK_SIGN_UP_URL="/sign-up"
+    NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL="/"
+    NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL="/"
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_*****"
+    NEXT_PUBLIC_CONVEX_URL="https://*******.convex.cloud"
+```
+- Modify fly.io's generated `Dockerfile` to include new ENV variables right above `RUN npm run build`
+```
+ARG NEXT_PUBLIC_CLERK_SIGN_IN_URL
+ARG NEXT_PUBLIC_CLERK_SIGN_UP_URL
+ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL
+ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ARG NEXT_PUBLIC_CONVEX_URL
+
+# Build application
+RUN npm run build
+```
+- Run `fly deploy --ha=false` to deploy the app. The --ha flag makes sure fly only spins up one instance, which is included in the free plan.
+- Run `fly scale memory 512` to scale up the fly vm memory for this app.
+- For any other non-localhost environment, the existing Clerk development instance should continue to work. You can upload the secrets to Fly by running `cat .env.local | fly secrets import`
+- If you are ready to deploy to production, you should create a prod environment under the [current Clerk instance](https://dashboard.clerk.com/). For more details on deploying a production app with Clerk, check out their documentation [here](https://clerk.com/docs/deployments/overview). **Note that you will likely need to manage your own domain and do domain verification as part of the process.**
+- Create a new file `.env.prod` locally and fill in all the production-environment secrets. Remember to update `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` by copying secrets from Clerk's production instance -`cat .env.prod | fly secrets import` to upload secrets.
+
