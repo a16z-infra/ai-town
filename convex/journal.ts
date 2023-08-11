@@ -300,8 +300,12 @@ export const nextCollision = internalQuery({
 });
 
 export function getRandomPosition(map: Doc<'maps'>): Position {
-  return {
-    x: Math.floor(Math.random() * map.bgTiles[0][0].length),
-    y: Math.floor(Math.random() * map.bgTiles[0].length),
-  };
+  let pos;
+  do
+    pos = {
+      x: Math.floor(Math.random() * map.bgTiles[0][0].length),
+      y: Math.floor(Math.random() * map.bgTiles[0].length),
+    };
+  while (map.objectTiles[pos.y][pos.x] !== -1);
+  return pos;
 }
