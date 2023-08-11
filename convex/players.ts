@@ -2,9 +2,10 @@ import { v } from 'convex/values';
 import { Id } from './_generated/dataModel';
 import { DatabaseReader, mutation, query } from './_generated/server';
 import { enqueueAgentWake } from './engine';
-import { HEARTBEAT_PERIOD } from './config';
+import { HEARTBEAT_PERIOD, WORLD_IDLE_THRESHOLD } from './config';
 import { Pose } from './schema';
 import { getPlayer } from './journal';
+import { internal } from './_generated/api';
 
 export const getWorld = query({
   args: {},
@@ -26,12 +27,18 @@ export const getWorld = query({
 });
 
 export const now = mutation({
-  args: {},
-  handler: async (ctx, args) => {
+  args: { worldId: v.id('worlds') },
+  handler: async (ctx, { worldId }) => {
     // Future: based on auth, heartbeat for that user for presence
+    // TODO: make heartbeats world-specific
     const lastHeartbeat = await ctx.db.query('heartbeats').order('desc').first();
     if (!lastHeartbeat || lastHeartbeat._creationTime + HEARTBEAT_PERIOD < Date.now()) {
+      // Keep the world ticking.
       await ctx.db.insert('heartbeats', {});
+      if (!lastHeartbeat || lastHeartbeat._creationTime + WORLD_IDLE_THRESHOLD < Date.now()) {
+        // Start up the world if it's been idle for a while.
+        await ctx.scheduler.runAfter(0, internal.engine.tick, { worldId });
+      }
     }
     return Date.now();
   },
