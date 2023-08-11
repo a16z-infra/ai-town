@@ -35,6 +35,7 @@ export function getPoseFromMotion(motion: Motion, ts: number): Pose {
 }
 
 export function getPoseFromRoute(route: Position[], fraction: number): Pose {
+  if (route.length === 0) throw new Error('Empty route');
   if (route.length === 1) return { position: route[0], orientation: 0 };
   const totalLength = getRouteDistance(route);
   const progressDistance = fraction * totalLength;
