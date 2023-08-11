@@ -23,7 +23,7 @@ export default function Home() {
               <div className="inline-block bg-clay-700">
                 <span>
                   <div className="inline-flex items-center gap-4">
-                    <img className="w-6 h-6" src="/assets/star.svg" />
+                    <img className="w-6 h-6" src="assets/star.svg" />
                     Star
                   </div>
                 </span>
@@ -32,13 +32,13 @@ export default function Home() {
           </div>
 
           <a href="https://a16z.com">
-            <img className="w-14 h-14" src="/a16z.png" alt="a16z" />
+            <img className="w-14 h-14" src="a16z.png" alt="a16z" />
           </a>
           <a href="https://convex.dev">
             <img
               className="w-14 h-14"
               style={{ imageRendering: 'pixelated' }}
-              src="/convex.png"
+              src="convex.png"
               alt="Convex"
             />
           </a>

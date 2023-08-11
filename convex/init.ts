@@ -205,25 +205,25 @@ export const seed = internalAction({
     const characters = [
       {
         name: 'player',
-        textureUrl: '/assets/player.png',
+        textureUrl: '/ai-town/assets/player.png',
         spritesheetData: playerSpritesheetData,
         speed: 0.1,
       },
       {
         name: 'p1',
-        textureUrl: '/assets/folks.png',
+        textureUrl: '/ai-town/assets/folks.png',
         spritesheetData: p1SpritesheetData,
         speed: 0.1,
       },
       {
         name: 'p2',
-        textureUrl: '/assets/folks.png',
+        textureUrl: '/ai-town/assets/folks.png',
         spritesheetData: p2SpritesheetData,
         speed: 0.1,
       },
       {
         name: 'p3',
-        textureUrl: '/assets/folks.png',
+        textureUrl: '/ai-town/assets/folks.png',
         spritesheetData: p3SpritesheetData,
         speed: 0.1,
       },
