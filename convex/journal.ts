@@ -233,10 +233,13 @@ export const walk = internalMutation({
     const { playerId, worldId } = agentDoc;
     const world = (await ctx.db.get(worldId))!;
     const map = (await ctx.db.get(world.mapId))!;
-    const otherPlayers = await asyncMap(await getAllPlayers(ctx.db, worldId), async (p) => ({
-      ...p,
-      motion: await getLatestPlayerMotion(ctx.db, p._id),
-    }));
+    const otherPlayers = await asyncMap(
+      (await getAllPlayers(ctx.db, worldId)).filter((p) => p._id !== playerId),
+      async (p) => ({
+        ...p,
+        motion: await getLatestPlayerMotion(ctx.db, p._id),
+      }),
+    );
     const targetPosition = target
       ? getPoseFromMotion(await getLatestPlayerMotion(ctx.db, target), ts).position
       : getRandomPosition(map);
