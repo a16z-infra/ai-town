@@ -30,18 +30,14 @@ const PixiViewportComponent = PixiComponent('Viewport', {
 
     return viewport;
   },
-  applyProps(viewport, _oldProps, _newProps) {
-    const { children: oldChildren, ...oldProps } = _oldProps;
-    const { children: newChildren, ...newProps } = _newProps;
-
+  applyProps(viewport, oldProps, newProps) {
     Object.keys(newProps).forEach((p) => {
-      if (oldProps[p] !== newProps[p]) {
-        // @ts-expect-error
+      if (p !== 'children' && oldProps[p] !== newProps[p]) {
+        // @ts-expect-error Ignoring TypeScript here
         viewport[p] = newProps[p];
       }
     });
   },
-  didMount() {},
 });
 
 export default function PixiViewport(props: React.ComponentProps<typeof PixiViewportComponent>) {
