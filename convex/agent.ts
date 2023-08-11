@@ -137,16 +137,21 @@ export async function handleAgentInteraction(
   for (const player of players) {
     const imWalkingHere =
       player.motion.type === 'walking' && player.motion.targetEndTs > Date.now();
-    // TODO: Get players to walk together and face each other
-    // if (player.agentId) {
-    //   await ctx.runMutation(internal.journal.walk, {
-    //     agentId: player.agentId,
-    //     target: leader.id,
-    //     ignore: players.map((p) => p.id),
-    //   });
-    // }
-    if (imWalkingHere) {
-      await ctx.runMutation(internal.journal.stop, { playerId: player.id });
+    // Get players to walk together and face each other
+    if (player.agentId) {
+      if (player === leader) {
+        if (imWalkingHere) {
+          await ctx.runMutation(internal.journal.stop, {
+            playerId: player.id,
+          });
+        }
+      } else {
+        await ctx.runMutation(internal.journal.walk, {
+          agentId: player.agentId,
+          target: leader.id,
+          ignore: players.map((p) => p.id),
+        });
+      }
     }
   }
 

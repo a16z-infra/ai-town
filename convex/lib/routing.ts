@@ -30,11 +30,6 @@ export function findRoute(
   const width = map.bgTiles[0][0].length;
   const height = map.bgTiles[0].length;
 
-  const startPose = getPoseFromMotion(startMotion, ts);
-  const startPos = roundPosition(startPose.position);
-  if (startPos.x === end.x && startPos.y === end.y) {
-    return { route: [startPos], distance: 0 };
-  }
   // Make Position[] for each player, starting at ts
   const otherPlayerLocations = otherPlayerMotion
     .map((motion) => getRemainingPathFromMotion(motion, ts))
@@ -113,6 +108,15 @@ export function findRoute(
     }
     return next;
   };
+  const startPose = getPoseFromMotion(startMotion, ts);
+  let startPos = roundPosition(startPose.position);
+  if (blocked(startPos, 0)) {
+    const next = makeNext({ pos: startPos, distance: 0, cost: 0, prev: null });
+    if (next.length) startPos = next[0].pos;
+  }
+  if (startPos.x === end.x && startPos.y === end.y && !blocked(startPos, 0)) {
+    return { route: [startPos], distance: 0 };
+  }
   const minheap = MinHeap<Path>((more, less) => more.cost > less.cost);
   const startPath = {
     pos: startPos,
