@@ -3,7 +3,6 @@
 const path = require('path');
 const nextConfig = {
   basePath: '/ai-town',
-  trailingSlash: true,
   experimental: {
     serverActions: true,
   },
