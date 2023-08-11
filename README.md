@@ -9,7 +9,7 @@
 git clone https://github.com/a16z-infra/AI-town
 cd AI-town
 npm install
-npx convex dev --typecheck=disable # select a new project
+npx convex dev # select a new project
 ```
 
 nox convex dev will fail asking for OPENAI_API_KEY. ^C out
