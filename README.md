@@ -1,6 +1,5 @@
 # AI Town 🏠🙍👷‍♀️💻💌
 
-
 ## Installation
 
 ### Clone repo and Install packages
@@ -12,7 +11,7 @@ npm install
 npx convex dev # select a new project
 ```
 
-nox convex dev will fail asking for OPENAI_API_KEY. ^C out
+`npx convex dev` will fail asking for OPENAI_API_KEY. ^C out
 
 a. **Set up Clerk**
 
@@ -31,7 +30,8 @@ b. **OpenAI API key**
 
 Visit https://platform.openai.com/account/api-keys to get your OpenAI API key if you're using OpenAI for your language model.
 
-e.  **Pinecone API keys**
+e. **Pinecone API keys**
+
 - Create a Pinecone index by visiting https://app.pinecone.io/ and click on "Create Index"
 - Give it an index name (this will be the environment variable `PINECONE_INDEX_NAME`)
 - Fill in Dimension as `1536`
@@ -48,7 +48,7 @@ Go to "settings" and add the following environment varables. CLERK_ISSUER_URL sh
 ```bash
 OPENAI_API_KEY  sk-*******
 CLERK_ISSUER_URL  https://****
-PINECONE_API_KEY  bb****
+PINECONE_API_KEY  ********
 PINECONE_ENVIRONMENT us****
 PINECONE_INDEX_NAME  ********
 ```
@@ -60,11 +60,12 @@ To run both the front and and back end:
 ```bash
 npm run dev
 ```
-You can now visit http://localhost:[PORT_NUMBER]/ai-town
+
+You can now visit http://localhost:[PORT_NUMBER]
 
 ### Various commands to run / test / debug
 
-The following commands will add a new world, seed it, and start it running
+**To add a new world, seed it, and start it running**
 
 **Note**: you can add `--no-push` to run these commands without first syncing
 the functions. If you already have `npm run dev` running, this will be faster.
@@ -75,7 +76,7 @@ command.
 npx convex run init:reset
 ```
 
-To go one iteration at a time, you can create a world with
+**To go one iteration at a time, you can create a world with**
 
 ```bash
 npx convex run --no-push init:resetFrozen
@@ -83,14 +84,14 @@ npx convex run --no-push init:resetFrozen
 npx convex run --no-push engine:tick '{"worldId":"<your world id>","noSchedule":true}'
 ```
 
-*To freeze the back end, in case of too much activity*
+**To freeze the back end, in case of too much activity**
 
 ```bash
 npx convex run --no-push engine:freezeAll
 npx convex run --no-push engine:unfreeze  # when ready to rerun (defaults to latest world)
 ```
 
-*To clear all databases*
+**To clear all databases**
 
 Many options:
 
@@ -102,7 +103,7 @@ Many options:
   git branch. Doing `npm run dev` from there will clear your schema, stop your
   functions, and allow you to delete your tables in the dashboard.
 
-*To Snoop on messages*
+**To Snoop on messages**
 
 Run the following in a side terminal
 
