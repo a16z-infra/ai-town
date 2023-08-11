@@ -4,6 +4,7 @@ import { PixiStaticMap } from './PixiStaticMap';
 import { ConvexProvider, useConvex, useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Player, SelectPlayer } from './Player';
+import { HEARTBEAT_PERIOD } from '../../convex/config';
 import dynamic from 'next/dynamic';
 
 // Disabling SSR for PixiViewport, as its dependency tries to access `window`.
@@ -50,6 +51,14 @@ export const Game = ({
 };
 export default Game;
 
+/**
+ * Calculates the time delta between the server's clock and ours, from
+ * the point of view of the receiver. When the network is relatively stable,
+ * this means updates come down roughly when they happen in game-time.
+ * We use a rolling average, discarding the max & min values as outliers.
+ *
+ * @returns The average offset between the server and the client
+ */
 const useServerTimeOffset = () => {
   const serverNow = useMutation(api.players.now);
   const [offset, setOffset] = useState(0);
@@ -75,7 +84,7 @@ const useServerTimeOffset = () => {
       setOffset(avgOffset);
     };
     void updateOffset();
-    const interval = setInterval(updateOffset, 10000);
+    const interval = setInterval(updateOffset, HEARTBEAT_PERIOD);
     return () => clearInterval(interval);
   }, []);
   return offset;
