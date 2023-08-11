@@ -31,7 +31,9 @@ const PixiViewportComponent = PixiComponent('Viewport', {
     return viewport;
   },
   applyProps(viewport, _oldProps, _newProps) {
+    // eslint-disable-next-line
     const { children: oldChildren, ...oldProps } = _oldProps;
+    // eslint-disable-next-line
     const { children: newChildren, ...newProps } = _newProps;
 
     Object.keys(newProps).forEach((p) => {
