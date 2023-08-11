@@ -4,12 +4,13 @@ import { TableNames } from './_generated/dataModel';
 import { internalAction, internalMutation, internalQuery } from './_generated/server';
 import { getAllPlayers } from './players';
 import { asyncMap, pruneNull } from './lib/utils';
-import { EntryOfType } from './schema';
+import { EntryOfType, Motion, Position } from './schema';
 import { clientMessageMapper } from './chat';
 import { MemoryDB } from './lib/memory';
 import { getPlayer, stop, walk } from './journal';
 import { handleAgentInteraction } from './agent';
 import schema from './schema';
+import { findRoute, makeSparsePath } from './lib/routing';
 
 export const converge = internalMutation({
   args: {},
@@ -24,6 +25,48 @@ export const converge = internalMutation({
         await walk(ctx, { agentId: player.agentId, ignore: [], target });
       }
     }
+  },
+});
+
+export const stopThinking = internalMutation({
+  args: {},
+  handler: async (ctx, args) => {
+    const world = (await ctx.db.query('worlds').order('desc').first())!;
+    const agents = await ctx.db
+      .query('agents')
+      .withIndex('by_worldId_thinking', (q) => q.eq('worldId', world._id).eq('thinking', true))
+      .collect();
+    for (const agent of agents) {
+      await ctx.db.patch(agent._id, { thinking: false });
+    }
+  },
+});
+
+export const testRouteFinding = internalQuery({
+  args: {},
+  handler: async (ctx, args) => {
+    const map = (await ctx.db.query('maps').order('desc').first())!;
+    const startMotion: Motion = {
+      type: 'stopped',
+      pose: { position: { x: 0, y: 1 }, orientation: 0 },
+      reason: 'idle',
+    };
+    const otherPlayerMotion: Motion[] = [
+      {
+        type: 'walking',
+        startTs: 0,
+        targetEndTs: 2,
+        route: [
+          { x: 2, y: 2 },
+          { x: 2, y: 1 },
+        ],
+        ignore: [],
+      },
+      { type: 'stopped', pose: { position: { x: 1, y: 3 }, orientation: 0 }, reason: 'idle' },
+    ];
+    const end: Position = { x: 1, y: 3 };
+
+    return findRoute(map, startMotion, otherPlayerMotion, end, 0);
   },
 });
 
