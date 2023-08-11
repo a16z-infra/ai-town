@@ -45,6 +45,17 @@ const nextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      // Redirect / to /ai-town for users running the project locally
+      {
+        source: '/',
+        destination: '/ai-town/',
+        basePath: false,
+        permanent: false,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;
