@@ -38,6 +38,8 @@ export const recoverThinkingAgents = internalMutation({
   },
 });
 
+// Allow 1s for a character to start moving after ending a walk.
+const BUFFER = 1_000;
 export const recoverStoppedAgents = internalMutation({
   args: {},
   handler: async (ctx, args) => {
@@ -54,7 +56,7 @@ export const recoverStoppedAgents = internalMutation({
       .collect();
     for (const agentDoc of agentDocs) {
       const motion = await getLatestPlayerMotion(ctx.db, agentDoc.playerId);
-      if (motion.type === 'stopped' || motion.targetEndTs < Date.now()) {
+      if (motion.type === 'walking' && motion.targetEndTs < Date.now() - BUFFER) {
         console.error("We found a stationary agent that's not thinking. Tick time");
         await enqueueAgentWake(ctx, agentDoc._id, world._id, Date.now());
         return;
