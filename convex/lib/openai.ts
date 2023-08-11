@@ -1,7 +1,5 @@
 // That's right! No imports and no dependencies 🤯
 
-import { OPENAI_RETRY_BACKOFF, RETRY_JITTER } from '../config';
-
 export async function chatCompletion(
   body: Omit<CreateChatCompletionRequest, 'model'> & {
     model?: CreateChatCompletionRequest['model'];
@@ -16,11 +14,12 @@ export async function chatCompletion(
   }
 
   body.model = body.model ?? 'gpt-3.5-turbo-16k';
-  const start = Date.now();
-  let result: Response;
-  let i = 0;
-  for (; i <= OPENAI_RETRY_BACKOFF.length; i++) {
-    result = await fetch('https://api.openai.com/v1/chat/completions', {
+  const {
+    result: json,
+    retries,
+    ms,
+  } = await retryWithBackoff(async () => {
+    const result = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -29,34 +28,22 @@ export async function chatCompletion(
 
       body: JSON.stringify(body),
     });
-    if (result.ok) {
-      break;
+    if (!result.ok) {
+      throw {
+        retry: result.status === 429,
+        error: new Error(`Embedding failed with code ${result.status}: ${await result.text()}`),
+      };
     }
-    if (result.status === 429) {
-      if (i < OPENAI_RETRY_BACKOFF.length) {
-        console.log(`Got a 429, waiting ${OPENAI_RETRY_BACKOFF[i]}ms to retry...`, Date.now());
-        await new Promise((resolve) =>
-          setTimeout(resolve, OPENAI_RETRY_BACKOFF[i] + RETRY_JITTER * Math.random()),
-        );
-        console.log('Retrying...', Date.now());
-        continue;
-      }
-    }
-    throw new Error(
-      `Unexpected result from OpenAI: ${result.status} ${result.statusText}\n` +
-        JSON.stringify(result),
-    );
-  }
-  const completion = (await result!.json()) as CreateChatCompletionResponse;
-  const ms = Date.now() - start;
-  const content = completion.choices[0].message?.content;
+    return (await result!.json()) as CreateChatCompletionResponse;
+  });
+  const content = json.choices[0].message?.content;
   if (content === undefined) {
-    throw new Error('Unexpected result from OpenAI: ' + JSON.stringify(completion));
+    throw new Error('Unexpected result from OpenAI: ' + JSON.stringify(json));
   }
   return {
     content,
-    usage: completion.usage,
-    retries: i,
+    usage: json.usage,
+    retries,
     ms,
   };
 }
@@ -69,36 +56,41 @@ export async function fetchEmbeddingBatch(texts: string[]) {
         '    npx convex dashboard\n or https://dashboard.convex.dev',
     );
   }
-  const start = Date.now();
-  const result = await fetch('https://api.openai.com/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer ' + process.env.OPENAI_API_KEY,
-    },
+  const {
+    result: json,
+    retries,
+    ms,
+  } = await retryWithBackoff(async () => {
+    const result = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + process.env.OPENAI_API_KEY,
+      },
 
-    body: JSON.stringify({
-      model: 'text-embedding-ada-002',
-      input: texts.map((text) => text.replace(/\n/g, ' ')),
-    }),
+      body: JSON.stringify({
+        model: 'text-embedding-ada-002',
+        input: texts.map((text) => text.replace(/\n/g, ' ')),
+      }),
+    });
+    if (!result.ok) {
+      throw {
+        retry: result.status === 429,
+        error: new Error(`Embedding failed with code ${result.status}: ${await result.text()}`),
+      };
+    }
+    return (await result!.json()) as CreateEmbeddingResponse;
   });
-  if (!result.ok) {
-    throw new Error(
-      `Unexpected result from OpenAI: ${result.status} ${result.statusText}\n` +
-        JSON.stringify(result),
-    );
-  }
-  const ms = Date.now() - start;
-  const jsonresults = (await result.json()) as CreateEmbeddingResponse;
-  if (jsonresults.data.length !== texts.length) {
-    console.error(result);
+  if (json.data.length !== texts.length) {
+    console.error(json);
     throw new Error('Unexpected number of embeddings');
   }
-  const allembeddings = jsonresults.data;
+  const allembeddings = json.data;
   allembeddings.sort((a, b) => b.index - a.index);
   return {
     embeddings: allembeddings.map(({ embedding }) => embedding),
-    usage: jsonresults.usage.total_tokens,
+    usage: json.usage.total_tokens,
+    retries,
     ms,
   };
 }
@@ -106,6 +98,42 @@ export async function fetchEmbeddingBatch(texts: string[]) {
 export async function fetchEmbedding(text: string) {
   const { embeddings, ...stats } = await fetchEmbeddingBatch([text]);
   return { embedding: embeddings[0], ...stats };
+}
+
+// Retry after this much time, based on the retry number.
+const RETRY_BACKOFF = [1000, 10_000]; // In ms
+const RETRY_JITTER = 100; // In ms
+type RetryError = { retry: boolean; error: any };
+
+export async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+): Promise<{ retries: number; result: T; ms: number }> {
+  let i = 0;
+  for (; i <= RETRY_BACKOFF.length; i++) {
+    try {
+      const start = Date.now();
+      const result = await fn();
+      const ms = Date.now() - start;
+      return { result, retries: i, ms };
+    } catch (e) {
+      const retryError = e as RetryError;
+      if (i < RETRY_BACKOFF.length) {
+        if (retryError.retry) {
+          console.log(
+            `Attempt ${i + 1} failed, waiting ${RETRY_BACKOFF[i]}ms to retry...`,
+            Date.now(),
+          );
+          await new Promise((resolve) =>
+            setTimeout(resolve, RETRY_BACKOFF[i] + RETRY_JITTER * Math.random()),
+          );
+          continue;
+        }
+      }
+      if (retryError.error) throw retryError.error;
+      else throw e;
+    }
+  }
+  throw new Error('Unreachable');
 }
 
 // Lifted from openai's package
