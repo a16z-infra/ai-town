@@ -4,7 +4,10 @@ import { PixiStaticMap } from './PixiStaticMap';
 import { ConvexProvider, useConvex, useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Player, SelectPlayer } from './Player';
-import PixiViewport from './PixiViewport';
+import dynamic from 'next/dynamic';
+
+// Disabling SSR for PixiViewport, as its dependency tries to access `window`.
+const PixiViewport = dynamic(() => import('./PixiViewport'), { ssr: false });
 
 export const Game = ({
   setSelectedPlayer,
