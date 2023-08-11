@@ -1,5 +1,4 @@
 import './globals.css';
-import { ClerkProvider } from '@clerk/nextjs';
 import ConvexClientProvider from './ConvexClientProvider';
 import localFont from 'next/font/local';
 import clsx from 'clsx';
@@ -20,12 +19,10 @@ const fontBody = localFont({
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
-      <ConvexClientProvider>
-        <html lang="en">
-          <body className={clsx(fontDisplay.variable, fontBody.variable)}>{children}</body>
-        </html>
-      </ConvexClientProvider>
-    </ClerkProvider>
+    <ConvexClientProvider>
+      <html lang="en">
+        <body className={clsx(fontDisplay.variable, fontBody.variable)}>{children}</body>
+      </html>
+    </ConvexClientProvider>
   );
 }

@@ -1,20 +1,9 @@
-import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 import Examples from '@/components/Examples';
 import LoginButton from '@/components/LoginButton';
 
 export default function Home() {
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-between font-body game-background">
-      <div className="p-6 absolute top-0 right-0 z-10 text-2xl">
-        <SignedIn>
-          <UserButton afterSignOutUrl="/" />
-        </SignedIn>
-
-        <SignedOut>
-          <LoginButton />
-        </SignedOut>
-      </div>
-
       <div className="w-full min-h-screen relative isolate overflow-hidden p-6 lg:p-8 shadow-2xl flex flex-col justify-center">
         <h1 className="mx-auto text-center text-6xl sm:text-8xl lg:text-9xl font-bold font-display leading-none tracking-wide game-title">
           AI Town

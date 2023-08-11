@@ -4,7 +4,6 @@ import { Id } from '../../convex/_generated/dataModel';
 import type { Player as PlayerState } from '../../convex/schema';
 import clsx from 'clsx';
 import LoginButton from './LoginButton';
-import { SignedIn, SignedOut } from '@clerk/nextjs';
 
 function Messages({
   conversationId,
@@ -70,35 +69,16 @@ export default function Chats({ playerState }: { playerState: PlayerState | unde
         <p className="leading-tight -m-4 bg-brown-700 text-lg">{playerState.identity}</p>
       </div>
 
-      {/*
-      We could also check authentication on the backend side,
-      but it’s not a priority at the moment since logged in users don’t really
-      get special permissions.
-      */}
-      <SignedIn>
-        {playerState.lastChat?.conversationId && (
-          <div className="chats">
-            <div className="bg-brown-200 text-black p-2">
-              <Messages
-                conversationId={playerState.lastChat?.conversationId}
-                currentPlayerId={playerState.id}
-              />
-            </div>
-          </div>
-        )}
-      </SignedIn>
-
-      <SignedOut>
-        <div className="login-prompt">
-          <div className="bg-clay-300 text-clay-900 -m-6">
-            <p className="text-center">You need to be logged in to read the conversations.</p>
-
-            <div className="text-center mt-4 text-xl">
-              <LoginButton />
-            </div>
+      {playerState.lastChat?.conversationId && (
+        <div className="chats">
+          <div className="bg-brown-200 text-black p-2">
+            <Messages
+              conversationId={playerState.lastChat?.conversationId}
+              currentPlayerId={playerState.id}
+            />
           </div>
         </div>
-      </SignedOut>
+      )}
     </>
   );
 }
