@@ -4,9 +4,12 @@ import { PixiStaticMap } from './PixiStaticMap';
 import { ConvexProvider, useConvex, useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Player, SelectPlayer } from './Player';
-import PixiViewport from './PixiViewport';
 import { HEARTBEAT_PERIOD } from '../../convex/config';
 import { Id } from '../../convex/_generated/dataModel';
+import dynamic from 'next/dynamic';
+
+// Disabling SSR for PixiViewport, as its dependency tries to access `window`.
+const PixiViewport = dynamic(() => import('./PixiViewport'), { ssr: false });
 
 export const Game = ({
   setSelectedPlayer,
@@ -85,6 +88,6 @@ const useServerTimeOffset = (worldId: Id<'worlds'> | undefined) => {
     void updateOffset();
     const interval = setInterval(updateOffset, HEARTBEAT_PERIOD);
     return () => clearInterval(interval);
-  }, []);
+  }, [worldId]);
   return offset;
 };
