@@ -5,6 +5,7 @@ import { ConvexProvider, useConvex, useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Player, SelectPlayer } from './Player';
 import { HEARTBEAT_PERIOD } from '../../convex/config';
+import { Id } from '../../convex/_generated/dataModel';
 import dynamic from 'next/dynamic';
 
 // Disabling SSR for PixiViewport, as its dependency tries to access `window`.
@@ -22,7 +23,7 @@ export const Game = ({
   const convex = useConvex();
   const worldState = useQuery(api.players.getWorld, {});
 
-  const offset = useServerTimeOffset();
+  const offset = useServerTimeOffset(worldState?.world._id);
   if (!worldState) return null;
   const { players } = worldState;
   return (
@@ -59,15 +60,16 @@ export default Game;
  *
  * @returns The average offset between the server and the client
  */
-const useServerTimeOffset = () => {
+const useServerTimeOffset = (worldId: Id<'worlds'> | undefined) => {
   const serverNow = useMutation(api.players.now);
   const [offset, setOffset] = useState(0);
   const prev = useRef<number[]>([]);
   useEffect(() => {
     const updateOffset = async () => {
+      if (!worldId) return;
       let serverTime;
       try {
-        serverTime = await serverNow();
+        serverTime = await serverNow({ worldId });
       } catch (e) {
         // If we failed to get it, just skip this one
         return;
@@ -86,6 +88,6 @@ const useServerTimeOffset = () => {
     void updateOffset();
     const interval = setInterval(updateOffset, HEARTBEAT_PERIOD);
     return () => clearInterval(interval);
-  }, []);
+  }, [worldId]);
   return offset;
 };

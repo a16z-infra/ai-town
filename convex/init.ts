@@ -110,7 +110,7 @@ export const existingWorld = internalQuery({
   },
 });
 
-async function makeWorld(db: DatabaseWriter) {
+async function makeWorld(db: DatabaseWriter, frozen: boolean) {
   const mapId = await db.insert('maps', {
     tileSetUrl: tilesetpath,
     tileSetDim: tilefiledim,
@@ -122,7 +122,7 @@ async function makeWorld(db: DatabaseWriter) {
     width: bgtiles[0].length,
     height: bgtiles[0][0].length,
     mapId,
-    frozen: false,
+    frozen,
   });
   return worldId;
 }
@@ -131,10 +131,12 @@ export const addPlayers = internalMutation({
   args: {
     newWorld: v.optional(v.boolean()),
     characters: v.array(v.object(Characters.fields)),
+    frozen: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const worldId =
-      (!args.newWorld && (await ctx.db.query('worlds').first())?._id) || (await makeWorld(ctx.db));
+      (!args.newWorld && (await ctx.db.query('worlds').first())?._id) ||
+      (await makeWorld(ctx.db, args.frozen ?? false));
     const charactersByName: Record<string, Id<'characters'>> = {};
     for (const character of args.characters) {
       const characterId = await ctx.db.insert('characters', character);
@@ -186,7 +188,7 @@ export const resetFrozen = internalAction({
   args: {},
   handler: async (ctx, args) => {
     await ctx.runMutation(internal.engine.freezeAll);
-    const worldId = await ctx.runAction(internal.init.seed, { newWorld: true, noTick: true });
+    const worldId = await ctx.runAction(internal.init.seed, { newWorld: true, frozen: true });
     console.log('To test one batch a time: npx convex run --no-push engine:tick');
     console.log(
       JSON.stringify({
@@ -198,8 +200,8 @@ export const resetFrozen = internalAction({
 });
 
 export const seed = internalAction({
-  args: { newWorld: v.optional(v.boolean()), noTick: v.optional(v.boolean()) },
-  handler: async (ctx, { newWorld, noTick }): Promise<Id<'worlds'>> => {
+  args: { newWorld: v.optional(v.boolean()), frozen: v.optional(v.boolean()) },
+  handler: async (ctx, { newWorld, frozen }): Promise<Id<'worlds'>> => {
     const existingWorldId = await ctx.runQuery(internal.init.existingWorld);
     if (!newWorld && existingWorldId) return existingWorldId._id;
     const characters = [
@@ -231,6 +233,7 @@ export const seed = internalAction({
     const { playersByName, worldId } = await ctx.runMutation(internal.init.addPlayers, {
       newWorld,
       characters,
+      frozen,
     });
     console.log(`Created world ${worldId}`);
     const memories = Data.flatMap(({ name, memories }) => {
@@ -258,9 +261,7 @@ export const seed = internalAction({
     // It will check the cache, calculate missing embeddings, and add them.
     // If it fails here, it won't be retried. But you could clear the memor
     await MemoryDB(ctx).addMemories(memories);
-    if (!noTick) {
-      await ctx.runMutation(internal.engine.tick, { worldId });
-    }
+    await ctx.runMutation(internal.engine.tick, { worldId });
     return worldId;
   },
 });

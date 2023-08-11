@@ -6,6 +6,10 @@ export const CLOSE_DISTANCE = 1;
 export const TIME_PER_STEP = 2_000;
 // After this many ms, give up on the agent and start thinking again.
 export const AGENT_THINKING_TOO_LONG = 600_000;
+// How long to hang out if there was no path to your destination.
+export const STUCK_CHILL_TIME = 30_000;
+// How long to let a conversation go on for with agents
+export const CONVERSATION_TIME_LIMIT = 20_000;
 // If you don't set a start position, you'll start at 0,0.
 export const DEFAULT_START_POSE = { position: { x: 0, y: 0 }, orientation: 0 };
 // How often to send up heartbeats

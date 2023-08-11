@@ -7,7 +7,7 @@ import { Doc } from '../../convex/_generated/dataModel';
 import type { Player as PlayerState, Pose } from '../../convex/schema';
 import { Character } from './Character';
 
-const SpeechDurationMs = 3000;
+const SpeechDurationMs = 2000;
 
 export type SelectPlayer = (playerState: PlayerState) => void;
 

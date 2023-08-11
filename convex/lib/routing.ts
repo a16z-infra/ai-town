@@ -17,7 +17,7 @@ export function findRoute(
   otherPlayerMotion: Motion[],
   end: Position,
   ts: number,
-) {
+): { route: Position[]; distance: number } {
   if (
     end.x < 0 ||
     end.y < 0 ||
@@ -53,6 +53,7 @@ export function findRoute(
   const makeNext = (prev: Path): Path[] => {
     const distance = prev.distance + 1;
     const next = [];
+    // TODO: shake this up to get more interesting paths.
     for (const [dx, dy] of [
       [1, 0],
       [-1, 0],
@@ -64,6 +65,7 @@ export function findRoute(
       const left = manhattanDistance(pos, end);
       const cost = distance + left;
       const path = { pos, distance, cost, prev };
+      // TODO: break endgame logic into its own function.
       if (left <= 2) {
         // Custom endgame logic, in case we arrived at a crowd.
         if (left === 0) {
@@ -138,7 +140,10 @@ export function findRoute(
     }
     path = minheap.pop();
   }
-  if (!path) throw new Error("Couldn't find a path to " + JSON.stringify(end));
+  if (!path) {
+    // TODO: Find the closest point we can get to.
+    return { route: [startPos], distance: 0 };
+  }
   const denseRoute: Position[] = [path.pos];
   const distance = path.distance;
   while (path.prev) {
