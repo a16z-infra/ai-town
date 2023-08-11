@@ -6,10 +6,6 @@ import clsx from 'clsx';
 import LoginButton from './LoginButton';
 import { SignedIn, SignedOut } from '@clerk/nextjs';
 
-function classNames(...classes: any) {
-  return classes.filter(Boolean).join(' ');
-}
-
 function Messages({
   conversationId,
   currentPlayerId,

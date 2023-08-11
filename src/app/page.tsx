@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut, UserButton, auth } from '@clerk/nextjs';
+import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 import Examples from '@/components/Examples';
 import LoginButton from '@/components/LoginButton';
 

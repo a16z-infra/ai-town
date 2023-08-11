@@ -20,7 +20,7 @@ export const Game = ({
 
   const offset = useServerTimeOffset();
   if (!worldState) return null;
-  const { world, players } = worldState;
+  const { players } = worldState;
   return (
     <Stage width={width} height={height} options={{ backgroundColor: 0x7ab5ff }}>
       <PixiViewport
