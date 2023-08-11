@@ -12,7 +12,7 @@ import {
 } from './schema';
 import { asyncMap, pruneNull } from './lib/utils';
 import { getAllPlayers } from './players';
-import { CLOSE_DISTANCE, DEFAULT_START_POSE, TIME_PER_STEP } from './config';
+import { CLOSE_DISTANCE, DEFAULT_START_POSE, STUCK_CHILL_TIME, TIME_PER_STEP } from './config';
 import { findCollision, findRoute } from './lib/routing';
 import {
   getNearbyPlayers,
@@ -251,6 +251,22 @@ export const walk = internalMutation({
       targetPosition,
       ts,
     );
+    if (distance === 0) {
+      if (ourMotion.type === 'walking') {
+        await ctx.db.insert('journal', {
+          playerId,
+          data: {
+            type: 'stopped',
+            pose: { position: route[0], orientation: 270 },
+            reason: 'interrupted',
+          },
+        });
+      }
+      return {
+        targetEndTs: ts + STUCK_CHILL_TIME,
+        // TODO: detect collisions with other players running into us.
+      };
+    }
     const exclude = new Set([...ignore, playerId]);
     const targetEndTs = ts + distance * TIME_PER_STEP;
     const collisions = findCollision(
