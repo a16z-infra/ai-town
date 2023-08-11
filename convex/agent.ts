@@ -17,6 +17,7 @@ import {
   walkAway,
 } from './conversation';
 import { getNearbyPlayers } from './lib/physics';
+import { CONVERSATION_TIME_LIMIT } from './config';
 
 export const runAgentBatch = internalAction({
   args: {
@@ -177,7 +178,7 @@ export async function handleAgentInteraction(
 
   // TODO: real logic. this just sends one message each!
 
-  const endAfterTs = Date.now() + 5 * 60_000;
+  const endAfterTs = Date.now() + CONVERSATION_TIME_LIMIT;
   // Choose who should speak next:
   let endConversation = false;
   let lastSpeakerId = leader.id;
