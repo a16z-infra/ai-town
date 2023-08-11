@@ -61,7 +61,7 @@ To run both the front and and back end:
 npm run dev
 ```
 
-You can now visit http://localhost:[PORT_NUMBER]/ai-town
+You can now visit http://localhost:[PORT_NUMBER]
 
 ### Various commands to run / test / debug
 
