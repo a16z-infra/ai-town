@@ -49,7 +49,7 @@ const nextConfig = {
       // Redirect / to /ai-town for users running the project locally
       {
         source: '/',
-        destination: '/ai-town/',
+        destination: '/ai-town',
         basePath: false,
         permanent: false,
       },
