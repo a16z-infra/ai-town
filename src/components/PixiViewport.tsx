@@ -3,7 +3,6 @@
 // Based on https://codepen.io/inlet/pen/yLVmPWv.
 // Copyright (c) 2018 Patrick Brouwer, distributed under the MIT license.
 
-import { Props } from '@headlessui/react/dist/types';
 import { PixiComponent, useApp } from '@pixi/react';
 import { Viewport } from 'pixi-viewport';
 
@@ -45,7 +44,7 @@ const PixiViewportComponent = PixiComponent('Viewport', {
   didMount() {},
 });
 
-export default function PixiViewport(props: Props<typeof PixiViewportComponent>) {
+export default function PixiViewport(props: React.ComponentProps<typeof PixiViewportComponent>) {
   const app = useApp();
   return <PixiViewportComponent app={app} {...props} />;
 }
