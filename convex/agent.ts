@@ -151,6 +151,8 @@ export async function handleAgentInteraction(
           target: leader.id,
           ignore: players.map((p) => p.id),
         });
+        // TODO: collect collisions and pass them into the engine to wake up
+        // other players to avoid these ones in conversation.
       }
     }
   }
