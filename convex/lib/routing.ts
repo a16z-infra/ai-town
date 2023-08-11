@@ -31,6 +31,10 @@ export function findRoute(
   const height = map.bgTiles[0].length;
 
   const startPose = getPoseFromMotion(startMotion, ts);
+  const startPos = roundPosition(startPose.position);
+  if (startPos.x === end.x && startPos.y === end.y) {
+    return { route: [startPos], distance: 0 };
+  }
   // Make Position[] for each player, starting at ts
   const otherPlayerLocations = otherPlayerMotion
     .map((motion) => getRemainingPathFromMotion(motion, ts))
@@ -64,24 +68,52 @@ export function findRoute(
       if (blocked(pos, distance)) continue;
       const left = manhattanDistance(pos, end);
       const cost = distance + left;
-      if (left === 0) {
-        // We arrived.
-        return [{ pos, distance, cost: -1, prev }];
+      const path = { pos, distance, cost, prev };
+      if (left <= 2) {
+        // Custom endgame logic, in case we arrived at a crowd.
+        if (left === 0) {
+          // We arrived.
+          return [{ pos, distance, cost: -1, prev }];
+        }
+        if (blocked(end, distance + left)) {
+          if (left === 1) {
+            // We are as close as we can get.
+            return [{ pos, distance, cost: -1, prev }];
+          } else {
+            // We are 2 away.
+            const candidates = [];
+            if (pos.x < end.x) candidates.push({ x: end.x - 1, y: end.y });
+            if (pos.x > end.x) candidates.push({ x: end.x + 1, y: end.y });
+            if (pos.y < end.y) candidates.push({ x: end.x, y: end.y - 1 });
+            if (pos.y > end.y) candidates.push({ x: end.x, y: end.y + 1 });
+            const closest = candidates.find((c) => !blocked(c, distance + 1));
+            if (closest) {
+              // Where we were was the closest we could get
+              if (prev.pos.x === closest.x && prev.pos.y === closest.y) {
+                return [{ ...prev, cost: -1 }];
+              }
+              // we can get 1 closer.
+              return [{ pos: closest, distance, cost: -1, prev: path }];
+            }
+            // We have to stop 2 away: all the spots 1 away are blocked.
+            return [{ pos, distance, cost: -1, prev }];
+          }
+        } else if (left === 1) {
+          return [{ pos: end, distance: distance + 1, cost: -1, prev: path }];
+        }
       }
       const existingMin = minDistances[pos.y]?.[pos.x];
-      const path = { pos, distance, cost, prev };
       if (!existingMin) {
         minDistances[pos.y] ??= [];
         minDistances[pos.y][pos.x] = path;
       } else if (cost >= existingMin.cost) {
         continue;
       }
-      next.push({ pos, distance, cost, prev });
+      next.push(path);
     }
     return next;
   };
   const minheap = MinHeap<Path>((more, less) => more.cost > less.cost);
-  const startPos = roundPosition(startPose.position);
   const startPath = {
     pos: startPos,
     distance: 0,
@@ -90,7 +122,7 @@ export function findRoute(
   };
   minDistances[startPos.y] = [];
   minDistances[startPos.y][startPos.x] = startPath;
-  let path: Path = startPath;
+  let path: Path | undefined = startPath;
   while (path) {
     path.next = makeNext(path);
     if (path.next.length === 1 && path.next[0].cost === -1) {
@@ -100,7 +132,7 @@ export function findRoute(
     for (const next of path.next) {
       minheap.push(next);
     }
-    path = minheap.pop()!;
+    path = minheap.pop();
   }
   if (!path) throw new Error("Couldn't find a path to " + JSON.stringify(end));
   const denseRoute: Position[] = [path.pos];
@@ -160,6 +192,7 @@ export function makeSparsePath(path: Position[]): Position[] {
     for (; j < path.length; j++) {
       const dx2 = path[j].x - path[j - 1].x;
       const dy2 = path[j].y - path[j - 1].y;
+      if (!dx2 && !dy2) continue;
       if (dx !== dx2 || dy !== dy2) {
         sparsePath.push(path[j - 1]);
         i = j - 1;
