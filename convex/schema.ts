@@ -281,6 +281,6 @@ export default defineSchema(
   // It also prevents writing data at runtime that doesn't match the schema.
   // We disable it while iterating on the schema, to avoid needing to clear
   // tables all the time or write migrations while iterating quickly.
-  // Instead, we just create new worlds with the correct data schema for now.
+  // Instead, we just create new worlds with the correct data schema.
   { schemaValidation: true },
 );

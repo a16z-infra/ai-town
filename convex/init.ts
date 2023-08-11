@@ -178,8 +178,7 @@ export const reset = internalAction({
   args: {},
   handler: async (ctx, args) => {
     await ctx.runMutation(internal.engine.freezeAll);
-    const worldId = await ctx.runAction(internal.init.seed, { newWorld: true });
-    await ctx.runMutation(internal.engine.tick, { worldId });
+    await ctx.runAction(internal.init.seed, { newWorld: true });
   },
 });
 
@@ -187,7 +186,7 @@ export const resetFrozen = internalAction({
   args: {},
   handler: async (ctx, args) => {
     await ctx.runMutation(internal.engine.freezeAll);
-    const worldId = await ctx.runAction(internal.init.seed, { newWorld: true });
+    const worldId = await ctx.runAction(internal.init.seed, { newWorld: true, noTick: true });
     console.log('To test one batch a time: npx convex run --no-push engine:tick');
     console.log(
       JSON.stringify({
@@ -199,8 +198,8 @@ export const resetFrozen = internalAction({
 });
 
 export const seed = internalAction({
-  args: { newWorld: v.optional(v.boolean()) },
-  handler: async (ctx, { newWorld }): Promise<Id<'worlds'>> => {
+  args: { newWorld: v.optional(v.boolean()), noTick: v.optional(v.boolean()) },
+  handler: async (ctx, { newWorld, noTick }): Promise<Id<'worlds'>> => {
     const existingWorldId = await ctx.runQuery(internal.init.existingWorld);
     if (!newWorld && existingWorldId) return existingWorldId._id;
     const characters = [
@@ -259,6 +258,9 @@ export const seed = internalAction({
     // It will check the cache, calculate missing embeddings, and add them.
     // If it fails here, it won't be retried. But you could clear the memor
     await MemoryDB(ctx).addMemories(memories);
+    if (!noTick) {
+      await ctx.runMutation(internal.engine.tick, { worldId });
+    }
     return worldId;
   },
 });
