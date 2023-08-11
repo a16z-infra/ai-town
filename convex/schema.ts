@@ -6,8 +6,8 @@ export const Worlds = Table('worlds', {
   // name: v.string(),
   // characterIds: v.array(v.id('characters')),
   // TODO: remove these and instead have a Zone hierarchy
-  width: v.number(), // number of tiles wide
-  height: v.number(),
+  width: v.optional(v.number()), // number of tiles wide
+  height: v.optional(v.number()),
   mapId: v.id('maps'),
   frozen: v.boolean(),
 });
