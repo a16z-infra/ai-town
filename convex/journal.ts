@@ -233,11 +233,10 @@ export const walk = internalMutation({
     const { playerId, worldId } = agentDoc;
     const world = (await ctx.db.get(worldId))!;
     const map = (await ctx.db.get(world.mapId))!;
-    const exclude = new Set([...ignore, playerId]);
-    const otherPlayers = await asyncMap(
-      (await getAllPlayers(ctx.db, worldId)).filter((p) => !exclude.has(p._id)),
-      async (p) => ({ ...p, motion: await getLatestPlayerMotion(ctx.db, p._id) }),
-    );
+    const otherPlayers = await asyncMap(await getAllPlayers(ctx.db, worldId), async (p) => ({
+      ...p,
+      motion: await getLatestPlayerMotion(ctx.db, p._id),
+    }));
     const targetPosition = target
       ? getPoseFromMotion(await getLatestPlayerMotion(ctx.db, target), ts).position
       : getRandomPosition(map);
@@ -249,8 +248,14 @@ export const walk = internalMutation({
       targetPosition,
       ts,
     );
+    const exclude = new Set([...ignore, playerId]);
     const targetEndTs = ts + distance * TIME_PER_STEP;
-    const collisions = findCollision(route, otherPlayers, ts, CLOSE_DISTANCE);
+    const collisions = findCollision(
+      route,
+      otherPlayers.filter((p) => !exclude.has(p._id)),
+      ts,
+      CLOSE_DISTANCE,
+    );
     await ctx.db.insert('journal', {
       playerId,
       data: { type: 'walking', route, ignore, startTs: ts, targetEndTs },
