@@ -6,6 +6,7 @@ export function manhattanDistance(p1: Position, p2: Position) {
 }
 
 export function calculateFraction(start: number, end: number, ts: number): number {
+  if (start === end) return 0;
   const progress = (ts - start) / (end - start);
   return Math.max(Math.min(1, progress), 0);
 }
@@ -35,6 +36,7 @@ export function getPoseFromMotion(motion: Motion, ts: number): Pose {
 }
 
 export function getPoseFromRoute(route: Position[], fraction: number): Pose {
+  if (route.length === 0) throw new Error('Empty route');
   if (route.length === 1) return { position: route[0], orientation: 0 };
   const totalLength = getRouteDistance(route);
   const progressDistance = fraction * totalLength;

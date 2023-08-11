@@ -233,10 +233,12 @@ export const walk = internalMutation({
     const { playerId, worldId } = agentDoc;
     const world = (await ctx.db.get(worldId))!;
     const map = (await ctx.db.get(world.mapId))!;
-    const exclude = new Set([...ignore, playerId]);
     const otherPlayers = await asyncMap(
-      (await getAllPlayers(ctx.db, worldId)).filter((p) => !exclude.has(p._id)),
-      async (p) => ({ ...p, motion: await getLatestPlayerMotion(ctx.db, p._id) }),
+      (await getAllPlayers(ctx.db, worldId)).filter((p) => p._id !== playerId),
+      async (p) => ({
+        ...p,
+        motion: await getLatestPlayerMotion(ctx.db, p._id),
+      }),
     );
     const targetPosition = target
       ? getPoseFromMotion(await getLatestPlayerMotion(ctx.db, target), ts).position
@@ -249,8 +251,14 @@ export const walk = internalMutation({
       targetPosition,
       ts,
     );
+    const exclude = new Set([...ignore, playerId]);
     const targetEndTs = ts + distance * TIME_PER_STEP;
-    const collisions = findCollision(route, otherPlayers, ts, CLOSE_DISTANCE);
+    const collisions = findCollision(
+      route,
+      otherPlayers.filter((p) => !exclude.has(p._id)),
+      ts,
+      CLOSE_DISTANCE,
+    );
     await ctx.db.insert('journal', {
       playerId,
       data: { type: 'walking', route, ignore, startTs: ts, targetEndTs },
@@ -295,8 +303,12 @@ export const nextCollision = internalQuery({
 });
 
 export function getRandomPosition(map: Doc<'maps'>): Position {
-  return {
-    x: Math.floor(Math.random() * map.bgTiles[0][0].length),
-    y: Math.floor(Math.random() * map.bgTiles[0].length),
-  };
+  let pos;
+  do
+    pos = {
+      x: Math.floor(Math.random() * map.bgTiles[0][0].length),
+      y: Math.floor(Math.random() * map.bgTiles[0].length),
+    };
+  while (map.objectTiles[pos.y][pos.x] !== -1);
+  return pos;
 }
