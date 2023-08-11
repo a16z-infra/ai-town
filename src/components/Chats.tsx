@@ -3,7 +3,6 @@ import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import type { Player as PlayerState } from '../../convex/schema';
 import clsx from 'clsx';
-import LoginButton from './LoginButton';
 
 function Messages({
   conversationId,

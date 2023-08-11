@@ -1,5 +1,4 @@
 import Examples from '@/components/Examples';
-import LoginButton from '@/components/LoginButton';
 
 export default function Home() {
   return (
