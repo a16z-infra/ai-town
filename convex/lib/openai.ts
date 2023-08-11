@@ -1,5 +1,7 @@
 // That's right! No imports and no dependencies 🤯
 
+import { OPENAI_RETRY_BACKOFF, RETRY_JITTER } from '../config';
+
 export async function chatCompletion(
   body: Omit<CreateChatCompletionRequest, 'model'> & {
     model?: CreateChatCompletionRequest['model'];
@@ -15,22 +17,37 @@ export async function chatCompletion(
 
   body.model = body.model ?? 'gpt-3.5-turbo-16k';
   const start = Date.now();
-  const result = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer ' + process.env.OPENAI_API_KEY,
-    },
+  let result: Response;
+  let i = 0;
+  for (; i <= OPENAI_RETRY_BACKOFF.length; i++) {
+    result = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + process.env.OPENAI_API_KEY,
+      },
 
-    body: JSON.stringify(body),
-  });
-  if (!result.ok) {
+      body: JSON.stringify(body),
+    });
+    if (result.ok) {
+      break;
+    }
+    if (result.status === 429) {
+      if (i < OPENAI_RETRY_BACKOFF.length) {
+        console.log(`Got a 429, waiting ${OPENAI_RETRY_BACKOFF[i]}ms to retry...`, Date.now());
+        await new Promise((resolve) =>
+          setTimeout(resolve, OPENAI_RETRY_BACKOFF[i] + RETRY_JITTER * Math.random()),
+        );
+        console.log('Retrying...', Date.now());
+        continue;
+      }
+    }
     throw new Error(
       `Unexpected result from OpenAI: ${result.status} ${result.statusText}\n` +
         JSON.stringify(result),
     );
   }
-  const completion = (await result.json()) as CreateChatCompletionResponse;
+  const completion = (await result!.json()) as CreateChatCompletionResponse;
   const ms = Date.now() - start;
   const content = completion.choices[0].message?.content;
   if (content === undefined) {
@@ -39,6 +56,7 @@ export async function chatCompletion(
   return {
     content,
     usage: completion.usage,
+    retries: i,
     ms,
   };
 }

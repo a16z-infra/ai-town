@@ -25,3 +25,6 @@ const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 export const VACUUM_JOURNAL_AGE = 7 * DAY;
 export const VACUUM_MEMORIES_AGE = 14 * DAY;
+// Retry after this much time, based on the retry number.
+export const OPENAI_RETRY_BACKOFF = [1000, 10_000]; // In ms
+export const RETRY_JITTER = 100; // In ms
