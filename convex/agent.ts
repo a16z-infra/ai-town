@@ -183,6 +183,7 @@ export async function handleAgentInteraction(
   let endConversation = false;
   let lastSpeakerId = leader.id;
   let remainingPlayers = players;
+
   while (!endConversation) {
     // leader speaks first
     const chatHistory = chatHistoryFromMessages(messages);
@@ -194,6 +195,7 @@ export async function handleAgentInteraction(
             chatHistory,
           );
     lastSpeakerId = speaker.id;
+    const audiencePlayers = players.filter((p) => p.id !== speaker.id);
     const audience = players.filter((p) => p.id !== speaker.id).map((p) => p.id);
     const shouldWalkAway = audience.length === 0 || (await walkAway(chatHistory, speaker));
 
@@ -214,13 +216,14 @@ export async function handleAgentInteraction(
       break;
     }
 
+    // TODO - playerRelations is not used today because of https://github.com/a16z-infra/ai-town/issues/56
     const playerRelations = relationshipsByPlayerId.get(speaker.id) ?? [];
     let playerCompletion;
     if (messages.length === 0) {
-      playerCompletion = await startConversation(ctx, playerRelations, memory, speaker);
+      playerCompletion = await startConversation(ctx, audiencePlayers, memory, speaker);
     } else {
       // TODO: stream the response and write to the mutation for every sentence.
-      playerCompletion = await converse(ctx, chatHistory, speaker, playerRelations, memory);
+      playerCompletion = await converse(ctx, chatHistory, speaker, audiencePlayers, memory);
     }
 
     const message = await ctx.runMutation(internal.journal.talk, {

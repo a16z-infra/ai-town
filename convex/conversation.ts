@@ -10,11 +10,11 @@ type Relation = Player & { relationship: string };
 
 export async function startConversation(
   ctx: ActionCtx,
-  relationships: { name: string; relationship: string }[],
+  audience: Player[],
   memory: MemoryDB,
   player: Player,
 ) {
-  const newFriendsNames = relationships.map((r) => r.name);
+  const newFriendsNames = audience.map((p) => p.name);
 
   const { embedding } = await fetchEmbeddingWithCache(
     ctx,
@@ -30,7 +30,7 @@ export async function startConversation(
       role: 'user',
       content:
         `You are ${player.name}. You just saw ${newFriendsNames}. You should greet them and start a conversation with them. Below are some of your memories about ${newFriendsNames}:` +
-        relationships.map((r) => r.relationship).join('\n') +
+        //relationships.map((r) => r.relationship).join('\n') +
         convoMemories.map((r) => r.memory.description).join('\n') +
         `\n${player.name}:`,
     },
@@ -99,17 +99,17 @@ export async function converse(
   ctx: ActionCtx,
   messages: LLMMessage[],
   player: Player,
-  nearbyPlayers: Relation[],
+  nearbyPlayers: Player[],
   memory: MemoryDB,
 ) {
-  const nearbyPlayersNames = nearbyPlayers.map((p) => p.name).join(', ');
+  const nearbyPlayersNames = nearbyPlayers.join(', ');
   const lastMessage: string | null | undefined = messages?.at(-1)?.content;
   const { embedding } = await fetchEmbedding(lastMessage ? lastMessage : '');
   const memories = await memory.accessMemories(player.id, embedding);
   const conversationMemories = filterMemoriesType(['conversation'], memories);
   const lastConversationTs = conversationMemories[0]?.memory._creationTime;
 
-  const stop = nearbyPlayers.map((p) => p.name + ':');
+  const stop = nearbyPlayers.join(':');
   const relevantMemories: string = conversationMemories
     .slice(0, 2) // only use the first 2 memories
     .map((r) => r.memory.description)
@@ -119,6 +119,7 @@ export async function converse(
 
   let prefixPrompt = `Your name is ${player.name}. About you: ${player.identity}.
   You are talking to ${nearbyPlayersNames}, below are something about them: `;
+
   nearbyPlayers.forEach((p) => {
     prefixPrompt += `\nAbout ${p.name}: ${p.identity}\n`;
   });
@@ -128,7 +129,7 @@ export async function converse(
   prefixPrompt += `Below are relevant memories to this conversation you are having right now: ${relevantMemories}\n`;
 
   prefixPrompt +=
-    'Below are the current chat history between you and the other folks mentioned above. DO NOT greet the other people more than once. Only greet ONCE. Response should be brief and within 200 characters: \n';
+    'Below are the current chat history between you and the other folks mentioned above. DO NOT greet the other people more than once. Only greet ONCE. Do not use the word Hey too often. Response should be brief and within 200 characters: \n';
 
   const prompt: LLMMessage[] = [
     {
