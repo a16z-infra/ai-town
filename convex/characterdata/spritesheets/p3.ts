@@ -1,49 +1,49 @@
-import { SpritesheetData } from '../schema';
+import { SpritesheetData } from '../../schema';
 
 export const data: SpritesheetData = {
   frames: {
     left: {
-      frame: { x: 16, y: 16, w: 16, h: 16 },
+      frame: { x: 16, y: 32, w: 16, h: 16 },
       sourceSize: { w: 16, h: 16 },
       spriteSourceSize: { x: 0, y: 0 },
     },
     left2: {
-      frame: { x: 64, y: 16, w: 16, h: 16 },
+      frame: { x: 64, y: 32, w: 16, h: 16 },
       sourceSize: { w: 16, h: 16 },
       spriteSourceSize: { x: 0, y: 0 },
     },
     left3: {
-      frame: { x: 112, y: 16, w: 16, h: 16 },
+      frame: { x: 112, y: 32, w: 16, h: 16 },
       sourceSize: { w: 16, h: 16 },
       spriteSourceSize: { x: 0, y: 0 },
     },
     up: {
-      frame: { x: 32, y: 16, w: 16, h: 16 },
+      frame: { x: 32, y: 32, w: 16, h: 16 },
       sourceSize: { w: 16, h: 16 },
       spriteSourceSize: { x: 0, y: 0 },
     },
     up2: {
-      frame: { x: 80, y: 16, w: 16, h: 16 },
+      frame: { x: 80, y: 32, w: 16, h: 16 },
       sourceSize: { w: 16, h: 16 },
       spriteSourceSize: { x: 0, y: 0 },
     },
     up3: {
-      frame: { x: 128, y: 16, w: 16, h: 16 },
+      frame: { x: 128, y: 32, w: 16, h: 16 },
       sourceSize: { w: 16, h: 16 },
       spriteSourceSize: { x: 0, y: 0 },
     },
     down: {
-      frame: { x: 0, y: 16, w: 16, h: 16 },
+      frame: { x: 0, y: 32, w: 16, h: 16 },
       sourceSize: { w: 16, h: 16 },
       spriteSourceSize: { x: 0, y: 0 },
     },
     down2: {
-      frame: { x: 48, y: 16, w: 16, h: 16 },
+      frame: { x: 48, y: 32, w: 16, h: 16 },
       sourceSize: { w: 16, h: 16 },
       spriteSourceSize: { x: 0, y: 0 },
     },
     down3: {
-      frame: { x: 96, y: 16, w: 16, h: 16 },
+      frame: { x: 96, y: 32, w: 16, h: 16 },
       sourceSize: { w: 16, h: 16 },
       spriteSourceSize: { x: 0, y: 0 },
     },
