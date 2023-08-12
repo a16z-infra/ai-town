@@ -4,7 +4,16 @@
 
 AI Town is a virtual town where AI characters live, chat and socialize.
 
-This project is based on the research paper [_Generative Agents: Interactive Simulacra of Human Behavior_](https://arxiv.org/pdf/2304.03442.pdf).
+This project is a deployable starter kit for easily building and customizing your own version of AI town. Inspired by the research paper [_Generative Agents: Interactive Simulacra of Human Behavior_](https://arxiv.org/pdf/2304.03442.pdf).
+
+## Stack
+
+- Game engine & Database: [Convex](https://convex.dev/)
+- VectorDB: [Pinecone](https://www.pinecone.io/)
+- Auth: [Clerk](https://clerk.com/)
+- Text model: [OpenAI](https://platform.openai.com/docs/models)
+- Deployment: [Fly](https://fly.io/)
+- Pixel Art Generation: [Replicate](https://replicate.com/), [Fal.ai](https://serverless.fal.ai/lora)
 
 ## Installation
 
