@@ -107,18 +107,29 @@ export async function converse(
   const { embedding } = await fetchEmbedding(lastMessage ? lastMessage : '');
   const memories = await memory.accessMemories(player.id, embedding);
   const conversationMemories = filterMemoriesType(['conversation'], memories);
+  const reflectionMemories = filterMemoriesType(['reflection'], memories);
   const lastConversationTs = conversationMemories[0]?.memory._creationTime;
 
   const stop = nearbyPlayers.join(':');
+  const relevantReflections: string =
+    reflectionMemories.length > 0
+      ? reflectionMemories
+          .slice(0, 2)
+          .map((r) => r.memory.description)
+          .join('\n')
+      : '';
   const relevantMemories: string = conversationMemories
     .slice(0, 2) // only use the first 2 memories
     .map((r) => r.memory.description)
     .join('\n');
 
-  // console.debug('relevantMemories: ', relevantMemories);
+  let prefixPrompt = `Your name is ${player.name}. About you: ${player.identity}.\n`;
+  if (relevantReflections.length > 0) {
+    prefixPrompt += relevantReflections;
+    console.log('relevantReflections', relevantReflections);
+  }
 
-  let prefixPrompt = `Your name is ${player.name}. About you: ${player.identity}.
-  You are talking to ${nearbyPlayersNames}, below are something about them: `;
+  prefixPrompt += `\nYou are talking to ${nearbyPlayersNames}, below are something about them: `;
 
   nearbyPlayers.forEach((p) => {
     prefixPrompt += `\nAbout ${p.name}: ${p.identity}\n`;
