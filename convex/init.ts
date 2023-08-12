@@ -10,15 +10,7 @@ import {
 import { MemoryDB } from './lib/memory';
 import { Characters } from './schema';
 import { tiledim, objmap, tilefiledim, bgtiles, tilesetpath } from './maps/firstmap';
-import { Descriptions, characters as characterData} from './characterdata/data';
-import { decideWhoSpeaksNext } from './conversation';
-
-// import { data as playerSpritesheetData } from './spritesheets/player';
-// import { data as f1SpritesheetData } from './spritesheets/f1';
-// import { data as f2SpritesheetData } from './spritesheets/f2';
-// import { data as p1SpritesheetData } from './spritesheets/p1';
-// import { data as p2SpritesheetData } from './spritesheets/p2';
-// import { data as p3SpritesheetData } from './spritesheets/p3';
+import { Descriptions, characters as characterData } from './characterdata/data';
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error(
