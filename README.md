@@ -1,5 +1,20 @@
 # AI Town 🏠🙍👷‍♀️💻💌
 
+<img src="https://github.com/a16z-infra/ai-town/assets/7029582/7be436e7-7183-4198-97d7-0a137133af26" alt="">
+
+AI Town is a virtual town where AI characters live, chat and socialize.
+
+This project is a deployable starter kit for easily building and customizing your own version of AI town. Inspired by the research paper [_Generative Agents: Interactive Simulacra of Human Behavior_](https://arxiv.org/pdf/2304.03442.pdf).
+
+## Stack
+
+- Game engine & Database: [Convex](https://convex.dev/)
+- VectorDB: [Pinecone](https://www.pinecone.io/)
+- Auth: [Clerk](https://clerk.com/)
+- Text model: [OpenAI](https://platform.openai.com/docs/models)
+- Deployment: [Fly](https://fly.io/)
+- Pixel Art Generation: [Replicate](https://replicate.com/), [Fal.ai](https://serverless.fal.ai/lora)
+
 ## Installation
 
 ### Clone repo and Install packages
