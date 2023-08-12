@@ -14,7 +14,6 @@ export async function startConversation(
   memory: MemoryDB,
   player: Player,
 ) {
-
   const newFriendsNames = audience.map((p) => p.name);
 
   const { embedding } = await fetchEmbeddingWithCache(
@@ -130,7 +129,7 @@ export async function converse(
   prefixPrompt += `Below are relevant memories to this conversation you are having right now: ${relevantMemories}\n`;
 
   prefixPrompt +=
-    'Below are the current chat history between you and the other folks mentioned above. DO NOT greet the other people more than once. Only greet ONCE. Do not use the world Hey too often. Response should be brief and within 200 characters: \n';
+    'Below are the current chat history between you and the other folks mentioned above. DO NOT greet the other people more than once. Only greet ONCE. Do not use the word Hey too often. Response should be brief and within 200 characters: \n';
 
   const prompt: LLMMessage[] = [
     {
