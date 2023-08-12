@@ -48,9 +48,9 @@ export default function Home() {
           </a>
           <a href="https://convex.dev">
             <img
-              className="w-14 h-14"
+              className="w-28 h-14"
               style={{ imageRendering: 'pixelated' }}
-              src="/convex.png"
+              src="/convex.svg"
               alt="Convex"
             />
           </a>
