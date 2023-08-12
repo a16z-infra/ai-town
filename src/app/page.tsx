@@ -35,12 +35,7 @@ export default function Home() {
             <img className="w-14 h-14" src="/ai-town/a16z.png" alt="a16z" />
           </a>
           <a href="https://convex.dev">
-            <img
-              className="w-14 h-14"
-              style={{ imageRendering: 'pixelated' }}
-              src="/ai-town/convex.png"
-              alt="Convex"
-            />
+            <img className="w-28 h-14" src="/ai-town/convex.svg" alt="Convex" />
           </a>
         </footer>
       </div>
