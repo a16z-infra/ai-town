@@ -32,6 +32,7 @@ import type * as lib_routing from "../lib/routing";
 import type * as lib_utils from "../lib/utils";
 import type * as maps_firstmap from "../maps/firstmap";
 import type * as players from "../players";
+import type * as spritesheets_f1 from "../spritesheets/f1";
 import type * as spritesheets_p1 from "../spritesheets/p1";
 import type * as spritesheets_p2 from "../spritesheets/p2";
 import type * as spritesheets_p3 from "../spritesheets/p3";
@@ -65,6 +66,7 @@ declare const fullApi: ApiFromModules<{
   "lib/utils": typeof lib_utils;
   "maps/firstmap": typeof maps_firstmap;
   players: typeof players;
+  "spritesheets/f1": typeof spritesheets_f1;
   "spritesheets/p1": typeof spritesheets_p1;
   "spritesheets/p2": typeof spritesheets_p2;
   "spritesheets/p3": typeof spritesheets_p3;

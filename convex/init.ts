@@ -11,6 +11,7 @@ import { MemoryDB } from './lib/memory';
 import { Characters } from './schema';
 import { tiledim, objmap, tilefiledim, bgtiles, tilesetpath } from './maps/firstmap';
 import { data as playerSpritesheetData } from './spritesheets/player';
+import { data as f1SpritesheetData } from './spritesheets/f1';
 import { data as p1SpritesheetData } from './spritesheets/p1';
 import { data as p2SpritesheetData } from './spritesheets/p2';
 import { data as p3SpritesheetData } from './spritesheets/p3';
@@ -84,6 +85,23 @@ that he never went to college.`,
       },
     ],
     position: { x: 4, y: 4 },
+  },
+  {
+    name: 'Stella',
+    character: 'f1',
+    memories: [
+      {
+        type: 'identity' as const,
+        description: `Stella can never be trusted. She tries to trick people all the time. Normally
+        into giving her money, or doing things that will make her money. She's incredibly charming
+        and not afraid to use her charm. She's a sociopath who has no empathy. But hides it well.`,
+      },
+      {
+        type: 'plan' as const,
+        description: 'You want to take advantage of others as much as possible.',
+      },
+    ],
+    position: { x: 6, y: 6 },
   },
   {
     name: 'Alice',
@@ -227,6 +245,12 @@ export const seed = internalAction({
         name: 'p3',
         textureUrl: '/assets/folks.png',
         spritesheetData: p3SpritesheetData,
+        speed: 0.1,
+      },
+      {
+        name: 'f1',
+        textureUrl: '/assets/32x32folk.png',
+        spritesheetData: f1SpritesheetData,
         speed: 0.1,
       },
     ];
