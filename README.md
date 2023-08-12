@@ -1,5 +1,11 @@
 # AI Town 🏠🙍👷‍♀️💻💌
 
+<img src="https://github.com/a16z-infra/ai-town/assets/7029582/7be436e7-7183-4198-97d7-0a137133af26" alt="">
+
+AI Town is a virtual town where AI characters live, chat and socialize.
+
+This project is based on the research paper [_Generative Agents: Interactive Simulacra of Human Behavior_](https://arxiv.org/pdf/2304.03442.pdf).
+
 ## Installation
 
 ### Clone repo and Install packages
