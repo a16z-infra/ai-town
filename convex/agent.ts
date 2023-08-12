@@ -196,8 +196,8 @@ export async function handleAgentInteraction(
           );
     lastSpeakerId = speaker.id;
     const audiencePlayers = players.filter((p) => p.id !== speaker.id);
-    const audience        = players.filter((p) => p.id !== speaker.id).map((p) => p.id);
-    const shouldWalkAway  = audience.length === 0 || (await walkAway(chatHistory, speaker));
+    const audience = players.filter((p) => p.id !== speaker.id).map((p) => p.id);
+    const shouldWalkAway = audience.length === 0 || (await walkAway(chatHistory, speaker));
 
     // Decide if we keep talking.
     if (shouldWalkAway || Date.now() > endAfterTs) {
@@ -212,11 +212,11 @@ export async function handleAgentInteraction(
       // End the interaction if there's no one left to talk to.
       endConversation = audience.length === 0;
 
-
       // TODO: remove this player from the audience list
       break;
     }
 
+    // TODO - playerRelations is not used today because of https://github.com/a16z-infra/ai-town/issues/56
     const playerRelations = relationshipsByPlayerId.get(speaker.id) ?? [];
     let playerCompletion;
     if (messages.length === 0) {
