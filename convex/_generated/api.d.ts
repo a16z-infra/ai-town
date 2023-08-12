@@ -15,6 +15,19 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as agent from "../agent";
+import type * as characterdata_data from "../characterdata/data";
+import type * as characterdata_spritesheets_f1 from "../characterdata/spritesheets/f1";
+import type * as characterdata_spritesheets_f2 from "../characterdata/spritesheets/f2";
+import type * as characterdata_spritesheets_f3 from "../characterdata/spritesheets/f3";
+import type * as characterdata_spritesheets_f4 from "../characterdata/spritesheets/f4";
+import type * as characterdata_spritesheets_f5 from "../characterdata/spritesheets/f5";
+import type * as characterdata_spritesheets_f6 from "../characterdata/spritesheets/f6";
+import type * as characterdata_spritesheets_f7 from "../characterdata/spritesheets/f7";
+import type * as characterdata_spritesheets_f8 from "../characterdata/spritesheets/f8";
+import type * as characterdata_spritesheets_p1 from "../characterdata/spritesheets/p1";
+import type * as characterdata_spritesheets_p2 from "../characterdata/spritesheets/p2";
+import type * as characterdata_spritesheets_p3 from "../characterdata/spritesheets/p3";
+import type * as characterdata_spritesheets_player from "../characterdata/spritesheets/player";
 import type * as chat from "../chat";
 import type * as config from "../config";
 import type * as conversation from "../conversation";
@@ -32,11 +45,6 @@ import type * as lib_routing from "../lib/routing";
 import type * as lib_utils from "../lib/utils";
 import type * as maps_firstmap from "../maps/firstmap";
 import type * as players from "../players";
-import type * as spritesheets_f1 from "../spritesheets/f1";
-import type * as spritesheets_p1 from "../spritesheets/p1";
-import type * as spritesheets_p2 from "../spritesheets/p2";
-import type * as spritesheets_p3 from "../spritesheets/p3";
-import type * as spritesheets_player from "../spritesheets/player";
 import type * as testing from "../testing";
 
 /**
@@ -49,6 +57,19 @@ import type * as testing from "../testing";
  */
 declare const fullApi: ApiFromModules<{
   agent: typeof agent;
+  "characterdata/data": typeof characterdata_data;
+  "characterdata/spritesheets/f1": typeof characterdata_spritesheets_f1;
+  "characterdata/spritesheets/f2": typeof characterdata_spritesheets_f2;
+  "characterdata/spritesheets/f3": typeof characterdata_spritesheets_f3;
+  "characterdata/spritesheets/f4": typeof characterdata_spritesheets_f4;
+  "characterdata/spritesheets/f5": typeof characterdata_spritesheets_f5;
+  "characterdata/spritesheets/f6": typeof characterdata_spritesheets_f6;
+  "characterdata/spritesheets/f7": typeof characterdata_spritesheets_f7;
+  "characterdata/spritesheets/f8": typeof characterdata_spritesheets_f8;
+  "characterdata/spritesheets/p1": typeof characterdata_spritesheets_p1;
+  "characterdata/spritesheets/p2": typeof characterdata_spritesheets_p2;
+  "characterdata/spritesheets/p3": typeof characterdata_spritesheets_p3;
+  "characterdata/spritesheets/player": typeof characterdata_spritesheets_player;
   chat: typeof chat;
   config: typeof config;
   conversation: typeof conversation;
@@ -66,11 +87,6 @@ declare const fullApi: ApiFromModules<{
   "lib/utils": typeof lib_utils;
   "maps/firstmap": typeof maps_firstmap;
   players: typeof players;
-  "spritesheets/f1": typeof spritesheets_f1;
-  "spritesheets/p1": typeof spritesheets_p1;
-  "spritesheets/p2": typeof spritesheets_p2;
-  "spritesheets/p3": typeof spritesheets_p3;
-  "spritesheets/player": typeof spritesheets_player;
   testing: typeof testing;
 }>;
 export declare const api: FilterApi<
