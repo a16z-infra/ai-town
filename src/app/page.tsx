@@ -42,13 +42,6 @@ export default function Home() {
               </div>
             </a>
           </div>
-
-          <a href="https://a16z.com">
-            <img className="w-14 h-14" src="/a16z.png" alt="a16z" />
-          </a>
-          <a href="https://convex.dev">
-            <img className="w-28 h-14" src="/convex.svg" alt="Convex" />
-          </a>
         </footer>
       </div>
     </main>
