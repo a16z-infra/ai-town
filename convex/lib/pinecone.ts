@@ -26,6 +26,20 @@ export async function pineconeIndex() {
   return client.Index(orThrow(process.env.PINECONE_INDEX_NAME));
 }
 
+export async function deleteAllVectors<TableName extends TableNames>(
+  tableName: TableName,
+): Promise<Object> {
+  if (pineconeAvailable()) {
+    const index = await pineconeIndex();
+    const deletionResult = await index._delete({
+      deleteRequest: { deleteAll: true, namespace: tableName + process.env.CONVEX_CLOUD_URL },
+    });
+    return deletionResult;
+  } else {
+    return {};
+  }
+}
+
 export async function upsertVectors<TableName extends TableNames>(
   tableName: TableName,
   vectors: { id: Id<TableName>; values: number[]; metadata: object }[],
