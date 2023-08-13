@@ -31,13 +31,14 @@ export const PixiStaticMap = PixiComponent('StaticMap', {
 
     // blit bg & object layers of map onto canvas
     for (let i = 0; i < screenxtiles * screenytiles; i++) {
-      const x = i % screenytiles;
-      const y = Math.floor(i / screenytiles);
+      const x = i % screenxtiles;
+      const y = Math.floor(i / screenxtiles);
       const xPx = x * map.tileDim;
       const yPx = y * map.tileDim;
 
       // Add all layers of backgrounds.
       for (let z = 0; z < map.bgTiles.length; z++) {
+        console.log("z: "+z+" y: "+y+" x: "+x);
         const tileIndex = map.bgTiles[z][y][x];
         // Some layers may not have tiles at this location.
         if (tileIndex === -1) continue;
