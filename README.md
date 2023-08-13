@@ -45,14 +45,14 @@ b. **OpenAI API key**
 
 Visit https://platform.openai.com/account/api-keys to get your OpenAI API key if you're using OpenAI for your language model.
 
-e. **Pinecone API keys**
+c. **Pinecone API keys**
 
 - Create a Pinecone index by visiting https://app.pinecone.io/ and click on "Create Index"
 - Give it an index name (this will be the environment variable `PINECONE_INDEX_NAME`)
 - Fill in Dimension as `1536`
 - Once the index is successfully created, click on "API Keys" on the left side nav and create an API key: copy "Environment" value to `PINECONE_ENVIRONMENT` variable, and "Value" to `PINECONE_API_KEY`
 
-f. **Add secrets to the convex dashboard**
+d. **Add secrets to the convex dashboard**
 
 ```bash
 npx convex dashboard
