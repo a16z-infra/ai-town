@@ -14,7 +14,7 @@ export default function Home() {
 
         <Examples />
 
-        <footer className="absolute bottom-0 left-0 w-full flex items-center mt-4 gap-6 p-6 flex-wrap">
+        <footer className="absolute bottom-0 left-0 w-full flex items-center mt-4 gap-3 p-6 flex-wrap">
           <div className="flex gap-4 flex-grow">
             <a
               className="button text-white shadow-solid text-2xl"
@@ -30,8 +30,11 @@ export default function Home() {
               </div>
             </a>
           </div>
+          <a href="https://a16z.com">
+            <img className="w-8 h-8" src="/ai-town/a16z.png" alt="a16z" />
+          </a>
           <a href="https://convex.dev">
-            <img className="w-28 h-14" src="/ai-town/convex.svg" alt="Convex" />
+            <img className="w-20 h-8" src="/ai-town/convex.svg" alt="Convex" />
           </a>
         </footer>
       </div>
