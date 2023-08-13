@@ -114,7 +114,8 @@ async function handleAgentSolo(ctx: ActionCtx, player: Player, memory: MemoryDB,
   // console.debug('handleAgentSolo: ', player.name, player.id);
   // Handle new observations: it can look at the agent's lastWakeTs for a delta.
   //   Calculate scores
-  //   If there's enough observation score, trigger reflection?
+  // Run reflection on memories once in a while
+  await memory.reflectOnMemories(player.id, player.name);
   // Future: Store observations about seeing players in conversation
   //  might include new observations -> add to memory with openai embeddings
   // Later: handle object ownership?
