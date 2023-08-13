@@ -42,7 +42,7 @@ export async function upsertVectors<TableName extends TableNames>(
     results.push(
       await index.upsert({
         upsertRequest: {
-          namespace: tableName + process.env.CONVEX_CLOUD_URL,
+          namespace: `${tableName} [${process.env.CONVEX_CLOUD_URL}]`,
           vectors: vectors.slice(i, i + MaxUpsertBatchLimit),
         },
       }),
@@ -62,7 +62,7 @@ export async function queryVectors<TableName extends TableNames>(
   const pinecone = await pineconeIndex();
   const { matches } = await pinecone.query({
     queryRequest: {
-      namespace: tableName + process.env.CONVEX_CLOUD_URL,
+      namespace: `${tableName} [${process.env.CONVEX_CLOUD_URL}]`,
       topK: limit,
       vector: embedding,
       filter,
