@@ -160,10 +160,10 @@ export const Memories = Table('memories', {
 
     // Exercises left to the reader:
 
-    // v.object({
-    //   type: v.literal('reflection'),
-    //   relatedMemoryIds: v.array(v.id('memories')),
-    // }),
+    v.object({
+      type: v.literal('reflection'),
+      relatedMemoryIds: v.array(v.id('memories')),
+    }),
     // v.object({
     //   type: v.literal('observation'),
     //   object: v.string(),

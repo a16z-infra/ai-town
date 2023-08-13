@@ -8,7 +8,7 @@ import {
   internalQuery,
 } from '../_generated/server.js';
 import { asyncMap } from './utils.js';
-import { EntryOfType, Memories, MemoryOfType, MemoryType } from '../schema.js';
+import { EntryOfType, Memories, Memory, MemoryOfType, MemoryType } from '../schema.js';
 import { chatCompletion } from './openai.js';
 import { clientMessageMapper } from '../chat.js';
 import { pineconeAvailable, queryVectors, upsertVectors } from './pinecone.js';
@@ -40,6 +40,7 @@ export interface MemoryDB {
     playerIdentity: string,
     conversationId: Id<'conversations'>,
   ): Promise<boolean>;
+  reflectOnMemories(playerId: Id<'players'>, name: string): Promise<void>;
 }
 
 export function MemoryDB(ctx: ActionCtx): MemoryDB {
@@ -158,6 +159,66 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
       ]);
       return true;
     },
+    async reflectOnMemories(playerId: Id<'players'>, name: string) {
+      const { memories, lastReflectionTs } = await ctx.runQuery(
+        internal.lib.memory.getReflectionMemories,
+        {
+          playerId,
+          numberOfItems: 100,
+        },
+      );
+
+      // should only reflect if lastest 100 items have importance score of >500
+      const sumOfImportanceScore = memories
+        .filter((m) => m._creationTime > (lastReflectionTs ?? 0))
+        .reduce((acc, curr) => acc + curr.importance, 0);
+      console.debug('sum of importance score = ', sumOfImportanceScore);
+      const shouldReflect = sumOfImportanceScore > 500;
+
+      if (shouldReflect) {
+        console.debug('Reflecting...');
+        let prompt = `[no prose]\n [Output only JSON] \nYou are ${name}, statements about you:\n`;
+        memories.forEach((m, idx) => {
+          prompt += `Statement ${idx}: ${m.description}\n`;
+        });
+        prompt += `What 3 high-level insights can you infer from the above statements?
+        Return in JSON format, where the key is a list of input statements that contributed to your insights and value is your insight. Make the response parseable by Typescript JSON.parse() function. DO NOT escape characters or include '\n' or white space in response.
+          Example: [{insight: "...", statementIds: [1,2]}, {insight: "...", statementIds: [1]}, ...]`;
+
+        const { content: reflection } = await chatCompletion({
+          messages: [
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+        });
+
+        try {
+          const insights: { insight: string; statementIds: number[] }[] = JSON.parse(reflection);
+          let memoriesToSave: MemoryOfType<'reflection'>[] = [];
+          insights.forEach((item) => {
+            const relatedMemoryIds = item.statementIds.map((idx: number) => memories[idx]._id);
+            const reflectionMemory = {
+              playerId,
+              description: item.insight,
+              data: {
+                type: 'reflection',
+                relatedMemoryIds,
+              },
+            } as MemoryOfType<'reflection'>;
+            memoriesToSave.push(reflectionMemory);
+          });
+          console.debug('adding reflection memory...', memoriesToSave);
+
+          await this.addMemories(memoriesToSave);
+        } catch (e) {
+          console.error('error saving or parseing reflection', e);
+          console.debug('reflection', reflection);
+          return;
+        }
+      }
+    },
   };
 }
 
@@ -172,7 +233,7 @@ export const filterMemoriesType = <T extends MemoryType>(
 
 export const getMemories = internalQuery({
   args: { playerId: v.id('players'), embeddingIds: v.array(v.id('embeddings')) },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Memory[]> => {
     return await asyncMap(args.embeddingIds, (id) =>
       getMemoryByEmbeddingId(ctx.db, args.playerId, id),
     );
@@ -282,6 +343,44 @@ async function getMemoryByEmbeddingId(
   if (!doc) throw new Error(`No memory found for player ${playerId} and embedding ${embeddingId}`);
   return doc;
 }
+
+export const getReflectionMemories = internalQuery({
+  args: { playerId: v.id('players'), numberOfItems: v.number() },
+  handler: async (ctx, { playerId, numberOfItems }) => {
+    const conversations = await ctx.db
+      .query('memories')
+      .withIndex('by_playerId_type', (q) =>
+        //TODO - we should get memories of other types once we can
+        // Probably with an index just on playerId, so we can sort by time
+        q.eq('playerId', playerId).eq('data.type', 'conversation'),
+      )
+      .order('desc')
+      .take(numberOfItems);
+    console.debug('conversation memories lenth', conversations.length);
+    const reflections = await ctx.db
+      .query('memories')
+      .withIndex('by_playerId_type', (q) =>
+        q.eq('playerId', playerId).eq('data.type', 'reflection'),
+      )
+      .order('desc')
+      .take(numberOfItems);
+
+    const lastReflection = await ctx.db
+      .query('memories')
+      .withIndex('by_playerId_type', (q) =>
+        q.eq('playerId', playerId).eq('data.type', 'reflection'),
+      )
+      .order('desc')
+      .first();
+    const mergedList = reflections.concat(conversations);
+    mergedList.sort((a, b) => b._creationTime - a._creationTime);
+
+    return {
+      memories: mergedList.slice(0, numberOfItems),
+      lastReflectionTs: lastReflection?._creationTime,
+    };
+  },
+});
 
 export const getRecentMessages = internalQuery({
   args: {
