@@ -239,10 +239,3 @@ export const debugClearAll = internalAction({
     }
   },
 });
-
-export const deleteAllCrons = internalAction({
-  args: {},
-  handler: async (ctx, args) => {
-    // TODO - implement cancelling all crons. For some reason I can't query that today?
-  },
-});
