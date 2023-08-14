@@ -160,6 +160,10 @@ export async function handleAgentInteraction(
       }
     }
   }
+  await ctx.runMutation(internal.journal.turnToFace, {
+    playerId: leader.id,
+    targetId: players[1].id,
+  });
 
   const conversationId = await ctx.runMutation(internal.journal.makeConversation, {
     playerId: leader.id,
