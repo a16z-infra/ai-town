@@ -150,6 +150,17 @@ Many options:
   git branch. Doing `npm run dev` from there will clear your schema, stop your
   functions, and allow you to delete your tables in the dashboard.
 
+To delete all vectors from the Pinecone index, you can run:
+
+```
+npx convex run --no-push lib/pinecone:deleteAllVectors
+```
+
+**NOTE**: If you share this index between dev & prod, or between projects,
+it will wipe them all out. You generally don't need to be deleting vectors from
+Pinecone, as each query is indexed on the userId, which is unique between worlds
+and backend instances.
+
 **To Snoop on messages**
 
 Run the following in a side terminal
