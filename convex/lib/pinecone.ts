@@ -1,6 +1,7 @@
 import { PineconeClient } from '@pinecone-database/pinecone';
 import { Id, TableNames } from '../_generated/dataModel';
 import { VectorOperationsApi } from '@pinecone-database/pinecone/dist/pinecone-generated-ts-fetch';
+import { internalAction } from '../_generated/server';
 
 export const MaxUpsertBatchLimit = 100;
 
@@ -39,19 +40,32 @@ export async function pineconeIndex() {
   return client.Index(orThrow(process.env.PINECONE_INDEX_NAME));
 }
 
-export async function deleteAllVectors<TableName extends TableNames>(
-  tableName: TableName,
-): Promise<Object> {
-  if (pineconeAvailable()) {
-    const index = await pineconeIndex();
-    const deletionResult = await index._delete({
-      deleteRequest: { deleteAll: true },
+export const deleteVectors = internalAction({
+  handler: async (ctx, { tableName, ids }: { tableName: TableNames; ids: Id<TableNames>[] }) => {
+    const pinecone = await pineconeIndex();
+    await pinecone.delete1({
+      // NOTE: Pinecone namespaces are a paid feature. Uncomment this line
+      // to use multiple Convex instances on the same Pinecone index:
+      namespace: `${tableName} [${process.env.CONVEX_CLOUD_URL}]`,
+      ids,
     });
-    return deletionResult;
-  } else {
-    return {};
-  }
-}
+  },
+});
+
+export const deleteAllVectors = internalAction({
+  args: {},
+  handler: async (ctx, args) => {
+    if (pineconeAvailable()) {
+      const index = await pineconeIndex();
+      const deletionResult = await index._delete({
+        deleteRequest: { deleteAll: true },
+      });
+      return deletionResult;
+    } else {
+      return {};
+    }
+  },
+});
 
 export async function upsertVectors<TableName extends TableNames>(
   tableName: TableName,

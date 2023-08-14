@@ -6,7 +6,7 @@ import type { Player } from '../../convex/schema';
 
 import { useElementSize } from 'usehooks-ts';
 
-export default function Examples() {
+export default function GameWrapper() {
   const [selectedPlayer, setSelectedPlayer] = useState<Player>();
 
   const [gameWrapperRef, { width, height }] = useElementSize();

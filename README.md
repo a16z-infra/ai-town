@@ -1,4 +1,4 @@
-# AI Town 🏠🙍👷‍♀️💻💌
+# AI Town 🏠💻💌
 
 [Live Demo](https://www.convex.dev/ai-town)
 
@@ -107,7 +107,9 @@ npm run dev:backend
 See package.json for details, but dev:backend runs `npx convex dev`
 
 
-*Note: The simulation will freeze after 5 minutes if the window is idle. To unfreeze run ```npx convex run --no-push engine:unfreeze ``` from the command line in the project root dir.*
+*Note: The simulation will pause after 5 minutes if the window is idle.
+Loading the page will unpause it. If you want to run the world without the
+browser, you can comment-out the heartbeat check in `convex/engine.ts`
 
 
 ### Various commands to run / test / debug
@@ -150,6 +152,17 @@ Many options:
   git branch. Doing `npm run dev` from there will clear your schema, stop your
   functions, and allow you to delete your tables in the dashboard.
 
+To delete all vectors from the Pinecone index, you can run:
+
+```
+npx convex run --no-push lib/pinecone:deleteAllVectors
+```
+
+**NOTE**: If you share this index between dev & prod, or between projects,
+it will wipe them all out. You generally don't need to be deleting vectors from
+Pinecone, as each query is indexed on the userId, which is unique between worlds
+and backend instances.
+
 **To Snoop on messages**
 
 Run the following in a side terminal
@@ -173,6 +186,7 @@ See more functions in [`testing.ts`](./convex/testing.ts).
 - Register an account on fly.io and then [install flyctl](https://fly.io/docs/hands-on/install-flyctl/)
 - **If you are using Github Codespaces**: You will need to [install flyctl](https://fly.io/docs/hands-on/install-flyctl/) and authenticate from your codespaces cli by running `fly auth login`.
 
+- Run `npx conves deploy` to deploy your dev environment to prod environment. Make sure you copy over all secrets to Convex's prod environment
 - Run `fly launch` under project root. This will generate a `fly.toml` that includes all the configurations you will need
 - Modify generated `fly.toml` to include `NEXT_PUBLIC_*` during build time for NextJS to access client side.
 ```
@@ -199,16 +213,14 @@ RUN npm run build
 ```
 - Run `fly deploy --ha=false` to deploy the app. The --ha flag makes sure fly only spins up one instance, which is included in the free plan.
 - Run `fly scale memory 512` to scale up the fly vm memory for this app.
-- For any other non-localhost environment, the existing Clerk development instance should continue to work. You can upload the secrets to Fly by running `cat .env.local | fly secrets import`
-- If you are ready to deploy to production, you should create a prod environment under the [current Clerk instance](https://dashboard.clerk.com/). For more details on deploying a production app with Clerk, check out their documentation [here](https://clerk.com/docs/deployments/overview). **Note that you will likely need to manage your own domain and do domain verification as part of the process.**
-- Create a new file `.env.prod` locally and fill in all the production-environment secrets. Remember to update `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` by copying secrets from Clerk's production instance -`cat .env.prod | fly secrets import` to upload secrets.
+- Create a new file `.env.prod` locally and fill in all the production-environment secrets. Remember to update `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` by copying secrets from Clerk's production instance -`cat .env.prod | fly secrets import` to upload secrets. Also remember to update `CONVEX_DEPLOYMENT` and `NEXT_PUBLIC_CONVEX_URL`.
 
 
 ## Customize your own simulation
-NOTE: every time you change character data, you should re-run `npx convex run testing:debugClearAll --no-push` and then `npm run dev` to re-upload everything to Convex. This is because character data is sent to Convex on the initial load. However, beware that `npx convex run testing:debugClearAll --no-push` WILL wipe all of your data, including your vector store. 
+NOTE: every time you change character data, you should re-run `npx convex run testing:debugClearAll --no-push` and then `npm run dev` to re-upload everything to Convex. This is because character data is sent to Convex on the initial load. However, beware that `npx convex run testing:debugClearAll --no-push` WILL wipe all of your data, including your vector store.
 
-1. Create your own characters and strories: All characters and stories, as well as their spirtesheet references are stored in [data.ts](https://github.com/a16z-infra/ai-town/blob/2462af46f3dae4cab154a15eb4edb88ce6f84a87/convex/characterdata/data.ts#L4). You can start by changing character descriptions. 
-2. Updating spritesheets: in `data.ts`, you will see this code: 
+1. Create your own characters and strories: All characters and stories, as well as their spirtesheet references are stored in [data.ts](./convex/characterdata/data.ts#L4). You can start by changing character descriptions.
+2. Updating spritesheets: in `data.ts`, you will see this code:
 
 ```export const characters = [
   {
@@ -225,9 +237,8 @@ You should find a sprite sheet for your character, and define sprite motion / as
 3. Update the background (environment): `convex/maps/firstmap.ts` is where the map gets loaded. The easiest way to export a tilemap is by using [Tiled](https://www.mapeditor.org/) -- Tiled export tilemaps as a CSV and you can convert CSV to a 2d array accepted by firstmap.ts
 
 ## Credits
-- Tilesheet: 
+- Tilesheet:
     - https://opengameart.org/content/16x16-game-assets by George Bailey
     - https://opengameart.org/content/16x16-rpg-tileset by hilau
 - We used https://github.com/pierpo/phaser3-simple-rpg for the original POC of this project. We have since re-wrote the whole app, but appreciated the easy starting point
 - Original assets by [ansimuz](https://opengameart.org/content/tiny-rpg-forest)
-
