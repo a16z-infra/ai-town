@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { internal } from './_generated/api';
+import { internal, api } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
 import {
   DatabaseWriter,
@@ -13,10 +13,14 @@ import { tiledim, objmap, tilefiledim, bgtiles, tilesetpath } from './maps/first
 import { Descriptions, characters as characterData } from './characterdata/data';
 
 if (!process.env.OPENAI_API_KEY) {
+  const deploymentName = process.env.CONVEX_CLOUD_URL?.slice(8).replace('.convex.cloud', '');
   throw new Error(
-    'Missing OPENAI_API_KEY in environment variables.\n' +
-      'Set it in the project settings in the Convex dashboard:\n' +
-      '    npx convex dashboard\n or https://dashboard.convex.dev',
+    '\n  Missing OPENAI_API_KEY in environment variables.\n\n' +
+      '  Get one at https://openai.com/\n\n' +
+      '  Paste it on the Convex dashboard:\n' +
+      '  https://dashboard.convex.dev/d/' +
+      deploymentName +
+      '/settings?var=OPENAI_API_KEY',
   );
 }
 
@@ -95,7 +99,7 @@ export const addPlayers = internalMutation({
 export const reset = internalAction({
   args: {},
   handler: async (ctx, args) => {
-    await ctx.runMutation(internal.engine.freezeAll);
+    await ctx.runMutation(api.engine.freezeAll);
     await ctx.runAction(internal.init.seed, { newWorld: true });
   },
 });
@@ -103,7 +107,7 @@ export const reset = internalAction({
 export const resetFrozen = internalAction({
   args: {},
   handler: async (ctx, args) => {
-    await ctx.runMutation(internal.engine.freezeAll);
+    await ctx.runMutation(api.engine.freezeAll);
     const worldId = await ctx.runAction(internal.init.seed, { newWorld: true, frozen: true });
     console.log('To test one batch a time: npx convex run --no-push engine:tick');
     console.log(
