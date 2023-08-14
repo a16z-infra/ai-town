@@ -11,6 +11,8 @@ import { getPlayer, stop, walk } from './journal';
 import { handleAgentInteraction } from './agent';
 import schema from './schema';
 import { findRoute, makeSparsePath } from './lib/routing';
+import { deleteAllVectors } from './lib/pinecone';
+import { cronJobs } from 'convex/server';
 
 export const converge = internalMutation({
   args: {},
@@ -223,7 +225,7 @@ export const runConversation = internalAction({
   },
 });
 
-export const debugClearAll = internalMutation({
+export const debugClearAll = internalAction({
   args: {},
   handler: async (ctx, args) => {
     for (const table in schema.tables) {
@@ -233,6 +235,7 @@ export const debugClearAll = internalMutation({
         cursor: null,
         soFar: 0,
       });
+      await deleteAllVectors(table as TableNames);
     }
   },
 });
