@@ -10,6 +10,8 @@ export const AGENT_THINKING_TOO_LONG = 600_000;
 export const STUCK_CHILL_TIME = 30_000;
 // How long to let a conversation go on for with agents
 export const CONVERSATION_TIME_LIMIT = 20_000;
+// How many milliseconds to pause for each multi-party conversation loop
+export const CONVERSATION_PAUSE = 3000;
 // If you don't set a start position, you'll start at 0,0.
 export const DEFAULT_START_POSE = { position: { x: 0, y: 0 }, orientation: 0 };
 // How often to send up heartbeats
