@@ -8,6 +8,7 @@ import type { Player as PlayerState, Pose } from '../../convex/schema';
 import { Character } from './Character';
 
 const SpeechDurationMs = 2000;
+const SpokeRecentlyMs = 5_000;
 
 export type SelectPlayer = (playerState: PlayerState) => void;
 
@@ -47,7 +48,10 @@ export const Player = ({
       isMoving={
         playerState.motion.type === 'walking' && playerState.motion.targetEndTs >= time.current
       }
-      isThinking={playerState.thinking}
+      isThinking={
+        playerState.thinking &&
+        (playerState.lastChat?.message.ts ?? 0) < time.current - SpokeRecentlyMs
+      }
       isSpeaking={
         playerState.lastChat?.message.type === 'responded' &&
         (playerState.lastChat.message.ts ?? 0) > time.current - SpeechDurationMs
