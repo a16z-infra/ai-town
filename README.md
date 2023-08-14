@@ -1,5 +1,9 @@
 # AI Town 🏠🙍👷‍♀️💻💌
 
+[Live Demo](https://www.convex.dev/ai-town)
+
+[Join our community Discord: AI Stack Devs](https://discord.gg/PQUmTBTGmT)
+
 <img src="https://github.com/a16z-infra/ai-town/assets/7029582/7be436e7-7183-4198-97d7-0a137133af26" alt="">
 
 AI Town is a virtual town where AI characters live, chat and socialize.
@@ -15,6 +19,7 @@ The primary goal of this project, beyond just being a lot of fun to work on, is 
 - 💻 [Stack](#stack)
 - 🧠 [Installation](#installation)
 - 👤 [Customize - run YOUR OWN simulated world](#customize-your-own-simulation)
+- 🏆 [Credits](#credits)
 
 ## Stack
 
@@ -218,5 +223,10 @@ You should find a sprite sheet for your character, and define sprite motion / as
 
 3. Update the background (environment): `convex/maps/firstmap.ts` is where the map gets loaded. The easiest way to export a tilemap is by using [Tiled](https://www.mapeditor.org/) -- Tiled export tilemaps as a CSV and you can convert CSV to a 2d array accepted by firstmap.ts
 
-
+## Credits
+- Tilesheet: 
+    - https://opengameart.org/content/16x16-game-assets by George Bailey
+    - https://opengameart.org/content/16x16-rpg-tileset by hilau
+- We used https://github.com/pierpo/phaser3-simple-rpg for the original POC of this project. We have since re-wrote the whole app, but appreciated the easy starting point
+- Original assets by [ansimuz](https://opengameart.org/content/tiny-rpg-forest)
 
