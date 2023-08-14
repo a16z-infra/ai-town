@@ -15,10 +15,12 @@ import { getAllPlayers } from './players';
 import { CLOSE_DISTANCE, DEFAULT_START_POSE, STUCK_CHILL_TIME, TIME_PER_STEP } from './config';
 import { findCollision, findRoute } from './lib/routing';
 import {
+  calculateOrientation,
   getNearbyPlayers,
   getPoseFromMotion,
   getRemainingPathFromMotion,
   getRouteDistance,
+  manhattanDistance,
   roundPose,
 } from './lib/physics';
 import { clientMessageMapper } from './chat';
@@ -257,7 +259,10 @@ export const walk = internalMutation({
           playerId,
           data: {
             type: 'stopped',
-            pose: { position: route[0], orientation: 270 },
+            pose: {
+              position: route[0],
+              orientation: calculateOrientation(route[0], targetPosition),
+            },
             reason: 'interrupted',
           },
         });
@@ -269,16 +274,20 @@ export const walk = internalMutation({
     }
     const exclude = new Set([...ignore, playerId]);
     const targetEndTs = ts + distance * TIME_PER_STEP;
+    let endOrientation: number | undefined;
+    if (manhattanDistance(targetPosition, route[route.length - 1]) > 0) {
+      endOrientation = calculateOrientation(route[route.length - 1], targetPosition);
+    }
+    await ctx.db.insert('journal', {
+      playerId,
+      data: { type: 'walking', route, ignore, startTs: ts, targetEndTs, endOrientation },
+    });
     const collisions = findCollision(
       route,
       otherPlayers.filter((p) => !exclude.has(p._id)),
       ts,
       CLOSE_DISTANCE,
     );
-    await ctx.db.insert('journal', {
-      playerId,
-      data: { type: 'walking', route, ignore, startTs: ts, targetEndTs },
-    });
     return {
       targetEndTs,
       nextCollision: collisions && {
