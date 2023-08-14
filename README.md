@@ -1,4 +1,4 @@
-# AI Town 🏠🙍👷‍♀️💻💌
+# AI Town 🏠💻💌
 
 [Live Demo](https://www.convex.dev/ai-town)
 
