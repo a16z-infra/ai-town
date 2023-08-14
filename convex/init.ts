@@ -99,7 +99,7 @@ export const addPlayers = internalMutation({
 export const reset = internalAction({
   args: {},
   handler: async (ctx, args) => {
-    await ctx.runMutation(api.engine.freezeAll);
+    await ctx.runMutation(internal.engine.freezeAll);
     await ctx.runAction(internal.init.seed, { newWorld: true });
   },
 });
@@ -107,7 +107,7 @@ export const reset = internalAction({
 export const resetFrozen = internalAction({
   args: {},
   handler: async (ctx, args) => {
-    await ctx.runMutation(api.engine.freezeAll);
+    await ctx.runMutation(internal.engine.freezeAll);
     const worldId = await ctx.runAction(internal.init.seed, { newWorld: true, frozen: true });
     console.log('To test one batch a time: npx convex run --no-push engine:tick');
     console.log(
