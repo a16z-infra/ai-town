@@ -4,11 +4,13 @@
 
 AI Town is a virtual town where AI characters live, chat and socialize.
 
-This project is a deployable starter kit for easily building and customizing your own version of AI town. Inspired by the research paper [_Generative Agents: Interactive Simulacra of Human Behavior_](https://arxiv.org/pdf/2304.03442.pdf).
+This project is a deployable starter kit for easily building and customizing your own version of AI town inspired by the research paper [_Generative Agents: Interactive Simulacra of Human Behavior_](https://arxiv.org/pdf/2304.03442.pdf).
+
+The primary goal of this project, beyond just being a lot of fun to work on, is to provided a platform with a strong foundation that is meant to be extended. The back-end engine natively supports shared global state, transactions, and a journal of all events so should be suitable for everything from a simple project to play around with to a scalable, multi-player game. A secondary goal is to make a JS/TS framework available as most simulators in this space (including the original paper above) are written in Python.
 
 ## Stack
 
-- Game engine & Database: [Convex](https://convex.dev/)
+- Back-end Platform: [Convex](https://convex.dev/)
 - VectorDB: [Pinecone](https://www.pinecone.io/)
 - Auth: [Clerk](https://clerk.com/)
 - Text model: [OpenAI](https://platform.openai.com/docs/models)
@@ -77,6 +79,8 @@ npm run dev
 ```
 
 You can now visit http://localhost:[PORT_NUMBER]
+
+*Note: The simulation will freeze after 5 minutes if the window is idle. To unfreeze run ```npx convex run --no-push engine:unfreeze ``` from the command line in the project root dir.*
 
 ### Various commands to run / test / debug
 
