@@ -30,10 +30,13 @@ This project is a deployable starter kit for easily building and customizing you
 git clone https://github.com/a16z-infra/AI-town
 cd AI-town
 npm install
-npx convex dev # select a new project
+npm run dev
 ```
 
-`npx convex dev` will fail asking for OPENAI_API_KEY. ^C out
+`npm run dev` will fail asking for enviroment variables.
+Enter them in the environnment variables on your Convex dashboard to proceed.
+You can get there via `npx convex dashboard` or https://dashboard.convex.dev
+See below on how to get the various environnment variables.
 
 a. **Set up Clerk**
 
@@ -84,6 +87,15 @@ npm run dev
 ```
 
 You can now visit http://localhost:[PORT_NUMBER]
+
+If you'd rather run the frontend in a separate terminal from Convex (which syncs
+your backend functions as they're saved), you can run these two commands:
+```bash
+npm run dev:frontend
+npm run dev:backend
+```
+
+See package.json for details, but dev:backend runs `npx convex dev`
 
 ### Various commands to run / test / debug
 
@@ -150,7 +162,7 @@ See more functions in [`testing.ts`](./convex/testing.ts).
 
 - Run `fly launch` under project root. This will generate a `fly.toml` that includes all the configurations you will need
 - Modify generated `fly.toml` to include `NEXT_PUBLIC_*` during build time for NextJS to access client side.
-``` 
+```
 [build]
   [build.args]
     NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in"
@@ -178,6 +190,7 @@ RUN npm run build
 - If you are ready to deploy to production, you should create a prod environment under the [current Clerk instance](https://dashboard.clerk.com/). For more details on deploying a production app with Clerk, check out their documentation [here](https://clerk.com/docs/deployments/overview). **Note that you will likely need to manage your own domain and do domain verification as part of the process.**
 - Create a new file `.env.prod` locally and fill in all the production-environment secrets. Remember to update `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` by copying secrets from Clerk's production instance -`cat .env.prod | fly secrets import` to upload secrets.
 
+
 ## Customize your own simulation
 NOTE: every time you change character data, you should re-run `npx convex run testing:debugClearAll --no-push` and then `npm run dev` to re-upload everything to Convex. This is because character data is sent to Convex on the initial load. However, beware that `npx convex run testing:debugClearAll --no-push` WILL wipe all of your data, including your vector store. 
 
@@ -192,5 +205,6 @@ NOTE: every time you change character data, you should re-run `npx convex run te
   },...```
 You should find a sprite sheet for your character, and define sprite motion / assets in the corresponding file (in the above example, `f1SpritesheetData` was defined in f1.ts)
 3. Update the background (environment): `convex/maps/firstmap.ts` is where the map gets loaded. The easiest way to export a tilemap is by using [Tiled](https://www.mapeditor.org/) -- Tiled export tilemaps as a CSV and you can convert CSV to a 2d array accepted by firstmap.ts
+
 
 
