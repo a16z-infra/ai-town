@@ -1,5 +1,5 @@
 import { SignedIn, SignedOut, UserButton, auth } from '@clerk/nextjs';
-import Examples from '@/components/Examples';
+import GameWrapper from '@/components/GameWrapper';
 import FreezeButton from '@/components/FreezeButton';
 import LoginButton from '@/components/LoginButton';
 
@@ -25,7 +25,7 @@ export default function Home() {
           A virtual town where AI characters live, chat and socialize.
         </p>
 
-        <Examples />
+        <GameWrapper />
 
         <footer className="absolute bottom-0 left-0 w-full flex items-center mt-4 gap-6 p-6 flex-wrap">
           <div className="flex gap-4 flex-grow">
