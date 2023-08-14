@@ -1,6 +1,8 @@
 import './globals.css';
 import ConvexClientProvider from './ConvexClientProvider';
+import PlausibleProvider from 'next-plausible';
 import localFont from 'next/font/local';
+import Script from 'next/script';
 import clsx from 'clsx';
 
 export const metadata = {
@@ -21,6 +23,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <ConvexClientProvider>
       <html lang="en">
+        <head>
+          <Script src="https://www.googletagmanager.com/gtag/js?id=G-BE1B7P7T72" />
+          <Script id="google-analytics">
+            {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'G-BE1B7P7T72');
+            `}
+          </Script>
+          <PlausibleProvider domain="convex.dev" />
+        </head>
         <body className={clsx(fontDisplay.variable, fontBody.variable)}>{children}</body>
       </html>
     </ConvexClientProvider>
