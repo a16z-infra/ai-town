@@ -181,8 +181,6 @@ export async function handleAgentInteraction(
 
   const messages: Message[] = [];
 
-  // TODO: real logic. this just sends one message each!
-
   const endAfterTs = Date.now() + CONVERSATION_TIME_LIMIT;
   // Choose who should speak next:
   let endConversation = false;
