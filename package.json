@@ -31,6 +31,7 @@
     "eslint-config-next": "13.4.4",
     "hnswlib-node": "^1.4.2",
     "next": "13.4.4",
+    "next-plausible": "^3.10.1",
     "pixi-viewport": "^5.0.1",
     "pixi.js": "^7.2.4",
     "postcss": "8.4.24",
