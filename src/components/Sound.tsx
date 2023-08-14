@@ -5,7 +5,7 @@
 import { sound } from '@pixi/sound';
 import { PropsWithChildren } from 'react';
 
-sound.add('background', 'ai-town/assets/background.mp3');
+sound.add('background', 'assets/background.mp3');
 let isPlaying = false;
 const keyDownEvent = (event: React.KeyboardEvent<HTMLDivElement>) => {
   if (event.code === 'KeyM') {
