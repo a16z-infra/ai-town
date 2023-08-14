@@ -32,7 +32,7 @@ export async function deleteAllVectors<TableName extends TableNames>(
   if (pineconeAvailable()) {
     const index = await pineconeIndex();
     const deletionResult = await index._delete({
-      deleteRequest: { deleteAll: true, namespace: tableName + process.env.CONVEX_CLOUD_URL },
+      deleteRequest: { deleteAll: true },
     });
     return deletionResult;
   } else {
