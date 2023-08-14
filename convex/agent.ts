@@ -17,7 +17,11 @@ import {
   walkAway,
 } from './conversation';
 import { getNearbyPlayers } from './lib/physics';
-import { CONVERSATION_TIME_LIMIT } from './config';
+import { CONVERSATION_TIME_LIMIT, CONVERSATION_PAUSE } from './config';
+
+const awaitTimeout = (delay: number) =>
+  new Promise(resolve => setTimeout(resolve, delay));
+
 
 export const runAgentBatch = internalAction({
   args: {
@@ -238,6 +242,9 @@ export async function handleAgentInteraction(
     if (message) {
       messages.push(message);
     }
+
+    // slow down conversations
+    await awaitTimeout(CONVERSATION_PAUSE); 
   }
 
   if (messages.length > 0) {

@@ -7,6 +7,9 @@ AI Town is a virtual town where AI characters live, chat and socialize.
 This project is a deployable starter kit for easily building and customizing your own version of AI town. Inspired by the research paper [_Generative Agents: Interactive Simulacra of Human Behavior_](https://arxiv.org/pdf/2304.03442.pdf).
 
 
+The primary goal of this project, beyond just being a lot of fun to work on, is to provided a platform with a strong foundation that is meant to be extended. The back-end engine natively supports shared global state, transactions, and a journal of all events so should be suitable for everything from a simple project to play around with to a scalable, multi-player game. A secondary goal is to make a JS/TS framework available as most simulators in this space (including the original paper above) are written in Python.
+
+
 ## Overview
 
 - 💻 [Stack](#stack)
@@ -96,6 +99,10 @@ npm run dev:backend
 ```
 
 See package.json for details, but dev:backend runs `npx convex dev`
+
+
+*Note: The simulation will freeze after 5 minutes if the window is idle. To unfreeze run ```npx convex run --no-push engine:unfreeze ``` from the command line in the project root dir.*
+
 
 ### Various commands to run / test / debug
 
@@ -196,14 +203,19 @@ NOTE: every time you change character data, you should re-run `npx convex run te
 
 1. Create your own characters and strories: All characters and stories, as well as their spirtesheet references are stored in [data.ts](https://github.com/a16z-infra/ai-town/blob/2462af46f3dae4cab154a15eb4edb88ce6f84a87/convex/characterdata/data.ts#L4). You can start by changing character descriptions. 
 2. Updating spritesheets: in `data.ts`, you will see this code: 
+
 ```export const characters = [
   {
     name: 'f1',
     textureUrl: '/assets/32x32folk.png',
     spritesheetData: f1SpritesheetData,
     speed: 0.1,
-  },...```
+  },...
+  ```
+
 You should find a sprite sheet for your character, and define sprite motion / assets in the corresponding file (in the above example, `f1SpritesheetData` was defined in f1.ts)
+
+
 3. Update the background (environment): `convex/maps/firstmap.ts` is where the map gets loaded. The easiest way to export a tilemap is by using [Tiled](https://www.mapeditor.org/) -- Tiled export tilemaps as a CSV and you can convert CSV to a 2d array accepted by firstmap.ts
 
 
