@@ -28,7 +28,11 @@ export default function FreezeButton() {
 
   return (
     <>
-      <a className="button text-white shadow-solid text-2xl" onClick={flipSwitch}>
+      <a
+        className="button text-white shadow-solid text-2xl"
+        onClick={flipSwitch}
+        title="When freezing a world, the agents will take some time to stop what they are doing before they become frozen. "
+      >
         <div className="inline-block bg-clay-700">
           <span>
             <div className="inline-flex items-center gap-4">
