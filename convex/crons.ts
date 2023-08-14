@@ -102,6 +102,49 @@ export const vacuumOldEntries = internalMutation({
   },
 });
 
+export const vacuumOldMemories = internalMutation({
+  handler: async (
+    ctx,
+    {
+      age,
+      ...args
+    }: {
+      untilTs?: number;
+      age: number;
+      cursor: null | string;
+      soFar: number;
+    },
+  ) => {
+    const untilTs = args.untilTs ?? Date.now() - age;
+    const results = await ctx.db
+      .query('memories')
+      .withIndex('by_creation_time', (q) => q.lt('_creationTime', untilTs))
+      .paginate({ cursor: args.cursor, numItems: VACUUM_BATCH_SIZE });
+    const vectorsToDelete = [];
+    for (const doc of results.page) {
+      await ctx.db.delete(doc._id);
+      await ctx.db.delete(doc.embeddingId);
+      vectorsToDelete.push(doc.embeddingId);
+    }
+    if (vectorsToDelete.length) {
+      await ctx.scheduler.runAfter(0, internal.lib.pinecone.deleteVectors, {
+        tableName: 'embeddings',
+        ids: vectorsToDelete,
+      });
+    }
+    if (results.isDone) {
+      console.debug(`Vacuumed ${results.page.length} old memories.`);
+    } else {
+      await ctx.scheduler.runAfter(0, internal.crons.vacuumOldMemories, {
+        untilTs,
+        age,
+        cursor: results.continueCursor,
+        soFar: args.soFar + results.page.length,
+      });
+    }
+  },
+});
+
 const crons = cronJobs();
 crons.interval('restart idle agents', { seconds: 60 }, internal.crons.recoverStoppedAgents);
 crons.interval('restart thinking agents', { seconds: 60 }, internal.crons.recoverThinkingAgents);
@@ -111,8 +154,7 @@ crons.interval('vacuum old journal entries', { hours: 1 }, internal.crons.vacuum
   cursor: null,
   soFar: 0,
 });
-crons.interval('vacuum old memory entries', { hours: 6 }, internal.crons.vacuumOldEntries, {
-  table: 'memories',
+crons.interval('vacuum old memory entries', { hours: 6 }, internal.crons.vacuumOldMemories, {
   age: VACUUM_MEMORIES_AGE,
   cursor: null,
   soFar: 0,

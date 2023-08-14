@@ -40,6 +40,19 @@ export async function pineconeIndex() {
   return client.Index(orThrow(process.env.PINECONE_INDEX_NAME));
 }
 
+export const deleteVectors = internalAction({
+  handler: async (ctx, { tableName, ids }: { tableName: TableNames; ids: Id<TableNames>[] }) => {
+    const pinecone = await pineconeIndex();
+    await pinecone.delete1({
+      // NOTE: Pinecone namespaces are a paid feature. Uncomment this line
+      // to use multiple Convex instances on the same Pinecone index:
+      //
+      // namespace: `${tableName} [${process.env.CONVEX_CLOUD_URL}]`,
+      ids,
+    });
+  },
+});
+
 export const deleteAllVectors = internalAction({
   args: {},
   handler: async (ctx, args) => {
