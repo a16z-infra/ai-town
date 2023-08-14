@@ -27,7 +27,7 @@ This project is a deployable starter kit for easily building and customizing you
 ### Clone repo and Install packages
 
 ```bash
-git clone https://github.com/a16z-infra/AI-town
+git clone git@github.com:a16z-infra/ai-town.git
 cd AI-town
 npm install
 npm run dev
