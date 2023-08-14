@@ -1,4 +1,5 @@
 import { Stage } from '@pixi/react';
+import { sound } from '@pixi/sound';
 import { useEffect, useRef, useState } from 'react';
 import { PixiStaticMap } from './PixiStaticMap';
 import { ConvexProvider, useConvex, useMutation, useQuery } from 'convex/react';
@@ -10,6 +11,23 @@ import dynamic from 'next/dynamic';
 
 // Disabling SSR for PixiViewport, as its dependency tries to access `window`.
 const PixiViewport = dynamic(() => import('./PixiViewport'), { ssr: false });
+
+// Some hacky sound code for fun
+sound.add('background',  '/assets/background.mp3');
+let isPlaying = false;
+
+  const keyDownEvent = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.code === "KeyM") {
+      if (!isPlaying ) {
+        sound.play('background');
+        isPlaying = true;
+      } else {
+        sound.stop('background');
+        isPlaying = false;
+      }
+    }
+  };
+// Some hacky sound code for fun
 
 export const Game = ({
   setSelectedPlayer,
@@ -23,10 +41,12 @@ export const Game = ({
   const convex = useConvex();
   const worldState = useQuery(api.players.getWorld, {});
 
+
   const offset = useServerTimeOffset(worldState?.world._id);
   if (!worldState) return null;
   const { players } = worldState;
   return (
+    <div className="container" onKeyDown={keyDownEvent} tabIndex={0}>
     <Stage width={width} height={height} options={{ backgroundColor: 0x7ab5ff }}>
       <PixiViewport
         screenWidth={width}
@@ -48,6 +68,7 @@ export const Game = ({
         </ConvexProvider>
       </PixiViewport>
     </Stage>
+    </div>
   );
 };
 export default Game;

@@ -38,7 +38,6 @@ export const PixiStaticMap = PixiComponent('StaticMap', {
 
       // Add all layers of backgrounds.
       for (let z = 0; z < map.bgTiles.length; z++) {
-        console.log("z: "+z+" y: "+y+" x: "+x);
         const tileIndex = map.bgTiles[z][y][x];
         // Some layers may not have tiles at this location.
         if (tileIndex === -1) continue;
