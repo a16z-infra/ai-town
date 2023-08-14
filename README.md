@@ -107,7 +107,9 @@ npm run dev:backend
 See package.json for details, but dev:backend runs `npx convex dev`
 
 
-*Note: The simulation will freeze after 5 minutes if the window is idle. To unfreeze run ```npx convex run --no-push engine:unfreeze ``` from the command line in the project root dir.*
+*Note: The simulation will pause after 5 minutes if the window is idle.
+Loading the page will unpause it. If you want to run the world without the
+browser, you can comment-out the heartbeat check in `convex/engine.ts`
 
 
 ### Various commands to run / test / debug
@@ -215,10 +217,10 @@ RUN npm run build
 
 
 ## Customize your own simulation
-NOTE: every time you change character data, you should re-run `npx convex run testing:debugClearAll --no-push` and then `npm run dev` to re-upload everything to Convex. This is because character data is sent to Convex on the initial load. However, beware that `npx convex run testing:debugClearAll --no-push` WILL wipe all of your data, including your vector store. 
+NOTE: every time you change character data, you should re-run `npx convex run testing:debugClearAll --no-push` and then `npm run dev` to re-upload everything to Convex. This is because character data is sent to Convex on the initial load. However, beware that `npx convex run testing:debugClearAll --no-push` WILL wipe all of your data, including your vector store.
 
-1. Create your own characters and strories: All characters and stories, as well as their spirtesheet references are stored in [data.ts](https://github.com/a16z-infra/ai-town/blob/2462af46f3dae4cab154a15eb4edb88ce6f84a87/convex/characterdata/data.ts#L4). You can start by changing character descriptions. 
-2. Updating spritesheets: in `data.ts`, you will see this code: 
+1. Create your own characters and strories: All characters and stories, as well as their spirtesheet references are stored in [data.ts](./convex/characterdata/data.ts#L4). You can start by changing character descriptions.
+2. Updating spritesheets: in `data.ts`, you will see this code:
 
 ```export const characters = [
   {
@@ -235,9 +237,8 @@ You should find a sprite sheet for your character, and define sprite motion / as
 3. Update the background (environment): `convex/maps/firstmap.ts` is where the map gets loaded. The easiest way to export a tilemap is by using [Tiled](https://www.mapeditor.org/) -- Tiled export tilemaps as a CSV and you can convert CSV to a 2d array accepted by firstmap.ts
 
 ## Credits
-- Tilesheet: 
+- Tilesheet:
     - https://opengameart.org/content/16x16-game-assets by George Bailey
     - https://opengameart.org/content/16x16-rpg-tileset by hilau
 - We used https://github.com/pierpo/phaser3-simple-rpg for the original POC of this project. We have since re-wrote the whole app, but appreciated the easy starting point
 - Original assets by [ansimuz](https://opengameart.org/content/tiny-rpg-forest)
-
