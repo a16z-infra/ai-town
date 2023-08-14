@@ -6,6 +6,13 @@ AI Town is a virtual town where AI characters live, chat and socialize.
 
 This project is a deployable starter kit for easily building and customizing your own version of AI town. Inspired by the research paper [_Generative Agents: Interactive Simulacra of Human Behavior_](https://arxiv.org/pdf/2304.03442.pdf).
 
+
+## Overview
+
+- 💻 [Stack](#stack)
+- 🧠 [Installation](#installation)
+- 👤 [Customize - run YOUR OWN simulated world](#customize-your-own-simulation)
+
 ## Stack
 
 - Game engine & Database: [Convex](https://convex.dev/)
@@ -182,3 +189,22 @@ RUN npm run build
 - For any other non-localhost environment, the existing Clerk development instance should continue to work. You can upload the secrets to Fly by running `cat .env.local | fly secrets import`
 - If you are ready to deploy to production, you should create a prod environment under the [current Clerk instance](https://dashboard.clerk.com/). For more details on deploying a production app with Clerk, check out their documentation [here](https://clerk.com/docs/deployments/overview). **Note that you will likely need to manage your own domain and do domain verification as part of the process.**
 - Create a new file `.env.prod` locally and fill in all the production-environment secrets. Remember to update `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` by copying secrets from Clerk's production instance -`cat .env.prod | fly secrets import` to upload secrets.
+
+
+## Customize your own simulation
+NOTE: every time you change character data, you should re-run `npx convex run testing:debugClearAll --no-push` and then `npm run dev` to re-upload everything to Convex. This is because character data is sent to Convex on the initial load. However, beware that `npx convex run testing:debugClearAll --no-push` WILL wipe all of your data, including your vector store. 
+
+1. Create your own characters and strories: All characters and stories, as well as their spirtesheet references are stored in [data.ts](https://github.com/a16z-infra/ai-town/blob/2462af46f3dae4cab154a15eb4edb88ce6f84a87/convex/characterdata/data.ts#L4). You can start by changing character descriptions. 
+2. Updating spritesheets: in `data.ts`, you will see this code: 
+```export const characters = [
+  {
+    name: 'f1',
+    textureUrl: '/assets/32x32folk.png',
+    spritesheetData: f1SpritesheetData,
+    speed: 0.1,
+  },...```
+You should find a sprite sheet for your character, and define sprite motion / assets in the corresponding file (in the above example, `f1SpritesheetData` was defined in f1.ts)
+3. Update the background (environment): `convex/maps/firstmap.ts` is where the map gets loaded. The easiest way to export a tilemap is by using [Tiled](https://www.mapeditor.org/) -- Tiled export tilemaps as a CSV and you can convert CSV to a 2d array accepted by firstmap.ts
+
+
+
