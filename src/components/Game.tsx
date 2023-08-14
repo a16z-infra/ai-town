@@ -1,5 +1,5 @@
 import { Stage } from '@pixi/react';
-import { sound } from '@pixi/sound';
+// import { sound } from '@pixi/sound';
 import { useEffect, useRef, useState } from 'react';
 import { PixiStaticMap } from './PixiStaticMap';
 import { ConvexProvider, useConvex, useMutation, useQuery } from 'convex/react';
@@ -13,16 +13,16 @@ import dynamic from 'next/dynamic';
 const PixiViewport = dynamic(() => import('./PixiViewport'), { ssr: false });
 
 // Some hacky sound code for fun
-sound.add('background', 'ai-town/assets/background.mp3');
+// sound.add('background', 'ai-town/assets/background.mp3');
 let isPlaying = false;
 
 const keyDownEvent = (event: React.KeyboardEvent<HTMLDivElement>) => {
   if (event.code === 'KeyM') {
     if (!isPlaying) {
-      sound.play('background');
+      // sound.play('background');
       isPlaying = true;
     } else {
-      sound.stop('background');
+      // sound.stop('background');
       isPlaying = false;
     }
   }
