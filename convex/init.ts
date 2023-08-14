@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { internal } from './_generated/api';
+import { internal, api } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
 import {
   DatabaseWriter,
@@ -95,7 +95,7 @@ export const addPlayers = internalMutation({
 export const reset = internalAction({
   args: {},
   handler: async (ctx, args) => {
-    await ctx.runMutation(internal.engine.freezeAll);
+    await ctx.runMutation(api.engine.freezeAll);
     await ctx.runAction(internal.init.seed, { newWorld: true });
   },
 });
@@ -103,7 +103,7 @@ export const reset = internalAction({
 export const resetFrozen = internalAction({
   args: {},
   handler: async (ctx, args) => {
-    await ctx.runMutation(internal.engine.freezeAll);
+    await ctx.runMutation(api.engine.freezeAll);
     const worldId = await ctx.runAction(internal.init.seed, { newWorld: true, frozen: true });
     console.log('To test one batch a time: npx convex run --no-push engine:tick');
     console.log(
