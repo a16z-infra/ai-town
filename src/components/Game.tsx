@@ -13,7 +13,7 @@ import dynamic from 'next/dynamic';
 const PixiViewport = dynamic(() => import('./PixiViewport'), { ssr: false });
 
 // Some hacky sound code for fun
-sound.add('background', '/ai-town/assets/background.mp3');
+sound.add('background', 'ai-town/assets/background.mp3');
 let isPlaying = false;
 
 const keyDownEvent = (event: React.KeyboardEvent<HTMLDivElement>) => {
