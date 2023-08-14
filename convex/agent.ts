@@ -19,9 +19,7 @@ import {
 import { getNearbyPlayers } from './lib/physics';
 import { CONVERSATION_TIME_LIMIT, CONVERSATION_PAUSE } from './config';
 
-const awaitTimeout = (delay: number) =>
-  new Promise(resolve => setTimeout(resolve, delay));
-
+const awaitTimeout = (delay: number) => new Promise((resolve) => setTimeout(resolve, delay));
 
 export const runAgentBatch = internalAction({
   args: {
@@ -175,7 +173,7 @@ export async function handleAgentInteraction(
   const relationshipsByPlayerId = new Map(
     relations.map(({ playerId, relations }) => [
       playerId,
-      relations.map((r) => ({ ...playerById.get(playerId)!, relationship: r.relationship })),
+      relations.map((r) => ({ ...playerById.get(r.id)!, relationship: r.relationship })),
     ]),
   );
 
@@ -198,7 +196,6 @@ export async function handleAgentInteraction(
             chatHistory,
           );
     lastSpeakerId = speaker.id;
-    const audiencePlayers = players.filter((p) => p.id !== speaker.id);
     const audience = players.filter((p) => p.id !== speaker.id).map((p) => p.id);
     const shouldWalkAway = audience.length === 0 || (await walkAway(chatHistory, speaker));
 
@@ -223,10 +220,10 @@ export async function handleAgentInteraction(
     const playerRelations = relationshipsByPlayerId.get(speaker.id) ?? [];
     let playerCompletion;
     if (messages.length === 0) {
-      playerCompletion = await startConversation(ctx, audiencePlayers, memory, speaker);
+      playerCompletion = await startConversation(ctx, playerRelations, memory, speaker);
     } else {
       // TODO: stream the response and write to the mutation for every sentence.
-      playerCompletion = await converse(ctx, chatHistory, speaker, audiencePlayers, memory);
+      playerCompletion = await converse(ctx, chatHistory, speaker, playerRelations, memory);
     }
 
     const message = await ctx.runMutation(internal.journal.talk, {
@@ -242,7 +239,7 @@ export async function handleAgentInteraction(
     }
 
     // slow down conversations
-    await awaitTimeout(CONVERSATION_PAUSE); 
+    await awaitTimeout(CONVERSATION_PAUSE);
   }
 
   if (messages.length > 0) {

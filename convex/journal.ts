@@ -103,7 +103,7 @@ export const getRelationships = internalQuery({
           const relationship = await latestRelationshipMemoryWith(ctx.db, playerId, otherPlayerId);
           return {
             id: otherPlayerId,
-            relationship: relationship?.description ?? 'unknown',
+            relationship: relationship?.description,
           };
         }),
       };

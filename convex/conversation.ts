@@ -6,11 +6,11 @@ import { LLMMessage, chatCompletion, fetchEmbedding } from './lib/openai';
 import { Message } from './schema';
 
 type Player = { id: Id<'players'>; name: string; identity: string };
-type Relation = Player & { relationship: string };
+type Relation = Player & { relationship?: string };
 
 export async function startConversation(
   ctx: ActionCtx,
-  audience: Player[],
+  audience: Relation[],
   memory: MemoryDB,
   player: Player,
 ) {
@@ -30,7 +30,10 @@ export async function startConversation(
       role: 'user',
       content:
         `You are ${player.name}. You just saw ${newFriendsNames}. You should greet them and start a conversation with them. Below are some of your memories about ${newFriendsNames}:` +
-        //relationships.map((r) => r.relationship).join('\n') +
+        audience
+          .filter((r) => r.relationship)
+          .map((r) => `Relationship with ${r.name}: ${r.relationship}`)
+          .join('\n') +
         convoMemories.map((r) => r.memory.description).join('\n') +
         `\n${player.name}:`,
     },
@@ -103,7 +106,7 @@ export async function converse(
   ctx: ActionCtx,
   messages: LLMMessage[],
   player: Player,
-  nearbyPlayers: Player[],
+  nearbyPlayers: Relation[],
   memory: MemoryDB,
 ) {
   const nearbyPlayersNames = nearbyPlayers.join(', ');
@@ -136,6 +139,7 @@ export async function converse(
 
   nearbyPlayers.forEach((p) => {
     prefixPrompt += `\nAbout ${p.name}: ${p.identity}\n`;
+    if (p.relationship) prefixPrompt += `Relationship with ${p.name}: ${p.relationship}\n`;
   });
 
   prefixPrompt += `Last time you chatted with some of ${nearbyPlayersNames} it was ${lastConversationTs}. It's now ${Date.now()}. You can cut this conversation short if you talked to this group of people within the last day. \n}`;
