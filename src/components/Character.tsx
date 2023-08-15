@@ -1,5 +1,5 @@
 import { BaseTexture, ISpritesheetData, Spritesheet } from 'pixi.js';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AnimatedSprite, Container, Text } from '@pixi/react';
 import * as PIXI from 'pixi.js';
 
@@ -47,11 +47,20 @@ export const Character = ({
     void parseSheet();
   }, []);
 
-  if (!spriteSheet) return null;
-
   // The first "left" is "right" but reflected.
   const roundedOrientation = Math.round(orientation / 90);
   const direction = ['left', 'up', 'left', 'down'][roundedOrientation];
+
+  // Prevents the animation from stopping when the texture changes
+  // (see https://github.com/pixijs/pixi-react/issues/359)
+  const ref = useRef<PIXI.AnimatedSprite | null>(null);
+  useEffect(() => {
+    if (isMoving) {
+      ref.current?.play();
+    }
+  }, [direction, isMoving]);
+
+  if (!spriteSheet) return null;
 
   return (
     <Container x={x} y={y} interactive={true} pointerdown={onClick}>
@@ -64,6 +73,7 @@ export const Character = ({
         <Text x={18} y={-10} scale={0.8} text={'💬'} anchor={{ x: 0.5, y: 0.5 }} />
       )}
       <AnimatedSprite
+        ref={ref}
         isPlaying={isMoving}
         textures={spriteSheet.animations[direction]}
         animationSpeed={speed}
