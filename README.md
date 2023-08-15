@@ -42,23 +42,25 @@ npm install
 npm run dev
 ```
 
-`npm run dev` will fail asking for enviroment variables.
-Enter them in the environnment variables on your Convex dashboard to proceed.
+`npm run dev` will fail asking for environment variables.
+Enter them in the environment variables on your Convex dashboard to proceed.
 You can get there via `npx convex dashboard` or https://dashboard.convex.dev
 See below on how to get the various environnment variables.
 
 a. **Set up Clerk**
 
-Go to https://dashboard.clerk.com/ -> "Add Application" -> Fill in Application name/select how your users should sign in -> Create Application
-
-Now you should see both `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` on the screen. Add to .env.local
+- Go to https://dashboard.clerk.com/ and click on "Add Application"
+- Name your application and select the sign-in providers you would like to offer users
+- Create Application
+- Add `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` to `.env.local`
 
 ```bash
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_***
 CLERK_SECRET_KEY=sk_***
 ```
 
-Then go to JWT Templates and create a new Convex template. You'll need to copy the JWKS end point URL for use below.
+- Go to JWT Templates and create a new Convex Template.
+- Copy the JWKS endpoint URL for use below.
 
 b. **OpenAI API key**
 
@@ -77,7 +79,7 @@ d. **Add secrets to the convex dashboard**
 npx convex dashboard
 ```
 
-Go to "settings" and add the following environment varables. CLERK_ISSUER_URL should be the URL from the JWKS end point.
+Go to "settings" and add the following environment varables. `CLERK_ISSUER_URL` should be the URL from the JWKS endpoint.
 
 ```bash
 OPENAI_API_KEY  sk-*******
@@ -129,6 +131,7 @@ npx convex run init:reset
 
 ```bash
 npx convex run --no-push init:resetFrozen
+
 # for each iteration
 npx convex run --no-push engine:tick '{"worldId":"<your world id>","noSchedule":true}'
 ```
@@ -137,7 +140,9 @@ npx convex run --no-push engine:tick '{"worldId":"<your world id>","noSchedule":
 
 ```bash
 npx convex run --no-push engine:freezeAll
-npx convex run --no-push engine:unfreeze  # when ready to rerun (defaults to latest world)
+
+# when ready to rerun (defaults to latest world)
+npx convex run --no-push engine:unfreeze
 ```
 
 **To clear all databases**
@@ -186,7 +191,7 @@ See more functions in [`testing.ts`](./convex/testing.ts).
 - Register an account on fly.io and then [install flyctl](https://fly.io/docs/hands-on/install-flyctl/)
 - **If you are using Github Codespaces**: You will need to [install flyctl](https://fly.io/docs/hands-on/install-flyctl/) and authenticate from your codespaces cli by running `fly auth login`.
 
-- Run `npx conves deploy` to deploy your dev environment to prod environment. Make sure you copy over all secrets to Convex's prod environment
+- Run `npx convex deploy` to deploy your dev environment to prod environment. Make sure you copy over all secrets to Convex's prod environment
 - Run `fly launch` under project root. This will generate a `fly.toml` that includes all the configurations you will need
 - Modify generated `fly.toml` to include `NEXT_PUBLIC_*` during build time for NextJS to access client side.
 ```
