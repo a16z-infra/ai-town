@@ -12,7 +12,7 @@ AI Town is a virtual town where AI characters live, chat and socialize.
 This project is a deployable starter kit for easily building and customizing your own version of AI town. Inspired by the research paper [_Generative Agents: Interactive Simulacra of Human Behavior_](https://arxiv.org/pdf/2304.03442.pdf).
 
 
-The primary goal of this project, beyond just being a lot of fun to work on, is to provided a platform with a strong foundation that is meant to be extended. The back-end engine natively supports shared global state, transactions, and a journal of all events so should be suitable for everything from a simple project to play around with to a scalable, multi-player game. A secondary goal is to make a JS/TS framework available as most simulators in this space (including the original paper above) are written in Python.
+The primary goal of this project, beyond just being a lot of fun to work on, is to provide a platform with a strong foundation that is meant to be extended. The back-end engine natively supports shared global state, transactions, and a journal of all events so should be suitable for everything from a simple project to play around with to a scalable, multi-player game. A secondary goal is to make a JS/TS framework available as most simulators in this space (including the original paper above) are written in Python.
 
 
 ## Overview
@@ -224,7 +224,7 @@ RUN npm run build
 ## Customize your own simulation
 NOTE: every time you change character data, you should re-run `npx convex run testing:debugClearAll --no-push` and then `npm run dev` to re-upload everything to Convex. This is because character data is sent to Convex on the initial load. However, beware that `npx convex run testing:debugClearAll --no-push` WILL wipe all of your data, including your vector store.
 
-1. Create your own characters and strories: All characters and stories, as well as their spirtesheet references are stored in [data.ts](./convex/characterdata/data.ts#L4). You can start by changing character descriptions.
+1. Create your own characters and stories: All characters and stories, as well as their spirtesheet references are stored in [data.ts](./convex/characterdata/data.ts#L4). You can start by changing character descriptions.
 2. Updating spritesheets: in `data.ts`, you will see this code:
 
 ```export const characters = [
