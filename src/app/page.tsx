@@ -27,11 +27,11 @@ export default function Home() {
 
         <GameWrapper />
 
-        <footer className="absolute bottom-0 left-0 w-full flex items-center mt-4 gap-6 p-6 flex-wrap">
-          <div className="flex gap-4 flex-grow">
+        <footer className="absolute bottom-0 left-0 w-full flex items-center mt-4 gap-6 p-6 flex-wrap pointer-events-none">
+          <div className="flex gap-4 flex-grow pointer-events-none">
             <FreezeButton />
             <a
-              className="button text-white shadow-solid text-2xl"
+              className="button text-white shadow-solid text-2xl pointer-events-auto"
               href="https://github.com/a16z-infra/ai-town"
             >
               <div className="inline-block bg-clay-700">
