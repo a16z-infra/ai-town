@@ -29,7 +29,7 @@ export default function FreezeButton() {
   return (
     <>
       <a
-        className="button text-white shadow-solid text-2xl"
+        className="button text-white shadow-solid text-2xl pointer-events-auto"
         onClick={flipSwitch}
         title="When freezing a world, the agents will take some time to stop what they are doing before they become frozen. "
       >

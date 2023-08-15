@@ -224,7 +224,7 @@ RUN npm run build
 ## Customize your own simulation
 NOTE: every time you change character data, you should re-run `npx convex run testing:debugClearAll --no-push` and then `npm run dev` to re-upload everything to Convex. This is because character data is sent to Convex on the initial load. However, beware that `npx convex run testing:debugClearAll --no-push` WILL wipe all of your data, including your vector store.
 
-1. Create your own characters and stories: All characters and stories, as well as their spirtesheet references are stored in [data.ts](./convex/characterdata/data.ts#L4). You can start by changing character descriptions.
+1. Create your own characters and stories: All characters and stories, as well as their spritesheet references are stored in [data.ts](./convex/characterdata/data.ts#L4). You can start by changing character descriptions.
 2. Updating spritesheets: in `data.ts`, you will see this code:
 
 ```export const characters = [
@@ -239,7 +239,7 @@ NOTE: every time you change character data, you should re-run `npx convex run te
 You should find a sprite sheet for your character, and define sprite motion / assets in the corresponding file (in the above example, `f1SpritesheetData` was defined in f1.ts)
 
 
-3. Update the background (environment): `convex/maps/firstmap.ts` is where the map gets loaded. The easiest way to export a tilemap is by using [Tiled](https://www.mapeditor.org/) -- Tiled export tilemaps as a CSV and you can convert CSV to a 2d array accepted by firstmap.ts
+3. Update the background (environment): `convex/maps/firstmap.ts` is where the map gets loaded. The easiest way to export a tilemap is by using [Tiled](https://www.mapeditor.org/) -- Tiled exports tilemaps as a CSV and you can convert CSV to a 2d array accepted by firstmap.ts
 
 ## Credits
 - Tilesheet:
