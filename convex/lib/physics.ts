@@ -24,7 +24,7 @@ export function calculateOrientation(start: Position, end: Position): number {
   const dy = end.y - start.y;
   // const orientation = (Math.atan2(dy, dx) / Math.PI) * 180;
   // return orientation < 0 ? orientation + 360 : orientation;
-  return dx ? (dx > 0 ? 0 : 180) : dy > 0 ? 270 : 90;
+  return dx ? (dx > 0 ? 0 : 180) : dy >= 0 ? 270 : 90;
 }
 
 export function getPoseFromMotion(motion: Motion, ts: number): Pose {
@@ -32,7 +32,11 @@ export function getPoseFromMotion(motion: Motion, ts: number): Pose {
     return motion.pose;
   }
   const fraction = calculateFraction(motion.startTs, motion.targetEndTs, ts);
-  return getPoseFromRoute(motion.route, fraction);
+  const pose = getPoseFromRoute(motion.route, fraction);
+  if (ts >= motion.targetEndTs && motion.endOrientation !== undefined) {
+    pose.orientation = motion.endOrientation;
+  }
+  return pose;
 }
 
 export function getPoseFromRoute(route: Position[], fraction: number): Pose {

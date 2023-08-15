@@ -15,10 +15,12 @@ import { getAllPlayers } from './players';
 import { CLOSE_DISTANCE, DEFAULT_START_POSE, STUCK_CHILL_TIME, TIME_PER_STEP } from './config';
 import { findCollision, findRoute } from './lib/routing';
 import {
+  calculateOrientation,
   getNearbyPlayers,
   getPoseFromMotion,
   getRemainingPathFromMotion,
   getRouteDistance,
+  manhattanDistance,
   roundPose,
 } from './lib/physics';
 import { clientMessageMapper } from './chat';
@@ -103,7 +105,7 @@ export const getRelationships = internalQuery({
           const relationship = await latestRelationshipMemoryWith(ctx.db, playerId, otherPlayerId);
           return {
             id: otherPlayerId,
-            relationship: relationship?.description ?? 'unknown',
+            relationship: relationship?.description,
           };
         }),
       };
@@ -220,6 +222,21 @@ export const stop = internalMutation({
   },
 });
 
+export const turnToFace = internalMutation({
+  args: { playerId: v.id('players'), targetId: v.id('players') },
+  handler: async (ctx, { playerId, targetId }) => {
+    const us = await getLatestPlayerMotion(ctx.db, playerId);
+    const them = await getLatestPlayerMotion(ctx.db, targetId);
+    if (us.type !== 'stopped') throw new Error("Can't turn while moving");
+    const targetPos = them.type === 'stopped' ? them.pose.position : them.route.at(-1)!;
+    us.pose.orientation = calculateOrientation(us.pose.position, targetPos);
+    await ctx.db.insert('journal', {
+      playerId,
+      data: us,
+    });
+  },
+});
+
 export const walk = internalMutation({
   args: {
     agentId: v.id('agents'),
@@ -257,7 +274,10 @@ export const walk = internalMutation({
           playerId,
           data: {
             type: 'stopped',
-            pose: { position: route[0], orientation: 270 },
+            pose: {
+              position: route[0],
+              orientation: calculateOrientation(route[0], targetPosition),
+            },
             reason: 'interrupted',
           },
         });
@@ -269,16 +289,20 @@ export const walk = internalMutation({
     }
     const exclude = new Set([...ignore, playerId]);
     const targetEndTs = ts + distance * TIME_PER_STEP;
+    let endOrientation: number | undefined;
+    if (manhattanDistance(targetPosition, route[route.length - 1]) > 0) {
+      endOrientation = calculateOrientation(route[route.length - 1], targetPosition);
+    }
+    await ctx.db.insert('journal', {
+      playerId,
+      data: { type: 'walking', route, ignore, startTs: ts, targetEndTs, endOrientation },
+    });
     const collisions = findCollision(
       route,
       otherPlayers.filter((p) => !exclude.has(p._id)),
       ts,
       CLOSE_DISTANCE,
     );
-    await ctx.db.insert('journal', {
-      playerId,
-      data: { type: 'walking', route, ignore, startTs: ts, targetEndTs },
-    });
     return {
       targetEndTs,
       nextCollision: collisions && {
