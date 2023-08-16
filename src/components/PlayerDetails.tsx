@@ -49,7 +49,7 @@ function Messages({
   );
 }
 
-export default function Chats({ playerId }: { playerId: Id<'players'> }) {
+export default function PlayerDetails({ playerId }: { playerId: Id<'players'> }) {
   const playerState = useQuery(api.players.playerState, { playerId });
 
   return (
