@@ -356,7 +356,7 @@ export const getReflectionMemories = internalQuery({
       )
       .order('desc')
       .take(numberOfItems);
-    console.debug('conversation memories lenth', conversations.length);
+    // console.debug('conversation memories lenth', conversations.length);
     const reflections = await ctx.db
       .query('memories')
       .withIndex('by_playerId_type', (q) =>
