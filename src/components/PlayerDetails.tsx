@@ -47,37 +47,33 @@ function Messages({
   );
 }
 
-export default function Chats({ playerState }: { playerState: PlayerState | undefined }) {
-  if (!playerState) {
-    return (
-      <div className="h-full text-xl flex text-center items-center p-4">
-        Click on an agent on the map to see chat history.
-      </div>
-    );
-  }
+export default function PlayerDetails({ playerId }: { playerId: Id<'players'> }) {
+  const playerState = useQuery(api.players.playerState, { playerId });
 
   return (
-    <>
-      <div className="box">
-        <h2 className="bg-brown-700 p-2 font-display text-4xl tracking-wider shadow-solid text-center">
-          {playerState.name}
-        </h2>
-      </div>
-
-      <div className="desc my-6">
-        <p className="leading-tight -m-4 bg-brown-700 text-lg">{playerState.identity}</p>
-      </div>
-
-      {playerState.lastChat?.conversationId && (
-        <div className="chats">
-          <div className="bg-brown-200 text-black p-2">
-            <Messages
-              conversationId={playerState.lastChat?.conversationId}
-              currentPlayerId={playerState.id}
-            />
-          </div>
+    playerState && (
+      <>
+        <div className="box">
+          <h2 className="bg-brown-700 p-2 font-display text-4xl tracking-wider shadow-solid text-center">
+            {playerState.name}
+          </h2>
         </div>
-      )}
-    </>
+
+        <div className="desc my-6">
+          <p className="leading-tight -m-4 bg-brown-700 text-lg">{playerState.identity}</p>
+        </div>
+
+        {playerState.lastChat?.conversationId && (
+          <div className="chats">
+            <div className="bg-brown-200 text-black p-2">
+              <Messages
+                conversationId={playerState.lastChat?.conversationId}
+                currentPlayerId={playerState.id}
+              />
+            </div>
+          </div>
+        )}
+      </>
+    )
   );
 }

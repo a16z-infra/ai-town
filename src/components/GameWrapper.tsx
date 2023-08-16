@@ -1,13 +1,13 @@
 'use client';
 import { useState } from 'react';
-import Chats from './Chats';
+import PlayerDetails from './PlayerDetails';
 import Game from './Game';
-import type { Player } from '../../convex/schema';
 
 import { useElementSize } from 'usehooks-ts';
+import { Id } from '../../convex/_generated/dataModel';
 
 export default function GameWrapper() {
-  const [selectedPlayer, setSelectedPlayer] = useState<Player>();
+  const [selectedPlayer, setSelectedPlayer] = useState<Id<'players'>>();
 
   const [gameWrapperRef, { width, height }] = useElementSize();
 
@@ -22,7 +22,13 @@ export default function GameWrapper() {
 
       {/* Right column area */}
       <div className="flex flex-col overflow-y-auto shrink-0 px-4 py-6 sm:px-6 lg:w-96 xl:pr-6 bg-brown-800 text-brown-100">
-        <Chats playerState={selectedPlayer} />
+        {selectedPlayer ? (
+          <PlayerDetails playerId={selectedPlayer} />
+        ) : (
+          <div className="h-full text-xl flex text-center items-center p-4">
+            Click on an agent on the map to see chat history.
+          </div>
+        )}
       </div>
     </div>
   );

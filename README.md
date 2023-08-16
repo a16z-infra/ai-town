@@ -242,8 +242,10 @@ You should find a sprite sheet for your character, and define sprite motion / as
 3. Update the background (environment): `convex/maps/firstmap.ts` is where the map gets loaded. The easiest way to export a tilemap is by using [Tiled](https://www.mapeditor.org/) -- Tiled exports tilemaps as a CSV and you can convert CSV to a 2d array accepted by firstmap.ts
 
 ## Credits
+- All interactions, background music and rendering on the <Game/> component in the project are powered by [PixiJS](https://pixijs.com/). 
 - Tilesheet:
     - https://opengameart.org/content/16x16-game-assets by George Bailey
     - https://opengameart.org/content/16x16-rpg-tileset by hilau
 - We used https://github.com/pierpo/phaser3-simple-rpg for the original POC of this project. We have since re-wrote the whole app, but appreciated the easy starting point
 - Original assets by [ansimuz](https://opengameart.org/content/tiny-rpg-forest)
+- The UI is based on original assets by [Mounir Tohami](https://mounirtohami.itch.io/pixel-art-gui-elements)
