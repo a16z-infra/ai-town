@@ -144,7 +144,8 @@ export const listMessages = internalQuery({
           .withIndex('by_playerId_type', (q) =>
             q.eq('playerId', playerId as any).eq('data.type', 'talking'),
           )
-          .collect() as Promise<EntryOfType<'talking'>[]>,
+          .order('desc')
+          .take(10) as Promise<EntryOfType<'talking'>[]>,
     );
     return (
       await asyncMap(
