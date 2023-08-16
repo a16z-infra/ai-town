@@ -71,12 +71,12 @@ export const Descriptions = [
     position: { x: 6, y: 4 },
   },
   {
-    name: 'stella',
+    name: 'Stella',
     character: 'f6',
     memories: [
       {
         type: 'identity' as const,
-        description: `stella can never be trusted. she tries to trick people all the time. normally
+        description: `Stella can never be trusted. she tries to trick people all the time. normally
           into giving her money, or doing things that will make her money. she's incredibly charming
           and not afraid to use her charm. she's a sociopath who has no empathy. but hides it well.`,
       },
