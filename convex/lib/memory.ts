@@ -172,10 +172,10 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
       const sumOfImportanceScore = memories
         .filter((m) => m._creationTime > (lastReflectionTs ?? 0))
         .reduce((acc, curr) => acc + curr.importance, 0);
-      console.debug('sum of importance score = ', sumOfImportanceScore);
       const shouldReflect = sumOfImportanceScore > 500;
 
       if (shouldReflect) {
+        console.debug('sum of importance score = ', sumOfImportanceScore);
         console.debug('Reflecting...');
         let prompt = `[no prose]\n [Output only JSON] \nYou are ${name}, statements about you:\n`;
         memories.forEach((m, idx) => {
