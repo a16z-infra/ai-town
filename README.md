@@ -45,7 +45,7 @@ npm run dev
 `npm run dev` will fail asking for environment variables.
 Enter them in the environment variables on your Convex dashboard to proceed.
 You can get there via `npx convex dashboard` or https://dashboard.convex.dev
-See below on how to get the various environnment variables.
+See below on how to get the various environment variables.
 
 a. **Set up Clerk**
 
