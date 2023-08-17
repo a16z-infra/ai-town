@@ -101,7 +101,7 @@ export async function fetchEmbedding(text: string) {
 }
 
 // Retry after this much time, based on the retry number.
-const RETRY_BACKOFF = [1000, 10_000]; // In ms
+const RETRY_BACKOFF = [1000, 10_000, 20_000]; // In ms
 const RETRY_JITTER = 100; // In ms
 type RetryError = { retry: boolean; error: any };
 
