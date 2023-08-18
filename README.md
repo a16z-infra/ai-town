@@ -30,7 +30,7 @@ The primary goal of this project, beyond just being a lot of fun to work on, is 
 - Text model: [OpenAI](https://platform.openai.com/docs/models)
 - Deployment: [Fly](https://fly.io/)
 - Pixel Art Generation: [Replicate](https://replicate.com/), [Fal.ai](https://serverless.fal.ai/lora)
-
+- Background Music Generation: [Replicate](https://replicate.com/) using [MusicGen](https://huggingface.co/spaces/facebook/MusicGen)
 ## Installation
 
 ### Clone repo and Install packages
@@ -73,7 +73,11 @@ c. **Pinecone API keys**
 - Fill in Dimension as `1536`
 - Once the index is successfully created, click on "API Keys" on the left side nav and create an API key: copy "Environment" value to `PINECONE_ENVIRONMENT` variable, and "Value" to `PINECONE_API_KEY`
 
-d. **Add secrets to the convex dashboard**
+d. **Replicate API key (Optional)**
+For Daily background music generation, create an account at [Replicate](https://replicate.com/) and create a token in your Profile's [API Token page](https://replicate.com/account/api-tokens).
+Add the token as `REPLICATE_API_TOKEN` in yout `.env.local`
+
+e. **Add secrets to the convex dashboard**
 
 ```bash
 npx convex dashboard
@@ -87,6 +91,7 @@ CLERK_ISSUER_URL  https://****
 PINECONE_API_KEY  ********
 PINECONE_ENVIRONMENT us****
 PINECONE_INDEX_NAME  ********
+REPLICATE_API_TOKEN **** #optional 
 ```
 
 ### Run the code
@@ -240,6 +245,8 @@ You should find a sprite sheet for your character, and define sprite motion / as
 
 
 3. Update the background (environment): `convex/maps/firstmap.ts` is where the map gets loaded. The easiest way to export a tilemap is by using [Tiled](https://www.mapeditor.org/) -- Tiled exports tilemaps as a CSV and you can convert CSV to a 2d array accepted by firstmap.ts
+4. Change the background music by modifying the prompt in `convex/lib/replicate.ts`
+5. Change how often to generate new music at `convex/crons.ts` by modifying the `generate new background music` job
 
 ## Credits
 - All interactions, background music and rendering on the <Game/> component in the project are powered by [PixiJS](https://pixijs.com/). 
