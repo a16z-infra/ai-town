@@ -36,8 +36,8 @@ The primary goal of this project, beyond just being a lot of fun to work on, is 
 ### Clone repo and Install packages
 
 ```bash
-git clone git@github.com:a16z-infra/ai-town.git
-cd AI-town
+git clone https://github.com/a16z-infra/ai-town.git
+cd ai-town
 npm install
 npm run dev
 ```
