@@ -79,7 +79,7 @@ d. **Add secrets to the convex dashboard**
 npx convex dashboard
 ```
 
-Go to "settings" and add the following environment varables. `CLERK_ISSUER_URL` should be the URL from the JWKS endpoint.
+Go to "settings" and add the following environment variables. `CLERK_ISSUER_URL` should be the URL from the JWKS endpoint.
 
 ```bash
 OPENAI_API_KEY  sk-*******
