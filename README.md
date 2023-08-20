@@ -218,7 +218,16 @@ RUN npm run build
 ```
 - Run `fly deploy --ha=false` to deploy the app. The --ha flag makes sure fly only spins up one instance, which is included in the free plan.
 - Run `fly scale memory 512` to scale up the fly vm memory for this app.
-- Create a new file `.env.prod` locally and fill in all the production-environment secrets. Remember to update `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` by copying secrets from Clerk's production instance -`cat .env.prod | fly secrets import` to upload secrets. Also remember to update `CONVEX_DEPLOYMENT` and `NEXT_PUBLIC_CONVEX_URL`.
+- Create a new file `.env.prod` locally and fill in all the production-environment secrets. Remember to update `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` by copying secrets from Clerk's production instance -`cat .env.prod | fly secrets import` to upload secrets. Also remember to update `CONVEX_DEPLOYMENT` and `NEXT_PUBLIC_CONVEX_URL` -- both of them should now point to Convex's prod environment. 
+
+#### Deploy Convex functions to prod environment
+Before you can run the app, you will need to make sure the convex functions are deployed to its production environment. 
+
+1. Run `npx convex deploy` to deploy the convex functions to production
+2. Go to convex dashboard, select prod
+3. Navigate to Functions on the left side nav, click on  testing -> debugClearAll, click on run function on the top right
+4. Then click on init - init function, run this function. 
+
 
 
 ## Customize your own simulation
