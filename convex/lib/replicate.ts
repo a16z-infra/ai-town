@@ -1,13 +1,6 @@
 import Replicate, { Prediction, WebhookEventType } from 'replicate';
 import { v } from 'convex/values';
-import {
-  internalMutation,
-  query,
-  action,
-  httpAction,
-  internalAction,
-  internalQuery,
-} from '../_generated/server';
+import { internalMutation, httpAction, internalAction, internalQuery } from '../_generated/server';
 import { internal, api } from '../_generated/api';
 import { Id } from '../_generated/dataModel';
 import { ActionCtx } from 'convex/server';
@@ -49,7 +42,12 @@ async function backgroundMusicGenHandler(prediction: Prediction, ctx: ActionCtx)
   });
 }
 
-const handlers: { [K: string]: Function } = {
+const handlers: {
+  [K: string]: (
+    prediction: Prediction,
+    ctx: ActionCtx,
+  ) => Promise<string & { __tableName: 'music' }>;
+} = {
   BackgroundMusicGen: backgroundMusicGenHandler,
   //Add more handlers here
 };
@@ -161,12 +159,12 @@ export async function generateMusic(
   webhook_events_filter: [WebhookEventType] = ['completed'],
   normalization_strategy: MusicGenNormStrategy = MusicGenNormStrategy.Peak,
   output_format: MusicGenFormat = MusicGenFormat.mp3,
-  top_k: number = 250,
-  top_p: number = 0,
-  temperature: number = 1,
-  classifer_free_gudance: number = 3,
-  seed: number = -1,
-  model_version: string = 'large',
+  top_k = 250,
+  top_p = 0,
+  temperature = 1,
+  classifer_free_gudance = 3,
+  seed = -1,
+  model_version = 'large',
 ) {
   if (!replicateAvailable()) {
     return;
