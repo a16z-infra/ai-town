@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <script src="assettool.js" type="module"></script>
+
+    <TABLE WIDTH="100%"><TR>
+        <TD ALIGN="center"> <!-- first layer of map tiles -->
+          <div style="max-height: 480px;max-width:640px;overflow: scroll;">
+          <canvas ID="level0" height="1600px" width="1600px" ></canvas> </div>   
+        </TD>
+        <TD ALIGN="center"> <!-- tile set-->
+           <div style="max-height: 480px;max-width:640px;overflow: scroll;">
+           <CANVAS ID="tileset" width="1600px" height="1600px" STYLE="border: 1px dotted white;"></CANVAS> </div>   
+        </TD>
+        </TR>
+
+        <tr>
+        <TD ALIGN="center"> <!-- second layer of map tiles -->
+        <div style="max-height: 480px;max-width:640px;overflow: scroll;">
+            <canvas ID="level1" height="1600px" width="1600px" ></canvas>
+        </div></TD>
+        <TD ALIGN="center"> <!-- aggregate map view -->
+        <div style="max-height: 480px;max-width:640px;overflow: scroll;">
+            <canvas ID="composite" height="1600px" width="1600px" ></canvas>
+        </div></TD>
+        </tr>
+
+        <tr>
+        <TD ALIGN="center"> <!-- object layer of map -->
+        <div style="max-height: 480px;max-width:640px;overflow: scroll;">
+            <canvas ID="level3" height="1600px" width="1600px" ></canvas>
+        </div></TD>
+        <td>
+            <input id="index" type="button" value="clickme" onclick="toggleindex();" />
+           TileDim : <input type="text" id="griddim" name="gridsize" maxlength="3" size="4" />
+           <input id="griddimbutton" type="button" value="set grid" onclick="setGridDim(griddim.value);" />
+        </td>
+        </tr>
+
+    </TABLE>
+
+</body>
+</html>
