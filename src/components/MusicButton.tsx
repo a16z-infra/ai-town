@@ -1,7 +1,7 @@
 'use client';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { sound } from '@pixi/sound';
 
@@ -29,12 +29,29 @@ export default function MusicButton() {
     setPlaying(!isPlaying);
   };
 
+  const handleKeyPress = useCallback(
+    (event: { key: string }) => {
+      if (event.key === 'm' || event.key === 'M') {
+        flipSwitch();
+      }
+    },
+    [flipSwitch],
+  );
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyPress);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [handleKeyPress]);
+
   return (
     <>
       <a
         className="button text-white shadow-solid text-2xl pointer-events-auto"
         onClick={flipSwitch}
-        title="Play AI generated music"
+        title="Play AI generated music (press m to play/mute)"
       >
         <div className="inline-block bg-clay-700">
           <span>
