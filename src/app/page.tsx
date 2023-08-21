@@ -2,7 +2,10 @@ import { SignedIn, SignedOut, UserButton, auth } from '@clerk/nextjs';
 import GameWrapper from '@/components/GameWrapper';
 import FreezeButton from '@/components/FreezeButton';
 import LoginButton from '@/components/LoginButton';
-import MusicButton from '@/components/MusicButton';
+
+// Disabling SSR for these since they don't work server side.
+import dynamic from 'next/dynamic';
+const MusicButton = dynamic(() => import('../components/MusicButton'), { ssr: false });
 
 export default function Home() {
   return (
