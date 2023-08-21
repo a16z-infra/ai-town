@@ -1,5 +1,8 @@
 import GameWrapper from '@/components/GameWrapper';
-import MusicButton from '@/components/MusicButton';
+import dynamic from 'next/dynamic';
+
+// Disabling SSR for these since they don't work server side.
+const MusicButton = dynamic(() => import('../components/MusicButton'), { ssr: false });
 
 export default function Home() {
   return (
