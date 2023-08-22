@@ -5,7 +5,7 @@ export const CLOSE_DISTANCE = 1;
 // How long it takes a player to walk one tile.
 export const TIME_PER_STEP = 2_000;
 // After this many ms, give up on the agent and start thinking again.
-export const AGENT_THINKING_TOO_LONG = 600_000;
+export const AGENT_THINKING_TOO_LONG = 60_000;
 // How long to hang out if there was no path to your destination.
 export const STUCK_CHILL_TIME = 30_000;
 // How long to let a conversation go on for with agents
