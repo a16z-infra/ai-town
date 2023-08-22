@@ -46,7 +46,7 @@ export const tick = internalMutation({
       console.debug("Didn't tick: spurious, no agents eager to wake up");
       return;
     }
-    const agentsToWake = pruneNull(await asyncMap(agentIdsToWake, ctx.db.get)).filter(
+    const agentsToWake = pruneNull(await asyncMap(agentIdsToWake, (id) => ctx.db.get(id))).filter(
       (a) => !a.thinking,
     );
     for (const agentDoc of agentsToWake) {

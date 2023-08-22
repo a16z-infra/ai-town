@@ -24,7 +24,7 @@ export default function MusicButton() {
     if (isPlaying) {
       sound.stop('background');
     } else {
-      sound.play('background');
+      await sound.play('background');
     }
     setPlaying(!isPlaying);
   };
@@ -32,7 +32,7 @@ export default function MusicButton() {
   const handleKeyPress = useCallback(
     (event: { key: string }) => {
       if (event.key === 'm' || event.key === 'M') {
-        flipSwitch();
+        void flipSwitch();
       }
     },
     [flipSwitch],
@@ -50,7 +50,9 @@ export default function MusicButton() {
     <>
       <a
         className="button text-white shadow-solid text-2xl pointer-events-auto"
-        onClick={flipSwitch}
+        onClick={() => {
+          void flipSwitch();
+        }}
         title="Play AI generated music (press m to play/mute)"
       >
         <div className="inline-block bg-clay-700">

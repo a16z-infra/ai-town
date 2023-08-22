@@ -93,7 +93,7 @@ function divideIntoGroups(players: Player[]) {
   const groups: Player[][] = [];
   const solos: Player[] = [];
   while (playerById.size > 0) {
-    const player = playerById.values().next().value;
+    const player = playerById.values().next().value as Player;
     playerById.delete(player.id);
     const nearbyPlayers = getNearbyPlayers(player.motion, [...playerById.values()]);
     if (nearbyPlayers.length > 0) {
@@ -293,7 +293,7 @@ function handleDone(ctx: ActionCtx, noSchedule?: boolean): DoneFn {
   // Simple serialization: only one agent finishes at a time.
   const queue = new Set<Promise<unknown>>();
   return async (agentId, activity) => {
-    let unlock;
+    let unlock: (v: unknown) => void = () => {};
     const wait = new Promise((resolve) => (unlock = resolve));
     const toAwait = [...queue];
     queue.add(wait);
@@ -301,7 +301,7 @@ function handleDone(ctx: ActionCtx, noSchedule?: boolean): DoneFn {
       await Promise.allSettled(toAwait);
       await doIt(agentId, activity);
     } finally {
-      unlock!();
+      unlock(null);
       queue.delete(wait);
     }
   };

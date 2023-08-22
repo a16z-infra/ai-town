@@ -19,7 +19,7 @@ export function replicateAvailable(): boolean {
   return !!process.env.REPLICATE_API_TOKEN;
 }
 export const handleReplicateWebhook = httpAction(async (ctx, request) => {
-  const req = await request.json();
+  const req = await request.json() as {id: string};
   if (req.id) {
     await ctx.scheduler.runAfter(0, internal.lib.replicate.processWebhook, {
       externalId: req.id,
@@ -29,7 +29,7 @@ export const handleReplicateWebhook = httpAction(async (ctx, request) => {
 });
 
 async function backgroundMusicGenHandler(prediction: Prediction, ctx: ActionCtx) {
-  const response = await fetch(prediction.output);
+  const response = await fetch(prediction.output as string);
   const music = await response.blob();
 
   // TODO figure out why .store is returning a Promise<string> and not Promise<Id<'storage'>>
@@ -110,7 +110,7 @@ export const createEntry = internalMutation({
     const webhookId = await ctx.db.insert('replicate_webhooks', {
       externalId,
       handler,
-      input,
+      input: input as unknown,
     });
     return webhookId;
   },

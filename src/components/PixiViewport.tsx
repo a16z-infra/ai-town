@@ -11,6 +11,7 @@ const PixiViewportComponent = PixiComponent('Viewport', {
     const { app, ...viewportProps } = props;
 
     const viewport = new Viewport({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       events: app.renderer.events,
       passiveWheel: false,
       ...viewportProps,
@@ -34,6 +35,7 @@ const PixiViewportComponent = PixiComponent('Viewport', {
     Object.keys(newProps).forEach((p) => {
       if (p !== 'children' && oldProps[p] !== newProps[p]) {
         // @ts-expect-error Ignoring TypeScript here
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         viewport[p] = newProps[p];
       }
     });

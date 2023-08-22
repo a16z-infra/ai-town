@@ -143,7 +143,7 @@ export const listMessages = internalQuery({
         ctx.db
           .query('journal')
           .withIndex('by_playerId_type', (q) =>
-            q.eq('playerId', playerId as any).eq('data.type', 'talking'),
+            q.eq('playerId', playerId).eq('data.type', 'talking'),
           )
           .order('desc')
           .take(10) as Promise<EntryOfType<'talking'>[]>,
@@ -160,7 +160,7 @@ export const listMessages = internalQuery({
 export const setThinking = internalMutation({
   args: { playerIds: v.array(v.id('players')) },
   handler: async (ctx, args) => {
-    const players = pruneNull(await asyncMap(args.playerIds, ctx.db.get));
+    const players = pruneNull(await asyncMap(args.playerIds, (id) => ctx.db.get(id)));
     for (const player of players) {
       await ctx.db.patch(player.agentId!, { thinking: true });
     }
@@ -226,8 +226,9 @@ export const runConversation = internalAction({
     const { players } = await ctx.runQuery(internal.testing.getDebugPlayers);
     const memory = MemoryDB(ctx);
     for (let i = 0; i < (args.conversationCount ?? 1); i++) {
-      await handleAgentInteraction(ctx, players, memory, async (agentId, activity) => {
+      await handleAgentInteraction(ctx, players, memory, (agentId, activity) => {
         console.log({ agentId, activity });
+        return Promise.resolve();
       });
     }
   },

@@ -32,7 +32,7 @@ import { clientMessageMapper } from './chat';
 export const getSnapshot = internalQuery({
   args: { playerIds: v.array(v.id('players')) },
   handler: async (ctx, args) => {
-    const playerDocs = pruneNull(await asyncMap(args.playerIds, ctx.db.get));
+    const playerDocs = pruneNull(await asyncMap(args.playerIds, (id) => ctx.db.get(id)));
     return {
       players: await asyncMap(playerDocs, (playerDoc) => getPlayer(ctx.db, playerDoc)),
     };
