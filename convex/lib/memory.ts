@@ -196,7 +196,7 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
 
         try {
           const insights: { insight: string; statementIds: number[] }[] = JSON.parse(reflection);
-          let memoriesToSave: MemoryOfType<'reflection'>[] = [];
+          const memoriesToSave: MemoryOfType<'reflection'>[] = [];
           insights.forEach((item) => {
             const relatedMemoryIds = item.statementIds.map((idx: number) => memories[idx]._id);
             const reflectionMemory = {
