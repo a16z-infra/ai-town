@@ -1,4 +1,3 @@
-import { data as playerSpritesheetData } from './spritesheets/player';
 import { data as f1SpritesheetData } from './spritesheets/f1';
 import { data as f2SpritesheetData } from './spritesheets/f2';
 import { data as f3SpritesheetData } from './spritesheets/f3';

@@ -63,7 +63,7 @@ export const runAgentBatch = internalAction({
         }
       } catch (e) {
         console.error('agent failed, going for a walk: ', player.agentId);
-        await done(player.agentId!, { type: 'walk', ignore: [] });
+        await done(player.agentId, { type: 'walk', ignore: [] });
         throw e;
       }
     });
@@ -291,7 +291,7 @@ function handleDone(ctx: ActionCtx, noSchedule?: boolean): DoneFn {
     });
   };
   // Simple serialization: only one agent finishes at a time.
-  let queue = new Set<Promise<unknown>>();
+  const queue = new Set<Promise<unknown>>();
   return async (agentId, activity) => {
     let unlock;
     const wait = new Promise((resolve) => (unlock = resolve));

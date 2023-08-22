@@ -1,5 +1,5 @@
 import { Validator, v } from 'convex/values';
-import { WithoutSystemFields, defineTable } from 'convex/server';
+import { defineTable } from 'convex/server';
 import { Doc, Id, TableNames } from '../_generated/dataModel';
 import { DatabaseReader } from '../_generated/server';
 

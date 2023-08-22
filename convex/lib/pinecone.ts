@@ -54,7 +54,7 @@ export const deleteVectors = internalAction({
 
 export const deleteAllVectors = internalAction({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (_ctx, _args) => {
     if (pineconeAvailable()) {
       const index = await pineconeIndex();
       const deletionResult = await index._delete({
@@ -72,7 +72,7 @@ export async function upsertVectors<TableName extends TableNames>(
   vectors: { id: Id<TableName>; values: number[]; metadata: object }[],
   index?: VectorOperationsApi,
 ) {
-  const start = Date.now();
+  // const start = Date.now();
   if (!index) {
     index = await pineconeIndex();
   }
@@ -102,7 +102,7 @@ export async function queryVectors<TableName extends TableNames>(
   filter: object,
   limit: number,
 ) {
-  const start = Date.now();
+  // const start = Date.now();
   const pinecone = await pineconeIndex();
   const { matches } = await pinecone.query({
     queryRequest: {

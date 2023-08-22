@@ -1,11 +1,13 @@
 /** @type {import('next').NextConfig} */
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const path = require('path');
 const nextConfig = {
   basePath: '/ai-town',
   experimental: {
     serverActions: true,
   },
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
     // Adjust the path to match the location of your "AI-town" project
 

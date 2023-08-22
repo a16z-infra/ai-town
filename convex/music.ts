@@ -6,7 +6,7 @@ export const createMusic = internalMutation({
     storageId: v.string(),
     type: v.union(v.literal('background'), v.literal('player')),
   },
-  handler: async (ctx, { storageId, type, ...args }) => {
+  handler: async (ctx, { storageId, type }) => {
     const music = await ctx.db.insert('music', {
       storageId,
       type,
@@ -17,7 +17,7 @@ export const createMusic = internalMutation({
 
 export const getBackgroundMusic = query({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     const music = await ctx.db
       .query('music')
       .filter((entry) => entry.eq(entry.field('type'), 'background'))

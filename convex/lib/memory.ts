@@ -16,7 +16,7 @@ import { chatHistoryFromMessages } from '../conversation.js';
 import { MEMORY_ACCESS_THROTTLE } from '../config.js';
 import { fetchEmbeddingBatchWithCache } from './cached_llm.js';
 
-const { embeddingId: _, lastAccess, ...MemoryWithoutEmbeddingId } = Memories.fields;
+const { embeddingId: _, lastAccess: _lastAccess, ...MemoryWithoutEmbeddingId } = Memories.fields;
 const NewMemory = { ...MemoryWithoutEmbeddingId, importance: v.optional(v.number()) };
 const NewMemoryWithEmbedding = { ...MemoryWithoutEmbeddingId, embedding: v.array(v.number()) };
 const NewMemoryObject = v.object(NewMemory);
@@ -196,7 +196,7 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
 
         try {
           const insights: { insight: string; statementIds: number[] }[] = JSON.parse(reflection);
-          let memoriesToSave: MemoryOfType<'reflection'>[] = [];
+          const memoriesToSave: MemoryOfType<'reflection'>[] = [];
           insights.forEach((item) => {
             const relatedMemoryIds = item.statementIds.map((idx: number) => memories[idx]._id);
             const reflectionMemory = {

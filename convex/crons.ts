@@ -13,7 +13,7 @@ import { TableNames } from './_generated/dataModel';
 
 export const recoverThinkingAgents = internalMutation({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     const world = await ctx.db.query('worlds').order('desc').first();
     if (!world) throw new Error('No world found');
     // Future: we can check all players, but for now just the most recent world.
@@ -42,7 +42,7 @@ export const recoverThinkingAgents = internalMutation({
 const BUFFER = 1_000;
 export const recoverStoppedAgents = internalMutation({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     const world = await ctx.db.query('worlds').order('desc').first();
     if (!world) throw new Error('No world found');
     if (world.frozen) {

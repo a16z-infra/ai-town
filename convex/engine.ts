@@ -1,12 +1,10 @@
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
-import { Doc, Id } from './_generated/dataModel';
+import { Id } from './_generated/dataModel';
 import {
   DatabaseReader,
-  DatabaseWriter,
   MutationCtx,
   internalMutation,
-  mutation,
 } from './_generated/server';
 import { TICK_DEBOUNCE, WORLD_IDLE_THRESHOLD } from './config';
 import { asyncMap, pruneNull } from './lib/utils';
@@ -16,7 +14,7 @@ export const tick = internalMutation({
   handler: async (ctx, { worldId, noSchedule }) => {
     const ts = Date.now();
     // Fetch the first recent heartbeat.
-    if (!(await getRecentHeartbeat(ctx.db, worldId))) {
+    if (!(await getRecentHeartbeat(ctx.db))) {
       console.debug("Didn't tick: no heartbeat recently");
       return;
     }
@@ -59,7 +57,7 @@ export const tick = internalMutation({
   },
 });
 
-async function getRecentHeartbeat(db: DatabaseReader, worldId: Id<'worlds'>) {
+async function getRecentHeartbeat(db: DatabaseReader) {
   return (
     db
       .query('heartbeats')
@@ -139,7 +137,7 @@ export async function enqueueAgentWake(
 // Freeze is made internal on the Convex hosted branch.
 export const freezeAll = internalMutation({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     const worlds = await ctx.db.query('worlds').collect();
     for (const world of worlds) {
       await ctx.db.patch(world._id, { frozen: true });
@@ -149,7 +147,7 @@ export const freezeAll = internalMutation({
 
 export const unfreeze = internalMutation({
   args: { worldId: v.optional(v.id('worlds')) },
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     const world = await ctx.db.query('worlds').order('desc').first();
     if (!world) throw new Error("Didn't unfreeze: No world found");
     await ctx.db.patch(world._id, { frozen: false });
