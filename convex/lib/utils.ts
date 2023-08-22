@@ -1,5 +1,5 @@
 import { Validator, v } from 'convex/values';
-import { WithoutSystemFields, defineTable } from 'convex/server';
+import { defineTable } from 'convex/server';
 import { Doc, Id, TableNames } from '../_generated/dataModel';
 import { DatabaseReader } from '../_generated/server';
 
@@ -33,7 +33,7 @@ export async function asyncMap<FromType, ToType>(
 }
 
 /**
- * asyncFilter returns the results of applying an async function over an list.
+ * asyncFilter returns the results of filtering a list by an async function.
  *
  * @param list - Iterable object of items, e.g. an Array, Set, Object.keys
  * @param asyncTransform
@@ -43,7 +43,7 @@ export async function asyncFilter<T>(
   list: Iterable<T>,
   asyncTransform: (item: T, index: number) => Promise<any>,
 ): Promise<T[]> {
-  const promises: Promise<boolean>[] = [];
+  const promises: Promise<any>[] = [];
   const results: T[] = [];
   let idx = 0;
   for (const item of list) {
@@ -65,7 +65,7 @@ export async function getAll<TableName extends TableNames>(
   db: DatabaseReader,
   ids: Id<TableName>[],
 ): Promise<Doc<TableName>[]> {
-  const docs = await asyncMap(ids, db.get);
+  const docs = await asyncMap(ids, (id) => db.get(id));
   return docs.map((doc, idx) => {
     if (doc === null) {
       throw new Error(`Missing document for id ${ids[idx]}`);

@@ -15,7 +15,7 @@ import { findRoute } from './lib/routing';
 
 export const converge = internalMutation({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     const world = await ctx.db.query('worlds').order('desc').first();
     if (!world) throw new Error('No worlds exist yet: try running dbx convex run init');
     const players = await getAllPlayers(ctx.db, world._id);
@@ -31,7 +31,7 @@ export const converge = internalMutation({
 
 export const stopThinking = internalMutation({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     const world = (await ctx.db.query('worlds').order('desc').first())!;
     const agents = await ctx.db
       .query('agents')
@@ -45,7 +45,7 @@ export const stopThinking = internalMutation({
 
 export const testRouteFinding = internalQuery({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     const map = (await ctx.db.query('maps').order('desc').first())!;
     const startMotion: Motion = {
       type: 'stopped',
@@ -83,7 +83,7 @@ export const debugAgentSnapshotWithThinking = internalMutation({
 
 export const agentState = internalQuery({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     const world = await ctx.db.query('worlds').order('desc').first();
     if (!world) throw new Error('No worlds exist yet: try running dbx convex run init');
     const agents = await ctx.db
@@ -107,7 +107,7 @@ export const getDebugPlayers = internalQuery({
 
 export const allPlayers = internalQuery({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     const players = await ctx.db.query('players').collect();
     if (!players) return null;
     return asyncMap(players, (p) => getPlayer(ctx.db, p));
@@ -116,7 +116,7 @@ export const allPlayers = internalQuery({
 
 export const latestPlayer = internalQuery({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     const player = await ctx.db.query('players').order('desc').first();
     if (!player) return null;
     return getPlayer(ctx.db, player);
@@ -132,7 +132,7 @@ export const debugPlayerIdSnapshot = internalQuery({
 
 export const listMessages = internalQuery({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     const world = await ctx.db.query('worlds').order('desc').first();
     if (!world) return [];
     const players = await getAllPlayers(ctx.db, world._id);
@@ -143,7 +143,7 @@ export const listMessages = internalQuery({
         ctx.db
           .query('journal')
           .withIndex('by_playerId_type', (q) =>
-            q.eq('playerId', playerId as any).eq('data.type', 'talking'),
+            q.eq('playerId', playerId).eq('data.type', 'talking'),
           )
           .order('desc')
           .take(10) as Promise<EntryOfType<'talking'>[]>,
@@ -160,7 +160,7 @@ export const listMessages = internalQuery({
 export const setThinking = internalMutation({
   args: { playerIds: v.array(v.id('players')) },
   handler: async (ctx, args) => {
-    const players = pruneNull(await asyncMap(args.playerIds, ctx.db.get));
+    const players = pruneNull(await asyncMap(args.playerIds, (id) => ctx.db.get(id)));
     for (const player of players) {
       await ctx.db.patch(player.agentId!, { thinking: true });
     }
@@ -183,12 +183,12 @@ export const runAgentLoop = internalAction({
   },
   handler: async (ctx, args) => {
     console.log('Looping', args.numberOfLoops || 100);
-    const { players, world } = await ctx.runQuery(internal.testing.getDebugPlayers);
+    const { players } = await ctx.runQuery(internal.testing.getDebugPlayers);
     const playerIds = players.map((p) => p.id);
 
     let index = args.numberOfLoops || 100;
-    let randomX: number[] = [];
-    let displacement = 25;
+    const randomX: number[] = [];
+    const displacement = 25;
     for (let i = 0; i < playerIds.length; i++) {
       randomX.push(displacement * i);
     }
@@ -223,11 +223,12 @@ export const runConversation = internalAction({
     conversationCount: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { players, world } = await ctx.runQuery(internal.testing.getDebugPlayers);
+    const { players } = await ctx.runQuery(internal.testing.getDebugPlayers);
     const memory = MemoryDB(ctx);
     for (let i = 0; i < (args.conversationCount ?? 1); i++) {
-      await handleAgentInteraction(ctx, players, memory, async (agentId, activity) => {
+      await handleAgentInteraction(ctx, players, memory, (agentId, activity) => {
         console.log({ agentId, activity });
+        return Promise.resolve();
       });
     }
   },
@@ -235,7 +236,7 @@ export const runConversation = internalAction({
 
 export const debugClearAll = internalMutation({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     for (const table in schema.tables) {
       await ctx.scheduler.runAfter(0, internal.crons.vacuumOldEntries, {
         table: table as TableNames,

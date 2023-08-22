@@ -9,7 +9,7 @@ import { internal } from './_generated/api';
 
 export const getWorld = query({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     // Future: based on auth, fetch the user's world
     const world = await ctx.db.query('worlds').order('desc').first();
     if (!world) {

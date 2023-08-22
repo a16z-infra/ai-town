@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { internal, api } from './_generated/api';
+import { internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
 import {
   DatabaseWriter,
@@ -98,7 +98,7 @@ export const addPlayers = internalMutation({
 
 export const reset = internalAction({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     await ctx.runMutation(internal.engine.freezeAll);
     await ctx.runAction(internal.init.seed, { newWorld: true });
   },
@@ -106,7 +106,7 @@ export const reset = internalAction({
 
 export const resetFrozen = internalAction({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     await ctx.runMutation(internal.engine.freezeAll);
     const worldId = await ctx.runAction(internal.init.seed, { newWorld: true, frozen: true });
     console.log('To test one batch a time: npx convex run --no-push engine:tick');
@@ -133,7 +133,7 @@ export const seed = internalAction({
     console.log(`Created world ${worldId}`);
     const memories = Descriptions.flatMap(({ name, memories }) => {
       const playerId = playersByName[name]!;
-      return memories.map((memory, idx) => {
+      return memories.map((memory) => {
         const { description, ...rest } = memory;
         let data: Doc<'memories'>['data'] | undefined;
         if (rest.type === 'relationship') {
@@ -147,7 +147,7 @@ export const seed = internalAction({
         const newMemory = {
           playerId,
           data,
-          description: memory.description,
+          description,
         };
 
         return newMemory;

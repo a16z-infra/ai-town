@@ -32,7 +32,7 @@ import { clientMessageMapper } from './chat';
 export const getSnapshot = internalQuery({
   args: { playerIds: v.array(v.id('players')) },
   handler: async (ctx, args) => {
-    const playerDocs = pruneNull(await asyncMap(args.playerIds, ctx.db.get));
+    const playerDocs = pruneNull(await asyncMap(args.playerIds, (id) => ctx.db.get(id)));
     return {
       players: await asyncMap(playerDocs, (playerDoc) => getPlayer(ctx.db, playerDoc)),
     };
@@ -150,7 +150,7 @@ export async function latestMemoryOfType<T extends MemoryType>(
 
 export const makeConversation = internalMutation({
   args: { playerId: v.id('players'), audience: v.array(v.id('players')) },
-  handler: async (ctx, { playerId, audience, ...args }) => {
+  handler: async (ctx, { playerId, audience }) => {
     const playerDoc = (await ctx.db.get(playerId))!;
     const { worldId } = playerDoc;
     const conversationId = await ctx.db.insert('conversations', { worldId });
@@ -193,7 +193,7 @@ export const leaveConversation = internalMutation({
     audience: v.array(v.id('players')),
     conversationId: v.id('conversations'),
   },
-  handler: async (ctx, { playerId, audience, conversationId, ...args }) => {
+  handler: async (ctx, { playerId, audience, conversationId }) => {
     await ctx.db.insert('journal', {
       playerId,
       data: { type: 'leaveConversation', audience, conversationId },
@@ -318,7 +318,7 @@ export const walk = internalMutation({
 
 export const nextCollision = internalQuery({
   args: { agentId: v.id('agents'), ignore: v.array(v.id('players')) },
-  handler: async (ctx, { agentId, ignore, ...args }) => {
+  handler: async (ctx, { agentId, ignore }) => {
     const ts = Date.now();
     const agentDoc = (await ctx.db.get(agentId))!;
     const { playerId, worldId } = agentDoc;

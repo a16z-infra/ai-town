@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { FunctionReference } from "convex/server";
 import { Doc, TableNames } from "../_generated/dataModel";
 import {
@@ -73,7 +76,7 @@ export const runMigration = internalAction(
         const result: any = await ctx.runMutation(name, args);
         if (result.isDone === undefined) {
           throw new Error(
-            `${name} did not return "isDone" - is it a migration?`
+            `${name as unknown as string} did not return "isDone" - is it a migration?`
           );
         }
         total += result.count;

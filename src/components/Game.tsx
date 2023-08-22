@@ -87,7 +87,9 @@ const useServerTimeOffset = (worldId: Id<'worlds'> | undefined) => {
       setOffset(avgOffset);
     };
     void updateOffset();
-    const interval = setInterval(updateOffset, HEARTBEAT_PERIOD);
+    const interval = setInterval(() => {
+      void updateOffset();
+    }, HEARTBEAT_PERIOD);
     return () => clearInterval(interval);
   }, [worldId]);
   return offset;

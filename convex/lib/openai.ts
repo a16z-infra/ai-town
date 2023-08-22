@@ -34,7 +34,7 @@ export async function chatCompletion(
         error: new Error(`Embedding failed with code ${result.status}: ${await result.text()}`),
       };
     }
-    return (await result!.json()) as CreateChatCompletionResponse;
+    return (await result.json()) as CreateChatCompletionResponse;
   });
   const content = json.choices[0].message?.content;
   if (content === undefined) {
@@ -79,7 +79,7 @@ export async function fetchEmbeddingBatch(texts: string[]) {
         error: new Error(`Embedding failed with code ${result.status}: ${await result.text()}`),
       };
     }
-    return (await result!.json()) as CreateEmbeddingResponse;
+    return (await result.json()) as CreateEmbeddingResponse;
   });
   if (json.data.length !== texts.length) {
     console.error(json);

@@ -15,10 +15,11 @@ export async function startConversation(
   player: Player,
 ) {
   const newFriendsNames = audience.map((p) => p.name);
+  const newFriendsNamesStr = newFriendsNames.join(',');
 
   const { embedding } = await fetchEmbeddingWithCache(
     ctx,
-    `What do you think about ${newFriendsNames.join(',')}?`,
+    `What do you think about ${newFriendsNamesStr}?`,
     { write: true },
   );
   const memories = await memory.accessMemories(player.id, embedding);
@@ -29,7 +30,7 @@ export async function startConversation(
     {
       role: 'user',
       content:
-        `You are ${player.name}. You just saw ${newFriendsNames}. You should greet them and start a conversation with them. Below are some of your memories about ${newFriendsNames}:` +
+        `You are ${player.name}. You just saw ${newFriendsNamesStr}. You should greet them and start a conversation with them. Below are some of your memories about ${newFriendsNamesStr}:` +
         audience
           .filter((r) => r.relationship)
           .map((r) => `Relationship with ${r.name}: ${r.relationship}`)
@@ -111,9 +112,10 @@ export async function decideWhoSpeaksNext(
     },
   ];
   const { content } = await chatCompletion({ messages: prompt, max_tokens: 300 });
-  let speakerId: string;
+  let speakerId: string | undefined = undefined;
   try {
-    speakerId = JSON.parse(content).id;
+    const contentJSON = JSON.parse(content) as {id: string};
+    speakerId = contentJSON.id;
   } catch (e) {
     console.error('error parsing speakerId: ', e);
   }

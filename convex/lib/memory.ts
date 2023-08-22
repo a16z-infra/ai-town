@@ -16,7 +16,7 @@ import { chatHistoryFromMessages } from '../conversation.js';
 import { MEMORY_ACCESS_THROTTLE } from '../config.js';
 import { fetchEmbeddingBatchWithCache } from './cached_llm.js';
 
-const { embeddingId: _, lastAccess, ...MemoryWithoutEmbeddingId } = Memories.fields;
+const { embeddingId: _, lastAccess: _lastAccess, ...MemoryWithoutEmbeddingId } = Memories.fields;
 const NewMemory = { ...MemoryWithoutEmbeddingId, importance: v.optional(v.number()) };
 const NewMemoryWithEmbedding = { ...MemoryWithoutEmbeddingId, embedding: v.array(v.number()) };
 const NewMemoryObject = v.object(NewMemory);
@@ -195,8 +195,8 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
         });
 
         try {
-          const insights: { insight: string; statementIds: number[] }[] = JSON.parse(reflection);
-          let memoriesToSave: MemoryOfType<'reflection'>[] = [];
+          const insights = JSON.parse(reflection) as { insight: string; statementIds: number[] }[];
+          const memoriesToSave: MemoryOfType<'reflection'>[] = [];
           insights.forEach((item) => {
             const relatedMemoryIds = item.statementIds.map((idx: number) => memories[idx]._id);
             const reflectionMemory = {
@@ -393,7 +393,7 @@ export const getRecentMessages = internalQuery({
     // beginning of time (for this user's conversations).
     const firstMessage = (await ctx.db
       .query('journal')
-      .withIndex('by_conversation', (q) => q.eq('data.conversationId', conversationId as any))
+      .withIndex('by_conversation', (q) => q.eq('data.conversationId', conversationId as any as undefined))
       .first()) as EntryOfType<'talking'>;
 
     // Look for the last conversation memory for this conversation
@@ -413,7 +413,7 @@ export const getRecentMessages = internalQuery({
     const allMessages = (await ctx.db
       .query('journal')
       .withIndex('by_conversation', (q) => {
-        const q2 = q.eq('data.conversationId', conversationId as any);
+        const q2 = q.eq('data.conversationId', conversationId as any as undefined);
         if (lastConversationMemory) {
           // If we have a memory of this conversation, only look at messages after.
           return q2.gt('_creationTime', lastConversationMemory._creationTime);

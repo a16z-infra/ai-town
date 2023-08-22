@@ -19,7 +19,7 @@ export function replicateAvailable(): boolean {
   return !!process.env.REPLICATE_API_TOKEN;
 }
 export const handleReplicateWebhook = httpAction(async (ctx, request) => {
-  const req = await request.json();
+  const req = await request.json() as {id: string};
   if (req.id) {
     await ctx.scheduler.runAfter(0, internal.lib.replicate.processWebhook, {
       externalId: req.id,
@@ -29,7 +29,7 @@ export const handleReplicateWebhook = httpAction(async (ctx, request) => {
 });
 
 async function backgroundMusicGenHandler(prediction: Prediction, ctx: ActionCtx) {
-  const response = await fetch(prediction.output);
+  const response = await fetch(prediction.output as string);
   const music = await response.blob();
 
   // TODO figure out why .store is returning a Promise<string> and not Promise<Id<'storage'>>
@@ -46,7 +46,7 @@ const handlers: {
   [K: string]: (
     prediction: Prediction,
     ctx: ActionCtx,
-  ) => Promise<string & { __tableName: 'music' }>;
+  ) => Promise<Id<'music'>>;
 } = {
   BackgroundMusicGen: backgroundMusicGenHandler,
   //Add more handlers here
@@ -60,7 +60,7 @@ function handleResult(prediction: Prediction, handler: string, ctx: ActionCtx) {
 }
 export const processWebhook = internalAction({
   args: { externalId: v.string() },
-  handler: async (ctx, { externalId, ...args }) => {
+  handler: async (ctx, { externalId }) => {
     // should this check be in the "controller"?
     const webhook = await ctx.runQuery(internal.lib.replicate.getEntry, { externalId: externalId });
     if (!webhook) {
@@ -74,7 +74,7 @@ export const processWebhook = internalAction({
 
 export const enqueueBackgroundMusicGeneration = internalAction({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     if (!replicateAvailable()) {
       return;
     }
@@ -106,11 +106,11 @@ export const createEntry = internalMutation({
     handler: v.string(), //handler defines the function to use when Replicate POST back to server
     input: v.any(),
   },
-  handler: async (ctx, { externalId, handler, input, ...args }) => {
+  handler: async (ctx, { externalId, handler, input }) => {
     const webhookId = await ctx.db.insert('replicate_webhooks', {
       externalId,
       handler,
-      input,
+      input: input as unknown,
     });
     return webhookId;
   },
@@ -120,7 +120,7 @@ export const getEntry = internalQuery({
   args: {
     externalId: v.string(),
   },
-  handler: async (ctx, { externalId, ...args }) => {
+  handler: async (ctx, { externalId }) => {
     const webhook = await ctx.db
       .query('replicate_webhooks')
       .filter((entry) => entry.eq(entry.field('externalId'), externalId))
