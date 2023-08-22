@@ -2,6 +2,7 @@
 
 const path = require('path');
 const nextConfig = {
+  basePath: '/ai-town',
   experimental: {
     serverActions: true,
   },
@@ -42,6 +43,17 @@ const nextConfig = {
         pathname: '**',
       },
     ],
+  },
+  async redirects() {
+    return [
+      // Redirect / to /ai-town for users running the project locally
+      {
+        source: '/',
+        destination: '/ai-town',
+        basePath: false,
+        permanent: false,
+      },
+    ];
   },
 };
 

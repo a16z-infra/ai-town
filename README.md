@@ -6,14 +6,11 @@
 
 <img width="1454" alt="Screen Shot 2023-08-14 at 10 01 00 AM" src="https://github.com/a16z-infra/ai-town/assets/3489963/a4c91f17-23ed-47ec-8c4e-9f9a8505057d">
 
-
 AI Town is a virtual town where AI characters live, chat and socialize.
 
 This project is a deployable starter kit for easily building and customizing your own version of AI town. Inspired by the research paper [_Generative Agents: Interactive Simulacra of Human Behavior_](https://arxiv.org/pdf/2304.03442.pdf).
 
-
 The primary goal of this project, beyond just being a lot of fun to work on, is to provide a platform with a strong foundation that is meant to be extended. The back-end engine natively supports shared global state, transactions, and a journal of all events so should be suitable for everything from a simple project to play around with to a scalable, multi-player game. A secondary goal is to make a JS/TS framework available as most simulators in this space (including the original paper above) are written in Python.
-
 
 ## Overview
 
@@ -31,6 +28,7 @@ The primary goal of this project, beyond just being a lot of fun to work on, is 
 - Deployment: [Fly](https://fly.io/)
 - Pixel Art Generation: [Replicate](https://replicate.com/), [Fal.ai](https://serverless.fal.ai/lora)
 - Background Music Generation: [Replicate](https://replicate.com/) using [MusicGen](https://huggingface.co/spaces/facebook/MusicGen)
+
 ## Installation
 
 ### Clone repo and Install packages
@@ -91,7 +89,7 @@ CLERK_ISSUER_URL  https://****
 PINECONE_API_KEY  ********
 PINECONE_ENVIRONMENT us****
 PINECONE_INDEX_NAME  ********
-REPLICATE_API_TOKEN **** #optional 
+REPLICATE_API_TOKEN **** #optional
 ```
 
 ### Run the code
@@ -106,6 +104,7 @@ You can now visit http://localhost:[PORT_NUMBER]
 
 If you'd rather run the frontend in a separate terminal from Convex (which syncs
 your backend functions as they're saved), you can run these two commands:
+
 ```bash
 npm run dev:frontend
 npm run dev:backend
@@ -113,11 +112,9 @@ npm run dev:backend
 
 See package.json for details, but dev:backend runs `npx convex dev`
 
-
-*Note: The simulation will pause after 5 minutes if the window is idle.
+\*Note: The simulation will pause after 5 minutes if the window is idle.
 Loading the page will unpause it. If you want to run the world without the
 browser, you can comment-out the heartbeat check in `convex/engine.ts`
-
 
 ### Various commands to run / test / debug
 
@@ -199,6 +196,7 @@ See more functions in [`testing.ts`](./convex/testing.ts).
 - Run `npx convex deploy` to deploy your dev environment to prod environment. Make sure you copy over all secrets to Convex's prod environment
 - Run `fly launch` under project root. This will generate a `fly.toml` that includes all the configurations you will need
 - Modify generated `fly.toml` to include `NEXT_PUBLIC_*` during build time for NextJS to access client side.
+
 ```
 [build]
   [build.args]
@@ -209,7 +207,9 @@ See more functions in [`testing.ts`](./convex/testing.ts).
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_*****"
     NEXT_PUBLIC_CONVEX_URL="https://*******.convex.cloud"
 ```
+
 - Modify fly.io's generated `Dockerfile` to include new ENV variables right above `RUN npm run build`
+
 ```
 ARG NEXT_PUBLIC_CLERK_SIGN_IN_URL
 ARG NEXT_PUBLIC_CLERK_SIGN_UP_URL
@@ -221,21 +221,22 @@ ARG NEXT_PUBLIC_CONVEX_URL
 # Build application
 RUN npm run build
 ```
+
 - Run `fly deploy --ha=false` to deploy the app. The --ha flag makes sure fly only spins up one instance, which is included in the free plan.
 - Run `fly scale memory 512` to scale up the fly vm memory for this app.
-- Create a new file `.env.prod` locally and fill in all the production-environment secrets. Remember to update `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` by copying secrets from Clerk's production instance -`cat .env.prod | fly secrets import` to upload secrets. Also remember to update `CONVEX_DEPLOYMENT` and `NEXT_PUBLIC_CONVEX_URL` -- both of them should now point to Convex's prod environment. 
+- Create a new file `.env.prod` locally and fill in all the production-environment secrets. Remember to update `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` by copying secrets from Clerk's production instance -`cat .env.prod | fly secrets import` to upload secrets. Also remember to update `CONVEX_DEPLOYMENT` and `NEXT_PUBLIC_CONVEX_URL` -- both of them should now point to Convex's prod environment.
 
 #### Deploy Convex functions to prod environment
-Before you can run the app, you will need to make sure the convex functions are deployed to its production environment. 
+
+Before you can run the app, you will need to make sure the convex functions are deployed to its production environment.
 
 1. Run `npx convex deploy` to deploy the convex functions to production
 2. Go to convex dashboard, select prod
-3. Navigate to Functions on the left side nav, click on  testing -> debugClearAll, click on run function on the top right
-4. Then click on init - init function, run this function. 
-
-
+3. Navigate to Functions on the left side nav, click on testing -> debugClearAll, click on run function on the top right
+4. Then click on init - init function, run this function.
 
 ## Customize your own simulation
+
 NOTE: every time you change character data, you should re-run `npx convex run testing:debugClearAll --no-push` and then `npm run dev` to re-upload everything to Convex. This is because character data is sent to Convex on the initial load. However, beware that `npx convex run testing:debugClearAll --no-push` WILL wipe all of your data, including your vector store.
 
 1. Create your own characters and stories: All characters and stories, as well as their spritesheet references are stored in [data.ts](./convex/characterdata/data.ts#L4). You can start by changing character descriptions.
@@ -244,24 +245,24 @@ NOTE: every time you change character data, you should re-run `npx convex run te
 ```export const characters = [
   {
     name: 'f1',
-    textureUrl: '/assets/32x32folk.png',
+    textureUrl: '/ai-town/assets/32x32folk.png',
     spritesheetData: f1SpritesheetData,
     speed: 0.1,
   },...
-  ```
+```
 
 You should find a sprite sheet for your character, and define sprite motion / assets in the corresponding file (in the above example, `f1SpritesheetData` was defined in f1.ts)
-
 
 3. Update the background (environment): `convex/maps/firstmap.ts` is where the map gets loaded. The easiest way to export a tilemap is by using [Tiled](https://www.mapeditor.org/) -- Tiled exports tilemaps as a CSV and you can convert CSV to a 2d array accepted by firstmap.ts
 4. Change the background music by modifying the prompt in `convex/lib/replicate.ts`
 5. Change how often to generate new music at `convex/crons.ts` by modifying the `generate new background music` job
 
 ## Credits
-- All interactions, background music and rendering on the <Game/> component in the project are powered by [PixiJS](https://pixijs.com/). 
+
+- All interactions, background music and rendering on the <Game/> component in the project are powered by [PixiJS](https://pixijs.com/).
 - Tilesheet:
-    - https://opengameart.org/content/16x16-game-assets by George Bailey
-    - https://opengameart.org/content/16x16-rpg-tileset by hilau
+  - https://opengameart.org/content/16x16-game-assets by George Bailey
+  - https://opengameart.org/content/16x16-rpg-tileset by hilau
 - We used https://github.com/pierpo/phaser3-simple-rpg for the original POC of this project. We have since re-wrote the whole app, but appreciated the easy starting point
 - Original assets by [ansimuz](https://opengameart.org/content/tiny-rpg-forest)
 - The UI is based on original assets by [Mounir Tohami](https://mounirtohami.itch.io/pixel-art-gui-elements)

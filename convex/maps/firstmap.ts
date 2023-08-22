@@ -7,7 +7,7 @@
 // - The second is populated with objects the characters cannot walk on
 // --
 
-export const tilesetpath = '/assets/rpg-tileset.png';
+export const tilesetpath = '/ai-town/assets/rpg-tileset.png';
 // sort of a hack to deal with limitations in the tile map
 export const bgtileindex = 51;
 

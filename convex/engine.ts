@@ -136,7 +136,8 @@ export async function enqueueAgentWake(
   return true;
 }
 
-export const freezeAll = mutation({
+// Freeze is made internal on the Convex hosted branch.
+export const freezeAll = internalMutation({
   args: {},
   handler: async (ctx, args) => {
     const worlds = await ctx.db.query('worlds').collect();
@@ -146,7 +147,7 @@ export const freezeAll = mutation({
   },
 });
 
-export const unfreeze = mutation({
+export const unfreeze = internalMutation({
   args: { worldId: v.optional(v.id('worlds')) },
   handler: async (ctx, args) => {
     const world = await ctx.db.query('worlds').order('desc').first();

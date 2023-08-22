@@ -56,7 +56,7 @@ export default function MusicButton() {
         <div className="inline-block bg-clay-700">
           <span>
             <div className="inline-flex items-center gap-4">
-              <img className="w-6 h-6" src="/assets/volume.svg" />
+              <img className="w-6 h-6" src="/ai-town/assets/volume.svg" />
               {isPlaying ? 'Mute' : 'Music'}
             </div>
           </span>
