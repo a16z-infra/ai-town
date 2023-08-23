@@ -1,4 +1,5 @@
 import * as PIXI from 'pixi.js'
+import * as INTER from './interactive.js'
 import { EventSystem } from '@pixi/events';
 
 // --
@@ -174,21 +175,6 @@ function addTileLevelPx(x, y, index, levelcontainer, sprites) {
     sprites[new_index] = ctile;
 }
 
-var level0_sprites = {};
-square0.on('mousedown', function (e) {
-    console.log('Level 0: X', e.data.global.x, 'Y', e.data.global.y);
-
-    let xorig = e.data.global.x;
-    let yorig = e.data.global.y;
-
-    if (selected_tiles.length == 0) {
-        addTileLevelPx(e.data.global.x, e.data.global.y, tile_index, level0_container, level0_sprites);
-    } else {
-        for (index of selected_tiles) {
-            addTileLevelPx(xorig + index[0] * tileDim, yorig + index[1] * tileDim, index[2], level0_container, level0_sprites);
-        }
-    }
-  });
 
 var level1_sprites = {};
 square1.on('mousedown', function (e) {
@@ -258,12 +244,15 @@ let endy   = 0;
 // Listen to pointermove on stage once handle is pressed.
 function onDragStart(e)
 {
-    console.log("onDragStart()");
+    console.log("onDragStartTileset()");
     tileset_app.stage.eventMode = 'static';
     tileset_app.stage.addEventListener('pointermove', onDrag);
     
     startx = e.data.global.x;
     starty = e.data.global.y;
+    endx = e.data.global.x;
+    endy = e.data.global.y;
+
     tileset_app.stage.addChild(dragsquare);
 
     selected_tiles = [];
@@ -272,7 +261,7 @@ function onDragStart(e)
 // Stop dragging feedback once the handle is released.
 function onDragEnd(e)
 {
-    console.log("onDragEnd()");
+    console.log("onDragEndTileset()");
     tileset_app.stage.eventMode = 'auto';
     tileset_app.stage.removeEventListener('pointermove', onDrag);
     tileset_app.stage.removeChild(dragsquare);
@@ -281,7 +270,12 @@ function onDragEnd(e)
     let starttiley = Math.floor(starty / tileDim);
     let endtilex = Math.floor(endx / tileDim);
     let endtiley = Math.floor(endy / tileDim);
+
     console.log("sx sy ex ey ",starttilex,",",starttiley,",",endtilex,",",endtiley);
+    // let mouse clicked handle if there isn't a multiple tile square
+    if(starttilex === endtilex && starttiley === endtiley ){
+        return;
+    }
 
     tile_index = (starttiley * num32xtiles) + starttilex;
 
@@ -300,6 +294,7 @@ function onDragEnd(e)
 
 function onDrag(e)
 {
+    console.log("onDragTileset()");
     endx = e.data.global.x;
     endy = e.data.global.y;
     
@@ -360,4 +355,175 @@ for (let i = 0; i < 1600; i+=gridsize) {
             index++;
         }
     }
+}
+
+// --
+// Variable placement logic
+// --
+
+var dragsquare0 = new PIXI.Graphics();
+
+let startx0 = 0;
+let starty0 = 0;
+let endx0   = 0;
+let endy0   = 0;
+
+var level0_sprites = {};
+square0.on('mousedown', function (e) {
+    console.log('Level 0: X', e.data.global.x, 'Y', e.data.global.y);
+
+    let xorig = e.data.global.x;
+    let yorig = e.data.global.y;
+
+    if (selected_tiles.length == 0) {
+        addTileLevelPx(e.data.global.x, e.data.global.y, tile_index, level0_container, level0_sprites);
+    } else {
+        for (index of selected_tiles) {
+            addTileLevelPx(xorig + index[0] * tileDim, yorig + index[1] * tileDim, index[2], level0_container, level0_sprites);
+        }
+    }
+  });
+
+square0.on('pointerdown', onDragStart0)
+         .on('pointerup', onDragEnd0)
+         .on('pointerupoutside', onDragEnd0);
+
+
+// Listen to pointermove on stage once handle is pressed.
+function onDragStart0(e)
+{
+    console.log("onDragStart0()");
+    level_app0.stage.eventMode = 'static';
+    level_app0.stage.addEventListener('pointermove', onDrag0);
+
+    startx0 = e.data.global.x;
+    starty0 = e.data.global.y;
+    endx0 = e.data.global.x;
+    endy0 = e.data.global.y;
+
+    level_app0.stage.addChild(dragsquare0);
+}
+
+// Stop dragging feedback once the handle is released.
+function onDragEnd0(e)
+{
+    endx0 = e.data.global.x;
+    endy0 = e.data.global.y;
+    if(startx0 == -1){
+        return;
+    }
+    console.log("onDragEnd0()");
+    level_app0.stage.eventMode = 'auto';
+    level_app0.stage.removeEventListener('pointermove', onDrag0);
+    level_app0.stage.removeChild(dragsquare0);
+
+    let starttilex = Math.floor(startx0 / tileDim);
+    let starttiley = Math.floor(starty0 / tileDim);
+    let endtilex = Math.floor(endx0 / tileDim);
+    let endtiley = Math.floor(endy0 / tileDim);
+
+    console.log("sx ",starttilex," ex ",endtilex);
+    console.log("sy ",starttiley," ey ",endtiley);
+
+    // let mouse clicked handle if there isn't a multiple tile square
+    if(starttilex === endtilex && starttiley == endtiley ){
+        return;
+    }
+
+
+    if (selected_tiles.length == 0) {
+        for (let i = starttilex; i <= endtilex; i++) {
+            for (let j = starttiley; j <= endtiley; j++) {
+                let squareindex = (j * num32xtiles) + i;
+                console.log("i,j ", i, ",", j);
+                console.log("index ", squareindex);
+                addTileLevelPx(i * tileDim, j * tileDim, tile_index, level0_container, level0_sprites);
+
+            }
+        }
+    } else {
+
+        // figure out selected grid
+        let selected_grid = [50];
+        let row = 0;
+        let column = 0;
+        let selected_row = selected_tiles[0][0];
+        selected_grid[0] = [];
+        for (index of selected_tiles) {
+            if(index[0] != selected_row){
+                selected_row = index[0];
+                row++;
+                column = 0;
+                selected_grid[row] = [];
+            }
+            selected_grid[row][column++]  = index;
+        }
+        // at this point should have a 3D array of the selected tiles and the size should be row, column
+
+        for (let i = starttilex; i <= endtilex; i++) {
+            for (let j = starttiley; j <= endtiley; j++) {
+                let squareindex = (j * num32xtiles) + i;
+                if (j === starttiley) { // first row 
+                    if (i === starttilex) { // top left corner
+                        console.log("Top left!");
+                        addTileLevelPx(i * tileDim, j * tileDim, selected_grid[0][0][2], level0_container, level0_sprites);
+                    }
+                    else if (i == endtilex ) { // top right corner
+                        console.log("Top right!");
+                        addTileLevelPx(i * tileDim, j * tileDim, selected_grid[column-1][0][2], level0_container, level0_sprites);
+                    }else{ // top middle
+                        addTileLevelPx(i * tileDim, j * tileDim, selected_grid[1][0][2], level0_container, level0_sprites);
+                    }
+                } else if (j === endtiley){ // last row
+                    if (i === starttilex) { // bottom left corner
+                        console.log("Bottom left!");
+                        addTileLevelPx(i * tileDim, j * tileDim, selected_grid[0][row][2], level0_container, level0_sprites);
+                    }
+                    else if (i == endtilex ) { // bottom right corner
+                        console.log("Bottom right!");
+                        addTileLevelPx(i * tileDim, j * tileDim, selected_grid[column-1][row][2], level0_container, level0_sprites);
+                    }else{ // bottom middle
+                        addTileLevelPx(i * tileDim, j * tileDim, selected_grid[1][row][2], level0_container, level0_sprites);
+                    }
+                }else{ // middle row
+                    if (i === starttilex) { // middle left 
+                        addTileLevelPx(i * tileDim, j * tileDim, selected_grid[0][1][2], level0_container, level0_sprites);
+                    }
+                    else if (i === endtilex ) { // middle end 
+                        addTileLevelPx(i * tileDim, j * tileDim, selected_grid[column-1][1][2], level0_container, level0_sprites);
+                    }else{ // middle middle
+                        addTileLevelPx(i * tileDim, j * tileDim, selected_grid[1][1][2], level0_container, level0_sprites);
+                    }
+                } 
+
+            }
+        }
+    }
+
+    dragsquare0.clear();
+
+    startx0 = -1;
+    starty0 = -1;
+}
+
+function onDrag0(e)
+{
+    if(startx0 == -1){
+        return;
+    }
+
+    endx0 = e.data.global.x;
+    endy0 = e.data.global.y;
+
+    console.log("onDrag0()");
+    
+    dragsquare0.clear();
+    dragsquare0.beginFill(0xFF3300, 0.3);
+    dragsquare0.lineStyle(2, 0xffd900, 1);
+    dragsquare0.moveTo(startx0, starty0);
+    dragsquare0.lineTo(endx0, starty0);
+    dragsquare0.lineTo(endx0, endy0);
+    dragsquare0.lineTo(startx0, endy0);
+    dragsquare0.closePath();
+    dragsquare0.endFill();
 }
