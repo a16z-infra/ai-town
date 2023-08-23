@@ -35,6 +35,8 @@ export const Game = ({
           worldHeight={worldState.map.tileSetDim}
         >
           <PixiStaticMap map={worldState.map}></PixiStaticMap>
+          {/* Re-propagate context because contexts are not shared between renderers.
+https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-531549215 */}
           <ConvexProvider client={convex}>
             {players.map((player) => (
               <Player
