@@ -79,11 +79,11 @@ const useServerTimeOffset = (worldId: Id<'worlds'> | undefined) => {
       prev.current.push(newOffset);
       if (prev.current.length > 5) prev.current.shift();
       const rollingOffset =
-        prev.current.length === 1
+        prev.current.length < 3
           ? prev.current
           : // Take off the max & min as outliers
             [...prev.current].sort().slice(1, -1);
-      const avgOffset = rollingOffset.reduce((a, b) => a + b, 0) / prev.current.length;
+      const avgOffset = rollingOffset.reduce((a, b) => a + b, 0) / rollingOffset.length;
       setOffset(avgOffset);
     };
     void updateOffset();
