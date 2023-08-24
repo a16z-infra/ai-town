@@ -1,46 +1,23 @@
 import * as PIXI from 'pixi.js'
+import { g_context }  from './context.js' // global context
+import * as CONFIG from './levelconfig.js' 
 import * as INTER from './interactive.js'
 import { EventSystem } from '@pixi/events';
 
-// --
-// Globals
-// --
-
-let tile_index = 0; // selected index from tileset
-let selected_tiles = [];
-
-const tilesetfile = "./magecity.png";
-const tilefilew = 256;
-const tilefileh = 1450;
-
-let num32xtiles = tilefilew/32; 
-let num32ytiles = 44; // FIXME get around bad filelength in magecity
-// let num32ytiles = tilefileh/32; 
-let tileDim = 32;
-let dimlog = Math.log2(tileDim); 
-
-
-// const tilesetfile = "./pipo.png";
-// const tilefilew = 256;
-// const tilefileh = 4256;
-
-const levelwidth  = 1600;
-const levelheight = 1600;
-
 // First layer of level
-const level_app0 = new PIXI.Application( {backgroundColor: 0x2980b9, width : levelwidth, height : levelheight, view: document.getElementById('level0')});
-
+const level_app0 = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.LEVELWIDTH, height : CONFIG.LEVELHEIGHT, view: document.getElementById('level0')});
 // second layer of level 
-const level_app1 = new PIXI.Application( {backgroundColor: 0x2980b9, width : levelwidth, height : levelheight, view: document.getElementById('level1')});
-
+const level_app1 = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.LEVELWIDTH, height : CONFIG.LEVELHEIGHT, view: document.getElementById('level1')});
 //  object layer of level
-const level_app2    = new PIXI.Application( {backgroundColor: 0x2980b9, width : levelwidth, height : levelheight, view: document.getElementById('level3')});
-
+const level_app2    = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.LEVELWIDTH, height : CONFIG.LEVELHEIGHT, view: document.getElementById('level3')});
 // composite view 
-const composite_app = new PIXI.Application( {backgroundColor: 0x2980b9, width : levelwidth, height : levelheight, view: document.getElementById('composite')});
-
+const composite_app = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.LEVELWIDTH, height : CONFIG.LEVELHEIGHT, view: document.getElementById('composite')});
 // tileset
-const tileset_app = new PIXI.Application( {width :tilefilew, height : tilefileh, view: document.getElementById('tileset')});
+const tileset_app = new PIXI.Application( {width :CONFIG.TILEFILEW, height : CONFIG.TILEFILEH, view: document.getElementById('tileset')});
+const { renderer } = tileset_app;
+
+// Install the EventSystem
+renderer.addSystem(EventSystem, 'tileevents');
 
 const tiles32 = []; 
 const tiles16 = []; 
@@ -56,30 +33,38 @@ window.toggleindex = () => {
 
 // fill base level with 32x32 tiles of current index
 window.fill0 = () => {
-    for(let i = 0; i < levelwidth / 32; i++){
-        for(let j = 0; j < levelheight / 32; j++){
-            addTileLevel0Coords(i,j,32, tile_index);
+    for(let i = 0; i < CONFIG.LEVELWIDTH / 32; i++){
+        for(let j = 0; j < CONFIG.LEVELHEIGHT / 32; j++){
+            addTileLevel0Coords(i,j,32, g_context.tile_index);
         }
     }
 }
+
+window.addEventListener(
+    "keydown", (event) => {
+        if (event.code == 'KeyF'){
+            window.fill0();
+        }
+     }
+  );
 
 // Size of tiles we're working with
 window.setGridDim = (val) => {
     console.log("setGridDim ",val);
     if(val == 16){
-        if(tileDim == 16) {return;}
-        num32xtiles /= (val/tileDim);
-        num32ytiles /= (val/tileDim);
-        tileDim = 16; 
-        dimlog = Math.log2(tileDim); 
+        if(g_context.tileDim == 16) {return;}
+        CONFIG.NUM32XTILES /= (val/g_context.tileDim);
+        CONFIG.NUM32YTILES /= (val/g_context.tileDim);
+        g_context.tileDim = 16; 
+        g_context.dimlog = Math.log2(g_context.tileDim); 
         curtiles = tiles16;
         console.log("set to curTiles16");
     }else if (val == 32){
-        if(tileDim == 32) {return;}
-        num32xtiles /= (val/tileDim);
-        num32ytiles /= (val/tileDim);
-        tileDim = 32; 
-        dimlog = Math.log2(tileDim); 
+        if(g_context.tileDim == 32) {return;}
+        CONFIG.NUM32XTILES /= (val/g_context.tileDim);
+        CONFIG.NUM32YTILES /= (val/g_context.tileDim);
+        g_context.tileDim = 32; 
+        g_context.dimlog = Math.log2(g_context.tileDim); 
         curtiles = tiles32;
         console.log("set to curTiles32");
     }else{
@@ -95,46 +80,29 @@ const level2_container = new PIXI.Container();
 const composite_container = new PIXI.Container();
 
 // load tileset into a global array of textures for blitting onto levels
-const bt = PIXI.BaseTexture.from(tilesetfile, {
+const bt = PIXI.BaseTexture.from(CONFIG.TILESETFILE, {
     scaleMode: PIXI.SCALE_MODES.NEAREST,
   });
-for (let x = 0; x < num32xtiles; x++) {
-  for (let y = 0; y < num32ytiles; y++) {
-    tiles32[x + y * num32xtiles] = new PIXI.Texture(
+for (let x = 0; x < CONFIG.NUM32XTILES; x++) {
+  for (let y = 0; y < CONFIG.NUM32YTILES; y++) {
+    tiles32[x + y * CONFIG.NUM32XTILES] = new PIXI.Texture(
       bt,
       new PIXI.Rectangle(x * 32, y * 32, 32, 32),
     );
   }
 }
-for (let x = 0; x < num32xtiles*2; x++) {
-  for (let y = 0; y < num32ytiles*2; y++) {
-    tiles16[x + y * num32xtiles*2] = new PIXI.Texture(
+for (let x = 0; x < CONFIG.NUM32XTILES*2; x++) {
+  for (let y = 0; y < CONFIG.NUM32YTILES*2; y++) {
+    tiles16[x + y * CONFIG.NUM32XTILES*2] = new PIXI.Texture(
       bt,
       new PIXI.Rectangle(x * 16, y * 16, 16, 16),
     );
   }
 }
 
-var square0 = new PIXI.Graphics();
-square0.beginFill(0x2980b9);
-square0.drawRect(0, 0, 1600, 1600);
-square0.endFill();
-square0.interactive = true;
-level0_container.addChild(square0);
-
-var square1 = new PIXI.Graphics();
-square1.beginFill(0x2980b9);
-square1.drawRect(0, 0, 1600, 1600);
-square1.endFill();
-square1.interactive = true;
-level1_container.addChild(square1);
-
-var square2 = new PIXI.Graphics();
-square2.beginFill(0x2980b9);
-square2.drawRect(0, 0, 1600, 1600);
-square2.endFill();
-square2.interactive = true;
-level2_container.addChild(square2);
+var square0 = INTER.set_interactive(level0_container);
+var square1 = INTER.set_interactive(level1_container);
+var square2 = INTER.set_interactive(level2_container);
 
 function addTileLevel0Coords(x, y, dim, index) {
     //addTileLevel0Px(x*dim, y*dim, index);
@@ -156,13 +124,13 @@ function addTileLevelPx(x, y, index, levelcontainer, sprites) {
     const ctile2 = new PIXI.Sprite(curtiles[index]); // composite map
 
     // snap to grid
-    ctile.x = (xPx >> dimlog) << dimlog; 
-    ctile2.x = (xPx >> dimlog) << dimlog; 
-    ctile.y = (yPx>>dimlog) << dimlog;
-    ctile2.y = (yPx>>dimlog) << dimlog;
+    ctile.x = (xPx >> g_context.dimlog) << g_context.dimlog; 
+    ctile2.x = (xPx >> g_context.dimlog) << g_context.dimlog; 
+    ctile.y = (yPx>>g_context.dimlog) << g_context.dimlog;
+    ctile2.y = (yPx>>g_context.dimlog) << g_context.dimlog;
 
     // console.log('ctile.x ', ctile.x, 'ctile.y ', ctile.y);
-    let new_index = ctile.x + (ctile.y*num32xtiles*tileDim);
+    let new_index = ctile.x + (ctile.y*CONFIG.NUM32XTILES*g_context.tileDim);
     // console.log('Level0 index',new_index);
 
     if(sprites.hasOwnProperty(new_index)){
@@ -175,47 +143,14 @@ function addTileLevelPx(x, y, index, levelcontainer, sprites) {
     sprites[new_index] = ctile;
 }
 
-
-var level1_sprites = {};
-square1.on('mousedown', function (e) {
-    console.log('Level 1: X', e.data.global.x, 'Y', e.data.global.y);
-
-    let xorig = e.data.global.x;
-    let yorig = e.data.global.y;
-
-    if (selected_tiles.length == 0) {
-        addTileLevelPx(e.data.global.x, e.data.global.y, tile_index, level1_container, level1_sprites);
-    } else {
-        for (index of selected_tiles) {
-            addTileLevelPx(xorig + index[0] * tileDim, yorig + index[1] * tileDim, index[2], level1_container, level1_sprites);
-        }
-    }
-  });
-
-var level2_sprites = {};
-square2.on('mousedown', function (e) {
-    console.log('Level 2: X', e.data.global.x, 'Y', e.data.global.y);
-
-    let xorig = e.data.global.x;
-    let yorig = e.data.global.y;
-
-    if (selected_tiles.length == 0) {
-        addTileLevelPx(e.data.global.x, e.data.global.y, tile_index, level2_container, level2_sprites);
-    } else {
-        for (index of selected_tiles) {
-            addTileLevelPx(xorig + index[0] * tileDim, yorig + index[1] * tileDim, index[2], level2_container, level2_sprites);
-        }
-    }
-  });
-
 const tilesetcontainer = new PIXI.Container();
-const texture = PIXI.Texture.from(tilesetfile);
+const texture = PIXI.Texture.from(CONFIG.TILESETFILE);
 const bg = new PIXI.Sprite(texture);
 
 var tilesetsq = new PIXI.Graphics();
-tilesetsq.drawRect(0, 0, tilefilew, tilefileh);
+tilesetsq.drawRect(0, 0, CONFIG.TILEFILEW, CONFIG.TILEFILEH);
 tilesetsq.beginFill(0x2980b9);
-tilesetsq.drawRect(0, 0, tilefilew, tilefileh);
+tilesetsq.drawRect(0, 0, CONFIG.TILEFILEW, CONFIG.TILEFILEH);
 tilesetsq.interactive = true;
 tilesetcontainer.addChild(tilesetsq);
 tilesetcontainer.addChild(bg);
@@ -223,12 +158,12 @@ tilesetcontainer.addChild(bg);
 tilesetsq.on('mousedown', function (e) {
     console.log('Mouse clicked');
 
-    let tilex = Math.floor(e.data.global.x / tileDim);
-    let tiley = Math.floor(e.data.global.y / tileDim);
+    let tilex = Math.floor(e.data.global.x / g_context.tileDim);
+    let tiley = Math.floor(e.data.global.y / g_context.tileDim);
 
-    tile_index = (tiley * num32xtiles) + tilex;
+    g_context.tile_index = (tiley * CONFIG.NUM32XTILES) + tilex;
 
-    console.log('X', tilex, 'Y', tiley, 'index:  ',tile_index);
+    console.log('X', tilex, 'Y', tiley, 'index:  ',g_context.tile_index);
 });
 
 tilesetsq.on('pointerdown', onDragStart)
@@ -255,7 +190,7 @@ function onDragStart(e)
 
     tileset_app.stage.addChild(dragsquare);
 
-    selected_tiles = [];
+    g_context.selected_tiles = [];
 }
 
 // Stop dragging feedback once the handle is released.
@@ -266,10 +201,10 @@ function onDragEnd(e)
     tileset_app.stage.removeEventListener('pointermove', onDrag);
     tileset_app.stage.removeChild(dragsquare);
 
-    let starttilex = Math.floor(startx / tileDim);
-    let starttiley = Math.floor(starty / tileDim);
-    let endtilex = Math.floor(endx / tileDim);
-    let endtiley = Math.floor(endy / tileDim);
+    let starttilex = Math.floor(startx / g_context.tileDim);
+    let starttiley = Math.floor(starty / g_context.tileDim);
+    let endtilex = Math.floor(endx / g_context.tileDim);
+    let endtiley = Math.floor(endy / g_context.tileDim);
 
     console.log("sx sy ex ey ",starttilex,",",starttiley,",",endtilex,",",endtiley);
     // let mouse clicked handle if there isn't a multiple tile square
@@ -277,16 +212,16 @@ function onDragEnd(e)
         return;
     }
 
-    tile_index = (starttiley * num32xtiles) + starttilex;
+    g_context.tile_index = (starttiley * CONFIG.NUM32XTILES) + starttilex;
 
     let origx = starttilex;
     let origy = starttiley;
     for(let i = starttilex; i <= endtilex; i++){
         for(let j = starttiley; j <= endtiley; j++){
-            let squareindex = (j * num32xtiles) + i;
+            let squareindex = (j * CONFIG.NUM32XTILES) + i;
             console.log("i,j ",i,",",j);
             console.log("index ",squareindex);
-            selected_tiles.push([i - origx,j - origy,squareindex]);
+            g_context.selected_tiles.push([i - origx,j - origy,squareindex]);
         }
     }
     dragsquare.clear();
@@ -309,9 +244,11 @@ function onDrag(e)
     dragsquare.endFill();
 }
 
-
-
 level_app0.stage.addChild(level0_container);
+level_app0.stage.addEventListener('keydown', function handleKey(key)
+{
+    console.log('key! ',key);
+});
 level_app1.stage.addChild(level1_container);
 level_app2.stage.addChild(level2_container);
 
@@ -320,20 +257,20 @@ tileset_app.stage.addChild(tilesetcontainer);
 
 const graphics = new PIXI.Graphics();
 
-let gridsize = tileDim;
+let gridsize = g_context.tileDim;
 
 graphics.lineStyle(1, 0xffffff, 1);
 let index = 0;
-for (let i = 0; i < 1600; i+=gridsize) {
+for (let i = 0; i < CONFIG.LEVELWIDTH; i+=gridsize) {
     graphics.moveTo(i, 0);
-    graphics.lineTo(i, 1600);
+    graphics.lineTo(i, CONFIG.LEVELHEIGHT);
     graphics.moveTo(i+gridsize, 0);
-    graphics.lineTo(i+gridsize, 1600);
+    graphics.lineTo(i+gridsize, CONFIG.LEVELHEIGHT);
 
     graphics.moveTo(0, i);
-    graphics.lineTo(1600, i);
+    graphics.lineTo(CONFIG.LEVELWIDTH, i);
     graphics.moveTo(0, i+gridsize);
-    graphics.lineTo(1600, i+gridsize);
+    graphics.lineTo(CONFIG.LEVELWIDTH, i+gridsize);
 
     tilesetcontainer.addChild(graphics);
     level0_container.addChild(graphics.clone());
@@ -344,7 +281,7 @@ for (let i = 0; i < 1600; i+=gridsize) {
 
     if (indexswitch) {
         let style = { fontFamily: 'Arial', fontSize: 10, fill: 0xffffff, align: 'center', };
-        for (let j = 0; j < 1600; j += gridsize) {
+        for (let j = 0; j < CONFIG.LEVELHEIGHT; j += gridsize) {
             const itxt2 = new PIXI.Text('' + index, style);
             const itxt3 = new PIXI.Text('' + index, style);
 
@@ -357,70 +294,121 @@ for (let i = 0; i < 1600; i+=gridsize) {
     }
 }
 
+
 // --
-// Variable placement logic
+// Variable placement logic Level0
 // --
+
+
+function DragState() {
+    this.leveldragsquare = new PIXI.Graphics();
+    this.starx  = 0;
+    this.starty = 0;
+    this.endx   = 0;
+    this.endy   = 0;
+}
+
 
 var dragsquare0 = new PIXI.Graphics();
-
-let startx0 = 0;
-let starty0 = 0;
-let endx0   = 0;
-let endy0   = 0;
-
 var level0_sprites = {};
-square0.on('mousedown', function (e) {
+let dragctx0 = new DragState();
+square0.on('mousedown',   drag_mousedown.bind(null,  level0_container, level0_sprites));
+square0.on('pointerdown', drag_pointerdown.bind(null, dragctx0, dragsquare0, level_app0))
+         .on('pointerup', drag_onend.bind(null, dragctx0, dragsquare0, level_app0, level0_container, level0_sprites))
+         .on('pointerupoutside', drag_onend.bind(null, dragctx0, dragsquare0, level_app0, level0_container, level0_sprites)); 
+
+var dragsquare1 = new PIXI.Graphics();
+var level1_sprites = {};
+let dragctx1 = new DragState();
+square1.on('mousedown',   drag_mousedown.bind(null,  level1_container, level1_sprites));
+square1.on('pointerdown', drag_pointerdown.bind(null, dragctx1, dragsquare1, level_app1))
+         .on('pointerup', drag_onend.bind(null, dragctx1, dragsquare1, level_app1, level1_container, level1_sprites))
+         .on('pointerupoutside', drag_onend.bind(null, dragctx1, dragsquare1, level_app1, level1_container, level1_sprites)); 
+
+var dragsquare2 = new PIXI.Graphics();
+var level2_sprites = {};
+let dragctx2 = new DragState();
+square2.on('mousedown',   drag_mousedown.bind(null,  level2_container, level2_sprites));
+square2.on('pointerdown', drag_pointerdown.bind(null, dragctx2, dragsquare2, level_app2))
+         .on('pointerup', drag_onend.bind(null, dragctx2, dragsquare2, level_app2, level2_container, level2_sprites))
+         .on('pointerupoutside', drag_onend.bind(null, dragctx2, dragsquare2, level_app2, level2_container, level2_sprites)); 
+
+
+// --
+// Variable placement logic Level1
+// --
+
+
+function drag_mousedown(level_container, level_sprites, e) {
     console.log('Level 0: X', e.data.global.x, 'Y', e.data.global.y);
+    console.log(level_container);
+    console.log(level_sprites);
 
     let xorig = e.data.global.x;
     let yorig = e.data.global.y;
 
-    if (selected_tiles.length == 0) {
-        addTileLevelPx(e.data.global.x, e.data.global.y, tile_index, level0_container, level0_sprites);
+    if (g_context.selected_tiles.length == 0) {
+        addTileLevelPx(e.data.global.x, e.data.global.y, g_context.tile_index, level_container, level_sprites);
     } else {
-        for (index of selected_tiles) {
-            addTileLevelPx(xorig + index[0] * tileDim, yorig + index[1] * tileDim, index[2], level0_container, level0_sprites);
+        for (index of g_context.selected_tiles) {
+            addTileLevelPx(xorig + index[0] * g_context.tileDim, yorig + index[1] * g_context.tileDim, index[2], level_container, level_sprites);
         }
     }
-  });
-
-square0.on('pointerdown', onDragStart0)
-         .on('pointerup', onDragEnd0)
-         .on('pointerupoutside', onDragEnd0);
-
+}
 
 // Listen to pointermove on stage once handle is pressed.
-function onDragStart0(e)
+function drag_pointerdown(ctx, leveldragsquare, level_app, e)
 {
-    console.log("onDragStart0()");
-    level_app0.stage.eventMode = 'static';
-    level_app0.stage.addEventListener('pointermove', onDrag0);
+    console.log("drag_pointerdown()");
+    level_app.stage.eventMode = 'static';
+    level_app.stage.addEventListener('pointermove', on_drag.bind(null, ctx, leveldragsquare));
 
-    startx0 = e.data.global.x;
-    starty0 = e.data.global.y;
-    endx0 = e.data.global.x;
-    endy0 = e.data.global.y;
+    ctx.startx0 = e.data.global.x;
+    ctx.starty0 = e.data.global.y;
+    ctx.endx0 = e.data.global.x;
+    ctx.endy0 = e.data.global.y;
 
-    level_app0.stage.addChild(dragsquare0);
+    level_app.stage.addChild(leveldragsquare);
+}
+
+function on_drag(ctx, leveldragsquare, e)
+{
+    if(ctx.startx0 == -1){
+        return;
+    }
+
+    ctx.endx0 = e.data.global.x;
+    ctx.endy0 = e.data.global.y;
+
+    console.log("on_drag()");
+    
+    leveldragsquare.clear();
+    leveldragsquare.beginFill(0xFF3300, 0.3);
+    leveldragsquare.lineStyle(2, 0xffd900, 1);
+    leveldragsquare.moveTo(ctx.startx0, ctx.starty0);
+    leveldragsquare.lineTo(ctx.endx0, ctx.starty0);
+    leveldragsquare.lineTo(ctx.endx0, ctx.endy0);
+    leveldragsquare.lineTo(ctx.startx0, ctx.endy0);
+    leveldragsquare.closePath();
+    leveldragsquare.endFill();
 }
 
 // Stop dragging feedback once the handle is released.
-function onDragEnd0(e)
+function drag_onend(ctx, leveldragsquare, level_app, level_container, level_sprites, e)
 {
-    endx0 = e.data.global.x;
-    endy0 = e.data.global.y;
-    if(startx0 == -1){
+    ctx.endx0 = e.data.global.x;
+    ctx.endy0 = e.data.global.y;
+    if(ctx.startx0 == -1){
         return;
     }
-    console.log("onDragEnd0()");
-    level_app0.stage.eventMode = 'auto';
-    level_app0.stage.removeEventListener('pointermove', onDrag0);
-    level_app0.stage.removeChild(dragsquare0);
+    console.log("drag_onend()");
+    level_app.stage.eventMode = 'auto';
+    level_app.stage.removeChild(leveldragsquare);
 
-    let starttilex = Math.floor(startx0 / tileDim);
-    let starttiley = Math.floor(starty0 / tileDim);
-    let endtilex = Math.floor(endx0 / tileDim);
-    let endtiley = Math.floor(endy0 / tileDim);
+    let starttilex = Math.floor(ctx.startx0 / g_context.tileDim);
+    let starttiley = Math.floor(ctx.starty0 / g_context.tileDim);
+    let endtilex = Math.floor(ctx.endx0 / g_context.tileDim);
+    let endtiley = Math.floor(ctx.endy0 / g_context.tileDim);
 
     console.log("sx ",starttilex," ex ",endtilex);
     console.log("sy ",starttiley," ey ",endtiley);
@@ -430,14 +418,13 @@ function onDragEnd0(e)
         return;
     }
 
-
-    if (selected_tiles.length == 0) {
+    if (g_context.selected_tiles.length == 0) {
         for (let i = starttilex; i <= endtilex; i++) {
             for (let j = starttiley; j <= endtiley; j++) {
-                let squareindex = (j * num32xtiles) + i;
+                let squareindex = (j * CONFIG.NUM32XTILES) + i;
                 console.log("i,j ", i, ",", j);
                 console.log("index ", squareindex);
-                addTileLevelPx(i * tileDim, j * tileDim, tile_index, level0_container, level0_sprites);
+                addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, g_context.tile_index, level_container, level_sprites);
 
             }
         }
@@ -447,9 +434,9 @@ function onDragEnd0(e)
         let selected_grid = [50];
         let row = 0;
         let column = 0;
-        let selected_row = selected_tiles[0][0];
+        let selected_row = g_context.selected_tiles[0][0];
         selected_grid[0] = [];
-        for (index of selected_tiles) {
+        for (index of g_context.selected_tiles) {
             if(index[0] != selected_row){
                 selected_row = index[0];
                 row++;
@@ -462,37 +449,37 @@ function onDragEnd0(e)
 
         for (let i = starttilex; i <= endtilex; i++) {
             for (let j = starttiley; j <= endtiley; j++) {
-                let squareindex = (j * num32xtiles) + i;
+                let squareindex = (j * CONFIG.NUM32XTILES) + i;
                 if (j === starttiley) { // first row 
                     if (i === starttilex) { // top left corner
                         console.log("Top left!");
-                        addTileLevelPx(i * tileDim, j * tileDim, selected_grid[0][0][2], level0_container, level0_sprites);
+                        addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[0][0][2], level_container, level_sprites);
                     }
                     else if (i == endtilex ) { // top right corner
                         console.log("Top right!");
-                        addTileLevelPx(i * tileDim, j * tileDim, selected_grid[column-1][0][2], level0_container, level0_sprites);
+                        addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[column-1][0][2], level_container, level_sprites);
                     }else{ // top middle
-                        addTileLevelPx(i * tileDim, j * tileDim, selected_grid[1][0][2], level0_container, level0_sprites);
+                        addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[1][0][2], level_container, level_sprites);
                     }
                 } else if (j === endtiley){ // last row
                     if (i === starttilex) { // bottom left corner
                         console.log("Bottom left!");
-                        addTileLevelPx(i * tileDim, j * tileDim, selected_grid[0][row][2], level0_container, level0_sprites);
+                        addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[0][row][2], level_container, level_sprites);
                     }
                     else if (i == endtilex ) { // bottom right corner
                         console.log("Bottom right!");
-                        addTileLevelPx(i * tileDim, j * tileDim, selected_grid[column-1][row][2], level0_container, level0_sprites);
+                        addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[column-1][row][2], level_container, level_sprites);
                     }else{ // bottom middle
-                        addTileLevelPx(i * tileDim, j * tileDim, selected_grid[1][row][2], level0_container, level0_sprites);
+                        addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[1][row][2], level_container, level_sprites);
                     }
                 }else{ // middle row
                     if (i === starttilex) { // middle left 
-                        addTileLevelPx(i * tileDim, j * tileDim, selected_grid[0][1][2], level0_container, level0_sprites);
+                        addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[0][1][2], level_container, level_sprites);
                     }
                     else if (i === endtilex ) { // middle end 
-                        addTileLevelPx(i * tileDim, j * tileDim, selected_grid[column-1][1][2], level0_container, level0_sprites);
+                        addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[column-1][1][2], level_container, level_sprites);
                     }else{ // middle middle
-                        addTileLevelPx(i * tileDim, j * tileDim, selected_grid[1][1][2], level0_container, level0_sprites);
+                        addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[1][1][2], level_container, level_sprites);
                     }
                 } 
 
@@ -500,30 +487,8 @@ function onDragEnd0(e)
         }
     }
 
-    dragsquare0.clear();
+    leveldragsquare.clear();
 
-    startx0 = -1;
-    starty0 = -1;
-}
-
-function onDrag0(e)
-{
-    if(startx0 == -1){
-        return;
-    }
-
-    endx0 = e.data.global.x;
-    endy0 = e.data.global.y;
-
-    console.log("onDrag0()");
-    
-    dragsquare0.clear();
-    dragsquare0.beginFill(0xFF3300, 0.3);
-    dragsquare0.lineStyle(2, 0xffd900, 1);
-    dragsquare0.moveTo(startx0, starty0);
-    dragsquare0.lineTo(endx0, starty0);
-    dragsquare0.lineTo(endx0, endy0);
-    dragsquare0.lineTo(startx0, endy0);
-    dragsquare0.closePath();
-    dragsquare0.endFill();
+    ctx.startx0 = -1;
+    ctx.starty0 = -1;
 }
