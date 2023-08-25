@@ -19,7 +19,8 @@ export async function chatCompletion(
     retries,
     ms,
   } = await retryWithBackoff(async () => {
-    const result = await fetch('https://api.openai.com/v1/chat/completions', {
+    const apiUrl = `${process.env.OPENAI_API_BASE}/v1/chat/completions`;
+    const result = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -61,7 +62,8 @@ export async function fetchEmbeddingBatch(texts: string[]) {
     retries,
     ms,
   } = await retryWithBackoff(async () => {
-    const result = await fetch('https://api.openai.com/v1/embeddings', {
+    const apiUrl = `${process.env.OPENAI_API_BASE}/v1/embeddings`;
+    const result = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
