@@ -4,7 +4,7 @@ import {
   getPoseFromMotion,
   getRemainingPathFromMotion,
   manhattanDistance,
-  roundPosition,
+  roundPose,
 } from './physics';
 
 // null is the root path / starting point
@@ -111,13 +111,15 @@ export function findRoute(
     return next;
   };
   const startPose = getPoseFromMotion(startMotion, ts);
-  let startPos = roundPosition(startPose.position);
+  const fractionalStartPos = startPose.position;
+  let startPos = roundPose(startPose).position;
+  const startDistance = manhattanDistance(fractionalStartPos, startPos);
   if (blocked(startPos, 0)) {
     const next = makeNext({ pos: startPos, distance: 0, cost: 0, prev: null });
     if (next.length) startPos = next[0].pos;
   }
   if (startPos.x === end.x && startPos.y === end.y && !blocked(startPos, 0)) {
-    return { route: [startPos], distance: 0 };
+    return { route: [fractionalStartPos, startPos], distance: startDistance };
   }
   const minheap = MinHeap<Path>((more, less) => more.cost > less.cost);
   const startPath = {
@@ -142,14 +144,15 @@ export function findRoute(
   }
   if (!path) {
     // TODO: Find the closest point we can get to.
-    return { route: [startPos], distance: 0 };
+    return { route: [fractionalStartPos, startPos], distance: startDistance };
   }
   const denseRoute: Position[] = [path.pos];
-  const distance = path.distance;
+  const distance = path.distance + startDistance;
   while (path.prev) {
     path = path.prev;
     denseRoute.push(path.pos);
   }
+  denseRoute.push(fractionalStartPos);
   denseRoute.reverse();
   const route = makeSparsePath(denseRoute);
   return { route, distance };
