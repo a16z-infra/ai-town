@@ -31,7 +31,9 @@ export async function chatCompletion(
     if (!result.ok) {
       throw {
         retry: result.status === 429 || result.status >= 500,
-        error: new Error(`Embedding failed with code ${result.status}: ${await result.text()}`),
+        error: new Error(
+          `Chat completion failed with code ${result.status}: ${await result.text()}`,
+        ),
       };
     }
     return (await result.json()) as CreateChatCompletionResponse;
