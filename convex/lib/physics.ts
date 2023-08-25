@@ -98,14 +98,22 @@ export function getRouteDistance(route: Position[]): number {
   }, 0);
 }
 
-export function roundPosition(pos: Position): Position {
-  return { x: Math.round(pos.x), y: Math.round(pos.y) };
-}
-
 export function roundPose(pose: Pose): Pose {
+  const p = pose.position;
+  // Degress counter-clockwise from East/Right
+  const orientation = 90 * Math.round(pose.orientation / 90);
+  // Round in the direction of movement.
+  const position =
+    orientation === 0
+      ? { x: Math.ceil(p.x), y: Math.round(p.y) } // right
+      : orientation === 90
+      ? { x: Math.round(p.x), y: Math.floor(p.y) } // up
+      : orientation === 180
+      ? { x: Math.floor(p.x), y: Math.round(p.y) } // left
+      : { x: Math.round(p.x), y: Math.ceil(p.y) }; // down
   return {
-    position: roundPosition(pose.position),
-    orientation: 90 * Math.round(pose.orientation / 90),
+    position,
+    orientation,
   };
 }
 
