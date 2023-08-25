@@ -21,6 +21,7 @@ renderer.addSystem(EventSystem, 'tileevents');
 
 const tiles32 = []; 
 const tiles16 = []; 
+let placed_cache = [];
 
 let curtiles = tiles32;
 
@@ -44,6 +45,9 @@ window.addEventListener(
     "keydown", (event) => {
         if (event.code == 'KeyF'){
             window.fill0();
+        }
+        else if (event.code == 'KeyG'){
+            drawGrid(); 
         }
      }
   );
@@ -249,51 +253,75 @@ level_app0.stage.addEventListener('keydown', function handleKey(key)
 {
     console.log('key! ',key);
 });
+
 level_app1.stage.addChild(level1_container);
 level_app2.stage.addChild(level2_container);
-
 composite_app.stage.addChild(composite_container);
 tileset_app.stage.addChild(tilesetcontainer);
 
-const graphics = new PIXI.Graphics();
+function drawGrid() {
 
-let gridsize = g_context.tileDim;
+    if (typeof drawGrid.lines == 'undefined') {
+        drawGrid.toggle = true;
+        drawGrid.lines = [];
+        drawGrid.graphics = new PIXI.Graphics();
 
-graphics.lineStyle(1, 0xffffff, 1);
-let index = 0;
-for (let i = 0; i < CONFIG.LEVELWIDTH; i+=gridsize) {
-    graphics.moveTo(i, 0);
-    graphics.lineTo(i, CONFIG.LEVELHEIGHT);
-    graphics.moveTo(i+gridsize, 0);
-    graphics.lineTo(i+gridsize, CONFIG.LEVELHEIGHT);
+        let gridsize = g_context.tileDim;
+        drawGrid.graphics.lineStyle(1, 0xffffff, 1);
 
-    graphics.moveTo(0, i);
-    graphics.lineTo(CONFIG.LEVELWIDTH, i);
-    graphics.moveTo(0, i+gridsize);
-    graphics.lineTo(CONFIG.LEVELWIDTH, i+gridsize);
+        let index = 0;
+        for (let i = 0; i < CONFIG.LEVELWIDTH; i += gridsize) {
+            drawGrid.graphics.moveTo(i, 0);
+            drawGrid.graphics.lineTo(i, CONFIG.LEVELHEIGHT);
+            drawGrid.graphics.moveTo(i + gridsize, 0);
+            drawGrid.graphics.lineTo(i + gridsize, CONFIG.LEVELHEIGHT);
 
-    tilesetcontainer.addChild(graphics);
-    level0_container.addChild(graphics.clone());
-    level1_container.addChild(graphics.clone());
-    level2_container.addChild(graphics.clone());
+            drawGrid.graphics.moveTo(0, i);
+            drawGrid.graphics.lineTo(CONFIG.LEVELWIDTH, i);
+            drawGrid.graphics.moveTo(0, i + gridsize);
+            drawGrid.graphics.lineTo(CONFIG.LEVELWIDTH, i + gridsize);
 
-    // Slows things down so commenting out for now
-
-    if (indexswitch) {
-        let style = { fontFamily: 'Arial', fontSize: 10, fill: 0xffffff, align: 'center', };
-        for (let j = 0; j < CONFIG.LEVELHEIGHT; j += gridsize) {
-            const itxt2 = new PIXI.Text('' + index, style);
-            const itxt3 = new PIXI.Text('' + index, style);
-
-            itxt2.x = j; itxt3.x = j;
-            itxt2.y = i; itxt3.y = i;
-            level0_container.addChild(itxt2);
-            level1_container.addChild(itxt3);
-            index++;
+            // tilesetcontainer.addChild(graphics);
+            // level0_container.addChild(graphics.clone());
+            // level1_container.addChild(graphics.clone());
+            // level2_container.addChild(graphics.clone());
         }
+            drawGrid.graphics0 = drawGrid.graphics.clone();
+            drawGrid.graphics1 = drawGrid.graphics.clone();
+            drawGrid.graphics2 = drawGrid.graphics.clone();
+            drawGrid.graphics3 = drawGrid.graphics.clone();
     }
-}
 
+    if (drawGrid.toggle) {
+        tilesetcontainer.addChild(drawGrid.graphics);
+        level0_container.addChild(drawGrid.graphics0);
+        level1_container.addChild(drawGrid.graphics1);
+        level2_container.addChild(drawGrid.graphics2);
+        composite_container.addChild(drawGrid.graphics3);
+    }else{
+        tilesetcontainer.removeChild(drawGrid.graphics);
+        level0_container.removeChild(drawGrid.graphics0);
+        level1_container.removeChild(drawGrid.graphics1);
+        level2_container.removeChild(drawGrid.graphics2);
+        composite_container.removeChild(drawGrid.graphics3);
+    }
+
+    drawGrid.toggle = !drawGrid.toggle;
+
+    //if (indexswitch) {
+    //    let style = { fontFamily: 'Arial', fontSize: 10, fill: 0xffffff, align: 'center', };
+    //    for (let j = 0; j < CONFIG.LEVELHEIGHT; j += gridsize) {
+    //        const itxt2 = new PIXI.Text('' + index, style);
+    //        const itxt3 = new PIXI.Text('' + index, style);
+
+    //        itxt2.x = j; itxt3.x = j;
+    //        itxt2.y = i; itxt3.y = i;
+    //        level0_container.addChild(itxt2);
+    //        level1_container.addChild(itxt3);
+    //        index++;
+    //    }
+    //}
+}
 
 // --
 // Variable placement logic Level0
@@ -313,6 +341,9 @@ var dragsquare0 = new PIXI.Graphics();
 var level0_sprites = {};
 let dragctx0 = new DragState();
 square0.on('mousedown',   drag_mousedown.bind(null,  level0_container, level0_sprites));
+square0.on('mousemove',   drag_mousemove.bind(null));
+square0.on('mouseover',    drag_mouseover);
+
 square0.on('pointerdown', drag_pointerdown.bind(null, dragctx0, dragsquare0, level_app0))
          .on('pointerup', drag_onend.bind(null, dragctx0, dragsquare0, level_app0, level0_container, level0_sprites))
          .on('pointerupoutside', drag_onend.bind(null, dragctx0, dragsquare0, level_app0, level0_container, level0_sprites)); 
@@ -321,6 +352,8 @@ var dragsquare1 = new PIXI.Graphics();
 var level1_sprites = {};
 let dragctx1 = new DragState();
 square1.on('mousedown',   drag_mousedown.bind(null,  level1_container, level1_sprites));
+square1.on('mousemove',   drag_mousemove.bind(null));
+square1.on('mouseover',    drag_mouseover);
 square1.on('pointerdown', drag_pointerdown.bind(null, dragctx1, dragsquare1, level_app1))
          .on('pointerup', drag_onend.bind(null, dragctx1, dragsquare1, level_app1, level1_container, level1_sprites))
          .on('pointerupoutside', drag_onend.bind(null, dragctx1, dragsquare1, level_app1, level1_container, level1_sprites)); 
@@ -329,6 +362,8 @@ var dragsquare2 = new PIXI.Graphics();
 var level2_sprites = {};
 let dragctx2 = new DragState();
 square2.on('mousedown',   drag_mousedown.bind(null,  level2_container, level2_sprites));
+square2.on('mousemove',   drag_mousemove.bind(null));
+square2.on('mouseover',    drag_mouseover);
 square2.on('pointerdown', drag_pointerdown.bind(null, dragctx2, dragsquare2, level_app2))
          .on('pointerup', drag_onend.bind(null, dragctx2, dragsquare2, level_app2, level2_container, level2_sprites))
          .on('pointerupoutside', drag_onend.bind(null, dragctx2, dragsquare2, level_app2, level2_container, level2_sprites)); 
@@ -338,11 +373,20 @@ square2.on('pointerdown', drag_pointerdown.bind(null, dragctx2, dragsquare2, lev
 // Variable placement logic Level1
 // --
 
+var compositecircle = new PIXI.Graphics();
+function drag_mouseover(e) {
+    composite_app.stage.removeChild(compositecircle);
+    composite_app.stage.addChild(compositecircle);
+}
+function drag_mousemove(e) {
+    compositecircle.clear();
+    compositecircle.beginFill(0xe50000, 0.5);
+    compositecircle.drawCircle(e.data.global.x, e.data.global.y, 3);
+    compositecircle.endFill();
+}
 
 function drag_mousedown(level_container, level_sprites, e) {
     console.log('Level 0: X', e.data.global.x, 'Y', e.data.global.y);
-    console.log(level_container);
-    console.log(level_sprites);
 
     let xorig = e.data.global.x;
     let yorig = e.data.global.y;
@@ -350,7 +394,8 @@ function drag_mousedown(level_container, level_sprites, e) {
     if (g_context.selected_tiles.length == 0) {
         addTileLevelPx(e.data.global.x, e.data.global.y, g_context.tile_index, level_container, level_sprites);
     } else {
-        for (index of g_context.selected_tiles) {
+
+        for (let index of g_context.selected_tiles) {
             addTileLevelPx(xorig + index[0] * g_context.tileDim, yorig + index[1] * g_context.tileDim, index[2], level_container, level_sprites);
         }
     }
@@ -436,7 +481,7 @@ function drag_onend(ctx, leveldragsquare, level_app, level_container, level_spri
         let column = 0;
         let selected_row = g_context.selected_tiles[0][0];
         selected_grid[0] = [];
-        for (index of g_context.selected_tiles) {
+        for (let index of g_context.selected_tiles) {
             if(index[0] != selected_row){
                 selected_row = index[0];
                 row++;
