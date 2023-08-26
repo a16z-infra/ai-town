@@ -66,6 +66,15 @@ b. **OpenAI API key**
 
 Visit https://platform.openai.com/account/api-keys to get your OpenAI API key if you're using OpenAI for your language model.
 
+You can use the default `https://api.openai.com` or a third-party proxy website. You just need:
+
+1. Make sure that the third-party website supports and enables the corresponding model (for example: `gpt-3.5-turbo-16k`, `text-embedding-ada-002`)
+2. Add "Environment Variables" in convex "Settings": `OPENAI_API_BASE` and `OPENAI_API_KEY`
+```
+OPENAI_API_BASE=<your-base-url>
+OPENAI_API_KEY=<your-api-key>
+```
+
 c. **Pinecone API keys**
 
 - Create a Pinecone index by visiting https://app.pinecone.io/ and click on "Create Index"
