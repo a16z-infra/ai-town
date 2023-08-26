@@ -14,12 +14,13 @@ export async function chatCompletion(
   }
 
   body.model = body.model ?? 'gpt-3.5-turbo-16k';
+  const openaiApiBase = process.env.OPENAI_API_BASE || 'https://api.openai.com';
   const {
     result: json,
     retries,
     ms,
   } = await retryWithBackoff(async () => {
-    const apiUrl = `${process.env.OPENAI_API_BASE}/v1/chat/completions`;
+    const apiUrl = openaiApiBase + '/v1/chat/completions';
     const result = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -57,12 +58,13 @@ export async function fetchEmbeddingBatch(texts: string[]) {
         '    npx convex dashboard\n or https://dashboard.convex.dev',
     );
   }
+  const openaiApiBase = process.env.OPENAI_API_BASE || 'https://api.openai.com';
   const {
     result: json,
     retries,
     ms,
   } = await retryWithBackoff(async () => {
-    const apiUrl = `${process.env.OPENAI_API_BASE}/v1/embeddings`;
+    const apiUrl = openaiApiBase + '/v1/embeddings';
     const result = await fetch(apiUrl, {
       method: 'POST',
       headers: {
