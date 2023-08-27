@@ -6,6 +6,17 @@ import * as UNDO from './undo.js'
 import * as FILE from './mapfile.js'
 import { EventSystem } from '@pixi/events';
 
+
+function tile_index_from_coords(x, y) {
+    return x + (y*CONFIG.NUM32XTILES*g_context.tileDim);
+}
+
+function tile_index_from_px(x, y) {
+    let coord_x = Math.floor(x / g_context.tileDim);
+    let coord_y = Math.floor(y / g_context.tileDim);
+    return tile_index_from_coords(coord_x, coord_y); 
+}
+
 function DragState() {
     this.leveldragsquare = new PIXI.Graphics();
     this.starx  = 0;
@@ -67,6 +78,44 @@ class LayerContext {
         composite_sprites[new_index] = ctile2;
         return new_index;
     }
+
+    drawGrid() {
+        if (typeof this.lines == 'undefined') {
+            this.toggle = true;
+            this.lines = [];
+            this.grid_graphics = new PIXI.Graphics();
+
+            let gridsize = g_context.tileDim;
+            this.grid_graphics.lineStyle(1, 0xffffff, 1);
+
+            let index = 0;
+            for (let i = 0; i < CONFIG.LEVELWIDTH; i += gridsize) {
+                this.grid_graphics.moveTo(i, 0);
+                this.grid_graphics.lineTo(i, CONFIG.LEVELHEIGHT);
+                this.grid_graphics.moveTo(i + gridsize, 0);
+                this.grid_graphics.lineTo(i + gridsize, CONFIG.LEVELHEIGHT);
+
+                this.grid_graphics.moveTo(0, i);
+                this.grid_graphics.lineTo(CONFIG.LEVELWIDTH, i);
+                this.grid_graphics.moveTo(0, i + gridsize);
+                this.grid_graphics.lineTo(CONFIG.LEVELWIDTH, i + gridsize);
+            }
+        }
+        if (this.toggle) {
+            this.container.addChild(this.grid_graphics);
+        } else {
+            this.container.removeChild(this.grid_graphics);
+        }
+
+        this.toggle = !this.toggle;
+    }
+}
+
+class TilesetContext {
+    constructor(app) {
+        this.app = app;
+    }
+
 }
 
 //  all tiles in tilemap are loaded and stored in these arrays
@@ -82,11 +131,13 @@ const layer0 = new LayerContext(level_app0, 0);
 const level_app1 = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.LEVELWIDTH, height : CONFIG.LEVELHEIGHT, view: document.getElementById('level1')});
 const layer1 = new LayerContext(level_app1,1);
 
-
 //  object layer of level
 const level_app2    = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.LEVELWIDTH, height : CONFIG.LEVELHEIGHT, view: document.getElementById('level3')});
 const layer2 = new LayerContext(level_app2, 2);
 
+//  object layer of level
+const level_app3    = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.LEVELWIDTH, height : CONFIG.LEVELHEIGHT, view: document.getElementById('level4')});
+const layer3 = new LayerContext(level_app3, 3);
 
 // composite view 
 const composite_app = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.LEVELWIDTH, height : CONFIG.LEVELHEIGHT, view: document.getElementById('composite')});
@@ -97,20 +148,12 @@ const { renderer } = tileset_app;
 // Install the EventSystem
 renderer.addSystem(EventSystem, 'tileevents');
 
-
-
 let curtiles = tiles32;
 
 let indexswitch = false;
 
-window.toggleindex = () => {
-    indexswitch = !indexswitch;
-    console.log("toggle ",indexswitch);
- }
-
 window.create_level_file = () => {
     generate_level_file();
-
 }
 
 function generate_level_file() {
@@ -188,6 +231,10 @@ window.addEventListener(
             window.fill0();
         }
         else if (event.code == 'KeyG'){
+            layer0.drawGrid();
+            layer1.drawGrid();
+            layer2.drawGrid();
+            layer3.drawGrid();
             drawGrid(); 
         }
         else if (event.ctrlKey && event.code === 'KeyZ'){
@@ -231,15 +278,6 @@ window.setGridDim = (val) => {
         console.debug("Invalid TileDim!");
     }
  }
-
-function tile_index_from_coords(x, y) {
-    return x + (y*CONFIG.NUM32XTILES*g_context.tileDim);
-}
-function tile_index_from_px(x, y) {
-    let coord_x = Math.floor(x / g_context.tileDim);
-    let coord_y = Math.floor(y / g_context.tileDim);
-    return tile_index_from_coords(coord_x, coord_y); 
-}
 
 
 const composite_container = new PIXI.Container();
@@ -367,10 +405,6 @@ function onDrag(e)
     dragsquare.endFill();
 }
 
-//level_app0.stage.addChild(layer0.container);
-
-level_app1.stage.addChild(layer1.container);
-level_app2.stage.addChild(layer2.container);
 composite_app.stage.addChild(composite_container);
 tileset_app.stage.addChild(tilesetcontainer);
 
@@ -396,48 +430,18 @@ function drawGrid() {
             drawGrid.graphics.moveTo(0, i + gridsize);
             drawGrid.graphics.lineTo(CONFIG.LEVELWIDTH, i + gridsize);
         }
-            drawGrid.graphics0 = drawGrid.graphics.clone();
-            drawGrid.graphics1 = drawGrid.graphics.clone();
-            drawGrid.graphics2 = drawGrid.graphics.clone();
             drawGrid.graphics3 = drawGrid.graphics.clone();
     }
 
     if (drawGrid.toggle) {
         tilesetcontainer.addChild(drawGrid.graphics);
-        layer0.container.addChild(drawGrid.graphics0);
-        layer1.container.addChild(drawGrid.graphics1);
-        layer2.container.addChild(drawGrid.graphics2);
         composite_container.addChild(drawGrid.graphics3);
     }else{
         tilesetcontainer.removeChild(drawGrid.graphics);
-        layer0.container.removeChild(drawGrid.graphics0);
-        layer1.container.removeChild(drawGrid.graphics1);
-        layer2.container.removeChild(drawGrid.graphics2);
         composite_container.removeChild(drawGrid.graphics3);
     }
-
     drawGrid.toggle = !drawGrid.toggle;
-
-    //if (indexswitch) {
-    //    let style = { fontFamily: 'Arial', fontSize: 10, fill: 0xffffff, align: 'center', };
-    //    for (let j = 0; j < CONFIG.LEVELHEIGHT; j += gridsize) {
-    //        const itxt2 = new PIXI.Text('' + index, style);
-    //        const itxt3 = new PIXI.Text('' + index, style);
-
-    //        itxt2.x = j; itxt3.x = j;
-    //        itxt2.y = i; itxt3.y = i;
-    //        level0_container.addChild(itxt2);
-    //        layer1.container.addChild(itxt3);
-    //        index++;
-    //    }
-    //}
 }
-
-// --
-// Variable placement logic Level0
-// --
-
-
 
 var composite_sprites = {};
 
