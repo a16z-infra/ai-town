@@ -252,7 +252,25 @@ function generate_level_file() {
         let y_coord = child.y / CONFIG.TILEDIM;
         tile_array2[x_coord][y_coord] = child.index;
     }
-    FILE.write_map_file(tile_array0, tile_array1, tile_array2);
+
+    //  object level
+    var tile_array3 = Array.from(Array(CONFIG.LEVELTILEWIDTH), () => new Array(CONFIG.LEVELTILEHEIGHT));
+    for (let x = 0; x < CONFIG.LEVELTILEWIDTH; x++) {
+        for (let y = 0; y < CONFIG.LEVELTILEHEIGHT; y++) {
+            tile_array3[x][y] = -1;
+        }
+    }
+    for (var i = 0; i < layer3.container.children.length; i++) {
+        var child = layer3.container.children[i];
+        if (!child.hasOwnProperty('index')) {
+            continue;
+        }
+        let x_coord = child.x / CONFIG.TILEDIM;
+        let y_coord = child.y / CONFIG.TILEDIM;
+        tile_array3[x_coord][y_coord] = child.index;
+    }
+
+    FILE.write_map_file(tile_array0, tile_array1, tile_array2, tile_array3);
 }
 
 // fill base level with 32x32 tiles of current index
@@ -271,6 +289,9 @@ window.addEventListener(
     "keydown", (event) => {
         if (event.code == 'KeyF'){
             window.fill0();
+        }
+        else if (event.code == 'KeyS'){
+            generate_level_file();
         }
         else if (event.code == 'KeyG'){
             layer0.drawGrid();
@@ -361,12 +382,12 @@ function onTilesetDragEnd(e)
 
     let origx = starttilex;
     let origy = starttiley;
-    for(let i = starttilex; i <= endtilex; i++){
-        for(let j = starttiley; j <= endtiley; j++){
-            let squareindex = (j * CONFIG.NUM32XTILES) + i;
-            console.log("i,j ",i,",",j);
+    for(let y = starttiley; y <= endtiley; y++){
+        for(let x = starttilex; x <= endtilex; x++){
+            let squareindex = (y * CONFIG.NUM32XTILES) + x;
+            console.log("x,y ",x,",",y);
             console.log("index ",squareindex);
-            g_context.selected_tiles.push([i - origx,j - origy,squareindex]);
+            g_context.selected_tiles.push([x - origx,y - origy,squareindex]);
         }
     }
     tileset.dragctx.square.clear();
@@ -537,19 +558,22 @@ function onLevelDragEnd(layer, e)
         UNDO.undo_mark_task_end();
     } else {
         // figure out selected grid
-        let selected_grid = [50];
+        let selected_grid = Array.from(Array(64), () => new Array(64)); // FIXME ... hope 64x64 is enough
         let row = 0;
         let column = 0;
-        let selected_row = g_context.selected_tiles[0][0];
-        selected_grid[0] = [];
+        let selected_row = g_context.selected_tiles[0][1];
+        // selected_grid[0] = [];
         for (let index of g_context.selected_tiles) {
-            if(index[0] != selected_row){
-                selected_row = index[0];
+            // console.log("Selected row ", selected_row, index);
+            if(index[1] != selected_row){
+                selected_row = index[1];
+                console.log("NEW ROW");
                 row++;
                 column = 0;
-                selected_grid[row] = [];
+                //selected_grid[row] = [];
             }
-            selected_grid[row][column++]  = index;
+            selected_grid[column++][row]  = index;
+            console.log("Adding to grid ",column-1, row, index);
         }
         // at this point should have a 3D array of the selected tiles and the size should be row, column
 
