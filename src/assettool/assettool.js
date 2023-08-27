@@ -474,7 +474,7 @@ function onLevelMousedown(layer, e) {
         UNDO.undo_add_single_index_as_task(layer.container, layer.container, ti);
     } else {
         let undolist = [];
-        UNDO.undo_mark_task_start(layer.container, layer.container);
+        UNDO.undo_mark_task_start(layer.container, layer.sprites);
         for (let index of g_context.selected_tiles) {
             let ti = layer.addTileLevelPx(xorig + index[0] * g_context.tileDim, yorig + index[1] * g_context.tileDim, index[2]);
             UNDO.undo_add_index_to_task(ti);
