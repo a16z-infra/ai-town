@@ -18,7 +18,7 @@ function tile_index_from_px(x, y) {
 }
 
 function DragState() {
-    this.leveldragsquare = new PIXI.Graphics();
+    this.square = new PIXI.Graphics();
     this.starx  = 0;
     this.starty = 0;
     this.endx   = 0;
@@ -30,19 +30,18 @@ class LayerContext {
         this.num =  num;
         this.app = app;
         this.container = new PIXI.Container();
-        this.dragsquare = new PIXI.Graphics();
         this.sprites = {};
         this.dragctx = new DragState();
 
         app.stage.addChild(this.container);
         this.square = INTER.set_interactive(this.container);
 
-        this.square.on('mousedown',   drag_mousedown.bind(null,  this));
-        this.square.on('mousemove',   drag_mousemove.bind(null));
-        this.square.on('mouseover',    drag_mouseover);
-        this.square.on('pointerdown', drag_pointerdown.bind(null, this))
-         .on('pointerup', drag_onend.bind(null, this))
-         .on('pointerupoutside', drag_onend.bind(null, this)); 
+        this.square.on('mousedown',   onLevelMousedown.bind(null,  this));
+        this.square.on('mousemove',   onLevelMousemove.bind(null));
+        this.square.on('mouseover',    onLevelMouseover);
+        this.square.on('pointerdown', onLevelPointerDown.bind(null, this))
+         .on('pointerup', onLevelDragEnd.bind(null, this))
+         .on('pointerupoutside', onLevelDragEnd.bind(null, this)); 
     }
 
     addTileLevelCoords(x, y, dim, index) {
@@ -70,12 +69,12 @@ class LayerContext {
         if (this.sprites.hasOwnProperty(new_index)) {
             console.log("level: removing old tile", new_index);
             this.container.removeChild(this.sprites[new_index]);
-            composite_container.removeChild(composite_sprites[new_index]);
+            composite.container.removeChild(composite.sprites[new_index]);
         }
         this.container.addChild(ctile);
-        composite_container.addChild(ctile2);
+        composite.container.addChild(ctile2);
         this.sprites[new_index] = ctile;
-        composite_sprites[new_index] = ctile2;
+        composite.sprites[new_index] = ctile2;
         return new_index;
     }
 
@@ -109,14 +108,58 @@ class LayerContext {
 
         this.toggle = !this.toggle;
     }
-}
+} // class  LayerContext
 
 class TilesetContext {
     constructor(app) {
         this.app = app;
+        this.container = new PIXI.Container();
+
+        const texture = PIXI.Texture.from(CONFIG.TILESETFILE);
+        const bg    = new PIXI.Sprite(texture);
+        this.square = new PIXI.Graphics();
+        this.square.drawRect(0, 0, CONFIG.TILEFILEW, CONFIG.TILEFILEH);
+        this.square.beginFill(0x2980b9);
+        this.square.drawRect(0, 0, CONFIG.TILEFILEW, CONFIG.TILEFILEH);
+        this.square.interactive = true;
+        this.container.addChild(this.square);
+        this.container.addChild(bg);
+        
+        this.app.stage.addChild(this.container);
+
+        this.dragctx = new DragState();
+
+        this.square.on('mousedown', function (e) {
+            console.log('Mouse clicked');
+
+            let tilex = Math.floor(e.data.global.x / g_context.tileDim);
+            let tiley = Math.floor(e.data.global.y / g_context.tileDim);
+
+            g_context.tile_index = (tiley * CONFIG.NUM32XTILES) + tilex;
+
+            console.log('X', tilex, 'Y', tiley, 'index:  ',g_context.tile_index);
+        });
+
+        this.square.on('pointerdown', onTilesetDragStart)
+                .on('pointerup', onTilesetDragEnd)
+                .on('pointerupoutside', onTilesetDragEnd);
+    }
+} // class TilesetContext
+
+
+class CompositeContext {
+
+    constructor(app) {
+        this.app = app;
+        this.container = new PIXI.Container();
+        this.app.stage.addChild(this.container);
+        this.sprites = {};
+        this.circle = new PIXI.Graphics();
     }
 
-}
+} // class CompositeContext
+
+// -- Editor wide globals --
 
 //  all tiles in tilemap are loaded and stored in these arrays
 const tiles32  = []; 
@@ -125,7 +168,6 @@ const tiles16  = [];
 // First layer of level
 const level_app0 = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.LEVELWIDTH, height : CONFIG.LEVELHEIGHT, view: document.getElementById('level0')});
 const layer0 = new LayerContext(level_app0, 0);
-
 
 // second layer of level 
 const level_app1 = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.LEVELWIDTH, height : CONFIG.LEVELHEIGHT, view: document.getElementById('level1')});
@@ -141,23 +183,25 @@ const layer3 = new LayerContext(level_app3, 3);
 
 // composite view 
 const composite_app = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.LEVELWIDTH, height : CONFIG.LEVELHEIGHT, view: document.getElementById('composite')});
+const composite = new CompositeContext(composite_app);
+
 // tileset
 const tileset_app = new PIXI.Application( {width :CONFIG.TILEFILEW, height : CONFIG.TILEFILEH, view: document.getElementById('tileset')});
 const { renderer } = tileset_app;
-
 // Install the EventSystem
 renderer.addSystem(EventSystem, 'tileevents');
+let tileset = new TilesetContext(tileset_app);
 
-let curtiles = tiles32;
-
+// these two are currently unused, was using to switch between 16 bit and 32 bit tiles
+let curtiles = tiles32; 
 let indexswitch = false;
+
 
 window.create_level_file = () => {
     generate_level_file();
 }
 
 function generate_level_file() {
-
     // level0 
     var tile_array0 = Array.from(Array(CONFIG.LEVELTILEWIDTH), () => new Array(CONFIG.LEVELTILEHEIGHT));
     for (let x = 0; x < CONFIG.LEVELTILEWIDTH; x++) {
@@ -174,7 +218,6 @@ function generate_level_file() {
         let y_coord = child.y / CONFIG.TILEDIM;
         tile_array0[x_coord][y_coord] = child.index;
     }
-
 
     // level1 
     var tile_array1 = Array.from(Array(CONFIG.LEVELTILEWIDTH), () => new Array(CONFIG.LEVELTILEHEIGHT));
@@ -209,7 +252,6 @@ function generate_level_file() {
         let y_coord = child.y / CONFIG.TILEDIM;
         tile_array2[x_coord][y_coord] = child.index;
     }
-
     FILE.write_map_file(tile_array0, tile_array1, tile_array2);
 }
 
@@ -249,7 +291,7 @@ window.addEventListener(
             for(let i = 0; i < undome.length; i++) {
                 console.log("removing! ",undome[i])
                 lcontainer.removeChild(lsprites[undome[i]]);
-                composite_container.removeChild(composite_sprites[undome[i]]);
+                composite.container.removeChild(composite.sprites[undome[i]]);
             }
         }
      }
@@ -279,93 +321,35 @@ window.setGridDim = (val) => {
     }
  }
 
-
-const composite_container = new PIXI.Container();
-
-// load tileset into a global array of textures for blitting onto levels
-const bt = PIXI.BaseTexture.from(CONFIG.TILESETFILE, {
-    scaleMode: PIXI.SCALE_MODES.NEAREST,
-  });
-for (let x = 0; x < CONFIG.NUM32XTILES; x++) {
-  for (let y = 0; y < CONFIG.NUM32YTILES; y++) {
-    tiles32[x + y * CONFIG.NUM32XTILES] = new PIXI.Texture(
-      bt,
-      new PIXI.Rectangle(x * 32, y * 32, 32, 32),
-    );
-  }
-}
-for (let x = 0; x < CONFIG.NUM32XTILES*2; x++) {
-  for (let y = 0; y < CONFIG.NUM32YTILES*2; y++) {
-    tiles16[x + y * CONFIG.NUM32XTILES*2] = new PIXI.Texture(
-      bt,
-      new PIXI.Rectangle(x * 16, y * 16, 16, 16),
-    );
-  }
-}
-
-
-const tilesetcontainer = new PIXI.Container();
-const texture = PIXI.Texture.from(CONFIG.TILESETFILE);
-const bg = new PIXI.Sprite(texture);
-
-var tilesetsq = new PIXI.Graphics();
-tilesetsq.drawRect(0, 0, CONFIG.TILEFILEW, CONFIG.TILEFILEH);
-tilesetsq.beginFill(0x2980b9);
-tilesetsq.drawRect(0, 0, CONFIG.TILEFILEW, CONFIG.TILEFILEH);
-tilesetsq.interactive = true;
-tilesetcontainer.addChild(tilesetsq);
-tilesetcontainer.addChild(bg);
-
-tilesetsq.on('mousedown', function (e) {
-    console.log('Mouse clicked');
-
-    let tilex = Math.floor(e.data.global.x / g_context.tileDim);
-    let tiley = Math.floor(e.data.global.y / g_context.tileDim);
-
-    g_context.tile_index = (tiley * CONFIG.NUM32XTILES) + tilex;
-
-    console.log('X', tilex, 'Y', tiley, 'index:  ',g_context.tile_index);
-});
-
-tilesetsq.on('pointerdown', onDragStart)
-         .on('pointerup', onDragEnd)
-         .on('pointerupoutside', onDragEnd);
-
-var dragsquare = new PIXI.Graphics();
-let startx = 0;
-let starty = 0;
-let endx   = 0;
-let endy   = 0;
-
 // Listen to pointermove on stage once handle is pressed.
-function onDragStart(e)
+function onTilesetDragStart(e)
 {
     console.log("onDragStartTileset()");
-    tileset_app.stage.eventMode = 'static';
-    tileset_app.stage.addEventListener('pointermove', onDrag);
+    tileset.app.stage.eventMode = 'static';
+    tileset.app.stage.addEventListener('pointermove', onTilesetDrag);
     
-    startx = e.data.global.x;
-    starty = e.data.global.y;
-    endx = e.data.global.x;
-    endy = e.data.global.y;
+    tileset.dragctx.startx = e.data.global.x;
+    tileset.dragctx.starty = e.data.global.y;
+    tileset.dragctx.endx = e.data.global.x;
+    tileset.dragctx.endy = e.data.global.y;
 
-    tileset_app.stage.addChild(dragsquare);
+    tileset.app.stage.addChild(tileset.dragctx.square);
 
     g_context.selected_tiles = [];
 }
 
 // Stop dragging feedback once the handle is released.
-function onDragEnd(e)
+function onTilesetDragEnd(e)
 {
     console.log("onDragEndTileset()");
-    tileset_app.stage.eventMode = 'auto';
-    tileset_app.stage.removeEventListener('pointermove', onDrag);
-    tileset_app.stage.removeChild(dragsquare);
+    tileset.app.stage.eventMode = 'auto';
+    tileset.app.stage.removeEventListener('pointermove', onTilesetDrag);
+    tileset.app.stage.removeChild(tileset.dragctx.square);
 
-    let starttilex = Math.floor(startx / g_context.tileDim);
-    let starttiley = Math.floor(starty / g_context.tileDim);
-    let endtilex = Math.floor(endx / g_context.tileDim);
-    let endtiley = Math.floor(endy / g_context.tileDim);
+    let starttilex = Math.floor(tileset.dragctx.startx / g_context.tileDim);
+    let starttiley = Math.floor(tileset.dragctx.starty / g_context.tileDim);
+    let endtilex = Math.floor(tileset.dragctx.endx / g_context.tileDim);
+    let endtiley = Math.floor(tileset.dragctx.endy / g_context.tileDim);
 
     console.log("sx sy ex ey ",starttilex,",",starttiley,",",endtilex,",",endtiley);
     // let mouse clicked handle if there isn't a multiple tile square
@@ -385,28 +369,27 @@ function onDragEnd(e)
             g_context.selected_tiles.push([i - origx,j - origy,squareindex]);
         }
     }
-    dragsquare.clear();
+    tileset.dragctx.square.clear();
 }
 
-function onDrag(e)
+function onTilesetDrag(e)
 {
     console.log("onDragTileset()");
-    endx = e.data.global.x;
-    endy = e.data.global.y;
+    tileset.dragctx.endx = e.data.global.x;
+    tileset.dragctx.endy = e.data.global.y;
     
-    dragsquare.clear();
-    dragsquare.beginFill(0xFF3300, 0.3);
-    dragsquare.lineStyle(2, 0xffd900, 1);
-    dragsquare.moveTo(startx, starty);
-    dragsquare.lineTo(endx, starty);
-    dragsquare.lineTo(endx, endy);
-    dragsquare.lineTo(startx, endy);
-    dragsquare.closePath();
-    dragsquare.endFill();
+    tileset.dragctx.square.clear();
+    tileset.dragctx.square.beginFill(0xFF3300, 0.3);
+    tileset.dragctx.square.lineStyle(2, 0xffd900, 1);
+    tileset.dragctx.square.moveTo(tileset.dragctx.startx, tileset.dragctx.starty);
+    tileset.dragctx.square.lineTo(tileset.dragctx.endx, tileset.dragctx.starty);
+    tileset.dragctx.square.lineTo(tileset.dragctx.endx, tileset.dragctx.endy);
+    tileset.dragctx.square.lineTo(tileset.dragctx.startx, tileset.dragctx.endy);
+    tileset.dragctx.square.closePath();
+    tileset.dragctx.square.endFill();
 }
 
-composite_app.stage.addChild(composite_container);
-tileset_app.stage.addChild(tilesetcontainer);
+//tileset.app.stage.addChild(tileset.container);
 
 function drawGrid() {
 
@@ -434,34 +417,32 @@ function drawGrid() {
     }
 
     if (drawGrid.toggle) {
-        tilesetcontainer.addChild(drawGrid.graphics);
-        composite_container.addChild(drawGrid.graphics3);
+        tileset.container.addChild(drawGrid.graphics);
+        composite.container.addChild(drawGrid.graphics3);
     }else{
-        tilesetcontainer.removeChild(drawGrid.graphics);
-        composite_container.removeChild(drawGrid.graphics3);
+        tileset.container.removeChild(drawGrid.graphics);
+        composite.container.removeChild(drawGrid.graphics3);
     }
     drawGrid.toggle = !drawGrid.toggle;
 }
 
-var composite_sprites = {};
 
 // --
 // Variable placement logic Level1
 // --
 
-var compositecircle = new PIXI.Graphics();
-function drag_mouseover(e) {
-    composite_app.stage.removeChild(compositecircle);
-    composite_app.stage.addChild(compositecircle);
+function onLevelMouseover(e) {
+    composite.app.stage.removeChild(composite.circle);
+    composite.app.stage.addChild(composite.circle);
 }
-function drag_mousemove(e) {
-    compositecircle.clear();
-    compositecircle.beginFill(0xe50000, 0.5);
-    compositecircle.drawCircle(e.data.global.x, e.data.global.y, 3);
-    compositecircle.endFill();
+function onLevelMousemove(e) {
+    composite.circle.clear();
+    composite.circle.beginFill(0xe50000, 0.5);
+    composite.circle.drawCircle(e.data.global.x, e.data.global.y, 3);
+    composite.circle.endFill();
 }
 
-function drag_mousedown(layer, e) {
+function onLevelMousedown(layer, e) {
     console.log('Level 0: X', e.data.global.x, 'Y', e.data.global.y);
 
     let xorig = e.data.global.x;
@@ -482,21 +463,21 @@ function drag_mousedown(layer, e) {
 }
 
 // Listen to pointermove on stage once handle is pressed.
-function drag_pointerdown(layer, e)
+function onLevelPointerDown(layer, e)
 {
-    console.log("drag_pointerdown()");
+    console.log("onLevelPointerDown()");
     layer.app.stage.eventMode = 'static';
-    layer.app.stage.addEventListener('pointermove', on_drag.bind(null, layer, e));
+    layer.app.stage.addEventListener('pointermove', onLevelDrag.bind(null, layer, e));
 
     layer.dragctx.startx0 = e.data.global.x;
     layer.dragctx.starty0 = e.data.global.y;
     layer.dragctx.endx0 = e.data.global.x;
     layer.dragctx.endy0 = e.data.global.y;
 
-    layer.app.stage.addChild(layer.dragctx.leveldragsquare);
+    layer.app.stage.addChild(layer.dragctx.square);
 }
 
-function on_drag(layer, e)
+function onLevelDrag(layer, e)
 {
     if(layer.dragctx.startx0 == -1){
         return;
@@ -505,31 +486,31 @@ function on_drag(layer, e)
     layer.dragctx.endx0 = e.data.global.x;
     layer.dragctx.endy0 = e.data.global.y;
 
-    console.log("on_drag()");
+    console.log("onLevelDrag()");
     
-    layer.dragctx.leveldragsquare.clear();
-    layer.dragctx.leveldragsquare.beginFill(0xFF3300, 0.3);
-    layer.dragctx.leveldragsquare.lineStyle(2, 0xffd900, 1);
-    layer.dragctx.leveldragsquare.moveTo(layer.dragctx.startx0, layer.dragctx.starty0);
-    layer.dragctx.leveldragsquare.lineTo(layer.dragctx.endx0, layer.dragctx.starty0);
-    layer.dragctx.leveldragsquare.lineTo(layer.dragctx.endx0, layer.dragctx.endy0);
-    layer.dragctx.leveldragsquare.lineTo(layer.dragctx.startx0, layer.dragctx.endy0);
-    layer.dragctx.leveldragsquare.closePath();
-    layer.dragctx.leveldragsquare.endFill();
+    layer.dragctx.square.clear();
+    layer.dragctx.square.beginFill(0xFF3300, 0.3);
+    layer.dragctx.square.lineStyle(2, 0xffd900, 1);
+    layer.dragctx.square.moveTo(layer.dragctx.startx0, layer.dragctx.starty0);
+    layer.dragctx.square.lineTo(layer.dragctx.endx0, layer.dragctx.starty0);
+    layer.dragctx.square.lineTo(layer.dragctx.endx0, layer.dragctx.endy0);
+    layer.dragctx.square.lineTo(layer.dragctx.startx0, layer.dragctx.endy0);
+    layer.dragctx.square.closePath();
+    layer.dragctx.square.endFill();
 }
 
 // Stop dragging feedback once the handle is released.
-function drag_onend(layer, e)
+function onLevelDragEnd(layer, e)
 {
     layer.dragctx.endx0 = e.data.global.x;
     layer.dragctx.endy0 = e.data.global.y;
     if(layer.dragctx.startx0 == -1){
-        console.log("drag_onend() start is -1 bailing");
+        console.log("onLevelDragEnd() start is -1 bailing");
         return;
     }
-    console.log("drag_onend()");
+    console.log("onLevelDragEnd()");
     layer.app.stage.eventMode = 'auto';
-    layer.app.stage.removeChild(layer.dragctx.leveldragsquare);
+    layer.app.stage.removeChild(layer.dragctx.square);
 
     let starttilex = Math.floor(layer.dragctx.startx0 / g_context.tileDim);
     let starttiley = Math.floor(layer.dragctx.starty0 / g_context.tileDim);
@@ -616,8 +597,33 @@ function drag_onend(layer, e)
         UNDO.undo_mark_task_end();
     }
 
-    layer.dragctx.leveldragsquare.clear();
+    layer.dragctx.square.clear();
 
     layer.dragctx.startx0 = -1;
     layer.dragctx.starty0 = -1;
 }
+
+function init() {
+    // load tileset into a global array of textures for blitting onto levels
+    const bt = PIXI.BaseTexture.from(CONFIG.TILESETFILE, {
+        scaleMode: PIXI.SCALE_MODES.NEAREST,
+    });
+    for (let x = 0; x < CONFIG.NUM32XTILES; x++) {
+        for (let y = 0; y < CONFIG.NUM32YTILES; y++) {
+            tiles32[x + y * CONFIG.NUM32XTILES] = new PIXI.Texture(
+                bt,
+                new PIXI.Rectangle(x * 32, y * 32, 32, 32),
+            );
+        }
+    }
+    for (let x = 0; x < CONFIG.NUM32XTILES * 2; x++) {
+        for (let y = 0; y < CONFIG.NUM32YTILES * 2; y++) {
+            tiles16[x + y * CONFIG.NUM32XTILES * 2] = new PIXI.Texture(
+                bt,
+                new PIXI.Rectangle(x * 16, y * 16, 16, 16),
+            );
+        }
+    }
+}
+
+init();
