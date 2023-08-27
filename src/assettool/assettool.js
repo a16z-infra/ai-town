@@ -3,14 +3,91 @@ import { g_context }  from './context.js' // global context
 import * as CONFIG from './levelconfig.js' 
 import * as INTER from './interactive.js'
 import * as UNDO from './undo.js'
+import * as FILE from './mapfile.js'
 import { EventSystem } from '@pixi/events';
+
+function DragState() {
+    this.leveldragsquare = new PIXI.Graphics();
+    this.starx  = 0;
+    this.starty = 0;
+    this.endx   = 0;
+    this.endy   = 0;
+}
+
+class LayerContext {
+    constructor(app, num) {
+        this.num =  num;
+        this.app = app;
+        this.container = new PIXI.Container();
+        this.dragsquare = new PIXI.Graphics();
+        this.sprites = {};
+        this.dragctx = new DragState();
+
+        app.stage.addChild(this.container);
+        this.square = INTER.set_interactive(this.container);
+
+        this.square.on('mousedown',   drag_mousedown.bind(null,  this));
+        this.square.on('mousemove',   drag_mousemove.bind(null));
+        this.square.on('mouseover',    drag_mouseover);
+        this.square.on('pointerdown', drag_pointerdown.bind(null, this))
+         .on('pointerup', drag_onend.bind(null, this))
+         .on('pointerupoutside', drag_onend.bind(null, this)); 
+    }
+
+    addTileLevelCoords(x, y, dim, index) {
+        return this.addTileLevelPx(x * dim, y * dim, index);
+    }
+
+    addTileLevelPx(x, y, index) {
+        let xPx = x;
+        let yPx = y;
+
+        const ctile = new PIXI.Sprite(curtiles[index]);  // level map
+        ctile.index = index; // stuff index into sprite for generating map.js
+        const ctile2 = new PIXI.Sprite(curtiles[index]); // composite map
+
+        // snap to grid
+        ctile.x = (xPx >> g_context.dimlog) << g_context.dimlog;
+        ctile2.x = (xPx >> g_context.dimlog) << g_context.dimlog;
+        ctile.y = (yPx >> g_context.dimlog) << g_context.dimlog;
+        ctile2.y = (yPx >> g_context.dimlog) << g_context.dimlog;
+
+        // console.log('ctile.x ', ctile.x, 'ctile.y ', ctile.y);
+        let new_index = tile_index_from_px(ctile.x, ctile.y);
+        // console.log('Level0 index',new_index);
+
+        if (this.sprites.hasOwnProperty(new_index)) {
+            console.log("level: removing old tile", new_index);
+            this.container.removeChild(this.sprites[new_index]);
+            composite_container.removeChild(composite_sprites[new_index]);
+        }
+        this.container.addChild(ctile);
+        composite_container.addChild(ctile2);
+        this.sprites[new_index] = ctile;
+        composite_sprites[new_index] = ctile2;
+        return new_index;
+    }
+}
+
+//  all tiles in tilemap are loaded and stored in these arrays
+const tiles32  = []; 
+const tiles16  = []; 
 
 // First layer of level
 const level_app0 = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.LEVELWIDTH, height : CONFIG.LEVELHEIGHT, view: document.getElementById('level0')});
+const layer0 = new LayerContext(level_app0, 0);
+
+
 // second layer of level 
 const level_app1 = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.LEVELWIDTH, height : CONFIG.LEVELHEIGHT, view: document.getElementById('level1')});
+const layer1 = new LayerContext(level_app1,1);
+
+
 //  object layer of level
 const level_app2    = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.LEVELWIDTH, height : CONFIG.LEVELHEIGHT, view: document.getElementById('level3')});
+const layer2 = new LayerContext(level_app2, 2);
+
+
 // composite view 
 const composite_app = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.LEVELWIDTH, height : CONFIG.LEVELHEIGHT, view: document.getElementById('composite')});
 // tileset
@@ -20,8 +97,6 @@ const { renderer } = tileset_app;
 // Install the EventSystem
 renderer.addSystem(EventSystem, 'tileevents');
 
-const tiles32  = []; 
-const tiles16  = []; 
 
 
 let curtiles = tiles32;
@@ -33,12 +108,74 @@ window.toggleindex = () => {
     console.log("toggle ",indexswitch);
  }
 
+window.create_level_file = () => {
+    generate_level_file();
+
+}
+
+function generate_level_file() {
+
+    // level0 
+    var tile_array0 = Array.from(Array(CONFIG.LEVELTILEWIDTH), () => new Array(CONFIG.LEVELTILEHEIGHT));
+    for (let x = 0; x < CONFIG.LEVELTILEWIDTH; x++) {
+        for (let y = 0; y < CONFIG.LEVELTILEHEIGHT; y++) {
+            tile_array0[x][y] = -1;
+        }
+    }
+    for (var i = 0; i < layer0.container.children.length; i++) {
+        var child = layer0.container.children[i];
+        if (!child.hasOwnProperty('index')) {
+            continue;
+        }
+        let x_coord = child.x / CONFIG.TILEDIM;
+        let y_coord = child.y / CONFIG.TILEDIM;
+        tile_array0[x_coord][y_coord] = child.index;
+    }
+
+
+    // level1 
+    var tile_array1 = Array.from(Array(CONFIG.LEVELTILEWIDTH), () => new Array(CONFIG.LEVELTILEHEIGHT));
+    for (let x = 0; x < CONFIG.LEVELTILEWIDTH; x++) {
+        for (let y = 0; y < CONFIG.LEVELTILEHEIGHT; y++) {
+            tile_array1[x][y] = -1;
+        }
+    }
+    for (var i = 0; i < layer1.container.children.length; i++) {
+        var child = layer1.container.children[i];
+        if (!child.hasOwnProperty('index')) {
+            continue;
+        }
+        let x_coord = child.x / CONFIG.TILEDIM;
+        let y_coord = child.y / CONFIG.TILEDIM;
+        tile_array1[x_coord][y_coord] = child.index;
+    }
+
+    //  object level
+    var tile_array2 = Array.from(Array(CONFIG.LEVELTILEWIDTH), () => new Array(CONFIG.LEVELTILEHEIGHT));
+    for (let x = 0; x < CONFIG.LEVELTILEWIDTH; x++) {
+        for (let y = 0; y < CONFIG.LEVELTILEHEIGHT; y++) {
+            tile_array2[x][y] = -1;
+        }
+    }
+    for (var i = 0; i < layer2.container.children.length; i++) {
+        var child = layer2.container.children[i];
+        if (!child.hasOwnProperty('index')) {
+            continue;
+        }
+        let x_coord = child.x / CONFIG.TILEDIM;
+        let y_coord = child.y / CONFIG.TILEDIM;
+        tile_array2[x_coord][y_coord] = child.index;
+    }
+
+    FILE.write_map_file(tile_array0, tile_array1, tile_array2);
+}
+
 // fill base level with 32x32 tiles of current index
 window.fill0 = () => {
-    UNDO.undo_mark_task_start(level0_container, level0_sprites);
+    UNDO.undo_mark_task_start(layer0.container, layer0.sprites);
     for(let i = 0; i < CONFIG.LEVELWIDTH / 32; i++){
         for(let j = 0; j < CONFIG.LEVELHEIGHT / 32; j++){
-            let ti = addTileLevel0Coords(i,j,32, g_context.tile_index);
+            let ti = layer0.addTileLevelCoords(i,j,32, g_context.tile_index);
             UNDO.undo_add_index_to_task(ti);
         }
     }
@@ -104,9 +241,6 @@ function tile_index_from_px(x, y) {
     return tile_index_from_coords(coord_x, coord_y); 
 }
 
-const level0_container = new PIXI.Container();
-const level1_container = new PIXI.Container();
-const level2_container = new PIXI.Container();
 
 const composite_container = new PIXI.Container();
 
@@ -131,50 +265,6 @@ for (let x = 0; x < CONFIG.NUM32XTILES*2; x++) {
   }
 }
 
-var square0 = INTER.set_interactive(level0_container);
-var square1 = INTER.set_interactive(level1_container);
-var square2 = INTER.set_interactive(level2_container);
-
-function addTileLevel0Coords(x, y, dim, index) {
-    //addTileLevel0Px(x*dim, y*dim, index);
-    return addTileLevelPx(x*dim, y*dim, index, level0_container, level0_sprites);
-}
-function addTileLevel1Coords(x, y, dim, index) {
-    return addTileLevelPx(x*dim, y*dim, index, level1_container, level1_sprites);
-}
-
-function addTileLevel2Coords(x, y, dim, index) {
-    return addTileLevelPx(x*dim, y*dim, index, level2_container, level2_sprites);
-}
-
-function addTileLevelPx(x, y, index, levelcontainer, sprites) {
-    let xPx = x;
-    let yPx = y;
-
-    const ctile = new PIXI.Sprite(curtiles[index]);  // level map
-    const ctile2 = new PIXI.Sprite(curtiles[index]); // composite map
-
-    // snap to grid
-    ctile.x = (xPx >> g_context.dimlog) << g_context.dimlog; 
-    ctile2.x = (xPx >> g_context.dimlog) << g_context.dimlog; 
-    ctile.y = (yPx>>g_context.dimlog) << g_context.dimlog;
-    ctile2.y = (yPx>>g_context.dimlog) << g_context.dimlog;
-
-    // console.log('ctile.x ', ctile.x, 'ctile.y ', ctile.y);
-    let new_index = tile_index_from_px(ctile.x, ctile.y);
-    // console.log('Level0 index',new_index);
-
-    if(sprites.hasOwnProperty(new_index)){
-        console.log("level: removing old tile",new_index);
-        levelcontainer.removeChild(sprites[new_index]);
-        composite_container.removeChild(composite_sprites[new_index]);
-    }
-    levelcontainer.addChild(ctile);
-    composite_container.addChild(ctile2);
-    sprites[new_index] = ctile;
-    composite_sprites[new_index] = ctile2;
-    return new_index;
-}
 
 const tilesetcontainer = new PIXI.Container();
 const texture = PIXI.Texture.from(CONFIG.TILESETFILE);
@@ -277,14 +367,10 @@ function onDrag(e)
     dragsquare.endFill();
 }
 
-level_app0.stage.addChild(level0_container);
-level_app0.stage.addEventListener('keydown', function handleKey(key)
-{
-    console.log('key! ',key);
-});
+//level_app0.stage.addChild(layer0.container);
 
-level_app1.stage.addChild(level1_container);
-level_app2.stage.addChild(level2_container);
+level_app1.stage.addChild(layer1.container);
+level_app2.stage.addChild(layer2.container);
 composite_app.stage.addChild(composite_container);
 tileset_app.stage.addChild(tilesetcontainer);
 
@@ -309,11 +395,6 @@ function drawGrid() {
             drawGrid.graphics.lineTo(CONFIG.LEVELWIDTH, i);
             drawGrid.graphics.moveTo(0, i + gridsize);
             drawGrid.graphics.lineTo(CONFIG.LEVELWIDTH, i + gridsize);
-
-            // tilesetcontainer.addChild(graphics);
-            // level0_container.addChild(graphics.clone());
-            // level1_container.addChild(graphics.clone());
-            // level2_container.addChild(graphics.clone());
         }
             drawGrid.graphics0 = drawGrid.graphics.clone();
             drawGrid.graphics1 = drawGrid.graphics.clone();
@@ -323,15 +404,15 @@ function drawGrid() {
 
     if (drawGrid.toggle) {
         tilesetcontainer.addChild(drawGrid.graphics);
-        level0_container.addChild(drawGrid.graphics0);
-        level1_container.addChild(drawGrid.graphics1);
-        level2_container.addChild(drawGrid.graphics2);
+        layer0.container.addChild(drawGrid.graphics0);
+        layer1.container.addChild(drawGrid.graphics1);
+        layer2.container.addChild(drawGrid.graphics2);
         composite_container.addChild(drawGrid.graphics3);
     }else{
         tilesetcontainer.removeChild(drawGrid.graphics);
-        level0_container.removeChild(drawGrid.graphics0);
-        level1_container.removeChild(drawGrid.graphics1);
-        level2_container.removeChild(drawGrid.graphics2);
+        layer0.container.removeChild(drawGrid.graphics0);
+        layer1.container.removeChild(drawGrid.graphics1);
+        layer2.container.removeChild(drawGrid.graphics2);
         composite_container.removeChild(drawGrid.graphics3);
     }
 
@@ -346,7 +427,7 @@ function drawGrid() {
     //        itxt2.x = j; itxt3.x = j;
     //        itxt2.y = i; itxt3.y = i;
     //        level0_container.addChild(itxt2);
-    //        level1_container.addChild(itxt3);
+    //        layer1.container.addChild(itxt3);
     //        index++;
     //    }
     //}
@@ -357,47 +438,8 @@ function drawGrid() {
 // --
 
 
-function DragState() {
-    this.leveldragsquare = new PIXI.Graphics();
-    this.starx  = 0;
-    this.starty = 0;
-    this.endx   = 0;
-    this.endy   = 0;
-}
 
 var composite_sprites = {};
-
-var dragsquare0 = new PIXI.Graphics();
-var level0_sprites = {};
-let dragctx0 = new DragState();
-square0.on('mousedown',   drag_mousedown.bind(null,  level0_container, level0_sprites));
-square0.on('mousemove',   drag_mousemove.bind(null));
-square0.on('mouseover',    drag_mouseover);
-
-square0.on('pointerdown', drag_pointerdown.bind(null, dragctx0, dragsquare0, level_app0))
-         .on('pointerup', drag_onend.bind(null, dragctx0, dragsquare0, level_app0, level0_container, level0_sprites))
-         .on('pointerupoutside', drag_onend.bind(null, dragctx0, dragsquare0, level_app0, level0_container, level0_sprites)); 
-
-var dragsquare1 = new PIXI.Graphics();
-var level1_sprites = {};
-let dragctx1 = new DragState();
-square1.on('mousedown',   drag_mousedown.bind(null,  level1_container, level1_sprites));
-square1.on('mousemove',   drag_mousemove.bind(null));
-square1.on('mouseover',    drag_mouseover);
-square1.on('pointerdown', drag_pointerdown.bind(null, dragctx1, dragsquare1, level_app1))
-         .on('pointerup', drag_onend.bind(null, dragctx1, dragsquare1, level_app1, level1_container, level1_sprites))
-         .on('pointerupoutside', drag_onend.bind(null, dragctx1, dragsquare1, level_app1, level1_container, level1_sprites)); 
-
-var dragsquare2 = new PIXI.Graphics();
-var level2_sprites = {};
-let dragctx2 = new DragState();
-square2.on('mousedown',   drag_mousedown.bind(null,  level2_container, level2_sprites));
-square2.on('mousemove',   drag_mousemove.bind(null));
-square2.on('mouseover',    drag_mouseover);
-square2.on('pointerdown', drag_pointerdown.bind(null, dragctx2, dragsquare2, level_app2))
-         .on('pointerup', drag_onend.bind(null, dragctx2, dragsquare2, level_app2, level2_container, level2_sprites))
-         .on('pointerupoutside', drag_onend.bind(null, dragctx2, dragsquare2, level_app2, level2_container, level2_sprites)); 
-
 
 // --
 // Variable placement logic Level1
@@ -415,20 +457,20 @@ function drag_mousemove(e) {
     compositecircle.endFill();
 }
 
-function drag_mousedown(level_container, level_sprites, e) {
+function drag_mousedown(layer, e) {
     console.log('Level 0: X', e.data.global.x, 'Y', e.data.global.y);
 
     let xorig = e.data.global.x;
     let yorig = e.data.global.y;
 
     if (g_context.selected_tiles.length == 0) {
-        let ti = addTileLevelPx(e.data.global.x, e.data.global.y, g_context.tile_index, level_container, level_sprites);
-        UNDO.undo_add_single_index_as_task(level_container, level_sprites, ti);
+        let ti = layer.addTileLevelPx(e.data.global.x, e.data.global.y, g_context.tile_index);
+        UNDO.undo_add_single_index_as_task(layer.container, layer.container, ti);
     } else {
         let undolist = [];
-        UNDO.undo_mark_task_start(level_container, level_sprites);
+        UNDO.undo_mark_task_start(layer.container, layer.container);
         for (let index of g_context.selected_tiles) {
-            let ti = addTileLevelPx(xorig + index[0] * g_context.tileDim, yorig + index[1] * g_context.tileDim, index[2], level_container, level_sprites);
+            let ti = layer.addTileLevelPx(xorig + index[0] * g_context.tileDim, yorig + index[1] * g_context.tileDim, index[2]);
             UNDO.undo_add_index_to_task(ti);
         }
         UNDO.undo_mark_task_end();
@@ -436,58 +478,59 @@ function drag_mousedown(level_container, level_sprites, e) {
 }
 
 // Listen to pointermove on stage once handle is pressed.
-function drag_pointerdown(ctx, leveldragsquare, level_app, e)
+function drag_pointerdown(layer, e)
 {
     console.log("drag_pointerdown()");
-    level_app.stage.eventMode = 'static';
-    level_app.stage.addEventListener('pointermove', on_drag.bind(null, ctx, leveldragsquare));
+    layer.app.stage.eventMode = 'static';
+    layer.app.stage.addEventListener('pointermove', on_drag.bind(null, layer, e));
 
-    ctx.startx0 = e.data.global.x;
-    ctx.starty0 = e.data.global.y;
-    ctx.endx0 = e.data.global.x;
-    ctx.endy0 = e.data.global.y;
+    layer.dragctx.startx0 = e.data.global.x;
+    layer.dragctx.starty0 = e.data.global.y;
+    layer.dragctx.endx0 = e.data.global.x;
+    layer.dragctx.endy0 = e.data.global.y;
 
-    level_app.stage.addChild(leveldragsquare);
+    layer.app.stage.addChild(layer.dragctx.leveldragsquare);
 }
 
-function on_drag(ctx, leveldragsquare, e)
+function on_drag(layer, e)
 {
-    if(ctx.startx0 == -1){
+    if(layer.dragctx.startx0 == -1){
         return;
     }
 
-    ctx.endx0 = e.data.global.x;
-    ctx.endy0 = e.data.global.y;
+    layer.dragctx.endx0 = e.data.global.x;
+    layer.dragctx.endy0 = e.data.global.y;
 
     console.log("on_drag()");
     
-    leveldragsquare.clear();
-    leveldragsquare.beginFill(0xFF3300, 0.3);
-    leveldragsquare.lineStyle(2, 0xffd900, 1);
-    leveldragsquare.moveTo(ctx.startx0, ctx.starty0);
-    leveldragsquare.lineTo(ctx.endx0, ctx.starty0);
-    leveldragsquare.lineTo(ctx.endx0, ctx.endy0);
-    leveldragsquare.lineTo(ctx.startx0, ctx.endy0);
-    leveldragsquare.closePath();
-    leveldragsquare.endFill();
+    layer.dragctx.leveldragsquare.clear();
+    layer.dragctx.leveldragsquare.beginFill(0xFF3300, 0.3);
+    layer.dragctx.leveldragsquare.lineStyle(2, 0xffd900, 1);
+    layer.dragctx.leveldragsquare.moveTo(layer.dragctx.startx0, layer.dragctx.starty0);
+    layer.dragctx.leveldragsquare.lineTo(layer.dragctx.endx0, layer.dragctx.starty0);
+    layer.dragctx.leveldragsquare.lineTo(layer.dragctx.endx0, layer.dragctx.endy0);
+    layer.dragctx.leveldragsquare.lineTo(layer.dragctx.startx0, layer.dragctx.endy0);
+    layer.dragctx.leveldragsquare.closePath();
+    layer.dragctx.leveldragsquare.endFill();
 }
 
 // Stop dragging feedback once the handle is released.
-function drag_onend(ctx, leveldragsquare, level_app, level_container, level_sprites, e)
+function drag_onend(layer, e)
 {
-    ctx.endx0 = e.data.global.x;
-    ctx.endy0 = e.data.global.y;
-    if(ctx.startx0 == -1){
+    layer.dragctx.endx0 = e.data.global.x;
+    layer.dragctx.endy0 = e.data.global.y;
+    if(layer.dragctx.startx0 == -1){
+        console.log("drag_onend() start is -1 bailing");
         return;
     }
     console.log("drag_onend()");
-    level_app.stage.eventMode = 'auto';
-    level_app.stage.removeChild(leveldragsquare);
+    layer.app.stage.eventMode = 'auto';
+    layer.app.stage.removeChild(layer.dragctx.leveldragsquare);
 
-    let starttilex = Math.floor(ctx.startx0 / g_context.tileDim);
-    let starttiley = Math.floor(ctx.starty0 / g_context.tileDim);
-    let endtilex = Math.floor(ctx.endx0 / g_context.tileDim);
-    let endtiley = Math.floor(ctx.endy0 / g_context.tileDim);
+    let starttilex = Math.floor(layer.dragctx.startx0 / g_context.tileDim);
+    let starttiley = Math.floor(layer.dragctx.starty0 / g_context.tileDim);
+    let endtilex = Math.floor(layer.dragctx.endx0 / g_context.tileDim);
+    let endtiley = Math.floor(layer.dragctx.endy0 / g_context.tileDim);
 
     console.log("sx ",starttilex," ex ",endtilex);
     console.log("sy ",starttiley," ey ",endtiley);
@@ -498,11 +541,11 @@ function drag_onend(ctx, leveldragsquare, level_app, level_container, level_spri
     }
 
     if (g_context.selected_tiles.length == 0) {
-        UNDO.undo_mark_task_start(level_container, level_sprites);
+        UNDO.undo_mark_task_start(layer.container, layer.sprites);
         for (let i = starttilex; i <= endtilex; i++) {
             for (let j = starttiley; j <= endtiley; j++) {
                 let squareindex = (j * CONFIG.NUM32XTILES) + i;
-                let ti = addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, g_context.tile_index, level_container, level_sprites);
+                let ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, g_context.tile_index);
                 UNDO.undo_add_index_to_task(ti);
             }
         }
@@ -525,7 +568,7 @@ function drag_onend(ctx, leveldragsquare, level_app, level_container, level_spri
         }
         // at this point should have a 3D array of the selected tiles and the size should be row, column
 
-        UNDO.undo_mark_task_start(level_container, level_sprites);
+        UNDO.undo_mark_task_start(layer.container, layer.sprites);
 
         let ti=0;
         for (let i = starttilex; i <= endtilex; i++) {
@@ -534,33 +577,33 @@ function drag_onend(ctx, leveldragsquare, level_app, level_container, level_spri
                 if (j === starttiley) { // first row 
                     if (i === starttilex) { // top left corner
                         console.log("Top left!");
-                        ti = addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[0][0][2], level_container, level_sprites);
+                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[0][0][2]);
                     }
                     else if (i == endtilex) { // top right corner
                         console.log("Top right!");
-                        ti = addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[column - 1][0][2], level_container, level_sprites);
+                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[column - 1][0][2]);
                     } else { // top middle
-                        ti = addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[1][0][2], level_container, level_sprites);
+                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[1][0][2]);
                     }
                 } else if (j === endtiley) { // last row
                     if (i === starttilex) { // bottom left corner
                         console.log("Bottom left!");
-                        ti = addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[0][row][2], level_container, level_sprites);
+                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[0][row][2]);
                     }
                     else if (i == endtilex) { // bottom right corner
                         console.log("Bottom right!");
-                        ti = addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[column - 1][row][2], level_container, level_sprites);
+                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[column - 1][row][2]);
                     } else { // bottom middle
-                        ti = addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[1][row][2], level_container, level_sprites);
+                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[1][row][2]);
                     }
                 } else { // middle row
                     if (i === starttilex) { // middle left 
-                        ti = addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[0][1][2], level_container, level_sprites);
+                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[0][1][2]);
                     }
                     else if (i === endtilex) { // middle end 
-                        ti = addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[column - 1][1][2], level_container, level_sprites);
+                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[column - 1][1][2]);
                     } else { // middle middle
-                        ti = addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[1][1][2], level_container, level_sprites);
+                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[1][1][2]);
                     }
                 }
                 UNDO.undo_add_index_to_task(ti);
@@ -569,8 +612,8 @@ function drag_onend(ctx, leveldragsquare, level_app, level_container, level_spri
         UNDO.undo_mark_task_end();
     }
 
-    leveldragsquare.clear();
+    layer.dragctx.leveldragsquare.clear();
 
-    ctx.startx0 = -1;
-    ctx.starty0 = -1;
+    layer.dragctx.startx0 = -1;
+    layer.dragctx.starty0 = -1;
 }
