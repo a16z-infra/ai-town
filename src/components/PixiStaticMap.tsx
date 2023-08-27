@@ -9,16 +9,20 @@ import { Doc } from '../../convex/_generated/dataModel';
 
 export const PixiStaticMap = PixiComponent('StaticMap', {
   create: ({ map }: { map: Doc<'maps'> }) => {
-    const numytiles = map.tileSetDim / map.tileDim;
+    const numxtiles = map.tileFileW / map.tileDim;
+    const numytiles = map.tileFileH / map.tileDim;
+
+    console.log("numxtiles ",numxtiles);
+    console.log("numytiles ",numytiles);
 
     const bt = PIXI.BaseTexture.from(map.tileSetUrl, {
       scaleMode: PIXI.SCALE_MODES.NEAREST,
     });
 
     const tiles = [];
-    for (let x = 0; x < numytiles; x++) {
+    for (let x = 0; x < numxtiles; x++) {
       for (let y = 0; y < numytiles; y++) {
-        tiles[x + y * numytiles] = new PIXI.Texture(
+        tiles[x + y * numxtiles] = new PIXI.Texture(
           bt,
           new PIXI.Rectangle(x * map.tileDim, y * map.tileDim, map.tileDim, map.tileDim),
         );
@@ -38,7 +42,7 @@ export const PixiStaticMap = PixiComponent('StaticMap', {
 
       // Add all layers of backgrounds.
       for (let z = 0; z < map.bgTiles.length; z++) {
-        const tileIndex = map.bgTiles[z][y][x];
+        const tileIndex = map.bgTiles[z][x][y];
         // Some layers may not have tiles at this location.
         if (tileIndex === -1) continue;
         const ctile = new PIXI.Sprite(tiles[tileIndex]);
@@ -46,9 +50,17 @@ export const PixiStaticMap = PixiComponent('StaticMap', {
         ctile.y = yPx;
         container.addChild(ctile);
       }
-      const l1tile = map.objectTiles[y][x];
+      const l1tile = map.objectTiles[0][x][y];
       if (l1tile != -1) {
         const ctile = new PIXI.Sprite(tiles[l1tile]);
+        ctile.x = xPx;
+        ctile.y = yPx;
+        container.addChild(ctile);
+      }
+
+      const l2tile = map.objectTiles[1][x][y];
+      if (l2tile != -1) {
+        const ctile = new PIXI.Sprite(tiles[l2tile]);
         ctile.x = xPx;
         ctile.y = yPx;
         container.addChild(ctile);

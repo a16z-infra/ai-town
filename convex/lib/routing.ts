@@ -23,7 +23,7 @@ export function findRoute(
     end.y < 0 ||
     end.x >= map.bgTiles[0][0].length ||
     end.y >= map.bgTiles[0].length ||
-    map.objectTiles[end.y][end.x] !== -1
+    map.objectTiles[0][end.x][end.y] !== -1
   ) {
     throw new Error('Invalid end position: ' + JSON.stringify(end));
   }
@@ -38,7 +38,7 @@ export function findRoute(
     if (pos.x < 0 || pos.y < 0 || pos.x >= width || pos.y >= height) {
       return true;
     }
-    if (map.objectTiles[pos.y][pos.x] !== -1) {
+    if (map.objectTiles[0][pos.x][pos.y] !== -1) {
       return true;
     }
     for (const otherPlayerPath of otherPlayerLocations) {

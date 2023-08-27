@@ -9,7 +9,7 @@ import {
 } from './_generated/server';
 import { MemoryDB } from './lib/memory';
 import { Characters } from './schema';
-import { tiledim, objmap, tilefiledim, bgtiles, tilesetpath } from './maps/firstmap';
+import { tiledim, objmap, tilefilew, tilefileh, bgtiles, tilesetpath } from './maps/mage';
 import { Descriptions, characters as characterData } from './characterdata/data';
 
 if (!process.env.OPENAI_API_KEY) {
@@ -33,8 +33,9 @@ export const existingWorld = internalQuery({
 async function makeWorld(db: DatabaseWriter, frozen: boolean) {
   const mapId = await db.insert('maps', {
     tileSetUrl: tilesetpath,
-    tileSetDim: tilefiledim,
     tileDim: tiledim,
+    tileFileW: tilefilew,
+    tileFileH: tilefileh,
     bgTiles: bgtiles,
     objectTiles: objmap,
   });
@@ -48,6 +49,7 @@ async function makeWorld(db: DatabaseWriter, frozen: boolean) {
 }
 
 export const addPlayers = internalMutation({
+
   args: {
     newWorld: v.optional(v.boolean()),
     characters: v.array(v.object(Characters.fields)),

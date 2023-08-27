@@ -14,11 +14,12 @@ export const Worlds = Table('worlds', {
 
 export const Maps = Table('maps', {
   tileSetUrl: v.string(),
-  tileSetDim: v.number(), // Width & height of tileset image, px (assume square)
-  tileDim: v.number(), // tile size in pixels (assume square)
+  tileDim: v.number(), // Width & height of tileset image, px (assume square)
+  tileFileW: v.number(), // tile file widh in pixels 
+  tileFileH: v.number(), // tile file height in pixels (
   // An array of layers, which is a 2-d array of tile indices.
   bgTiles: v.array(v.array(v.array(v.number()))),
-  objectTiles: v.array(v.array(v.number())),
+  objectTiles: v.array(v.array(v.array(v.number()))),
 });
 
 export const Position = v.object({ x: v.number(), y: v.number() });
