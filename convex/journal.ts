@@ -227,9 +227,12 @@ export const turnToFace = internalMutation({
   handler: async (ctx, { playerId, targetId }) => {
     const us = await getLatestPlayerMotion(ctx.db, playerId);
     const them = await getLatestPlayerMotion(ctx.db, targetId);
-    if (us.type !== 'stopped') throw new Error("Can't turn while moving");
     const targetPos = them.type === 'stopped' ? them.pose.position : them.route.at(-1)!;
-    us.pose.orientation = calculateOrientation(us.pose.position, targetPos);
+    if (us.type === 'stopped') {
+      us.pose.orientation = calculateOrientation(us.pose.position, targetPos);
+    } else {
+      us.endOrientation = calculateOrientation(us.route.at(-1)!, targetPos);
+    }
     await ctx.db.insert('journal', {
       playerId,
       data: us,

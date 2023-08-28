@@ -12,6 +12,17 @@ export const Worlds = Table('worlds', {
   frozen: v.boolean(),
 });
 
+export const ReplicateWebhooks = Table('replicate_webhooks', {
+  externalId: v.string(), // Replicate call ID
+  input: v.any(),
+  handler: v.string()
+});
+
+export const Music = Table('music', {
+  storageId: v.string(), //TODO change to v.id('storage'). See replicate.ts for issue
+  type: v.union(v.literal('background'), v.literal('player')),
+})
+
 export const Maps = Table('maps', {
   tileSetUrl: v.string(),
   tileDim: v.number(), // Width & height of tileset image, px (assume square)
@@ -262,6 +273,9 @@ export default defineSchema(
       .index('by_playerId_embeddingId', ['playerId', 'embeddingId'])
       .index('by_playerId_type', ['playerId', 'data.type']),
 
+    music: Music.table,
+
+
     embeddings: defineTable({
       playerId: v.optional(v.id('players')),
       text: v.string(),
@@ -277,6 +291,9 @@ export default defineSchema(
     conversations: defineTable({ worldId: v.id('worlds') }).index('by_worldId', ['worldId']),
 
     heartbeats: defineTable({}),
+
+    replicate_webhooks: ReplicateWebhooks.table
+      .index('by_replicate_external_id', ['externalId']),
   },
   // When schemaValidation is enabled, it prevents pushing code that has a
   // schema incompatible with the current database.

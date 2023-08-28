@@ -30,14 +30,14 @@ The primary goal of this project, beyond just being a lot of fun to work on, is 
 - Text model: [OpenAI](https://platform.openai.com/docs/models)
 - Deployment: [Fly](https://fly.io/)
 - Pixel Art Generation: [Replicate](https://replicate.com/), [Fal.ai](https://serverless.fal.ai/lora)
-
+- Background Music Generation: [Replicate](https://replicate.com/) using [MusicGen](https://huggingface.co/spaces/facebook/MusicGen)
 ## Installation
 
 ### Clone repo and Install packages
 
 ```bash
-git clone git@github.com:a16z-infra/ai-town.git
-cd AI-town
+git clone https://github.com/a16z-infra/ai-town.git
+cd ai-town
 npm install
 npm run dev
 ```
@@ -45,7 +45,7 @@ npm run dev
 `npm run dev` will fail asking for environment variables.
 Enter them in the environment variables on your Convex dashboard to proceed.
 You can get there via `npx convex dashboard` or https://dashboard.convex.dev
-See below on how to get the various environnment variables.
+See below on how to get the various environment variables.
 
 a. **Set up Clerk**
 
@@ -73,13 +73,17 @@ c. **Pinecone API keys**
 - Fill in Dimension as `1536`
 - Once the index is successfully created, click on "API Keys" on the left side nav and create an API key: copy "Environment" value to `PINECONE_ENVIRONMENT` variable, and "Value" to `PINECONE_API_KEY`
 
-d. **Add secrets to the convex dashboard**
+d. **Replicate API key (Optional)**
+For Daily background music generation, create an account at [Replicate](https://replicate.com/) and create a token in your Profile's [API Token page](https://replicate.com/account/api-tokens).
+Add the token as `REPLICATE_API_TOKEN` in yout `.env.local`
+
+e. **Add secrets to the convex dashboard**
 
 ```bash
 npx convex dashboard
 ```
 
-Go to "settings" and add the following environment varables. `CLERK_ISSUER_URL` should be the URL from the JWKS endpoint.
+Go to "settings" and add the following environment variables. `CLERK_ISSUER_URL` should be the URL from the JWKS endpoint.
 
 ```bash
 OPENAI_API_KEY  sk-*******
@@ -87,6 +91,7 @@ CLERK_ISSUER_URL  https://****
 PINECONE_API_KEY  ********
 PINECONE_ENVIRONMENT us****
 PINECONE_INDEX_NAME  ********
+REPLICATE_API_TOKEN **** #optional 
 ```
 
 ### Run the code
@@ -218,7 +223,16 @@ RUN npm run build
 ```
 - Run `fly deploy --ha=false` to deploy the app. The --ha flag makes sure fly only spins up one instance, which is included in the free plan.
 - Run `fly scale memory 512` to scale up the fly vm memory for this app.
-- Create a new file `.env.prod` locally and fill in all the production-environment secrets. Remember to update `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` by copying secrets from Clerk's production instance -`cat .env.prod | fly secrets import` to upload secrets. Also remember to update `CONVEX_DEPLOYMENT` and `NEXT_PUBLIC_CONVEX_URL`.
+- Create a new file `.env.prod` locally and fill in all the production-environment secrets. Remember to update `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` by copying secrets from Clerk's production instance -`cat .env.prod | fly secrets import` to upload secrets. Also remember to update `CONVEX_DEPLOYMENT` and `NEXT_PUBLIC_CONVEX_URL` -- both of them should now point to Convex's prod environment. 
+
+#### Deploy Convex functions to prod environment
+Before you can run the app, you will need to make sure the convex functions are deployed to its production environment. 
+
+1. Run `npx convex deploy` to deploy the convex functions to production
+2. Go to convex dashboard, select prod
+3. Navigate to Functions on the left side nav, click on  testing -> debugClearAll, click on run function on the top right
+4. Then click on init - init function, run this function. 
+
 
 
 ## Customize your own simulation
@@ -240,6 +254,8 @@ You should find a sprite sheet for your character, and define sprite motion / as
 
 
 3. Update the background (environment): `convex/maps/firstmap.ts` is where the map gets loaded. The easiest way to export a tilemap is by using [Tiled](https://www.mapeditor.org/) -- Tiled exports tilemaps as a CSV and you can convert CSV to a 2d array accepted by firstmap.ts
+4. Change the background music by modifying the prompt in `convex/lib/replicate.ts`
+5. Change how often to generate new music at `convex/crons.ts` by modifying the `generate new background music` job
 
 ## Credits
 - All interactions, background music and rendering on the <Game/> component in the project are powered by [PixiJS](https://pixijs.com/). 

@@ -3,6 +3,10 @@ import GameWrapper from '@/components/GameWrapper';
 import FreezeButton from '@/components/FreezeButton';
 import LoginButton from '@/components/LoginButton';
 
+// Disabling SSR for these since they don't work server side.
+import dynamic from 'next/dynamic';
+const MusicButton = dynamic(() => import('../components/MusicButton'), { ssr: false });
+
 export default function Home() {
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-between font-body game-background">
@@ -29,6 +33,7 @@ export default function Home() {
 
         <footer className="absolute bottom-0 left-0 w-full flex items-center mt-4 gap-6 p-6 flex-wrap pointer-events-none">
           <div className="flex gap-4 flex-grow pointer-events-none">
+            <MusicButton />
             <FreezeButton />
             <a
               className="button text-white shadow-solid text-2xl pointer-events-auto"

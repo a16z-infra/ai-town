@@ -49,56 +49,52 @@ function Messages({
   );
 }
 
-export default function Chats({ playerState }: { playerState: PlayerState | undefined }) {
-  if (!playerState) {
-    return (
-      <div className="h-full text-xl flex text-center items-center p-4">
-        Click on an agent on the map to see chat history.
-      </div>
-    );
-  }
+export default function PlayerDetails({ playerId }: { playerId: Id<'players'> }) {
+  const playerState = useQuery(api.players.playerState, { playerId });
 
   return (
-    <>
-      <div className="box">
-        <h2 className="bg-brown-700 p-2 font-display text-4xl tracking-wider shadow-solid text-center">
-          {playerState.name}
-        </h2>
-      </div>
+    playerState && (
+      <>
+        <div className="box">
+          <h2 className="bg-brown-700 p-2 font-display text-4xl tracking-wider shadow-solid text-center">
+            {playerState.name}
+          </h2>
+        </div>
 
-      <div className="desc my-6">
-        <p className="leading-tight -m-4 bg-brown-700 text-lg">{playerState.identity}</p>
-      </div>
+        <div className="desc my-6">
+          <p className="leading-tight -m-4 bg-brown-700 text-lg">{playerState.identity}</p>
+        </div>
 
-      {/*
+        {/*
       We could also check authentication on the backend side,
       but it’s not a priority at the moment since logged in users don’t really
       get special permissions.
       */}
-      <SignedIn>
-        {playerState.lastChat?.conversationId && (
-          <div className="chats">
-            <div className="bg-brown-200 text-black p-2">
-              <Messages
-                conversationId={playerState.lastChat?.conversationId}
-                currentPlayerId={playerState.id}
-              />
+        <SignedIn>
+          {playerState.lastChat?.conversationId && (
+            <div className="chats">
+              <div className="bg-brown-200 text-black p-2">
+                <Messages
+                  conversationId={playerState.lastChat?.conversationId}
+                  currentPlayerId={playerState.id}
+                />
+              </div>
+            </div>
+          )}
+        </SignedIn>
+
+        <SignedOut>
+          <div className="login-prompt">
+            <div className="bg-clay-300 text-clay-900 -m-6">
+              <p className="text-center">You need to be logged in to read the conversations.</p>
+
+              <div className="text-center mt-4 text-xl">
+                <LoginButton />
+              </div>
             </div>
           </div>
-        )}
-      </SignedIn>
-
-      <SignedOut>
-        <div className="login-prompt">
-          <div className="bg-clay-300 text-clay-900 -m-6">
-            <p className="text-center">You need to be logged in to read the conversations.</p>
-
-            <div className="text-center mt-4 text-xl">
-              <LoginButton />
-            </div>
-          </div>
-        </div>
-      </SignedOut>
-    </>
+        </SignedOut>
+      </>
+    )
   );
 }
