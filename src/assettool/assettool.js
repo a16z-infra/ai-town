@@ -202,6 +202,15 @@ class CompositeContext {
         this.app.stage.addChild(this.container);
         this.sprites = {};
         this.circle = new PIXI.Graphics();
+
+        this.square = new PIXI.Graphics();
+        this.square.beginFill(0x2980b9);
+        this.square.drawRect(0, 0, CONFIG.levelwidth, CONFIG.levelheight);
+        this.square.endFill();
+        this.square.interactive = true;
+        this.container.addChild(this.square);
+
+        this.square.on('mousedown', onCompositeMousedown.bind(null, this));
     }
 
 } // class CompositeContext
@@ -549,6 +558,27 @@ function drawGrid() {
 // Variable placement logic Level1
 // --
 
+function centerCompositePane(x, y){
+    var compositepane = document.getElementById("compositepane");
+    compositepane.scrollLeft = x - 320;
+    compositepane.scrollTop  = y - 240;
+}
+
+function centerLayerPanes(x, y){
+    var l0pane = document.getElementById("layer0pane");
+    l0pane.scrollLeft = x - 320;
+    l0pane.scrollTop  = y - 240;
+    var l1pane = document.getElementById("layer1pane");
+    l1pane.scrollLeft = x - 320;
+    l1pane.scrollTop  = y - 240;
+    var l2pane = document.getElementById("layer2pane");
+    l2pane.scrollLeft = x - 320;
+    l2pane.scrollTop  = y - 240;
+    var l3pane = document.getElementById("layer3pane");
+    l3pane.scrollLeft = x - 320;
+    l3pane.scrollTop  = y - 240;
+}
+
 function onLevelMouseover(e) {
     composite.app.stage.removeChild(composite.circle);
     composite.app.stage.addChild(composite.circle);
@@ -559,6 +589,17 @@ function onLevelMousemove(e) {
     composite.circle.drawCircle(e.data.global.x, e.data.global.y, 3);
     composite.circle.endFill();
 }
+function onCompositeMousedown(layer, e) {
+    if (debug_flag) {
+        console.log('onCompositeMouseDown: X', e.data.global.x, 'Y', e.data.global.y);
+    }
+
+    let xorig = e.data.global.x;
+    let yorig = e.data.global.y;
+
+    centerLayerPanes(xorig,yorig);
+}
+
 
 function onLevelMousedown(layer, e) {
     if (debug_flag) {
@@ -567,6 +608,9 @@ function onLevelMousedown(layer, e) {
 
     let xorig = e.data.global.x;
     let yorig = e.data.global.y;
+
+    centerCompositePane(xorig,yorig);
+
 
     if (g_context.selected_tiles.length == 0) {
         let ti = layer.addTileLevelPx(e.data.global.x, e.data.global.y, g_context.tile_index);

@@ -8,7 +8,7 @@
 
     <TABLE WIDTH="100%"><TR>
         <TD ALIGN="center"> <!-- first layer of map tiles -->
-          <div style="max-height: 480px;max-width:640px;overflow: scroll;">
+          <div ID="layer0pane" style="max-height: 480px;max-width:640px;overflow: scroll;">
           <canvas ID="level0" height="1600px" width="1600px" ></canvas> </div>   
         </TD>
         <TD ALIGN="center"> <!-- tile set-->
@@ -20,22 +20,22 @@
 
         <tr>
         <TD ALIGN="center"> <!-- second layer of map tiles -->
-        <div style="max-height: 480px;max-width:640px;overflow: scroll;">
+        <div ID="layer1pane" style="max-height: 480px;max-width:640px;overflow: scroll;">
             <canvas ID="level1" height="1600px" width="1600px" ></canvas>
         </div></TD>
         <TD ALIGN="center"> <!-- aggregate map view -->
-        <div style="max-height: 480px;max-width:640px;overflow: scroll;">
+        <div ID="compositepane" style="max-height: 480px;max-width:640px;overflow: scroll;">
             <canvas ID="composite" height="1600px" width="1600px" ></canvas>
         </div></TD>
         </tr>
 
         <tr>
         <TD ALIGN="center"> <!-- object layer of map -->
-        <div style="max-height: 480px;max-width:640px;overflow: scroll;">
+        <div ID="layer2pane" style="max-height: 480px;max-width:640px;overflow: scroll;">
             <canvas ID="level3" height="1600px" width="1600px" ></canvas>
         </div></TD>
         <TD ALIGN="center"> <!-- object layer of map -->
-        <div style="max-height: 480px;max-width:640px;overflow: scroll;">
+        <div ID="layer3pane" style="max-height: 480px;max-width:640px;overflow: scroll;">
             <canvas ID="level4" height="1600px" width="1600px" ></canvas>
         </div></TD>
         </tr>
