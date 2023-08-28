@@ -1,20 +1,20 @@
 
 
-export const TILESETFILE = "./magecity.png";
-export const TILEFILEW = 256; // px
-export const TILEFILEH = 1408; // px 
+export const tilesetpath = "./magecity.png";
+export const tilefilew = 256; // px
+export const tilefileh = 1408; // px 
 
-export const TILEDIM = 32; // px
+export const tiledim = 32; // px
 
 // const TILESETFILE = "./pipo.png";
 // const tilefilew = 256;
 // const tilefileh = 4256;
 
-export const LEVELWIDTH  = 1600; // px
-export const LEVELHEIGHT = 1600; // px
+export const levelwidth  = 1600; // px
+export const levelheight = 1600; // px
 
-export let LEVELTILEWIDTH  = LEVELWIDTH / TILEDIM;
-export let LEVELTILEHEIGHT = LEVELHEIGHT / TILEDIM;
+export let leveltilewidth  = levelwidth / tiledim;
+export let leveltileheight = levelheight / tiledim;
 
-export let NUM32XTILES = TILEFILEW/TILEDIM; 
-export let NUM32YTILES = TILEFILEH/TILEDIM; 
+export let screenxtiles = tilefilew/tiledim; 
+export let screenytiles = tilefileh/tiledim; 

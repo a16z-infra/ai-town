@@ -22,7 +22,7 @@ import { EventSystem } from '@pixi/events';
 const debug_flag = false;
 
 function tile_index_from_coords(x, y) {
-    return x + (y*CONFIG.NUM32XTILES*g_context.tileDim);
+    return x + (y*CONFIG.screenxtiles*g_context.tileDim);
 }
 
 function tile_index_from_px(x, y) {
@@ -40,8 +40,9 @@ function DragState() {
 }
 
 class LayerContext {
-    constructor(app, num) {
-        this.num =  num;
+
+    constructor(app, num, mod = null) {
+        this.num = num;
         this.app = app;
         this.container = new PIXI.Container();
         this.sprites = {};
@@ -51,17 +52,43 @@ class LayerContext {
 
         this.square = new PIXI.Graphics();
         this.square.beginFill(0x2980b9);
-        this.square.drawRect(0, 0, CONFIG.LEVELWIDTH, CONFIG.LEVELHEIGHT);
+        this.square.drawRect(0, 0, CONFIG.levelwidth, CONFIG.levelheight);
         this.square.endFill();
         this.square.interactive = true;
         this.container.addChild(this.square);
 
-        this.square.on('mousedown',   onLevelMousedown.bind(null,  this));
-        this.square.on('mousemove',   onLevelMousemove.bind(null));
-        this.square.on('mouseover',    onLevelMouseover);
+        this.square.on('mousedown', onLevelMousedown.bind(null, this));
+        this.square.on('mousemove', onLevelMousemove.bind(null));
+        this.square.on('mouseover', onLevelMouseover);
         this.square.on('pointerdown', onLevelPointerDown.bind(null, this))
-         .on('pointerup', onLevelDragEnd.bind(null, this))
-         .on('pointerupoutside', onLevelDragEnd.bind(null, this)); 
+            .on('pointerup', onLevelDragEnd.bind(null, this))
+            .on('pointerupoutside', onLevelDragEnd.bind(null, this));
+
+        if (mod != null) {
+            this.loadFromMapFile(mod);
+        }
+    }
+
+    loadFromMapFile(mod) {
+        let tiles = [];
+        if (this.num == 0) {
+            tiles = mod.bgtiles[0];
+        } else if (this.num == 1) {
+            tiles = mod.bgtiles[1];
+        } else if (this.num == 2) {
+            tiles = mod.objmap[0];
+        } else if (this.num == 3) {
+            tiles = mod.objmap[1];
+        } else {
+            console.log("loadFromMapFile: Error unknow layer number");
+            return;
+        }
+
+        for (let x = 0; x < tiles.length; x++) {
+            for (let y = 0; y < tiles[0].length; y++) {
+                this.addTileLevelCoords(x, y, mod.tiledim, tiles[x][y]);
+            }
+        }
     }
 
     addTileLevelCoords(x, y, dim, index) {
@@ -111,16 +138,16 @@ class LayerContext {
             this.grid_graphics.lineStyle(1, 0xffffff, 1);
 
             let index = 0;
-            for (let i = 0; i < CONFIG.LEVELWIDTH; i += gridsize) {
+            for (let i = 0; i < CONFIG.levelwidth; i += gridsize) {
                 this.grid_graphics.moveTo(i, 0);
-                this.grid_graphics.lineTo(i, CONFIG.LEVELHEIGHT);
+                this.grid_graphics.lineTo(i, CONFIG.levelheight);
                 this.grid_graphics.moveTo(i + gridsize, 0);
-                this.grid_graphics.lineTo(i + gridsize, CONFIG.LEVELHEIGHT);
+                this.grid_graphics.lineTo(i + gridsize, CONFIG.levelheight);
 
                 this.grid_graphics.moveTo(0, i);
-                this.grid_graphics.lineTo(CONFIG.LEVELWIDTH, i);
+                this.grid_graphics.lineTo(CONFIG.levelwidth, i);
                 this.grid_graphics.moveTo(0, i + gridsize);
-                this.grid_graphics.lineTo(CONFIG.LEVELWIDTH, i + gridsize);
+                this.grid_graphics.lineTo(CONFIG.levelwidth, i + gridsize);
             }
         }
         if (this.toggle) {
@@ -134,16 +161,17 @@ class LayerContext {
 } // class  LayerContext
 
 class TilesetContext {
-    constructor(app) {
+    constructor(app, mod = CONFIG) {
         this.app = app;
         this.container = new PIXI.Container();
 
-        const texture = PIXI.Texture.from(CONFIG.TILESETFILE);
+        console.log(mod.tilesetpath);
+        const texture = PIXI.Texture.from(mod.tilesetpath);
         const bg    = new PIXI.Sprite(texture);
         this.square = new PIXI.Graphics();
-        this.square.drawRect(0, 0, CONFIG.TILEFILEW, CONFIG.TILEFILEH);
+        this.square.drawRect(0, 0, mod.tilefilew, mod.tilefileh);
         this.square.beginFill(0x2980b9);
-        this.square.drawRect(0, 0, CONFIG.TILEFILEW, CONFIG.TILEFILEH);
+        this.square.drawRect(0, 0, mod.tilefilew, mod.tilefileh);
         this.square.interactive = true;
         this.container.addChild(this.square);
         this.container.addChild(bg);
@@ -156,7 +184,7 @@ class TilesetContext {
             let tilex = Math.floor(e.data.global.x / g_context.tileDim);
             let tiley = Math.floor(e.data.global.y / g_context.tileDim);
 
-            g_context.tile_index = (tiley * CONFIG.NUM32XTILES) + tilex;
+            g_context.tile_index = (tiley * mod.screenxtiles) + tilex;
         });
 
         this.square.on('pointerdown', onTilesetDragStart)
@@ -185,27 +213,27 @@ const tiles32  = [];
 const tiles16  = []; 
 
 // First layer of level
-const level_app0 = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.LEVELWIDTH, height : CONFIG.LEVELHEIGHT, view: document.getElementById('level0')});
-const layer0 = new LayerContext(level_app0, 0);
+const level_app0 = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('level0')});
+let layer0 = new LayerContext(level_app0, 0);
 
 // second layer of level 
-const level_app1 = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.LEVELWIDTH, height : CONFIG.LEVELHEIGHT, view: document.getElementById('level1')});
-const layer1 = new LayerContext(level_app1,1);
+const level_app1 = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('level1')});
+let layer1 = new LayerContext(level_app1,1);
 
 //  object layer of level
-const level_app2    = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.LEVELWIDTH, height : CONFIG.LEVELHEIGHT, view: document.getElementById('level3')});
-const layer2 = new LayerContext(level_app2, 2);
+const level_app2    = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('level3')});
+let layer2 = new LayerContext(level_app2, 2);
 
 //  object layer of level
-const level_app3    = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.LEVELWIDTH, height : CONFIG.LEVELHEIGHT, view: document.getElementById('level4')});
-const layer3 = new LayerContext(level_app3, 3);
+const level_app3    = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('level4')});
+let layer3 = new LayerContext(level_app3, 3);
 
 // composite view 
-const composite_app = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.LEVELWIDTH, height : CONFIG.LEVELHEIGHT, view: document.getElementById('composite')});
+const composite_app = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('composite')});
 const composite = new CompositeContext(composite_app);
 
 // tileset
-const tileset_app = new PIXI.Application( {width :CONFIG.TILEFILEW, height : CONFIG.TILEFILEH, view: document.getElementById('tileset')});
+const tileset_app = new PIXI.Application( {width :CONFIG.tilefilew, height : CONFIG.tilefileh, view: document.getElementById('tileset')});
 const { renderer } = tileset_app;
 // Install the EventSystem
 renderer.addSystem(EventSystem, 'tileevents');
@@ -220,11 +248,55 @@ window.create_level_file = () => {
     generate_level_file();
 }
 
+let filecontent = "";
+
+const fileInput = document.getElementById('input');
+fileInput.onchange = (evt) => {
+    if(!window.FileReader) return; // Browser is not compatible
+
+    var reader = new FileReader();
+
+    reader.onload = function(evt) {
+        if(evt.target.readyState != 2) return;
+        if(evt.target.error) {
+            alert('Error while reading file');
+            return;
+        }
+
+        filecontent = evt.target.result;
+        doimport(filecontent).then(mod => loadMapFromModule(mod));
+    };
+
+    reader.readAsText(evt.target.files[0]);
+}
+
+function doimport (str) {
+    if (globalThis.URL.createObjectURL) {
+      const blob = new Blob([str], { type: 'text/javascript' })
+      const url = URL.createObjectURL(blob)
+      const module = import(url)
+      URL.revokeObjectURL(url) // GC objectURLs
+      return module
+    }
+    
+    const url = "data:text/javascript;base64," + btoa(moduleData)
+    return import(url)
+  }
+
+  function loadMapFromModule(mod) {
+    tileset = new TilesetContext(tileset_app, mod);
+    layer0 = new LayerContext(level_app0, 0, mod);
+    layer1 = new LayerContext(level_app1, 1, mod);
+    layer2 = new LayerContext(level_app2, 2, mod);
+    layer3 = new LayerContext(level_app3, 3, mod);
+  }
+  
+
 function generate_level_file() {
     // level0 
-    var tile_array0 = Array.from(Array(CONFIG.LEVELTILEWIDTH), () => new Array(CONFIG.LEVELTILEHEIGHT));
-    for (let x = 0; x < CONFIG.LEVELTILEWIDTH; x++) {
-        for (let y = 0; y < CONFIG.LEVELTILEHEIGHT; y++) {
+    var tile_array0 = Array.from(Array(CONFIG.leveltilewidth), () => new Array(CONFIG.leveltileheight));
+    for (let x = 0; x < CONFIG.leveltilewidth; x++) {
+        for (let y = 0; y < CONFIG.leveltileheight; y++) {
             tile_array0[x][y] = -1;
         }
     }
@@ -233,15 +305,15 @@ function generate_level_file() {
         if (!child.hasOwnProperty('index')) {
             continue;
         }
-        let x_coord = child.x / CONFIG.TILEDIM;
-        let y_coord = child.y / CONFIG.TILEDIM;
+        let x_coord = child.x / CONFIG.tiledim;
+        let y_coord = child.y / CONFIG.tiledim;
         tile_array0[x_coord][y_coord] = child.index;
     }
 
     // level1 
-    var tile_array1 = Array.from(Array(CONFIG.LEVELTILEWIDTH), () => new Array(CONFIG.LEVELTILEHEIGHT));
-    for (let x = 0; x < CONFIG.LEVELTILEWIDTH; x++) {
-        for (let y = 0; y < CONFIG.LEVELTILEHEIGHT; y++) {
+    var tile_array1 = Array.from(Array(CONFIG.leveltilewidth), () => new Array(CONFIG.leveltileheight));
+    for (let x = 0; x < CONFIG.leveltilewidth; x++) {
+        for (let y = 0; y < CONFIG.leveltileheight; y++) {
             tile_array1[x][y] = -1;
         }
     }
@@ -250,15 +322,15 @@ function generate_level_file() {
         if (!child.hasOwnProperty('index')) {
             continue;
         }
-        let x_coord = child.x / CONFIG.TILEDIM;
-        let y_coord = child.y / CONFIG.TILEDIM;
+        let x_coord = child.x / CONFIG.tiledim;
+        let y_coord = child.y / CONFIG.tiledim;
         tile_array1[x_coord][y_coord] = child.index;
     }
 
     //  object level
-    var tile_array2 = Array.from(Array(CONFIG.LEVELTILEWIDTH), () => new Array(CONFIG.LEVELTILEHEIGHT));
-    for (let x = 0; x < CONFIG.LEVELTILEWIDTH; x++) {
-        for (let y = 0; y < CONFIG.LEVELTILEHEIGHT; y++) {
+    var tile_array2 = Array.from(Array(CONFIG.leveltilewidth), () => new Array(CONFIG.leveltileheight));
+    for (let x = 0; x < CONFIG.leveltilewidth; x++) {
+        for (let y = 0; y < CONFIG.leveltileheight; y++) {
             tile_array2[x][y] = -1;
         }
     }
@@ -267,15 +339,15 @@ function generate_level_file() {
         if (!child.hasOwnProperty('index')) {
             continue;
         }
-        let x_coord = child.x / CONFIG.TILEDIM;
-        let y_coord = child.y / CONFIG.TILEDIM;
+        let x_coord = child.x / CONFIG.tiledim;
+        let y_coord = child.y / CONFIG.tiledim;
         tile_array2[x_coord][y_coord] = child.index;
     }
 
     //  object level
-    var tile_array3 = Array.from(Array(CONFIG.LEVELTILEWIDTH), () => new Array(CONFIG.LEVELTILEHEIGHT));
-    for (let x = 0; x < CONFIG.LEVELTILEWIDTH; x++) {
-        for (let y = 0; y < CONFIG.LEVELTILEHEIGHT; y++) {
+    var tile_array3 = Array.from(Array(CONFIG.leveltilewidth), () => new Array(CONFIG.leveltileheight));
+    for (let x = 0; x < CONFIG.leveltilewidth; x++) {
+        for (let y = 0; y < CONFIG.leveltileheight; y++) {
             tile_array3[x][y] = -1;
         }
     }
@@ -284,8 +356,8 @@ function generate_level_file() {
         if (!child.hasOwnProperty('index')) {
             continue;
         }
-        let x_coord = child.x / CONFIG.TILEDIM;
-        let y_coord = child.y / CONFIG.TILEDIM;
+        let x_coord = child.x / CONFIG.tiledim;
+        let y_coord = child.y / CONFIG.tiledim;
         tile_array3[x_coord][y_coord] = child.index;
     }
 
@@ -295,8 +367,8 @@ function generate_level_file() {
 // fill base level with 32x32 tiles of current index
 window.fill0 = () => {
     UNDO.undo_mark_task_start(layer0.container, layer0.sprites);
-    for(let i = 0; i < CONFIG.LEVELWIDTH / 32; i++){
-        for(let j = 0; j < CONFIG.LEVELHEIGHT / 32; j++){
+    for(let i = 0; i < CONFIG.levelwidth / 32; i++){
+        for(let j = 0; j < CONFIG.levelheight / 32; j++){
             let ti = layer0.addTileLevelCoords(i,j,32, g_context.tile_index);
             UNDO.undo_add_index_to_task(ti);
         }
@@ -342,16 +414,16 @@ window.addEventListener(
 // window.setGridDim = (val) => {
 //     if(val == 16){
 //         if(g_context.tileDim == 16) {return;}
-//         CONFIG.NUM32XTILES /= (val/g_context.tileDim);
-//         CONFIG.NUM32YTILES /= (val/g_context.tileDim);
+//         CONFIG.screenxtiles /= (val/g_context.tileDim);
+//         CONFIG.screenytiles /= (val/g_context.tileDim);
 //         g_context.tileDim = 16; 
 //         g_context.dimlog = Math.log2(g_context.tileDim); 
 //         curtiles = tiles16;
 //         console.log("set to curTiles16");
 //     }else if (val == 32){
 //         if(g_context.tileDim == 32) {return;}
-//         CONFIG.NUM32XTILES /= (val/g_context.tileDim);
-//         CONFIG.NUM32YTILES /= (val/g_context.tileDim);
+//         CONFIG.screenxtiles /= (val/g_context.tileDim);
+//         CONFIG.screenytiles /= (val/g_context.tileDim);
 //         g_context.tileDim = 32; 
 //         g_context.dimlog = Math.log2(g_context.tileDim); 
 //         curtiles = tiles32;
@@ -403,13 +475,13 @@ function onTilesetDragEnd(e)
         return;
     }
 
-    g_context.tile_index = (starttiley * CONFIG.NUM32XTILES) + starttilex;
+    g_context.tile_index = (starttiley * CONFIG.screenxtiles) + starttilex;
 
     let origx = starttilex;
     let origy = starttiley;
     for(let y = starttiley; y <= endtiley; y++){
         for(let x = starttilex; x <= endtilex; x++){
-            let squareindex = (y * CONFIG.NUM32XTILES) + x;
+            let squareindex = (y * CONFIG.screenxtiles) + x;
             g_context.selected_tiles.push([x - origx,y - origy,squareindex]);
         }
     }
@@ -448,16 +520,16 @@ function drawGrid() {
         drawGrid.graphics.lineStyle(1, 0xffffff, 1);
 
         let index = 0;
-        for (let i = 0; i < CONFIG.LEVELWIDTH; i += gridsize) {
+        for (let i = 0; i < CONFIG.levelwidth; i += gridsize) {
             drawGrid.graphics.moveTo(i, 0);
-            drawGrid.graphics.lineTo(i, CONFIG.LEVELHEIGHT);
+            drawGrid.graphics.lineTo(i, CONFIG.levelheight);
             drawGrid.graphics.moveTo(i + gridsize, 0);
-            drawGrid.graphics.lineTo(i + gridsize, CONFIG.LEVELHEIGHT);
+            drawGrid.graphics.lineTo(i + gridsize, CONFIG.levelheight);
 
             drawGrid.graphics.moveTo(0, i);
-            drawGrid.graphics.lineTo(CONFIG.LEVELWIDTH, i);
+            drawGrid.graphics.lineTo(CONFIG.levelwidth, i);
             drawGrid.graphics.moveTo(0, i + gridsize);
-            drawGrid.graphics.lineTo(CONFIG.LEVELWIDTH, i + gridsize);
+            drawGrid.graphics.lineTo(CONFIG.levelwidth, i + gridsize);
         }
             drawGrid.graphics3 = drawGrid.graphics.clone();
     }
@@ -585,7 +657,7 @@ function onLevelDragEnd(layer, e)
         UNDO.undo_mark_task_start(layer.container, layer.sprites);
         for (let i = starttilex; i <= endtilex; i++) {
             for (let j = starttiley; j <= endtiley; j++) {
-                let squareindex = (j * CONFIG.NUM32XTILES) + i;
+                let squareindex = (j * CONFIG.screenxtiles) + i;
                 let ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, g_context.tile_index);
                 UNDO.undo_add_index_to_task(ti);
             }
@@ -615,7 +687,7 @@ function onLevelDragEnd(layer, e)
         let ti=0;
         for (let i = starttilex; i <= endtilex; i++) {
             for (let j = starttiley; j <= endtiley; j++) {
-                let squareindex = (j * CONFIG.NUM32XTILES) + i;
+                let squareindex = (j * CONFIG.screenxtiles) + i;
                 if (j === starttiley) { // first row 
                     if (i === starttilex) { // top left corner
                         ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[0][0][2]);
@@ -658,20 +730,20 @@ function onLevelDragEnd(layer, e)
 
 function init() {
     // load tileset into a global array of textures for blitting onto levels
-    const bt = PIXI.BaseTexture.from(CONFIG.TILESETFILE, {
+    const bt = PIXI.BaseTexture.from(CONFIG.tilesetpath, {
         scaleMode: PIXI.SCALE_MODES.NEAREST,
     });
-    for (let x = 0; x < CONFIG.NUM32XTILES; x++) {
-        for (let y = 0; y < CONFIG.NUM32YTILES; y++) {
-            tiles32[x + y * CONFIG.NUM32XTILES] = new PIXI.Texture(
+    for (let x = 0; x < CONFIG.screenxtiles; x++) {
+        for (let y = 0; y < CONFIG.screenytiles; y++) {
+            tiles32[x + y * CONFIG.screenxtiles] = new PIXI.Texture(
                 bt,
                 new PIXI.Rectangle(x * 32, y * 32, 32, 32),
             );
         }
     }
-    for (let x = 0; x < CONFIG.NUM32XTILES * 2; x++) {
-        for (let y = 0; y < CONFIG.NUM32YTILES * 2; y++) {
-            tiles16[x + y * CONFIG.NUM32XTILES * 2] = new PIXI.Texture(
+    for (let x = 0; x < CONFIG.screenxtiles * 2; x++) {
+        for (let y = 0; y < CONFIG.screenytiles * 2; y++) {
+            tiles16[x + y * CONFIG.screenxtiles * 2] = new PIXI.Texture(
                 bt,
                 new PIXI.Rectangle(x * 16, y * 16, 16, 16),
             );
