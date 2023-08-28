@@ -19,7 +19,7 @@ import * as UNDO from './undo.js'
 import * as FILE from './mapfile.js'
 import { EventSystem } from '@pixi/events';
 
-const debug_flag = false;
+const debug_flag = true;
 
 function tile_index_from_coords(x, y) {
     return x + (y*CONFIG.screenxtiles*g_context.tileDim);
@@ -184,7 +184,11 @@ class TilesetContext {
             let tilex = Math.floor(e.data.global.x / g_context.tileDim);
             let tiley = Math.floor(e.data.global.y / g_context.tileDim);
 
-            g_context.tile_index = (tiley * mod.screenxtiles) + tilex;
+            g_context.tile_index = (tiley * mod.tilefilew / mod.tiledim) + tilex;
+
+            if(debug_flag) {
+                console.log("tileset mouse down. index "+g_context.tile_index);
+            }
         });
 
         this.square.on('pointerdown', onTilesetDragStart)
