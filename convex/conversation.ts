@@ -114,7 +114,7 @@ export async function decideWhoSpeaksNext(
   const { content } = await chatCompletion({ messages: prompt, max_tokens: 300 });
   let speakerId: string | undefined = undefined;
   try {
-    const contentJSON = JSON.parse(content) as {id: string};
+    const contentJSON = JSON.parse(content) as { id: string };
     speakerId = contentJSON.id;
   } catch (e) {
     console.error('error parsing speakerId: ', e);
@@ -130,7 +130,7 @@ export async function converse(
   nearbyPlayers: Relation[],
   memory: MemoryDB,
 ) {
-  const nearbyPlayersNames = nearbyPlayers.join(', ');
+  const nearbyPlayersNames = nearbyPlayers.map((p) => p.name).join(', ');
   const lastMessage: string | null | undefined = messages?.at(-1)?.content;
   const { embedding } = await fetchEmbedding(lastMessage ? lastMessage : '');
   const memories = await memory.accessMemories(player.id, embedding);
@@ -163,7 +163,11 @@ export async function converse(
     if (p.relationship) prefixPrompt += `Relationship with ${p.name}: ${p.relationship}\n`;
   });
 
-  prefixPrompt += `Last time you chatted with some of ${nearbyPlayersNames} it was ${lastConversationTs}. It's now ${Date.now()}. You can cut this conversation short if you talked to this group of people within the last day. \n}`;
+  if (lastConversationTs) {
+    prefixPrompt += `Last time you chatted with some of ${nearbyPlayersNames} it was ${new Date(
+      lastConversationTs,
+    ).toLocaleString()}. It's now ${new Date().toLocaleString()}. You can cut this conversation short if you talked to this group of people within the last day. \n`;
+  }
 
   prefixPrompt += `Below are relevant memories to this conversation you are having right now: ${relevantMemories}\n`;
 
