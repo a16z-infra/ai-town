@@ -13,8 +13,8 @@ export const TILEDIM = 32; // px
 export const LEVELWIDTH  = 1600; // px
 export const LEVELHEIGHT = 1600; // px
 
-export const LEVELTILEWIDTH  = LEVELWIDTH / TILEDIM;
-export const LEVELTILEHEIGHT = LEVELHEIGHT / TILEDIM;
+export let LEVELTILEWIDTH  = LEVELWIDTH / TILEDIM;
+export let LEVELTILEHEIGHT = LEVELHEIGHT / TILEDIM;
 
-export const NUM32XTILES = TILEFILEW/TILEDIM; 
-export const NUM32YTILES = 44; // FIXME get around bad filelength in magecity
+export let NUM32XTILES = TILEFILEW/TILEDIM; 
+export let NUM32YTILES = TILEFILEH/TILEDIM; 

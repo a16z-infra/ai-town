@@ -339,27 +339,27 @@ window.addEventListener(
 
 // Currently UNUSED
 // Size of tiles we're working with
-window.setGridDim = (val) => {
-    if(val == 16){
-        if(g_context.tileDim == 16) {return;}
-        CONFIG.NUM32XTILES /= (val/g_context.tileDim);
-        CONFIG.NUM32YTILES /= (val/g_context.tileDim);
-        g_context.tileDim = 16; 
-        g_context.dimlog = Math.log2(g_context.tileDim); 
-        curtiles = tiles16;
-        console.log("set to curTiles16");
-    }else if (val == 32){
-        if(g_context.tileDim == 32) {return;}
-        CONFIG.NUM32XTILES /= (val/g_context.tileDim);
-        CONFIG.NUM32YTILES /= (val/g_context.tileDim);
-        g_context.tileDim = 32; 
-        g_context.dimlog = Math.log2(g_context.tileDim); 
-        curtiles = tiles32;
-        console.log("set to curTiles32");
-    }else{
-        console.debug("Invalid TileDim!");
-    }
- }
+// window.setGridDim = (val) => {
+//     if(val == 16){
+//         if(g_context.tileDim == 16) {return;}
+//         CONFIG.NUM32XTILES /= (val/g_context.tileDim);
+//         CONFIG.NUM32YTILES /= (val/g_context.tileDim);
+//         g_context.tileDim = 16; 
+//         g_context.dimlog = Math.log2(g_context.tileDim); 
+//         curtiles = tiles16;
+//         console.log("set to curTiles16");
+//     }else if (val == 32){
+//         if(g_context.tileDim == 32) {return;}
+//         CONFIG.NUM32XTILES /= (val/g_context.tileDim);
+//         CONFIG.NUM32YTILES /= (val/g_context.tileDim);
+//         g_context.tileDim = 32; 
+//         g_context.dimlog = Math.log2(g_context.tileDim); 
+//         curtiles = tiles32;
+//         console.log("set to curTiles32");
+//     }else{
+//         console.debug("Invalid TileDim!");
+//     }
+//  }
 
 // Listen to pointermove on stage once handle is pressed.
 function onTilesetDragStart(e)
