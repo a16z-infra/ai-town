@@ -13,11 +13,11 @@
 }
 
 .font-display {
-  font-family: "Upheaval Pro";
+  font-family: "Upheaval Pro", "sans-serif";
 }
 
 .font-body {
-  font-family: "VCR OSD Mono";
+  font-family: "VCR OSD Mono", "monospace";
 }
 
 :root {

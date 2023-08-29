@@ -1,6 +1,5 @@
-import './App.css'
-import GameWrapper from './vite/GameWrapper.tsx'
-import MusicButton from './vite/MusicButton.tsx'
+import GameWrapper from './components/GameWrapper.tsx'
+import MusicButton from './components/MusicButton.tsx'
 
 export default function Home() {
   return (
