@@ -4,6 +4,7 @@ import { Doc, Id } from '../_generated/dataModel.js';
 import {
   ActionCtx,
   DatabaseReader,
+  internalAction,
   internalMutation,
   internalQuery,
 } from '../_generated/server.js';
@@ -288,14 +289,31 @@ function makeRange(values: number[]) {
   return [min, max] as const;
 }
 
-// Unused, but in case they're helpful later.
-// export const embedMemory = internalAction({
-//   args: { memory: v.object(NewMemory) },
-//   handler: async (ctx, args): Promise<Id<'memories'>> => {
-//     return (await MemoryDB(ctx).addMemories([args.memory]))[0];
-//   },
-// });
+export const embedMemory = internalAction({
+  args: { memory: v.object(NewMemory) },
+  handler: async (ctx, args) => {
+    await MemoryDB(ctx).addMemories([args.memory]);
+  },
+});
 
+// Call this from the Convex dashboard function runner.
+export const setIdentity = internalAction({
+  args: {
+    playerId: v.id('players'),
+    identity: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.runAction(internal.lib.memory.embedMemory, {
+      memory: {
+        playerId: args.playerId,
+        data: { type: 'identity' },
+        description: args.identity,
+      },
+    });
+  },
+});
+
+// Unused, but in case they're helpful later.
 // export const embedMemories = internalAction({
 //   args: { memories: v.array(v.object(NewMemory)) },
 //   handler: async (ctx, args): Promise<Id<'memories'>[]> => {
@@ -393,7 +411,9 @@ export const getRecentMessages = internalQuery({
     // beginning of time (for this user's conversations).
     const firstMessage = (await ctx.db
       .query('journal')
-      .withIndex('by_conversation', (q) => q.eq('data.conversationId', conversationId as any as undefined))
+      .withIndex('by_conversation', (q) =>
+        q.eq('data.conversationId', conversationId as any as undefined),
+      )
       .first()) as EntryOfType<'talking'>;
 
     // Look for the last conversation memory for this conversation
