@@ -100,7 +100,6 @@ export async function chatCompletion(
         ),
       };
     }
-
     return result.body!;
   });
   return {
