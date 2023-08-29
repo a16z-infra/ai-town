@@ -230,13 +230,23 @@ export async function handleAgentInteraction(
       playerCompletion = await converse(ctx, chatHistory, speaker, playerRelations, memory);
     }
 
-    const message = await ctx.runMutation(internal.journal.talk, {
-      playerId: speaker.id,
-      audience,
-      content: playerCompletion.content,
-      relatedMemoryIds: playerCompletion.memoryIds,
-      conversationId,
-    });
+    let message = undefined;
+    for await (const content of playerCompletion.content.read()) {
+      if (message) {
+        message = await ctx.runMutation(internal.journal.talkMore, {
+          entryId: message.entryId,
+          content,
+        });
+      } else {
+        message = await ctx.runMutation(internal.journal.talk, {
+          playerId: speaker.id,
+          audience,
+          content,
+          relatedMemoryIds: playerCompletion.memoryIds,
+          conversationId,
+        });
+      }
+    }
 
     if (message) {
       messages.push(message);

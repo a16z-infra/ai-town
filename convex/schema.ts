@@ -40,6 +40,7 @@ export const Pose = v.object({ position: Position, orientation: v.number() });
 export type Pose = Infer<typeof Pose>;
 
 const commonFields = {
+  entryId: v.id('journal'),
   from: v.id('players'),
   fromName: v.string(),
   to: v.array(v.id('players')),
