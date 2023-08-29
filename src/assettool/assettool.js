@@ -46,6 +46,7 @@ class LayerContext {
         this.app = app;
         this.container = new PIXI.Container();
         this.sprites = {};
+        this.composite_sprites = {};
         this.dragctx = new DragState();
 
         app.stage.addChild(this.container);
@@ -116,17 +117,20 @@ class LayerContext {
             console.log('addTileLevelPx ',this.num,' ctile.x ', ctile.x, 'ctile.y ', ctile.y, "index ", index, "new_index", new_index);
         }
 
+        this.container.addChild(ctile);
+        composite.container.addChild(ctile2);
         if (this.sprites.hasOwnProperty(new_index)) {
             if(debug_flag){
              console.log("addTileLevelPx: ",this.num,"removing old tile", new_index);
             }
             this.container.removeChild(this.sprites[new_index]);
-            //composite.container.removeChild(composite.sprites[new_index]);
+            // composite.container.removeChild(composite.sprites[(this.num, new_index)]);
+            composite.container.removeChild(this.composite_sprites[new_index]);
+            // console.log("DELETING ZINDEX ", this.composite_sprites[new_index].zIndex);
         }
-        this.container.addChild(ctile);
-        composite.container.addChild(ctile2);
         this.sprites[new_index] = ctile;
-        composite.sprites[new_index] = ctile2;
+        this.composite_sprites[new_index] = ctile2;
+        // console.log("SETTING ZINDEX ", this.composite_sprites[new_index].zIndex);
         return new_index;
     }
 
@@ -382,7 +386,7 @@ function generate_level_file() {
 
 // fill base level with 32x32 tiles of current index
 window.fill0 = () => {
-    UNDO.undo_mark_task_start(layer0.container, layer0.sprites);
+    UNDO.undo_mark_task_start(layer0);
     for(let i = 0; i < CONFIG.levelwidth / 32; i++){
         for(let j = 0; j < CONFIG.levelheight / 32; j++){
             let ti = layer0.addTileLevelCoords(i,j,32, g_context.tile_index);
@@ -412,14 +416,13 @@ window.addEventListener(
             if (!undome) {
                 return;
             }
-            let lcontainer = undome.shift();
-            let lsprites   = undome.shift();
+            let layer = undome.shift();
             for(let i = 0; i < undome.length; i++) {
                 if (debug_flag) {
                     console.log("Undo removing ", undome[i])
                 }
-                lcontainer.removeChild(lsprites[undome[i]]);
-                composite.container.removeChild(composite.sprites[undome[i]]);
+                layer.container.removeChild(layer.sprites[undome[i]]);
+                composite.container.removeChild(layer.composite_sprites[undome[i]]);
             }
         }
      }
@@ -621,10 +624,10 @@ function onLevelMousedown(layer, e) {
 
     if (g_context.selected_tiles.length == 0) {
         let ti = layer.addTileLevelPx(e.data.global.x, e.data.global.y, g_context.tile_index);
-        UNDO.undo_add_single_index_as_task(layer.container, layer.sprites, ti);
+        UNDO.undo_add_single_index_as_task(layer, ti);
     } else {
         let undolist = [];
-        UNDO.undo_mark_task_start(layer.container, layer.sprites);
+        UNDO.undo_mark_task_start(layer);
         for (let index of g_context.selected_tiles) {
             let ti = layer.addTileLevelPx(xorig + index[0] * g_context.tileDim, yorig + index[1] * g_context.tileDim, index[2]);
             UNDO.undo_add_index_to_task(ti);
@@ -705,7 +708,7 @@ function onLevelDragEnd(layer, e)
     }
 
     if (g_context.selected_tiles.length == 0) {
-        UNDO.undo_mark_task_start(layer.container, layer.sprites);
+        UNDO.undo_mark_task_start(layer);
         for (let i = starttilex; i <= endtilex; i++) {
             for (let j = starttiley; j <= endtiley; j++) {
                 let squareindex = (j * CONFIG.screenxtiles) + i;
@@ -733,7 +736,7 @@ function onLevelDragEnd(layer, e)
         }
         // at this point should have a 3D array of the selected tiles and the size should be row, column
 
-        UNDO.undo_mark_task_start(layer.container, layer.sprites);
+        UNDO.undo_mark_task_start(layer);
 
         let ti=0;
         for (let i = starttilex; i <= endtilex; i++) {
