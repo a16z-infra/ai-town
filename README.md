@@ -50,10 +50,10 @@ a. **Set up Clerk**
 - Go to https://dashboard.clerk.com/ and click on "Add Application"
 - Name your application and select the sign-in providers you would like to offer users
 - Create Application
-- Add `VITE_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` to `.env.local`
+- Add `VITE_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` to `.env.local`
 
 ```bash
-VITE_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_***
+VITE_CLERK_PUBLISHABLE_KEY=pk_***
 CLERK_SECRET_KEY=sk_***
 ```
 
