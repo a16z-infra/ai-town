@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "npm-run-all dev:init --parallel dev:frontend dev:backend",
-    "build": "tsc && next build",
-    "start": "next start",
+    "build": "tsc && vite build",
     "lint": "eslint .",
     "dev:backend": "convex dev",
     "dev:frontend": "vite",
@@ -13,7 +12,6 @@
   },
   "dependencies": {
     "@clerk/clerk-react": "^4.21.9-snapshot.56dc3e3",
-    "@clerk/nextjs": "^4.21.9-snapshot.56dc3e3",
     "@pinecone-database/pinecone": "^0.1.6",
     "@pixi/react": "^7.1.0",
     "@pixi/sound": "^5.2.0",
@@ -25,10 +23,7 @@
     "convex": "^1.0.3",
     "dotenv": "^16.1.4",
     "eslint": "8.42.0",
-    "eslint-config-next": "13.4.4",
     "hnswlib-node": "^1.4.2",
-    "next": "13.4.4",
-    "next-plausible": "^3.10.1",
     "pixi-viewport": "^5.0.1",
     "pixi.js": "^7.2.4",
     "react": "18.2.0",
