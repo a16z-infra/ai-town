@@ -11,33 +11,29 @@ function orThrow(env: string | undefined): string {
 }
 
 export function pineconeAvailable(): boolean {
-  return (
-    !!process.env.PINECONE_API_KEY &&
-    !!process.env.PINECONE_ENVIRONMENT &&
-    !!process.env.PINECONE_INDEX_NAME
-  );
+  return true
 }
 
-if (!pineconeAvailable()) {
-  const deploymentName = process.env.CONVEX_CLOUD_URL?.slice(8).replace('.convex.cloud', '');
-  throw new Error(
-    '\n  Missing PINECONE_API_KEY, PINECONE_ENVIRONMENT, or PINECONE_INDEX_NAME' +
-      ' in environment variables.\n\n' +
-      '  Get one at https://app.pinecone.io/\n\n' +
-      '  Paste it on the Convex dashboard:\n' +
-      '  https://dashboard.convex.dev/d/' +
-      deploymentName +
-      '/settings?var=PINECONE_API_KEY&var=PINECONE_ENVIRONMENT&var=PINECONE_INDEX_NAME',
-  );
-}
+// if (!pineconeAvailable()) {
+//   const deploymentName = process.env.CONVEX_CLOUD_URL?.slice(8).replace('.convex.cloud', '');
+//   throw new Error(
+//     '\n  Missing PINECONE_API_KEY, PINECONE_ENVIRONMENT, or PINECONE_INDEX_NAME' +
+//       ' in environment variables.\n\n' +
+//       '  Get one at https://app.pinecone.io/\n\n' +
+//       '  Paste it on the Convex dashboard:\n' +
+//       '  https://dashboard.convex.dev/d/' +
+//       deploymentName +
+//       '/settings?var=PINECONE_API_KEY&var=PINECONE_ENVIRONMENT&var=PINECONE_INDEX_NAME',
+//   );
+// }
 
 export async function pineconeIndex() {
   const client = new PineconeClient();
   await client.init({
-    apiKey: orThrow(process.env.PINECONE_API_KEY),
-    environment: orThrow(process.env.PINECONE_ENVIRONMENT),
+    apiKey: "",
+    environment: "",
   });
-  return client.Index(orThrow(process.env.PINECONE_INDEX_NAME));
+  return client.Index(orThrow(""));
 }
 
 export const deleteVectors = internalAction({
