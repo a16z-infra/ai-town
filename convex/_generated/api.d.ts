@@ -39,6 +39,7 @@ import type * as journal from "../journal";
 import type * as lib_cached_llm from "../lib/cached_llm";
 import type * as lib_memory from "../lib/memory";
 import type * as lib_migrations from "../lib/migrations";
+import type * as lib_music from "../lib/music";
 import type * as lib_openai from "../lib/openai";
 import type * as lib_physics from "../lib/physics";
 import type * as lib_pinecone from "../lib/pinecone";
@@ -84,6 +85,7 @@ declare const fullApi: ApiFromModules<{
   "lib/cached_llm": typeof lib_cached_llm;
   "lib/memory": typeof lib_memory;
   "lib/migrations": typeof lib_migrations;
+  "lib/music": typeof lib_music;
   "lib/openai": typeof lib_openai;
   "lib/physics": typeof lib_physics;
   "lib/pinecone": typeof lib_pinecone;

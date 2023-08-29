@@ -187,6 +187,21 @@ export const talk = internalMutation({
   },
 });
 
+export const talkMore = internalMutation({
+  args: {
+    entryId: v.id('journal'),
+    content: v.string(),
+  },
+  handler: async (ctx, { entryId, content }) => {
+    const data = (await ctx.db.get(entryId))!.data;
+    if (data.type === 'talking') {
+      data.content += content;
+    }
+    await ctx.db.patch(entryId, { data });
+    return await clientMessageMapper(ctx.db)((await ctx.db.get(entryId))! as MessageEntry);
+  },
+});
+
 export const leaveConversation = internalMutation({
   args: {
     playerId: v.id('players'),

@@ -40,7 +40,7 @@ export async function startConversation(
   ];
   const stop = stopWords(newFriendsNames);
   const { content } = await chatCompletion({ messages: prompt, max_tokens: 300, stop });
-  return { content: trimContent(content, stop), memoryIds: memories.map((m) => m.memory._id) };
+  return { content, memoryIds: memories.map((m) => m.memory._id) };
 }
 
 function messageContent(m: Message): string {
@@ -57,24 +57,6 @@ function messageContent(m: Message): string {
 // These are the words we ask the LLM to stop on. OpenAI only supports 4.
 function stopWords(names: string[]): string[] {
   return names.flatMap((name) => [name + ':', name.toLowerCase() + ':']);
-}
-
-// As a stopgap since the stop sequences don't always work, we trim the output
-// based on the first stop word we find, lowercased.
-function trimContent(content: string, stopWords: string[]) {
-  let foundWordAtIndex = -1;
-  const contentLower = content.toLowerCase();
-  stopWords.forEach((word) => {
-    const idx = contentLower.indexOf(word.toLowerCase());
-    if (idx > -1 && (foundWordAtIndex === -1 || idx < foundWordAtIndex)) {
-      foundWordAtIndex = idx;
-      console.debug('found stop word, trimming content', word, idx);
-    }
-  });
-  if (foundWordAtIndex > -1) {
-    return content.slice(0, foundWordAtIndex);
-  }
-  return content;
 }
 
 export function chatHistoryFromMessages(messages: Message[]): LLMMessage[] {
@@ -113,7 +95,7 @@ export async function decideWhoSpeaksNext(
   const { content } = await chatCompletion({ messages: prompt, max_tokens: 300 });
   let speakerId: string;
   try {
-    const contentJSON = JSON.parse(content) as { id: string };
+    const contentJSON = JSON.parse(await content.readAll()) as { id: string };
     speakerId = contentJSON.id;
   } catch (e) {
     console.error('error parsing speakerId: ', e);
@@ -187,7 +169,7 @@ export async function converse(
   const stop = stopWords(nearbyPlayers.map((p) => p.name));
   const { content } = await chatCompletion({ messages: prompt, max_tokens: 300, stop });
   // console.debug('converse result through chatgpt: ', content);
-  return { content: trimContent(content, stop), memoryIds: memories.map((m) => m.memory._id) };
+  return { content, memoryIds: memories.map((m) => m.memory._id) };
 }
 
 export async function walkAway(messages: LLMMessage[], player: Player): Promise<boolean> {
@@ -205,5 +187,5 @@ export async function walkAway(messages: LLMMessage[], player: Player): Promise<
     max_tokens: 1,
     temperature: 0,
   });
-  return description === '1';
+  return await description.readAll() === '1';
 }

@@ -86,6 +86,7 @@ export function clientMessageMapper(db: DatabaseReader) {
   const getName = async (id: Id<'players'>) => (await db.get(id))?.name || '<Anonymous>';
   const clientMessage = async (m: MessageEntry): Promise<Message> => {
     const common = {
+      entryId: m._id,
       from: m.playerId,
       fromName: await getName(m.playerId),
       to: m.data.audience,
