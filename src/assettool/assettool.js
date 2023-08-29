@@ -108,6 +108,7 @@ class LayerContext {
         ctile2.x = (xPx >> g_context.dimlog) << g_context.dimlog;
         ctile.y = (yPx >> g_context.dimlog) << g_context.dimlog;
         ctile2.y = (yPx >> g_context.dimlog) << g_context.dimlog;
+        ctile2.zIndex = this.num; 
 
         let new_index = tile_index_from_px(ctile.x, ctile.y);
 
@@ -120,7 +121,7 @@ class LayerContext {
              console.log("addTileLevelPx: ",this.num,"removing old tile", new_index);
             }
             this.container.removeChild(this.sprites[new_index]);
-            composite.container.removeChild(composite.sprites[new_index]);
+            //composite.container.removeChild(composite.sprites[new_index]);
         }
         this.container.addChild(ctile);
         composite.container.addChild(ctile2);
@@ -204,6 +205,7 @@ class CompositeContext {
     constructor(app) {
         this.app = app;
         this.container = new PIXI.Container();
+        this.container.sortableChildren = true;
         this.app.stage.addChild(this.container);
         this.sprites = {};
         this.circle = new PIXI.Graphics();
