@@ -41,9 +41,10 @@ function DragState() {
 
 class LayerContext {
 
-    constructor(app, num, mod = null) {
-        this.num = num;
+    constructor(app, pane, num, mod = null) {
         this.app = app;
+        this.scrollpane = pane;
+        this.num = num;
         this.container = new PIXI.Container();
         this.sprites = {};
         this.composite_sprites = {};
@@ -59,8 +60,8 @@ class LayerContext {
         this.container.addChild(this.square);
 
         this.square.on('mousedown', onLevelMousedown.bind(null, this));
-        this.square.on('mousemove', onLevelMousemove.bind(null));
-        this.square.on('mouseover', onLevelMouseover);
+        this.square.on('mousemove', onLevelMousemove.bind(this));
+        this.square.on('mouseover', onLevelMouseover.bind(this));
         this.square.on('pointerdown', onLevelPointerDown.bind(null, this))
             .on('pointerup', onLevelDragEnd.bind(null, this))
             .on('pointerupoutside', onLevelDragEnd.bind(null, this));
@@ -213,6 +214,7 @@ class CompositeContext {
         this.app.stage.addChild(this.container);
         this.sprites = {};
         this.circle = new PIXI.Graphics();
+        this.circle.zIndex = 10;
 
         this.square = new PIXI.Graphics();
         this.square.beginFill(0x2980b9);
@@ -234,19 +236,19 @@ const tiles16  = [];
 
 // First layer of level
 const level_app0 = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('level0')});
-let layer0 = new LayerContext(level_app0, 0);
+let layer0 = new LayerContext(level_app0,document.getElementById("layer0pane"), 0);
 
 // second layer of level 
 const level_app1 = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('level1')});
-let layer1 = new LayerContext(level_app1,1);
+let layer1 = new LayerContext(level_app1,document.getElementById("layer1pane"), 1);
 
 //  object layer of level
 const level_app2    = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('level3')});
-let layer2 = new LayerContext(level_app2, 2);
+let layer2 = new LayerContext(level_app2,document.getElementById("layer2pane"), 2);
 
 //  object layer of level
 const level_app3    = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('level4')});
-let layer3 = new LayerContext(level_app3, 3);
+let layer3 = new LayerContext(level_app3,document.getElementById("layer3pane"), 3);
 
 // composite view 
 const composite_app = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('composite')});
@@ -305,10 +307,10 @@ function doimport (str) {
 
   function loadMapFromModule(mod) {
     tileset = new TilesetContext(tileset_app, mod);
-    layer0 = new LayerContext(level_app0, 0, mod);
-    layer1 = new LayerContext(level_app1, 1, mod);
-    layer2 = new LayerContext(level_app2, 2, mod);
-    layer3 = new LayerContext(level_app3, 3, mod);
+    layer0 = new LayerContext(level_app0,document.getElementById("layer0pane"), 0, mod);
+    layer1 = new LayerContext(level_app1,document.getElementById("layer1pane"), 1, mod);
+    layer2 = new LayerContext(level_app2,document.getElementById("layer2pane"), 2, mod);
+    layer3 = new LayerContext(level_app3,document.getElementById("layer3pane"), 3, mod);
   }
   
 
@@ -590,10 +592,30 @@ function centerLayerPanes(x, y){
 }
 
 function onLevelMouseover(e) {
+    if(debug_flag){
+        console.log("onLevelMouseOver ",this.num);
+    }
     composite.app.stage.removeChild(composite.circle);
     composite.app.stage.addChild(composite.circle);
 }
 function onLevelMousemove(e) {
+    let x = e.data.global.x;
+    let y = e.data.global.y;
+
+    // FIXME change magic number for pane
+    if (x < this.scrollpane.scrollLeft || x > this.scrollpane.scrollLeft + 640) {
+        return;
+    }
+    // FIXME change magic number for pane
+    if (y < this.scrollpane.scrollTop || y > this.scrollpane.scrollTop + 480) {
+        return;
+    }
+
+    if(debug_flag){
+        // console.log("onLevelMouseMove (x,y) ",this.num,e.data.global.x,e.data.global.y);
+        // console.log("onLevelMouseMove (scroll)",this.scrollpane.scrollLeft,this.scrollpane.scrollTop);
+    }
+
     composite.circle.clear();
     composite.circle.beginFill(0xe50000, 0.5);
     composite.circle.drawCircle(e.data.global.x, e.data.global.y, 3);
