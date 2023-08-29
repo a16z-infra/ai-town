@@ -3,6 +3,7 @@ import { api } from '../../convex/_generated/api';
 import { useCallback, useEffect, useState } from 'react';
 
 import { sound } from '@pixi/sound';
+import { convertNextStaticUrl } from './util';
 
 export default function MusicButton() {
   const music = useQuery(api.music.getBackgroundMusic);
@@ -16,7 +17,7 @@ export default function MusicButton() {
 
   if (!isLoaded && music?.url) {
     setLoaded(true);
-    sound.add('background', music?.url).loop = true;
+    sound.add('background', convertNextStaticUrl(music?.url)).loop = true;
   }
 
   const flipSwitch = async () => {

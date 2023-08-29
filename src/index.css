@@ -4,12 +4,12 @@
 
 @font-face {
   font-family: "Upheaval Pro";
-  src: url(../public/assets/fonts/upheaval_pro.ttf);
+  src: url(/assets/fonts/upheaval_pro.ttf);
 }
 
 @font-face {
   font-family: "VCR OSD Mono";
-  src: url(../public/assets/fonts/vcr_osd_mono.ttf);
+  src: url(/assets/fonts/vcr_osd_mono.ttf);
 }
 
 .font-display {
