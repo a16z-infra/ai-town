@@ -109,10 +109,11 @@ class LayerContext {
         ctile.y = (yPx >> g_context.dimlog) << g_context.dimlog;
         ctile2.y = (yPx >> g_context.dimlog) << g_context.dimlog;
 
-        if(debug_flag){
-            console.log('addTileLevelPx ',this.num,' ctile.x ', ctile.x, 'ctile.y ', ctile.y);
-        }
         let new_index = tile_index_from_px(ctile.x, ctile.y);
+
+        if(debug_flag){
+            console.log('addTileLevelPx ',this.num,' ctile.x ', ctile.x, 'ctile.y ', ctile.y, "index ", index, "new_index", new_index);
+        }
 
         if (this.sprites.hasOwnProperty(new_index)) {
             if(debug_flag){
@@ -756,12 +757,12 @@ function onLevelDragEnd(layer, e)
                     }
                 } else { // middle row
                     if (i === starttilex) { // middle left 
-                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[0][1][2]);
+                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[0][(row > 0)? 1 : 0][2]);
                     }
                     else if (i === endtilex) { // middle end 
-                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[column - 1][1][2]);
+                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[column - 1][(row > 0)? 1 : 0][2]);
                     } else { // middle middle
-                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[1][1][2]);
+                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[1][(row > 0)? 1 : 0][2]);
                     }
                 }
                 UNDO.undo_add_index_to_task(ti);
