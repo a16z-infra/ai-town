@@ -2,7 +2,6 @@
 // Simple level editer. 
 //
 // TODO: 
-//  - load map from .js
 //  - move more globals and class declarations into the global context context.js
 // 
 // Keybindings:
@@ -19,7 +18,7 @@ import * as UNDO from './undo.js'
 import * as FILE from './mapfile.js'
 import { EventSystem } from '@pixi/events';
 
-const debug_flag = true;
+const debug_flag = false;
 
 function tile_index_from_coords(x, y) {
     return x + (y*CONFIG.screenxtiles*g_context.tileDim);
@@ -577,18 +576,15 @@ function centerCompositePane(x, y){
 }
 
 function centerLayerPanes(x, y){
-    var l0pane = document.getElementById("layer0pane");
-    l0pane.scrollLeft = x - 320;
-    l0pane.scrollTop  = y - 240;
-    var l1pane = document.getElementById("layer1pane");
-    l1pane.scrollLeft = x - 320;
-    l1pane.scrollTop  = y - 240;
-    var l2pane = document.getElementById("layer2pane");
-    l2pane.scrollLeft = x - 320;
-    l2pane.scrollTop  = y - 240;
-    var l3pane = document.getElementById("layer3pane");
-    l3pane.scrollLeft = x - 320;
-    l3pane.scrollTop  = y - 240;
+    // TODO remove magic number pulled from index.html
+    layer0.scrollpane.scrollLeft = x - 320;
+    layer0.scrollpane.scrollTop  = y - 240;
+    layer1.scrollpane.scrollLeft = x - 320;
+    layer1.scrollpane.scrollTop  = y - 240;
+    layer2.scrollpane.scrollLeft = x - 320;
+    layer2.scrollpane.scrollTop  = y - 240;
+    layer3.scrollpane.scrollLeft = x - 320;
+    layer3.scrollpane.scrollTop  = y - 240;
 }
 
 function onLevelMouseover(e) {
@@ -609,11 +605,6 @@ function onLevelMousemove(e) {
     // FIXME change magic number for pane
     if (y < this.scrollpane.scrollTop || y > this.scrollpane.scrollTop + 480) {
         return;
-    }
-
-    if(debug_flag){
-        // console.log("onLevelMouseMove (x,y) ",this.num,e.data.global.x,e.data.global.y);
-        // console.log("onLevelMouseMove (scroll)",this.scrollpane.scrollLeft,this.scrollpane.scrollTop);
     }
 
     composite.circle.clear();

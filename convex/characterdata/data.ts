@@ -68,7 +68,7 @@ export const Descriptions = [
         description: 'You want to avoid people as much as possible.',
       },
     ],
-    position: { x: 6, y: 4 },
+    position: { x: 6, y: 14 },
   },
   {
     name: 'Stella',
@@ -85,7 +85,7 @@ export const Descriptions = [
         description: 'you want to take advantage of others as much as possible.',
       },
     ],
-    position: { x: 6, y: 6 },
+    position: { x: 15, y: 12 },
   },
   {
     name: 'Kurt',
@@ -120,7 +120,7 @@ export const Descriptions = [
         description: 'You want to figure out how the world works.',
       },
     ],
-    position: { x: 4, y: 4 },
+    position: { x: 27, y: 35 },
   },
   {
     name: 'Pete',
