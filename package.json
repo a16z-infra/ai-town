@@ -4,16 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "npm-run-all dev:init --parallel dev:frontend dev:backend",
-    "build": "tsc && next build",
-    "start": "next start",
+    "build": "tsc && vite build",
     "lint": "eslint .",
     "dev:backend": "convex dev",
-    "dev:frontend": "next dev",
+    "dev:frontend": "vite",
     "dev:init": "convex dev --run init --until-success"
   },
   "dependencies": {
     "@clerk/clerk-react": "^4.21.9-snapshot.56dc3e3",
-    "@clerk/nextjs": "^4.21.9-snapshot.56dc3e3",
     "@pinecone-database/pinecone": "^0.1.6",
     "@pixi/react": "^7.1.0",
     "@pixi/sound": "^5.2.0",
@@ -21,23 +19,17 @@
     "@types/node": "20.2.5",
     "@types/react": "18.2.8",
     "@types/react-dom": "18.2.4",
-    "autoprefixer": "10.4.14",
     "clsx": "^2.0.0",
-    "convex": "^1.0.3",
+    "convex": "^1.1.1",
     "dotenv": "^16.1.4",
     "eslint": "8.42.0",
-    "eslint-config-next": "13.4.4",
     "hnswlib-node": "^1.4.2",
-    "next": "13.4.4",
-    "next-plausible": "^3.10.1",
     "pixi-viewport": "^5.0.1",
     "pixi.js": "^7.2.4",
-    "postcss": "8.4.24",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-github-btn": "^1.4.0",
     "replicate": "0.16.0",
-    "tailwindcss": "3.3.2",
     "typescript": "5.1.3",
     "usehooks-ts": "^2.9.1"
   },
@@ -47,7 +39,12 @@
     "@types/ws": "^8.5.5",
     "@typescript-eslint/eslint-plugin": "^6.4.1",
     "@typescript-eslint/parser": "^6.4.1",
+    "@vitejs/plugin-react": "^4.0.4",
+    "autoprefixer": "^10.4.15",
     "concurrently": "^8.2.0",
-    "npm-run-all": "^4.1.5"
+    "npm-run-all": "^4.1.5",
+    "postcss": "^8.4.28",
+    "tailwindcss": "^3.3.3",
+    "vite": "^4.4.9"
   }
 }

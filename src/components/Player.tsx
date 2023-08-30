@@ -2,10 +2,10 @@ import { useTick } from '@pixi/react';
 import { useRef, useState } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { getPoseFromMotion } from '../../convex/lib/physics';
+import { getPoseFromMotion } from '../../convex/lib/physics.ts';
 import { Doc, Id } from '../../convex/_generated/dataModel';
-import type { Pose } from '../../convex/schema';
-import { Character } from './Character';
+import type { Pose } from '../../convex/schema.ts';
+import { Character } from './Character.tsx';
 
 const SpeechDurationMs = 2000;
 const SpokeRecentlyMs = 5_000;

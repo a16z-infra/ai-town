@@ -1,9 +1,9 @@
-'use client';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useCallback, useEffect, useState } from 'react';
 
 import { sound } from '@pixi/sound';
+import { convertNextStaticUrl } from './util';
 
 export default function MusicButton() {
   const music = useQuery(api.music.getBackgroundMusic);
@@ -17,7 +17,7 @@ export default function MusicButton() {
 
   if (!isLoaded && music?.url) {
     setLoaded(true);
-    sound.add('background', music?.url).loop = true;
+    sound.add('background', convertNextStaticUrl(music?.url)).loop = true;
   }
 
   const flipSwitch = async () => {
@@ -58,7 +58,7 @@ export default function MusicButton() {
         <div className="inline-block bg-clay-700">
           <span>
             <div className="inline-flex items-center gap-4">
-              <img className="w-6 h-6" src="/ai-town/assets/volume.svg" />
+              <img className="w-6 h-6" src="/assets/volume.svg" />
               {isPlaying ? 'Mute' : 'Music'}
             </div>
           </span>

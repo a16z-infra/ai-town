@@ -50,10 +50,10 @@ a. **Set up Clerk**
 - Go to https://dashboard.clerk.com/ and click on "Add Application"
 - Name your application and select the sign-in providers you would like to offer users
 - Create Application
-- Add `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` to `.env.local`
+- Add `VITE_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` to `.env.local`
 
 ```bash
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_***
+VITE_CLERK_PUBLISHABLE_KEY=pk_***
 CLERK_SECRET_KEY=sk_***
 ```
 
@@ -188,43 +188,9 @@ See more functions in [`testing.ts`](./convex/testing.ts).
 
 ### Deploy the app
 
-#### Deploy to fly.io
+#### Deploy to Vercel
 
-- Register an account on fly.io and then [install flyctl](https://fly.io/docs/hands-on/install-flyctl/)
-- **If you are using Github Codespaces**: You will need to [install flyctl](https://fly.io/docs/hands-on/install-flyctl/) and authenticate from your codespaces cli by running `fly auth login`.
-
-- Run `npx convex deploy` to deploy your dev environment to prod environment. Make sure you copy over all secrets to Convex's prod environment
-- Run `fly launch` under project root. This will generate a `fly.toml` that includes all the configurations you will need
-- Modify generated `fly.toml` to include `NEXT_PUBLIC_*` during build time for NextJS to access client side.
-
-```
-[build]
-  [build.args]
-    NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in"
-    NEXT_PUBLIC_CLERK_SIGN_UP_URL="/sign-up"
-    NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL="/"
-    NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL="/"
-    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_*****"
-    NEXT_PUBLIC_CONVEX_URL="https://*******.convex.cloud"
-```
-
-- Modify fly.io's generated `Dockerfile` to include new ENV variables right above `RUN npm run build`
-
-```
-ARG NEXT_PUBLIC_CLERK_SIGN_IN_URL
-ARG NEXT_PUBLIC_CLERK_SIGN_UP_URL
-ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL
-ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL
-ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-ARG NEXT_PUBLIC_CONVEX_URL
-
-# Build application
-RUN npm run build
-```
-
-- Run `fly deploy --ha=false` to deploy the app. The --ha flag makes sure fly only spins up one instance, which is included in the free plan.
-- Run `fly scale memory 512` to scale up the fly vm memory for this app.
-- Create a new file `.env.prod` locally and fill in all the production-environment secrets. Remember to update `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` by copying secrets from Clerk's production instance -`cat .env.prod | fly secrets import` to upload secrets. Also remember to update `CONVEX_DEPLOYMENT` and `NEXT_PUBLIC_CONVEX_URL` -- both of them should now point to Convex's prod environment.
+TODO
 
 #### Deploy Convex functions to prod environment
 
@@ -248,7 +214,7 @@ NOTE: every time you change character data, you should re-run `npx convex run te
     textureUrl: '/ai-town/assets/32x32folk.png',
     spritesheetData: f1SpritesheetData,
     speed: 0.1,
-  },...
+  },...]
 ```
 
 You should find a sprite sheet for your character, and define sprite motion / assets in the corresponding file (in the above example, `f1SpritesheetData` was defined in f1.ts)

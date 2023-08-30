@@ -1,5 +1,3 @@
-'use client';
-
 // Based on https://codepen.io/inlet/pen/yLVmPWv.
 // Copyright (c) 2018 Patrick Brouwer, distributed under the MIT license.
 

@@ -1,15 +1,12 @@
 import { Stage } from '@pixi/react';
 import { useEffect, useRef, useState } from 'react';
-import { PixiStaticMap } from './PixiStaticMap';
+import { PixiStaticMap } from './PixiStaticMap.tsx';
 import { ConvexProvider, useConvex, useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { Player, SelectPlayer } from './Player';
-import { HEARTBEAT_PERIOD } from '../../convex/config';
+import { Player, SelectPlayer } from './Player.tsx';
+import { HEARTBEAT_PERIOD } from '../../convex/config.ts';
 import { Id } from '../../convex/_generated/dataModel';
-import dynamic from 'next/dynamic';
-
-// Disabling SSR for these since they don't work server side.
-const PixiViewport = dynamic(() => import('./PixiViewport'), { ssr: false });
+import PixiViewport from "./PixiViewport.tsx";
 
 export const Game = ({
   setSelectedPlayer,

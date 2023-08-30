@@ -1,4 +1,3 @@
-'use client';
 import { ReactNode } from 'react';
 import { ConvexProvider, ConvexReactClient } from 'convex/react';
 
@@ -9,9 +8,9 @@ import { ConvexProvider, ConvexReactClient } from 'convex/react';
  * We use localStorage so that individual users stay on the same instance.
  */
 function convexUrl(): string {
-  const urlsString = process.env.NEXT_PUBLIC_CONVEX_URLS;
+  const urlsString = import.meta.env.VITE_CONVEX_URLS as string;
   if (!urlsString) {
-    const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+    const url = import.meta.env.VITE_CONVEX_URL as string;
     if (!url) {
       throw new Error('Couldn’t find the Convex deployment URL.');
     }

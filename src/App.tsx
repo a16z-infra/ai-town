@@ -1,8 +1,5 @@
-import GameWrapper from '@/components/GameWrapper';
-import dynamic from 'next/dynamic';
-
-// Disabling SSR for these since they don't work server side.
-const MusicButton = dynamic(() => import('../components/MusicButton'), { ssr: false });
+import GameWrapper from './components/GameWrapper.tsx'
+import MusicButton from './components/MusicButton.tsx'
 
 export default function Home() {
   return (
@@ -19,30 +16,30 @@ export default function Home() {
         <GameWrapper />
 
         <footer className="absolute bottom-0 left-0 w-full flex items-center mt-4 gap-3 p-6 flex-wrap pointer-events-none">
-          <div className="flex gap-4 flex-grow pointer-events-none">
-            <MusicButton />
-            <a
+        <div className="flex gap-4 flex-grow pointer-events-none">
+        <MusicButton />
+        <a
               className="button text-white shadow-solid text-2xl pointer-events-auto"
               href="https://github.com/a16z-infra/ai-town"
             >
               <div className="inline-block bg-clay-700">
                 <span>
                   <div className="inline-flex items-center gap-4">
-                    <img className="w-6 h-6" src="/ai-town/assets/star.svg" />
+                    <img className="w-6 h-6" src="/assets/star.svg" />
                     Star
                   </div>
                 </span>
               </div>
             </a>
-          </div>
-          <a href="https://a16z.com">
-            <img className="w-8 h-8 pointer-events-auto" src="/ai-town/a16z.png" alt="a16z" />
+        </div>
+        <a href="https://a16z.com">
+            <img className="w-8 h-8 pointer-events-auto" src="/a16z.png" alt="a16z" />
           </a>
           <a href="https://convex.dev">
-            <img className="w-20 h-8 pointer-events-auto" src="/ai-town/convex.svg" alt="Convex" />
+            <img className="w-20 h-8 pointer-events-auto" src="/convex.svg" alt="Convex" />
           </a>
         </footer>
       </div>
     </main>
-  );
+  )
 }
