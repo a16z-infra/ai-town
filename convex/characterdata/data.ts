@@ -92,14 +92,13 @@ export const Descriptions = [
     memories: [
       {
         type: 'identity' as const,
-        description: `Kurt has something to hide. It obsesses him and colors everything he says.
-          He's so afraid someone will figure out that he is obviously evasive. He'll never tell anyone
-          the secret, but he'll ellude to it alot. It tortures him. And his life has become a mess
-          as a result of it.`,
+        description: `Kurt knows about everything, including science and
+        computers and politics and history and biology. He loves talking about
+        everything, always injecting fun facts about the topic of discussion.`,
       },
       {
         type: 'plan' as const,
-        description: 'protect your secret.',
+        description: 'You want to spread knowledge.',
       },
     ],
     position: { x: 8, y: 6 },
