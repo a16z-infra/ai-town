@@ -1,4 +1,5 @@
 import GameWrapper from '@/components/GameWrapper';
+import InteractButton from '@/components/InteractButton';
 import dynamic from 'next/dynamic';
 
 // Disabling SSR for these since they don't work server side.
@@ -27,13 +28,14 @@ export default function Home() {
             >
               <div className="inline-block bg-clay-700">
                 <span>
-                  <div className="inline-flex items-center gap-4">
-                    <img className="w-6 h-6" src="/ai-town/assets/star.svg" />
+                  <div className="inline-flex h-full items-center gap-4">
+                    <img className="w-[30px] h-[30px]" src="/ai-town/assets/star.svg" />
                     Star
                   </div>
                 </span>
               </div>
             </a>
+            <InteractButton />
           </div>
           <a href="https://a16z.com">
             <img className="w-8 h-8 pointer-events-auto" src="/ai-town/a16z.png" alt="a16z" />
