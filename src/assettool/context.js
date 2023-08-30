@@ -7,6 +7,7 @@ var ContextCreate = (function(){
         this.selected_tiles = [];
         this.tileDim = 32; // px
         this.dimlog = Math.log2(this.tileDim); 
+        this.dkey = false;
     }
 
     var instance;

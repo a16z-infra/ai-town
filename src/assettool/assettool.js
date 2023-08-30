@@ -3,12 +3,18 @@
 //
 // TODO: 
 //  - move more globals and class declarations into the global context context.js
+//  - Delete tiles
 // 
 // Keybindings:
 // f - fill level 0 with current tile
 // <ctl>-z - undo
 // g - overlay 32x32 grid
 // s - generate .js file to move over to convex/maps/
+// m - place a semi-transparent red mask over all tiles. This helps find invisible tiles
+// d - hold while clicking a tile to delete
+// 
+// Known bugs and annoyances
+//  - if deleting a tile while filter is on, filter isn't refreshed so need to toggle with "m"
 // --
 
 import * as PIXI from 'pixi.js'
@@ -87,9 +93,38 @@ class LayerContext {
 
         for (let x = 0; x < tiles.length; x++) {
             for (let y = 0; y < tiles[0].length; y++) {
-                this.addTileLevelCoords(x, y, mod.tiledim, tiles[x][y]);
+                if (tiles[x][y] != -1) {
+                    this.addTileLevelCoords(x, y, mod.tiledim, tiles[x][y]);
+                }
             }
         }
+    }
+
+    //  this will create a rectangle with an alpha channel for every square that has a sprite. This helps find 
+    //  sprites that are purely transparent
+    drawFilter() {
+
+        if (typeof this.filtergraphics == 'undefined') {
+            this.filtertoggle = true;
+            this.filtergraphics = new PIXI.Graphics();
+            this.filtergraphics.zIndex = 10;
+        }
+
+        if (this.filtertoggle) {
+
+            this.filtergraphics.beginFill(0xff0000, 0.3);
+            for (let i in this.sprites) {
+                let spr = this.sprites[i];
+                this.filtergraphics.drawRect(spr.x, spr.y, 32, 32);
+            }
+            this.filtergraphics.endFill();
+            this.container.addChild(this.filtergraphics);
+        }else{
+            this.filtergraphics.clear();
+            this.container.removeChild(this.filtergraphics);
+        }
+
+        this.filtertoggle = ! this.filtertoggle;
     }
 
     addTileLevelCoords(x, y, dim, index) {
@@ -117,19 +152,31 @@ class LayerContext {
             console.log('addTileLevelPx ',this.num,' ctile.x ', ctile.x, 'ctile.y ', ctile.y, "index ", index, "new_index", new_index);
         }
 
-        this.container.addChild(ctile);
-        composite.container.addChild(ctile2);
+        if (!g_context.dkey) {
+            this.container.addChild(ctile);
+            composite.container.addChild(ctile2);
+        } 
+
+
         if (this.sprites.hasOwnProperty(new_index)) {
             if(debug_flag){
              console.log("addTileLevelPx: ",this.num,"removing old tile", new_index);
             }
             this.container.removeChild(this.sprites[new_index]);
+            delete this.sprites[new_index];
             // composite.container.removeChild(composite.sprites[(this.num, new_index)]);
             composite.container.removeChild(this.composite_sprites[new_index]);
+            delete this.composite_sprites[new_index];
             // console.log("DELETING ZINDEX ", this.composite_sprites[new_index].zIndex);
+
+            // FIXME .. need to redraw filter if it is on ..
         }
-        this.sprites[new_index] = ctile;
-        this.composite_sprites[new_index] = ctile2;
+
+        if (!g_context.dkey) {
+            this.sprites[new_index] = ctile;
+            this.composite_sprites[new_index] = ctile2;
+        }
+
         // console.log("SETTING ZINDEX ", this.composite_sprites[new_index].zIndex);
         return new_index;
     }
@@ -398,12 +445,29 @@ window.fill0 = () => {
 }
 
 window.addEventListener(
+    "keyup", (event) => {
+        if (event.code == "KeyD"){
+            g_context.dkey = false;
+        }
+    });
+window.addEventListener(
     "keydown", (event) => {
+
+        if (event.code == "KeyD"){
+            g_context.dkey = true;
+        }
+
         if (event.code == 'KeyF'){
             window.fill0();
         }
         else if (event.code == 'KeyS'){
             generate_level_file();
+        }
+        else if (event.code == 'KeyM'){
+            layer0.drawFilter();
+            layer1.drawFilter();
+            layer2.drawFilter();
+            layer3.drawFilter();
         }
         else if (event.code == 'KeyG'){
             layer0.drawGrid();
