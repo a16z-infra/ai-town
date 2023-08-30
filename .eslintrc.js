@@ -4,7 +4,6 @@ module.exports = {
   extends: [
     'plugin:@typescript-eslint/recommended', // Uses the recommended rules from the @typescript-eslint/eslint-plugin
     'plugin:@typescript-eslint/recommended-type-checked',
-    'plugin:@next/next/recommended',
   ],
   parserOptions: {
     project: './tsconfig.json',
@@ -19,6 +18,5 @@ module.exports = {
       { varsIgnorePattern: '^_', argsIgnorePattern: '^_' },
     ],
     '@typescript-eslint/no-non-null-assertion': 'off',
-    '@next/next/no-img-element': 'off',
   },
 };

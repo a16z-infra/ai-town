@@ -76,7 +76,7 @@ function conversationQuery(db: DatabaseReader, conversationId: Id<'conversations
   return (
     db
       .query('journal')
-      .withIndex('by_conversation', (q) => q.eq('data.conversationId', conversationId as any as undefined))
+      .withIndex('by_conversation', (q) => q.eq('data.conversationId', conversationId))
       // .filter((q) => q.eq(q.field('data.type'), 'talking'))
       .order('desc')
   );
