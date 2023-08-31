@@ -38,7 +38,7 @@ function tile_index_from_px(x, y) {
 
 function DragState() {
     this.square = new PIXI.Graphics();
-    this.starx  = 0;
+    this.startx  = 0;
     this.starty = 0;
     this.endx   = 0;
     this.endy   = 0;
@@ -64,7 +64,6 @@ class LayerContext {
         this.square.interactive = true;
         this.container.addChild(this.square);
 
-        this.square.on('mousedown', onLevelMousedown.bind(null, this));
         this.square.on('mousemove', onLevelMousemove.bind(this));
         this.square.on('mouseover', onLevelMouseover.bind(this));
         this.square.on('pointerdown', onLevelPointerDown.bind(null, this))
@@ -688,9 +687,10 @@ function onCompositeMousedown(layer, e) {
 }
 
 
-function onLevelMousedown(layer, e) {
+// Place with no variable target at destination
+function levelPlaceNoVariable(layer, e) {
     if (debug_flag) {
-        console.log('onLevelMousedown: X', e.data.global.x, 'Y', e.data.global.y);
+        console.log('levelPlaceNoVariable: X', e.data.global.x, 'Y', e.data.global.y);
     }
 
     let xorig = e.data.global.x;
@@ -698,8 +698,7 @@ function onLevelMousedown(layer, e) {
 
     centerCompositePane(xorig,yorig);
 
-
-    if (g_context.selected_tiles.length == 0) {
+    if (g_context.dkey || g_context.selected_tiles.length == 0) {
         let ti = layer.addTileLevelPx(e.data.global.x, e.data.global.y, g_context.tile_index);
         UNDO.undo_add_single_index_as_task(layer, ti);
     } else {
@@ -722,22 +721,22 @@ function onLevelPointerDown(layer, e)
     layer.app.stage.eventMode = 'static';
     layer.app.stage.addEventListener('pointermove', onLevelDrag.bind(null, layer, e));
 
-    layer.dragctx.startx0 = e.data.global.x;
-    layer.dragctx.starty0 = e.data.global.y;
-    layer.dragctx.endx0 = e.data.global.x;
-    layer.dragctx.endy0 = e.data.global.y;
+    layer.dragctx.startx = e.data.global.x;
+    layer.dragctx.starty = e.data.global.y;
+    layer.dragctx.endx = e.data.global.x;
+    layer.dragctx.endy = e.data.global.y;
 
     layer.app.stage.addChild(layer.dragctx.square);
 }
 
 function onLevelDrag(layer, e)
 {
-    if(layer.dragctx.startx0 == -1){
+    if(layer.dragctx.startx == -1){
         return;
     }
 
-    layer.dragctx.endx0 = e.data.global.x;
-    layer.dragctx.endy0 = e.data.global.y;
+    layer.dragctx.endx = e.data.global.x;
+    layer.dragctx.endy = e.data.global.y;
 
     if (debug_flag) {
         console.log("onLevelDrag()");
@@ -746,10 +745,10 @@ function onLevelDrag(layer, e)
     layer.dragctx.square.clear();
     layer.dragctx.square.beginFill(0xFF3300, 0.3);
     layer.dragctx.square.lineStyle(2, 0xffd900, 1);
-    layer.dragctx.square.moveTo(layer.dragctx.startx0, layer.dragctx.starty0);
-    layer.dragctx.square.lineTo(layer.dragctx.endx0, layer.dragctx.starty0);
-    layer.dragctx.square.lineTo(layer.dragctx.endx0, layer.dragctx.endy0);
-    layer.dragctx.square.lineTo(layer.dragctx.startx0, layer.dragctx.endy0);
+    layer.dragctx.square.moveTo(layer.dragctx.startx, layer.dragctx.starty);
+    layer.dragctx.square.lineTo(layer.dragctx.endx, layer.dragctx.starty);
+    layer.dragctx.square.lineTo(layer.dragctx.endx, layer.dragctx.endy);
+    layer.dragctx.square.lineTo(layer.dragctx.startx, layer.dragctx.endy);
     layer.dragctx.square.closePath();
     layer.dragctx.square.endFill();
 }
@@ -757,30 +756,37 @@ function onLevelDrag(layer, e)
 // Stop dragging feedback once the handle is released.
 function onLevelDragEnd(layer, e)
 {
-    layer.dragctx.endx0 = e.data.global.x;
-    layer.dragctx.endy0 = e.data.global.y;
-    if(layer.dragctx.startx0 == -1){
+    layer.dragctx.endx = e.data.global.x;
+    layer.dragctx.endy = e.data.global.y;
+
+    if(layer.dragctx.startx == -1){
         console.log("onLevelDragEnd() start is -1 bailing");
         return;
     }
     if (debug_flag) {
         console.log("onLevelDragEnd()");
     }
+
     layer.app.stage.eventMode = 'auto';
     layer.app.stage.removeChild(layer.dragctx.square);
 
-    let starttilex = Math.floor(layer.dragctx.startx0 / g_context.tileDim);
-    let starttiley = Math.floor(layer.dragctx.starty0 / g_context.tileDim);
-    let endtilex = Math.floor(layer.dragctx.endx0 / g_context.tileDim);
-    let endtiley = Math.floor(layer.dragctx.endy0 / g_context.tileDim);
+    let starttilex = Math.floor(layer.dragctx.startx / g_context.tileDim);
+    let starttiley = Math.floor(layer.dragctx.starty / g_context.tileDim);
+    let endtilex = Math.floor(layer.dragctx.endx / g_context.tileDim);
+    let endtiley = Math.floor(layer.dragctx.endy / g_context.tileDim);
 
     if (debug_flag) {
         console.log("sx ", starttilex, " ex ", endtilex);
         console.log("sy ", starttiley, " ey ", endtiley);
     }
 
-    // let mouse clicked handle if there isn't a multiple tile square
+    // no variable placement. 
     if(starttilex === endtilex && starttiley == endtiley ){
+        levelPlaceNoVariable(layer, e);
+        layer.dragctx.startx = -1;
+        layer.dragctx.endx    = -1;
+        layer.dragctx.starty = -1;
+        layer.dragctx.endy    = -1;
         return;
     }
 
@@ -855,8 +861,8 @@ function onLevelDragEnd(layer, e)
 
     layer.dragctx.square.clear();
 
-    layer.dragctx.startx0 = -1;
-    layer.dragctx.starty0 = -1;
+    layer.dragctx.startx = -1;
+    layer.dragctx.starty = -1;
 }
 
 function init() {
