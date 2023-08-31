@@ -9,7 +9,7 @@ import {
 } from './_generated/server';
 import { MemoryDB } from './lib/memory';
 import { Characters } from './schema';
-import { tiledim, objmap, tilefilew, tilefileh, bgtiles, tilesetpath } from './maps/mage';
+import { tiledim, objmap, tilefilew, tilefileh, bgtiles, tilesetpath } from './maps/mage3';
 import { Descriptions, characters as characterData } from './characterdata/data';
 
 if (!process.env.OPENAI_API_KEY) {

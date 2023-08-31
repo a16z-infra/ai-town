@@ -48,6 +48,7 @@ import type * as lib_utils from "../lib/utils";
 import type * as maps_firstmap from "../maps/firstmap";
 import type * as maps_mage from "../maps/mage";
 import type * as maps_mage2 from "../maps/mage2";
+import type * as maps_mage3 from "../maps/mage3";
 import type * as maps_map from "../maps/map";
 import type * as maps_map2 from "../maps/map2";
 import type * as music from "../music";
@@ -97,6 +98,7 @@ declare const fullApi: ApiFromModules<{
   "maps/firstmap": typeof maps_firstmap;
   "maps/mage": typeof maps_mage;
   "maps/mage2": typeof maps_mage2;
+  "maps/mage3": typeof maps_mage3;
   "maps/map": typeof maps_map;
   "maps/map2": typeof maps_map2;
   music: typeof music;

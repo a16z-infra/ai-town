@@ -736,6 +736,7 @@ function onLevelPointerDown(layer, e)
 function onLevelDrag(layer, e)
 {
     if(layer.dragctx.startx == -1){
+        layer.dragctx.square.clear();
         return;
     }
 
