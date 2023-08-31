@@ -23,7 +23,7 @@ export default function Home() {
         <MusicButton />
         <a
               className="button text-white shadow-solid text-2xl pointer-events-auto"
-              href="https://github.com/a16z-infra/ai-town"
+              href="https://github.com/convex-dev/ai-town"
             >
               <div className="inline-block bg-clay-700">
                 <span>
