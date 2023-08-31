@@ -50,13 +50,13 @@ export default function MusicButton() {
   return (
     <>
       <a
-        className="button text-white shadow-solid text-2xl pointer-events-auto"
+        className="button text-white shadow-solid text-2xl pointer-events-auto cursor-pointer"
         onClick={() => {
           void flipSwitch();
         }}
         title="Play AI generated music (press m to play/mute)"
       >
-        <div className="inline-block bg-clay-700">
+        <div className="inline-block h-full bg-clay-700">
           <span>
             <div className="inline-flex items-center gap-4">
               <img className="w-6 h-6" src={volumeImg} />
