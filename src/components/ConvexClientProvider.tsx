@@ -18,13 +18,13 @@ function convexUrl(): string {
   }
 
   const urls = urlsString.split('\n');
-  const activeUrl = global.window?.localStorage?.getItem('convexDeploymentUrl');
+  const activeUrl = window.localStorage?.getItem('convexDeploymentUrl');
   if (activeUrl && urls.includes(activeUrl)) {
     return activeUrl;
   }
 
   const newUrl = urls[Math.floor(Math.random() * urls.length)].trim();
-  global.window?.localStorage?.setItem('convexDeploymentUrl', newUrl);
+  window.localStorage?.setItem('convexDeploymentUrl', newUrl);
   return newUrl;
 }
 

@@ -1,5 +1,8 @@
 import GameWrapper from './components/GameWrapper.tsx'
 import MusicButton from './components/MusicButton.tsx'
+import a16zImg from "../assets/a16z.png";
+import convexImg from "../assets/convex.svg";
+import starImg from "../assets/star.svg";
 
 export default function Home() {
   return (
@@ -25,7 +28,7 @@ export default function Home() {
               <div className="inline-block bg-clay-700">
                 <span>
                   <div className="inline-flex items-center gap-4">
-                    <img className="w-6 h-6" src="/assets/star.svg" />
+                    <img className="w-6 h-6" src={starImg} />
                     Star
                   </div>
                 </span>
@@ -33,10 +36,10 @@ export default function Home() {
             </a>
         </div>
         <a href="https://a16z.com">
-            <img className="w-8 h-8 pointer-events-auto" src="/a16z.png" alt="a16z" />
+            <img className="w-8 h-8 pointer-events-auto" src={a16zImg} alt="a16z" />
           </a>
           <a href="https://convex.dev">
-            <img className="w-20 h-8 pointer-events-auto" src="/convex.svg" alt="Convex" />
+            <img className="w-20 h-8 pointer-events-auto" src={convexImg} alt="Convex" />
           </a>
         </footer>
       </div>
