@@ -2,12 +2,11 @@
 import { PixiComponent, applyDefaultProps } from '@pixi/react';
 import * as PIXI from 'pixi.js';
 import { Doc } from '../../convex/_generated/dataModel';
-import { rewriteAssetUrl } from './util';
 
 export const PixiStaticMap = PixiComponent('StaticMap', {
   create: ({ map }: { map: Doc<'maps'> }) => {
     const numytiles = map.tileSetDim / map.tileDim;
-    const bt = PIXI.BaseTexture.from(rewriteAssetUrl(map.tileSetUrl), {
+    const bt = PIXI.BaseTexture.from(map.tileSetUrl, {
       scaleMode: PIXI.SCALE_MODES.NEAREST,
     });
 

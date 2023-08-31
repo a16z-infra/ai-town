@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "npm-run-all dev:init --parallel dev:frontend dev:backend",
-    "build": "tsc && vite build --base=/ai-town",
+    "build": "tsc && vite build",
     "lint": "eslint .",
     "dev:backend": "convex dev",
     "dev:frontend": "vite",

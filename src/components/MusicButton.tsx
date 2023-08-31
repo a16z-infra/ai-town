@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 import volumeImg from "../../assets/volume.svg";
 
 import { sound } from '@pixi/sound';
-import { rewriteAssetUrl } from './util';
 
 export default function MusicButton() {
   const music = useQuery(api.music.getBackgroundMusic);
@@ -18,7 +17,7 @@ export default function MusicButton() {
   useEffect(() => {
     if (!isLoaded && music?.url) {
       setLoaded(true);
-      sound.add('background', rewriteAssetUrl(music.url)).loop = true;
+      sound.add('background', music.url).loop = true;
     }
   }, [isLoaded, music])
 
