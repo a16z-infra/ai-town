@@ -174,9 +174,13 @@ class LayerContext {
         if (!g_context.dkey) {
             this.sprites[new_index] = ctile;
             this.composite_sprites[new_index] = ctile2;
+        } else {
+            this.filtergraphics.clear();
+            this.drawFilter();
+            this.drawFilter();
         }
 
-        // console.log("SETTING ZINDEX ", this.composite_sprites[new_index].zIndex);
+        // consolelog("SETTING ZINDEX ", this.composite_sprites[new_index].zIndex);
         return new_index;
     }
 
