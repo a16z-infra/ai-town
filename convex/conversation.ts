@@ -1,11 +1,9 @@
-import { Id } from './_generated/dataModel';
 import { ActionCtx } from './_generated/server';
 import { fetchEmbeddingWithCache } from './lib/cached_llm';
 import { MemoryDB, filterMemoriesType } from './lib/memory';
 import { LLMMessage, chatCompletion, fetchEmbedding } from './lib/openai';
-import { Message } from './schema';
+import { Message, Player } from './schema';
 
-type Player = { id: Id<'players'>; name: string; identity: string };
 type Relation = Player & { relationship?: string };
 
 export async function startConversation(
