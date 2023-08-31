@@ -5,13 +5,7 @@ export async function chatCompletion(
     model?: CreateChatCompletionRequest['model'];
   },
 ) {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error(
-      'Missing OPENAI_API_KEY in environment variables.\n' +
-        'Set it in the project settings in the Convex dashboard:\n' +
-        '    npx convex dashboard\n or https://dashboard.convex.dev',
-    );
-  }
+  checkForAPIKey();
 
   body.model = body.model ?? 'gpt-3.5-turbo-16k';
   body.stream = true;
@@ -48,13 +42,7 @@ export async function chatCompletion(
 }
 
 export async function fetchEmbeddingBatch(texts: string[]) {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error(
-      'Missing OPENAI_API_KEY in environment variables.\n' +
-        'Set it in the project settings in the Convex dashboard:\n' +
-        '    npx convex dashboard\n or https://dashboard.convex.dev',
-    );
-  }
+  checkForAPIKey();
   const {
     result: json,
     retries,
@@ -98,6 +86,41 @@ export async function fetchEmbedding(text: string) {
   const { embeddings, ...stats } = await fetchEmbeddingBatch([text]);
   return { embedding: embeddings[0], ...stats };
 }
+
+export async function fetchModeration(content: string) {
+  checkForAPIKey();
+  const { result: flagged } = await retryWithBackoff(async () => {
+    const result = await fetch('https://api.openai.com/v1/moderations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + process.env.OPENAI_API_KEY,
+      },
+
+      body: JSON.stringify({
+        input: content,
+      }),
+    });
+    if (!result.ok) {
+      throw {
+        retry: result.status === 429 || result.status >= 500,
+        error: new Error(`Embedding failed with code ${result.status}: ${await result.text()}`),
+      };
+    }
+    return (await result.json()) as { results: { flagged: boolean }[] };
+  });
+  return flagged;
+}
+
+const checkForAPIKey = () => {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error(
+      'Missing OPENAI_API_KEY in environment variables.\n' +
+        'Set it in the project settings in the Convex dashboard:\n' +
+        '    npx convex dashboard\n or https://dashboard.convex.dev',
+    );
+  }
+};
 
 // Retry after this much time, based on the retry number.
 const RETRY_BACKOFF = [1000, 10_000, 20_000]; // In ms
