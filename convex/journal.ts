@@ -1,17 +1,16 @@
 import { v } from 'convex/values';
 import { Doc, Id } from './_generated/dataModel';
-import { DatabaseReader, MutationCtx, internalMutation, internalQuery } from './_generated/server';
 import {
-  Position,
-  EntryOfType,
-  EntryType,
-  Player,
-  MessageEntry,
-  MemoryOfType,
-  MemoryType,
-} from './schema';
+  DatabaseReader,
+  MutationCtx,
+  action,
+  internalMutation,
+  internalQuery,
+  mutation,
+} from './_generated/server';
+import { Position, EntryOfType, EntryType, MessageEntry, MemoryOfType, MemoryType } from './schema';
 import { asyncMap, pruneNull } from './lib/utils';
-import { getAllPlayers } from './players';
+import { activePlayerDoc, getAllPlayers } from './players';
 import { CLOSE_DISTANCE, DEFAULT_START_POSE, STUCK_CHILL_TIME, TIME_PER_STEP } from './config';
 import { findCollision, findRoute } from './lib/routing';
 import {
@@ -23,7 +22,9 @@ import {
   manhattanDistance,
   roundPose,
 } from './lib/physics';
-import { clientMessageMapper } from './chat';
+import { clientMessageMapper, conversationQuery } from './chat';
+import { internal } from './_generated/api';
+import { fetchModeration } from './lib/openai';
 
 /**
  * Reading state about the world
@@ -39,7 +40,7 @@ export const getSnapshot = internalQuery({
   },
 });
 
-export async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): Promise<Player> {
+export async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>) {
   const agentDoc = playerDoc.agentId ? await db.get(playerDoc.agentId) : null;
   const latestConversation = await getLatestPlayerConversation(db, playerDoc._id);
   const identityEntry = await latestMemoryOfType(db, playerDoc._id, 'identity');
@@ -58,6 +59,7 @@ export async function getPlayer(db: DatabaseReader, playerDoc: Doc<'players'>): 
     lastChat: latestConversation && {
       message: await clientMessageMapper(db)(latestConversation),
       conversationId: latestConversation.data.conversationId,
+      audience: latestConversation.data.audience,
     },
   };
 }
@@ -151,18 +153,79 @@ export async function latestMemoryOfType<T extends MemoryType>(
 export const makeConversation = internalMutation({
   args: { playerId: v.id('players'), audience: v.array(v.id('players')) },
   handler: async (ctx, { playerId, audience }) => {
+    const allPlayers = [playerId, ...audience];
     const playerDoc = (await ctx.db.get(playerId))!;
     const { worldId } = playerDoc;
     const conversationId = await ctx.db.insert('conversations', { worldId });
+    for (const player of allPlayers) {
+      const subjectiveAudience = allPlayers.filter((p) => p !== player);
+      await ctx.db.insert('journal', {
+        playerId: player,
+        data: {
+          type: 'startConversation',
+          audience: subjectiveAudience,
+          conversationId,
+        },
+      });
+    }
+    return conversationId;
+  },
+});
+
+export const userTalkModerated = action({
+  args: {
+    content: v.string(),
+  },
+  handler: async (ctx, { content }): Promise<{ contentId: Id<'user_input'>; flagged: boolean }> => {
+    const contentId = await ctx.runMutation(internal.journal.proposeUserInput, { content });
+
+    const { flagged } = (await fetchModeration(content)).results[0];
+
+    await ctx.runMutation(internal.journal.moderatedUserInput, { contentId, result: !flagged });
+    return { contentId, flagged };
+  },
+});
+
+export const proposeUserInput = internalMutation(async (ctx, { content }: { content: string }) => {
+  const userIdentity = await ctx.auth.getUserIdentity();
+  if (!userIdentity) {
+    throw new Error('must be logged in to propose user input');
+  }
+  return await ctx.db.insert('user_input', { content, user: userIdentity.tokenIdentifier });
+});
+
+export const moderatedUserInput = internalMutation(
+  async (ctx, { contentId, result }: { contentId: Id<'user_input'>; result: boolean }) => {
+    await ctx.db.patch(contentId, { moderationResult: result });
+  },
+);
+
+export const userTalk = mutation({
+  args: {
+    contentId: v.id('user_input'),
+  },
+  handler: async (ctx, { contentId }) => {
+    const playerDoc = await activePlayerDoc(ctx.auth, ctx.db);
+    if (!playerDoc) return;
+    const player = await getPlayer(ctx.db, playerDoc);
+    if (!player.lastChat) return;
+    const userInput = (await ctx.db.get(contentId))!;
+    if (!userInput.moderationResult) {
+      throw new Error(`moderation rejected user input ${contentId}`);
+    }
     await ctx.db.insert('journal', {
-      playerId,
+      playerId: player.id,
       data: {
-        type: 'startConversation',
-        audience,
-        conversationId,
+        type: 'talking',
+        audience: player.lastChat.audience,
+        conversationId: player.lastChat.conversationId,
+        content: userInput.content,
+        relatedMemoryIds: [],
       },
     });
-    return conversationId;
+    await ctx.db.patch(player.id, {
+      controllerThinking: undefined,
+    });
   },
 });
 
@@ -202,17 +265,61 @@ export const talkMore = internalMutation({
   },
 });
 
+export const currentConversation = async (db: DatabaseReader, playerId: Id<'players'>) => {
+  const conversation = await getLatestPlayerConversation(db, playerId);
+  if (!conversation) {
+    return null;
+  }
+  if (conversation.data.type === 'leaveConversation') {
+    return null;
+  }
+  const latestChat = await conversationQuery(db, conversation.data.conversationId).first();
+  if (latestChat!.data.type === 'leaveConversation') {
+    return null;
+  }
+  return conversation.data;
+};
+
+export const talkingToUser = async (db: DatabaseReader, playerId: Id<'players'>) => {
+  const lastConversation = await currentConversation(db, playerId);
+  if (!lastConversation) {
+    return null;
+  }
+  for (const audienceId of lastConversation.audience) {
+    const player = await db.get(audienceId);
+    if (!player || player.agentId) {
+      continue; // Not a user.
+    }
+    const playerConversation = await currentConversation(db, audienceId);
+    if (playerConversation?.conversationId === lastConversation.conversationId) {
+      return true;
+    }
+  }
+  return false;
+};
+
 export const leaveConversation = internalMutation({
   args: {
     playerId: v.id('players'),
-    audience: v.array(v.id('players')),
-    conversationId: v.id('conversations'),
   },
-  handler: async (ctx, { playerId, audience, conversationId }) => {
+  handler: async (ctx, { playerId }) => {
+    const conversation = await currentConversation(ctx.db, playerId);
+    if (!conversation) {
+      return;
+    }
     await ctx.db.insert('journal', {
       playerId,
-      data: { type: 'leaveConversation', audience, conversationId },
+      data: {
+        type: 'leaveConversation',
+        audience: conversation.audience,
+        conversationId: conversation.conversationId,
+      },
     });
+    try {
+      await ctx.db.patch(playerId, { controllerThinking: undefined });
+    } catch (e) {
+      // It's okay if the player has been deleted.
+    }
   },
 });
 
@@ -275,6 +382,11 @@ export const walk = internalMutation({
   },
 });
 
+const isNPC = async (db: DatabaseReader, playerId: Id<'players'>) => {
+  const player = await db.get(playerId);
+  return player && !!player.agentId;
+};
+
 export const walkToTarget = async (
   ctx: MutationCtx,
   playerId: Id<'players'>,
@@ -285,13 +397,19 @@ export const walkToTarget = async (
   const ts = Date.now();
   const world = (await ctx.db.get(worldId))!;
   const map = (await ctx.db.get(world.mapId))!;
-  const otherPlayers = await asyncMap(
-    (await getAllPlayers(ctx.db, worldId)).filter((p) => p._id !== playerId),
-    async (p) => ({
-      ...p,
-      motion: await getLatestPlayerMotion(ctx.db, p._id),
-    }),
-  );
+  const npc = await isNPC(ctx.db, playerId);
+  // Allow controlled players to walk over other characters.
+  // This reduces OCCs because user-triggered mutations don't need to read
+  // all player locations, and it prevents users from getting stuck.
+  const otherPlayers = npc
+    ? await asyncMap(
+        (await getAllPlayers(ctx.db, worldId)).filter((p) => p._id !== playerId),
+        async (p) => ({
+          ...p,
+          motion: await getLatestPlayerMotion(ctx.db, p._id),
+        }),
+      )
+    : [];
   const ourMotion = await getLatestPlayerMotion(ctx.db, playerId);
   const { route, distance } = findRoute(
     map,
@@ -320,7 +438,8 @@ export const walkToTarget = async (
     };
   }
   const exclude = new Set([...ignore, playerId]);
-  const targetEndTs = ts + distance * TIME_PER_STEP;
+  const speed = npc ? 1 : 2;
+  const targetEndTs = ts + (distance * TIME_PER_STEP) / speed;
   let endOrientation: number | undefined;
   if (manhattanDistance(targetPosition, route[route.length - 1]) > 0) {
     endOrientation = calculateOrientation(route[route.length - 1], targetPosition);

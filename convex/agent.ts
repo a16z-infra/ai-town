@@ -6,7 +6,7 @@ import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { Id } from './_generated/dataModel';
 
-import { ActionCtx, internalAction } from './_generated/server';
+import { ActionCtx, internalAction, mutation, query } from './_generated/server';
 import { MemoryDB } from './lib/memory';
 import { Message, Player } from './schema';
 import {
@@ -16,8 +16,19 @@ import {
   startConversation,
   walkAway,
 } from './conversation';
-import { getNearbyPlayers } from './lib/physics';
-import { CONVERSATION_TIME_LIMIT, CONVERSATION_PAUSE } from './config';
+import { getNearbyPlayers, getPoseFromMotion, roundPose } from './lib/physics';
+import {
+  CONVERSATION_TIME_LIMIT,
+  CONVERSATION_PAUSE,
+  USER_CONVERSATION_TIME_LIMIT,
+} from './config';
+import {
+  walkToTarget,
+  currentConversation,
+  getLatestPlayerMotion,
+  getPlayer,
+} from './journal';
+import { activePlayer, activeWorld } from './players';
 
 const awaitTimeout = (delay: number) => new Promise((resolve) => setTimeout(resolve, delay));
 
@@ -88,6 +99,120 @@ export const runAgentBatch = internalAction({
   },
 });
 
+export const myCurrentConversation = query({
+  handler: async (ctx) => {
+    const me = await activePlayer(ctx.auth, ctx.db);
+    if (!me) {
+      return null;
+    }
+    const myCurrentConversation = await currentConversation(ctx.db, me.id);
+    if (!myCurrentConversation) {
+      return null;
+    }
+    const notMe = myCurrentConversation.audience.filter(p => p !== me.id);
+    if (notMe.length === 0) {
+      return null;
+    }
+    return notMe;
+  }
+})
+
+export const leaveMyCurrentConversation = mutation({
+  handler: async (ctx) => {
+    const me = await activePlayer(ctx.auth, ctx.db);
+    if (!me) {
+      return;
+    }
+    const playerId = me.id;
+    const conversation = await currentConversation(ctx.db, playerId);
+    if (!conversation) {
+      return;
+    }
+    await ctx.db.insert('journal', {
+      playerId,
+      data: {
+        type: 'leaveConversation',
+        audience: conversation.audience,
+        conversationId: conversation.conversationId,
+      },
+    })
+    await ctx.db.patch(playerId, { controllerThinking: undefined });;
+  }
+})
+
+export const playerDetails = query({
+  args: { playerId: v.id("players") },
+  handler: async (ctx, args) => {
+    const me = await activePlayer(ctx.auth, ctx.db);
+    if (!me) {
+      return { isMe: false, canTalk: false };
+    }
+    const isMe = me.id === args.playerId;
+    // Can't talk to myself.
+    if (isMe) {
+      return { isMe, canTalk: false };
+    }
+    const playerDoc = await ctx.db.get(args.playerId);
+    if (!playerDoc) return { isMe, canTalk: false };
+    const player = await getPlayer(ctx.db, playerDoc);
+    if (!player) return { isMe, canTalk: false };
+    // Not a human.
+    if (player.agentId === undefined) {
+      return { isMe, canTalk: false };
+    }
+    // Already talking to me.
+    const myCurrentConversation = await currentConversation(ctx.db, me.id);
+    if (myCurrentConversation && myCurrentConversation.audience.includes(args.playerId)) {
+      return { isMe, canTalk: false };
+    }
+    // Already talking to someone else.
+    if (await currentConversation(ctx.db, args.playerId)) {
+      return { isMe, canTalk: false };
+    }
+    return { isMe, canTalk: true };
+  }
+})
+
+export const talkToMe = mutation({
+  args: { playerId: v.id('players') },
+  handler: async (ctx, args) => {
+    const me = await activePlayer(ctx.auth, ctx.db);
+    if (!me) {
+      return;
+    }
+    if (me.id === args.playerId) {
+      return;
+    }
+    const playerDoc = await ctx.db.get(args.playerId);
+    if (!playerDoc) return null;
+    const player = await getPlayer(ctx.db, playerDoc);
+    if (!player) return null;
+    if (player.agentId === undefined) {
+      console.log("can't talk to another human");
+      return;
+    }
+    const myCurrentConversation = await currentConversation(ctx.db, me.id);
+    if (myCurrentConversation && myCurrentConversation.audience.includes(args.playerId)) {
+      console.log('already talking to me');
+      return;
+    }
+    if (await currentConversation(ctx.db, args.playerId)) {
+      console.log('already talking to someone else');
+      return;
+    }
+    const target = roundPose(
+      getPoseFromMotion(await getLatestPlayerMotion(ctx.db, me.id), Date.now()),
+    ).position;
+    const world = await activeWorld(ctx.db);
+    await walkToTarget(ctx, args.playerId, world!._id, [], target);
+    await ctx.scheduler.runAfter(0, internal.engine.agentDone, {
+      agentId: player.agentId,
+      activity: 'continue' as const,
+      ignore: [],
+    });
+  },
+});
+
 function divideIntoGroups(players: Player[]) {
   const playerById = new Map(players.map((p) => [p.id, p]));
   const groups: Player[][] = [];
@@ -96,23 +221,32 @@ function divideIntoGroups(players: Player[]) {
     const player = playerById.values().next().value as Player;
     playerById.delete(player.id);
     const nearbyPlayers = getNearbyPlayers(player.motion, [...playerById.values()]);
-    if (nearbyPlayers.length > 0) {
+    // Humans always go in separate groups.
+    let group = [player, ...nearbyPlayers];
+    const firstHuman = group.find((p) => !p.agentId);
+    if (firstHuman) {
+      group = group.filter((p) => !!p.agentId || p.id === firstHuman.id);
+    }
+    if (group.length > 1) {
       // If you only want to do 1:1 conversations, use this:
       // groups.push([player, nearbyPlayers[0]]);
       // playerById.delete(nearbyPlayers[0].id);
       // otherwise, do more than 1:1 conversations by adding them all:
-      groups.push([player, ...nearbyPlayers]);
-      for (const nearbyPlayer of nearbyPlayers) {
-        playerById.delete(nearbyPlayer.id);
-      }
-    } else {
-      solos.push(player);
+      groups.push(group);
+    } else if (group.length > 0) {
+      solos.push(group[0]);
+    }
+    for (const groupMember of group) {
+      playerById.delete(groupMember.id);
     }
   }
   return { groups, solos };
 }
 
 async function handleAgentSolo(ctx: ActionCtx, player: Player, memory: MemoryDB, done: DoneFn) {
+  if (!player.agentId) {
+    return;
+  }
   // console.debug('handleAgentSolo: ', player.name, player.id);
   // Handle new observations: it can look at the agent's lastWakeTs for a delta.
   //   Calculate scores
@@ -130,6 +264,15 @@ async function handleAgentSolo(ctx: ActionCtx, player: Player, memory: MemoryDB,
   await done(player.agentId, { type: walk ? 'walk' : 'continue', ignore });
 }
 
+function pickLeader(players: Player[]): Player {
+  for (const player of players) {
+    if (!player.agentId) {
+      return player;
+    }
+  }
+  return players[0];
+}
+
 export async function handleAgentInteraction(
   ctx: ActionCtx,
   players: Player[],
@@ -137,7 +280,9 @@ export async function handleAgentInteraction(
   done: DoneFn,
 ) {
   // TODO: pick a better conversation starter
-  const leader = players[0];
+  const leader = pickLeader(players);
+  const nonLeaders = players.filter((p) => p.id !== leader.id);
+  const talkingToUser = !leader.agentId;
   for (const player of players) {
     const imWalkingHere =
       player.motion.type === 'walking' && player.motion.targetEndTs > Date.now();
@@ -162,12 +307,12 @@ export async function handleAgentInteraction(
   }
   await ctx.runMutation(internal.journal.turnToFace, {
     playerId: leader.id,
-    targetId: players[1].id,
+    targetId: nonLeaders[0].id,
   });
 
   const conversationId = await ctx.runMutation(internal.journal.makeConversation, {
     playerId: leader.id,
-    audience: players.slice(1).map((p) => p.id),
+    audience: nonLeaders.map((p) => p.id),
   });
 
   const playerById = new Map(players.map((p) => [p.id, p]));
@@ -183,13 +328,17 @@ export async function handleAgentInteraction(
 
   const messages: Message[] = [];
 
-  const endAfterTs = Date.now() + CONVERSATION_TIME_LIMIT;
+  const endAfterTs =
+    Date.now() + (talkingToUser ? USER_CONVERSATION_TIME_LIMIT : CONVERSATION_TIME_LIMIT);
+  // Slow down conversations between AIs, but not if a user is involved.
+  const conversationPause = talkingToUser ? 0 : CONVERSATION_PAUSE;
   // Choose who should speak next:
   let endConversation = false;
   let lastSpeakerId = leader.id;
   let remainingPlayers = players;
 
   while (!endConversation) {
+    const waitToSpeak = awaitTimeout(messages.length ? conversationPause : 0);
     // leader speaks first
     const chatHistory = chatHistoryFromMessages(messages);
     const speaker =
@@ -201,15 +350,16 @@ export async function handleAgentInteraction(
           );
     lastSpeakerId = speaker.id;
     const audience = players.filter((p) => p.id !== speaker.id).map((p) => p.id);
-    const shouldWalkAway = audience.length === 0 || (await walkAway(chatHistory, speaker));
+    const shouldWalkAway =
+      audience.length === 0 ||
+      (!talkingToUser && (await walkAway(chatHistory, speaker))) ||
+      Date.now() > endAfterTs;
 
     // Decide if we keep talking.
-    if (shouldWalkAway || Date.now() > endAfterTs) {
+    if (shouldWalkAway) {
       // It's to chatty here, let's go somewhere else.
       await ctx.runMutation(internal.journal.leaveConversation, {
         playerId: speaker.id,
-        audience,
-        conversationId,
       });
       // Update remaining players
       remainingPlayers = remainingPlayers.filter((p) => p.id !== speaker.id);
@@ -220,57 +370,73 @@ export async function handleAgentInteraction(
       break;
     }
 
-    // TODO - playerRelations is not used today because of https://github.com/a16z-infra/ai-town/issues/56
-    const playerRelations = relationshipsByPlayerId.get(speaker.id) ?? [];
-    let playerCompletion;
-    if (messages.length === 0) {
-      playerCompletion = await startConversation(ctx, playerRelations, memory, speaker);
-    } else {
-      // TODO: stream the response and write to the mutation for every sentence.
-      playerCompletion = await converse(ctx, chatHistory, speaker, playerRelations, memory);
-    }
-
-    let message = undefined;
-    let content = '';
-    let mutationPromise = null;
-    for await (const chunk of playerCompletion.content.read()) {
-      content += chunk;
-      if (message) {
-        // Debounce.
-        if (!mutationPromise) {
-          mutationPromise = ctx
-            .runMutation(internal.journal.talkMore, {
-              entryId: message.entryId,
-              content,
-            })
-            .finally(() => {
-              mutationPromise = null;
-            });
-        }
+    if (speaker.agentId) {
+      const playerRelations = relationshipsByPlayerId.get(speaker.id) ?? [];
+      let playerCompletion;
+      if (messages.length === 0) {
+        playerCompletion = await startConversation(ctx, playerRelations, memory, speaker);
       } else {
-        message = await ctx.runMutation(internal.journal.talk, {
-          playerId: speaker.id,
-          audience,
+        playerCompletion = await converse(ctx, chatHistory, speaker, playerRelations, memory);
+      }
+      // slow down conversations
+      await waitToSpeak;
+
+      let message = undefined;
+      let content = '';
+      let mutationPromise = null;
+      for await (const chunk of playerCompletion.content.read()) {
+        content += chunk;
+        if (message) {
+          // Debounce.
+          if (!mutationPromise) {
+            mutationPromise = ctx
+              .runMutation(internal.journal.talkMore, {
+                entryId: message.entryId,
+                content,
+              })
+              .finally(() => {
+                mutationPromise = null;
+              });
+          }
+        } else {
+          message = await ctx.runMutation(internal.journal.talk, {
+            playerId: speaker.id,
+            audience,
+            content,
+            relatedMemoryIds: playerCompletion.memoryIds,
+            conversationId,
+          });
+        }
+      }
+      if (mutationPromise) {
+        await mutationPromise;
+      }
+      if (message) {
+        message = await ctx.runMutation(internal.journal.talkMore, {
+          entryId: message.entryId,
           content,
-          relatedMemoryIds: playerCompletion.memoryIds,
+        });
+        messages.push(message);
+      }
+    } else {
+      await ctx.runMutation(internal.chat.thinkAboutConversation, {
+        playerId: speaker.id,
+        conversationId,
+      });
+      let message: Message | null = null;
+      while (!message || message.from !== speaker.id || message.type !== 'responded') {
+        message = await ctx.runQuery(internal.chat.lastMessage, {
           conversationId,
         });
+        if (message.from === speaker.id && message.type === 'left') {
+          endConversation = true;
+          break;
+        }
+        // wait for user to type message.
+        await awaitTimeout(100);
       }
-    }
-    if (mutationPromise) {
-      await mutationPromise;
-    }
-    if (message) {
-      message = await ctx.runMutation(internal.journal.talkMore, {
-        entryId: message.entryId,
-        content,
-      });
-
       messages.push(message);
     }
-
-    // slow down conversations
-    await awaitTimeout(CONVERSATION_PAUSE);
   }
 
   if (messages.length > 0) {

@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import { Id } from './_generated/dataModel';
-import { DatabaseReader, query } from './_generated/server';
+import { DatabaseReader, internalMutation, internalQuery, query } from './_generated/server';
 import { EntryOfType, MessageEntry } from './schema';
 import { PaginationResult, paginationOptsValidator } from 'convex/server';
 import { Message } from './schema';
@@ -72,7 +72,7 @@ export const paginateMessages = query({
   },
 });
 
-function conversationQuery(db: DatabaseReader, conversationId: Id<'conversations'>) {
+export function conversationQuery(db: DatabaseReader, conversationId: Id<'conversations'>) {
   return (
     db
       .query('journal')
@@ -81,6 +81,20 @@ function conversationQuery(db: DatabaseReader, conversationId: Id<'conversations
       .order('desc')
   );
 }
+
+export const lastMessage = internalQuery({
+  args: {conversationId: v.id("conversations")},
+  handler: async (ctx, {conversationId}) => {
+    return clientMessageMapper(ctx.db)(await conversationQuery(ctx.db, conversationId).first() as MessageEntry);
+  },
+});
+
+export const thinkAboutConversation = internalMutation({
+  args: { playerId: v.id("players"), conversationId: v.id("conversations") },
+  handler: async (ctx, {playerId, conversationId}) => {
+    await ctx.db.patch(playerId, {controllerThinking: conversationId});
+  },
+});
 
 export function clientMessageMapper(db: DatabaseReader) {
   const getName = async (id: Id<'players'>) => (await db.get(id))?.name || '<Anonymous>';

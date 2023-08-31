@@ -12,6 +12,7 @@ export async function startConversation(
   memory: MemoryDB,
   player: Player,
 ) {
+  console.log(`${player.id} starting a new conversation`);
   const newFriendsNames = audience.map((p) => p.name);
   const newFriendsNamesStr = newFriendsNames.join(',');
 
@@ -172,6 +173,9 @@ export async function converse(
 }
 
 export async function walkAway(messages: LLMMessage[], player: Player): Promise<boolean> {
+  if (!player.agentId) {
+    return false;
+  }
   const prompt: LLMMessage[] = [
     {
       role: 'user',

@@ -10,6 +10,7 @@ export const AGENT_THINKING_TOO_LONG = 60_000;
 export const STUCK_CHILL_TIME = 30_000;
 // How long to let a conversation go on for with agents
 export const CONVERSATION_TIME_LIMIT = 30_000;
+export const USER_CONVERSATION_TIME_LIMIT = 570_000;
 // How many milliseconds to pause for each multi-party conversation loop
 export const CONVERSATION_PAUSE = 3000;
 // If you don't set a start position, you'll start at 0,0.
@@ -29,3 +30,4 @@ const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 export const VACUUM_JOURNAL_AGE = 7 * DAY;
 export const VACUUM_MEMORIES_AGE = 14 * DAY;
+export const ABANDONED_INTERACTION = 5 * MINUTE;

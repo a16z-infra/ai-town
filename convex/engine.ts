@@ -1,14 +1,10 @@
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { Id } from './_generated/dataModel';
-import {
-  DatabaseReader,
-  MutationCtx,
-  internalMutation,
-} from './_generated/server';
+import { DatabaseReader, MutationCtx, internalMutation } from './_generated/server';
 import { TICK_DEBOUNCE, WORLD_IDLE_THRESHOLD } from './config';
 import { asyncMap, pruneNull } from './lib/utils';
-import { getRandomPosition, nextCollision, walkToTarget } from './journal';
+import { getRandomPosition, nextCollision, walkToTarget, currentConversation } from './journal';
 
 export const tick = internalMutation({
   args: { worldId: v.id('worlds'), noSchedule: v.optional(v.boolean()) },
@@ -43,7 +39,14 @@ export const tick = internalMutation({
         worldId,
       });
     }
-    if (!agentsEagerToWake.length) {
+    const userPlayers = await allControlledPlayers(ctx.db, world._id);
+    const idleUserPlayers = [];
+    for (const userPlayer of userPlayers) {
+      if (!(await currentConversation(ctx.db, userPlayer._id))) {
+        idleUserPlayers.push(userPlayer);
+      }
+    }
+    if (!agentsEagerToWake.length && !idleUserPlayers.length) {
       console.debug("Didn't tick: spurious, no agents eager to wake up");
       return;
     }
@@ -54,9 +57,22 @@ export const tick = internalMutation({
       await ctx.db.patch(agentDoc._id, { thinking: true, lastWakeTs: ts });
     }
     const playerIds = agentsToWake.map((a) => a.playerId);
+    for (const userPlayer of idleUserPlayers) {
+      playerIds.push(userPlayer._id);
+    }
     await ctx.scheduler.runAfter(0, internal.agent.runAgentBatch, { playerIds, noSchedule });
   },
 });
+
+export const allControlledPlayers = async (db: DatabaseReader, worldId: Id<'worlds'>) => {
+  return await db
+    .query('players')
+    // undefined < null < v.id("users") so this works, and undefined isn't allowed.
+    .withIndex('by_user', (q) =>
+      q.eq('worldId', worldId).gt('controller', null as any as undefined),
+    )
+    .collect();
+};
 
 async function getRecentHeartbeat(db: DatabaseReader) {
   return (
@@ -102,7 +118,7 @@ export const agentDone = internalMutation({
     }
     if (!agentDoc) throw new Error(`Agent ${agentId} not found`);
     if (!agentDoc.thinking) {
-      throw new Error('Agent was not thinking: did you call agentDone twice for the same agent?');
+      console.error('Agent was not thinking: did you call agentDone twice for the same agent?');
     }
 
     const wakeTs = walkResult.nextCollision?.ts ?? walkResult.targetEndTs;

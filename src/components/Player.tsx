@@ -10,7 +10,7 @@ import { Character } from './Character.tsx';
 const SpeechDurationMs = 2000;
 const SpokeRecentlyMs = 5_000;
 
-export type SelectPlayer = (playerId: Id<'players'>) => void;
+export type SelectPlayer = (playerId?: Id<'players'>) => void;
 
 export const Player = ({
   player,

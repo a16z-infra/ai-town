@@ -134,3 +134,8 @@ body {
 .button:active span {
   transform: none;
 }
+
+p[contenteditable="true"]:empty::before {
+  content: attr(placeholder);
+  color: #aaa;
+}

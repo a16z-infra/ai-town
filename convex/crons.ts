@@ -1,13 +1,14 @@
 import { cronJobs } from 'convex/server';
 import { internalMutation } from './_generated/server';
-import { getLatestPlayerMotion } from './journal';
+import { talkingToUser, getLatestPlayerMotion, latestEntryOfType } from './journal';
 import {
+  ABANDONED_INTERACTION,
   AGENT_THINKING_TOO_LONG,
   VACUUM_BATCH_SIZE,
   VACUUM_JOURNAL_AGE,
   VACUUM_MEMORIES_AGE,
 } from './config';
-import { enqueueAgentWake } from './engine';
+import { allControlledPlayers, enqueueAgentWake } from './engine';
 import { internal } from './_generated/api';
 import { TableNames } from './_generated/dataModel';
 
@@ -23,10 +24,19 @@ export const recoverThinkingAgents = internalMutation({
       .withIndex('by_worldId_thinking', (q) => q.eq('worldId', world._id).eq('thinking', true))
       .filter((q) => q.lt(q.field('lastWakeTs'), Date.now() - AGENT_THINKING_TOO_LONG))
       .collect();
-    if (agentDocs.length !== 0) {
+    const idleAgents = [];
+    for (const agentDoc of agentDocs) {
+      // Don't interrupt an agent if they are talking to an active player.
+      if (await talkingToUser(ctx.db, agentDoc.playerId)) {
+        console.log(`Agent ${agentDoc._id} was thinking too long, but they are talking to a user`);
+      } else {
+        idleAgents.push(agentDoc);
+      }
+    }
+    if (idleAgents.length !== 0) {
       // We can just enqueue one, since they're all at the same time.
-      const scheduled = await enqueueAgentWake(ctx, agentDocs[0]._id, world._id, ts);
-      for (const agentDoc of agentDocs) {
+      const scheduled = await enqueueAgentWake(ctx, idleAgents[0]._id, world._id, ts);
+      for (const agentDoc of idleAgents) {
         console.error(`Agent ${agentDoc._id} was thinking too long. Resetting`);
         await ctx.db.patch(agentDoc._id, {
           thinking: false,
@@ -61,6 +71,40 @@ export const recoverStoppedAgents = internalMutation({
         await enqueueAgentWake(ctx, agentDoc._id, world._id, Date.now());
         return;
       }
+    }
+  },
+});
+
+export const vacuumAbandonedInteractions = internalMutation({
+  handler: async (ctx) => {
+    const world = await ctx.db.query('worlds').order('desc').first();
+    if (!world) throw new Error('No world found');
+    if (world.frozen) {
+      console.debug("Didn't cleanup: world frozen");
+      return;
+    }
+
+    const controlledPlayers = await allControlledPlayers(ctx.db, world._id);
+    // We consider controlled players to be abandoned if they haven't moved or
+    // talked for 30 minutes.
+    const cutoff = Date.now() - ABANDONED_INTERACTION;
+    for (const player of controlledPlayers) {
+      if (player.agentId) {
+        continue;
+      }
+      if (player._creationTime > cutoff) {
+        continue;
+      }
+      const lastMotion = await latestEntryOfType(ctx.db, player._id, 'walking');
+      if (lastMotion && lastMotion._creationTime > cutoff) {
+        continue;
+      }
+      const lastTalk = await latestEntryOfType(ctx.db, player._id, 'talking');
+      if (lastTalk && lastTalk._creationTime > cutoff) {
+        continue;
+      }
+      await ctx.scheduler.runAfter(0, internal.journal.leaveConversation, { playerId: player._id });
+      await ctx.db.delete(player._id);
     }
   },
 });
@@ -146,7 +190,11 @@ export const vacuumOldMemories = internalMutation({
 });
 
 const crons = cronJobs();
-crons.interval('generate new background music', { hours: 24 }, internal.lib.replicate.enqueueBackgroundMusicGeneration);
+crons.interval(
+  'generate new background music',
+  { hours: 24 },
+  internal.lib.replicate.enqueueBackgroundMusicGeneration,
+);
 crons.interval('restart idle agents', { seconds: 60 }, internal.crons.recoverStoppedAgents);
 crons.interval('restart thinking agents', { seconds: 60 }, internal.crons.recoverThinkingAgents);
 crons.interval('vacuum old journal entries', { hours: 1 }, internal.crons.vacuumOldEntries, {
@@ -160,4 +208,9 @@ crons.interval('vacuum old memory entries', { hours: 6 }, internal.crons.vacuumO
   cursor: null,
   soFar: 0,
 });
+crons.interval(
+  'vacuum abandoned interactions',
+  { minutes: 5 },
+  internal.crons.vacuumAbandonedInteractions,
+);
 export default crons;

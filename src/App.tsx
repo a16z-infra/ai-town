@@ -1,16 +1,81 @@
 import { SignedIn, SignedOut, UserButton } from '@clerk/clerk-react'
+import Modal from "react-modal";
 
 import GameWrapper from './components/GameWrapper.tsx'
 import MusicButton from './components/MusicButton.tsx'
+import InteractButton from './components/InteractButton.tsx'
 import LoginButton from './components/LoginButton.tsx';
 
 import a16zImg from "../assets/a16z.png";
 import convexImg from "../assets/convex.svg";
 import starImg from "../assets/star.svg";
+import helpImg from "../assets/help.svg";
+import { useState } from 'react';
+
+const modalStyles = {
+  overlay: {
+    backgroundColor: "rgb(0, 0, 0, 75%)",
+    zIndex: 12,
+  },
+  content: {
+    top: '50%',
+    left: '50%',
+    right: 'auto',
+    bottom: 'auto',
+    marginRight: '-50%',
+    transform: 'translate(-50%, -50%)',
+    maxWidth: "50%",
+
+    border: '10px solid rgb(23, 20, 33)',
+    borderRadius: "0",
+    background: 'rgb(35, 38, 58)',
+    color: 'white',
+    fontFamily: '"Upheaval Pro", "sans-serif"',
+  },
+};
 
 export default function Home() {
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-between font-body game-background">
+      <Modal
+        isOpen={helpModalOpen}
+        onRequestClose={() => setHelpModalOpen(false)}
+        style={modalStyles}
+        contentLabel="Help modal"
+        ariaHideApp={false}
+      >
+        <div className="font-body">
+          <h1 className="text-center text-6xl font-bold font-display game-title">Help</h1>
+          <p>
+            Welcome to AI town. AI town supports both anonymous <i>spectators</i> and logged in <i>interactivity</i>.
+          </p>
+          <h2 className="text-4xl mt-4">Spectating</h2>
+          <p>
+            Click and drag to move around the town, and scroll in and out to zoom.
+            You can click on an individual character to view its chat history.
+          </p>
+          <h2 className="text-4xl mt-4">Interactivity</h2>
+          <p>
+            If you log in, you can join the simulation and directly talk to different agents!
+          </p>
+          <p className="text-2xl mt-2">
+            Controls:
+          </p>
+          <ul>
+            <li>W, ⬆️: Move up</li>
+            <li>A, ⬅️: Move left</li>
+            <li>S, ⬇️: Move down</li>
+            <li>D, ➡️: Move right</li>
+          </ul>
+          <p className="mt-4">
+            To talk to an agent, click on them and then click "Start conversation," which will ask them to start walking towards you.
+            Once they're nearby, the conversation will start, and you can speak to each other. You can leave at any time by closing
+            the conversation pane or moving away.
+          </p>
+        </div>
+      </Modal>
+
       <div className="p-6 absolute top-0 right-0 z-10 text-2xl">
         <SignedIn>
           <UserButton afterSignOutUrl="/" />
@@ -33,9 +98,9 @@ export default function Home() {
         <GameWrapper />
 
         <footer className="absolute bottom-0 left-0 w-full flex items-center mt-4 gap-3 p-6 flex-wrap pointer-events-none">
-        <div className="flex gap-4 flex-grow pointer-events-none">
-        <MusicButton />
-        <a
+          <div className="flex gap-4 flex-grow pointer-events-none">
+            <MusicButton />
+            <a
               className="button text-white shadow-solid text-2xl pointer-events-auto"
               href="https://github.com/convex-dev/ai-town"
             >
@@ -44,6 +109,20 @@ export default function Home() {
                   <div className="inline-flex h-full items-center gap-4">
                     <img className="w-[30px] h-[30px]" src={starImg} />
                     Star
+                  </div>
+                </span>
+              </div>
+            </a>
+            <InteractButton />
+            <a
+              className="button text-white shadow-solid text-2xl pointer-events-auto"
+              onClick={() => setHelpModalOpen(true)}
+            >
+              <div className="inline-block bg-clay-700">
+                <span>
+                  <div className="inline-flex h-full items-center gap-4">
+                    <img className="w-[30px] h-[30px]" src={helpImg} />
+                    Help
                   </div>
                 </span>
               </div>

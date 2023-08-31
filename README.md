@@ -190,7 +190,9 @@ See more functions in [`testing.ts`](./convex/testing.ts).
 
 #### Deploy to Vercel
 
-TODO
+Deploy this app to Vercel with just `vercel` (and then `vercel --prod` to deploy to production).
+
+You may have to sign up for a Vercel account and install the Vercel CLI with `npm install --global vercel`.
 
 #### Deploy Convex functions to prod environment
 
