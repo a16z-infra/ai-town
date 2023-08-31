@@ -15,6 +15,7 @@ export async function chatCompletion(
 
   body.model = body.model ?? 'gpt-3.5-turbo-16k';
   body.stream = true;
+  const stopWords = body.stop ? (typeof body.stop === 'string' ? [body.stop] : body.stop) : [];
   const {
     result: resultStream,
     retries,
@@ -40,7 +41,7 @@ export async function chatCompletion(
     return result.body!;
   });
   return {
-    content: new ChatCompletionContent(resultStream),
+    content: new ChatCompletionContent(resultStream, stopWords),
     retries,
     ms,
   };
@@ -319,14 +320,30 @@ export interface CreateChatCompletionRequest {
   function_call?: 'none' | 'auto' | { name: string };
 }
 
+// Checks whether a suffix of s1 is a prefix of s2. For example,
+// ('Hello', 'Kira:') -> false
+// ('Hello Kira', 'Kira:') -> true
+const suffixOverlapsPrefix = (s1: string, s2: string) => {
+  for (let i = 1; i <= Math.min(s1.length, s2.length); i++) {
+    const suffix = s1.substring(s1.length - i);
+    const prefix = s2.substring(0, i);
+    if (suffix === prefix) {
+      return true;
+    }
+  }
+  return false;
+};
+
 export class ChatCompletionContent {
   private readonly body: ReadableStream<Uint8Array>;
+  private readonly stopWords: string[];
 
-  constructor(body: ReadableStream<Uint8Array>) {
+  constructor(body: ReadableStream<Uint8Array>, stopWords: string[]) {
     this.body = body;
+    this.stopWords = stopWords;
   }
 
-  async *read() {
+  async *readInner() {
     for await (const data of this.splitStream(this.body)) {
       if (data.startsWith('data: ')) {
         try {
@@ -341,6 +358,30 @@ export class ChatCompletionContent {
         }
       }
     }
+  }
+
+  // stop words in OpenAI api don't always work.
+  // So we have to truncate on our side.
+  async *read() {
+    let lastFragment = '';
+    for await (const data of this.readInner()) {
+      lastFragment += data;
+      let hasOverlap = false;
+      for (const stopWord of this.stopWords) {
+        const idx = lastFragment.indexOf(stopWord);
+        if (idx >= 0) {
+          yield lastFragment.substring(0, idx);
+          return;
+        }
+        if (suffixOverlapsPrefix(lastFragment, stopWord)) {
+          hasOverlap = true;
+        }
+      }
+      if (hasOverlap) continue;
+      yield lastFragment;
+      lastFragment = '';
+    }
+    yield lastFragment;
   }
 
   async readAll() {
