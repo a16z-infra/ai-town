@@ -292,28 +292,10 @@ function handleDone(ctx: ActionCtx, noSchedule?: boolean): DoneFn {
   const doIt: DoneFn = async (agentId, activity) => {
     // console.debug('handleDone: ', agentId, activity);
     if (!agentId) return;
-    let walkResult;
-    switch (activity.type) {
-      case 'walk':
-        walkResult = await ctx.runMutation(internal.journal.walk, {
-          agentId,
-          ignore: activity.ignore,
-        });
-        break;
-      case 'continue':
-        walkResult = await ctx.runQuery(internal.journal.nextCollision, {
-          agentId,
-          ignore: activity.ignore,
-        });
-        break;
-      default:
-        const _exhaustiveCheck: never = activity;
-        throw new Error(`Unhandled activity: ${JSON.stringify(activity)}`);
-    }
     await ctx.runMutation(internal.engine.agentDone, {
       agentId,
-      otherAgentIds: walkResult.nextCollision?.agentIds,
-      wakeTs: walkResult.nextCollision?.ts ?? walkResult.targetEndTs,
+      activity: activity.type,
+      ignore: activity.ignore,
       noSchedule,
     });
   };

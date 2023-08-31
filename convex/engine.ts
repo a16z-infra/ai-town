@@ -8,6 +8,7 @@ import {
 } from './_generated/server';
 import { TICK_DEBOUNCE, WORLD_IDLE_THRESHOLD } from './config';
 import { asyncMap, pruneNull } from './lib/utils';
+import { getRandomPosition, nextCollision, walkToTarget } from './journal';
 
 export const tick = internalMutation({
   args: { worldId: v.id('worlds'), noSchedule: v.optional(v.boolean()) },
@@ -73,32 +74,47 @@ async function getRecentHeartbeat(db: DatabaseReader) {
 export const agentDone = internalMutation({
   args: {
     agentId: v.id('agents'),
-    otherAgentIds: v.optional(v.array(v.id('agents'))),
-    wakeTs: v.number(),
+    activity: v.union(v.literal('walk'), v.literal('continue')),
+    ignore: v.array(v.id('players')),
     noSchedule: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const agentDoc = await ctx.db.get(args.agentId);
-    if (!agentDoc) throw new Error(`Agent ${args.agentId} not found`);
+  handler: async (ctx, { noSchedule, agentId, activity, ignore }) => {
+    if (!agentId) {
+      return;
+    }
+    const agentDoc = (await ctx.db.get(agentId))!;
+    const playerId = agentDoc.playerId;
+    const worldId = agentDoc.worldId;
+    let walkResult;
+    switch (activity) {
+      case 'walk':
+        const world = (await ctx.db.get(worldId))!;
+        const map = (await ctx.db.get(world.mapId))!;
+        const targetPosition = getRandomPosition(map);
+        walkResult = await walkToTarget(ctx, playerId, worldId, ignore, targetPosition);
+        break;
+      case 'continue':
+        walkResult = await nextCollision(ctx.db, worldId, playerId, ignore);
+        break;
+      default:
+        const _exhaustiveCheck: never = activity;
+        throw new Error(`Unhandled activity: ${JSON.stringify(activity)}`);
+    }
+    if (!agentDoc) throw new Error(`Agent ${agentId} not found`);
     if (!agentDoc.thinking) {
       throw new Error('Agent was not thinking: did you call agentDone twice for the same agent?');
     }
 
-    const nextWakeTs = Math.ceil(args.wakeTs / TICK_DEBOUNCE) * TICK_DEBOUNCE;
-    await ctx.db.replace(args.agentId, {
+    const wakeTs = walkResult.nextCollision?.ts ?? walkResult.targetEndTs;
+    const nextWakeTs = Math.ceil(wakeTs / TICK_DEBOUNCE) * TICK_DEBOUNCE;
+    await ctx.db.replace(agentId, {
       playerId: agentDoc.playerId,
       worldId: agentDoc.worldId,
       thinking: false,
       lastWakeTs: agentDoc.nextWakeTs,
       nextWakeTs,
-      alsoWake: args.otherAgentIds,
-      scheduled: await enqueueAgentWake(
-        ctx,
-        args.agentId,
-        agentDoc.worldId,
-        nextWakeTs,
-        args.noSchedule,
-      ),
+      alsoWake: walkResult.nextCollision?.agentIds,
+      scheduled: await enqueueAgentWake(ctx, agentId, agentDoc.worldId, nextWakeTs, noSchedule),
     });
   },
 });

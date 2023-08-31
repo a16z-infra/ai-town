@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import { Doc, Id } from './_generated/dataModel';
-import { DatabaseReader, internalMutation, internalQuery } from './_generated/server';
+import { DatabaseReader, MutationCtx, internalMutation, internalQuery } from './_generated/server';
 import {
   Position,
   EntryOfType,
@@ -268,97 +268,110 @@ export const walk = internalMutation({
     const { playerId, worldId } = agentDoc;
     const world = (await ctx.db.get(worldId))!;
     const map = (await ctx.db.get(world.mapId))!;
-    const otherPlayers = await asyncMap(
-      (await getAllPlayers(ctx.db, worldId)).filter((p) => p._id !== playerId),
-      async (p) => ({
-        ...p,
-        motion: await getLatestPlayerMotion(ctx.db, p._id),
-      }),
-    );
     const targetPosition = target
-      ? getPoseFromMotion(await getLatestPlayerMotion(ctx.db, target), ts).position
+      ? roundPose(getPoseFromMotion(await getLatestPlayerMotion(ctx.db, target), ts)).position
       : getRandomPosition(map);
-    const ourMotion = await getLatestPlayerMotion(ctx.db, playerId);
-    const { route, distance } = findRoute(
-      map,
-      ourMotion,
-      otherPlayers.map(({ motion }) => motion),
-      targetPosition,
-      ts,
-    );
-    if (distance === 0) {
-      if (ourMotion.type === 'walking') {
-        await ctx.db.insert('journal', {
-          playerId,
-          data: {
-            type: 'stopped',
-            pose: {
-              position: route[0],
-              orientation: calculateOrientation(route[0], targetPosition),
-            },
-            reason: 'interrupted',
-          },
-        });
-      }
-      return {
-        targetEndTs: ts + STUCK_CHILL_TIME,
-        // TODO: detect collisions with other players running into us.
-      };
-    }
-    const exclude = new Set([...ignore, playerId]);
-    const targetEndTs = ts + distance * TIME_PER_STEP;
-    let endOrientation: number | undefined;
-    if (manhattanDistance(targetPosition, route[route.length - 1]) > 0) {
-      endOrientation = calculateOrientation(route[route.length - 1], targetPosition);
-    }
-    await ctx.db.insert('journal', {
-      playerId,
-      data: { type: 'walking', route, ignore, startTs: ts, targetEndTs, endOrientation },
-    });
-    const collisions = findCollision(
-      route,
-      otherPlayers.filter((p) => !exclude.has(p._id)),
-      ts,
-      CLOSE_DISTANCE,
-    );
-    return {
-      targetEndTs,
-      nextCollision: collisions && {
-        ts: collisions.distance * TIME_PER_STEP + ts,
-        agentIds: pruneNull(collisions.hits.map(({ agentId }) => agentId)),
-      },
-    };
+    return await walkToTarget(ctx, playerId, worldId, ignore, targetPosition);
   },
 });
 
-export const nextCollision = internalQuery({
-  args: { agentId: v.id('agents'), ignore: v.array(v.id('players')) },
-  handler: async (ctx, { agentId, ignore }) => {
-    const ts = Date.now();
-    const agentDoc = (await ctx.db.get(agentId))!;
-    const { playerId, worldId } = agentDoc;
-    const exclude = new Set([...ignore, playerId]);
-    const otherPlayers = await asyncMap(
-      (await getAllPlayers(ctx.db, worldId)).filter((p) => !exclude.has(p._id)),
-      async (p) => ({ ...p, motion: await getLatestPlayerMotion(ctx.db, p._id) }),
-    );
-    const ourMotion = await getLatestPlayerMotion(ctx.db, playerId);
-    const nearby = getNearbyPlayers(ourMotion, otherPlayers);
-    nearby.forEach(({ _id: id }) => exclude.add(id));
-    const othersNotNearby = otherPlayers.filter(({ _id }) => !exclude.has(_id));
-    const route = getRemainingPathFromMotion(ourMotion, ts);
-    const distance = getRouteDistance(route);
-    const targetEndTs = ts + distance * TIME_PER_STEP;
-    const collisions = findCollision(route, othersNotNearby, ts, CLOSE_DISTANCE);
+export const walkToTarget = async (
+  ctx: MutationCtx,
+  playerId: Id<'players'>,
+  worldId: Id<'worlds'>,
+  ignore: Id<'players'>[],
+  targetPosition: Position,
+) => {
+  const ts = Date.now();
+  const world = (await ctx.db.get(worldId))!;
+  const map = (await ctx.db.get(world.mapId))!;
+  const otherPlayers = await asyncMap(
+    (await getAllPlayers(ctx.db, worldId)).filter((p) => p._id !== playerId),
+    async (p) => ({
+      ...p,
+      motion: await getLatestPlayerMotion(ctx.db, p._id),
+    }),
+  );
+  const ourMotion = await getLatestPlayerMotion(ctx.db, playerId);
+  const { route, distance } = findRoute(
+    map,
+    ourMotion,
+    otherPlayers.map(({ motion }) => motion),
+    targetPosition,
+    ts,
+  );
+  if (distance === 0) {
+    if (ourMotion.type === 'walking') {
+      await ctx.db.insert('journal', {
+        playerId,
+        data: {
+          type: 'stopped',
+          pose: {
+            position: route[0],
+            orientation: calculateOrientation(route[0], targetPosition),
+          },
+          reason: 'interrupted',
+        },
+      });
+    }
     return {
-      targetEndTs,
-      nextCollision: collisions && {
-        ts: collisions.distance * TIME_PER_STEP + ts,
-        agentIds: pruneNull(collisions.hits.map(({ agentId }) => agentId)),
-      },
+      targetEndTs: ts + STUCK_CHILL_TIME,
+      // TODO: detect collisions with other players running into us.
     };
-  },
-});
+  }
+  const exclude = new Set([...ignore, playerId]);
+  const targetEndTs = ts + distance * TIME_PER_STEP;
+  let endOrientation: number | undefined;
+  if (manhattanDistance(targetPosition, route[route.length - 1]) > 0) {
+    endOrientation = calculateOrientation(route[route.length - 1], targetPosition);
+  }
+  await ctx.db.insert('journal', {
+    playerId,
+    data: { type: 'walking', route, ignore, startTs: ts, targetEndTs, endOrientation },
+  });
+  const collisions = findCollision(
+    route,
+    otherPlayers.filter((p) => !exclude.has(p._id)),
+    ts,
+    CLOSE_DISTANCE,
+  );
+  return {
+    targetEndTs,
+    nextCollision: collisions && {
+      ts: collisions.distance * TIME_PER_STEP + ts,
+      agentIds: pruneNull(collisions.hits.map(({ agentId }) => agentId)),
+    },
+  };
+};
+
+export const nextCollision = async (
+  db: DatabaseReader,
+  worldId: Id<'worlds'>,
+  playerId: Id<'players'>,
+  ignore: Id<'players'>[],
+) => {
+  const ts = Date.now();
+  const exclude = new Set([...ignore, playerId]);
+  const otherPlayers = await asyncMap(
+    (await getAllPlayers(db, worldId)).filter((p) => !exclude.has(p._id)),
+    async (p) => ({ ...p, motion: await getLatestPlayerMotion(db, p._id) }),
+  );
+  const ourMotion = await getLatestPlayerMotion(db, playerId);
+  const nearby = getNearbyPlayers(ourMotion, otherPlayers);
+  nearby.forEach(({ _id: id }) => exclude.add(id));
+  const othersNotNearby = otherPlayers.filter(({ _id }) => !exclude.has(_id));
+  const route = getRemainingPathFromMotion(ourMotion, ts);
+  const distance = getRouteDistance(route);
+  const targetEndTs = ts + distance * TIME_PER_STEP;
+  const collisions = findCollision(route, othersNotNearby, ts, CLOSE_DISTANCE);
+  return {
+    targetEndTs,
+    nextCollision: collisions && {
+      ts: collisions.distance * TIME_PER_STEP + ts,
+      agentIds: pruneNull(collisions.hits.map(({ agentId }) => agentId)),
+    },
+  };
+};
 
 export function getRandomPosition(map: Doc<'maps'>): Position {
   let pos;
