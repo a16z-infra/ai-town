@@ -3,7 +3,11 @@
 //
 // TODO: 
 //  - move more globals and class declarations into the global context context.js
+//  - move magic numbers to context / initialization (zIndex, pane size etc.)
+// 
+// Done:
 //  - Delete tiles
+//
 // 
 // Keybindings:
 // f - fill level 0 with current tile
@@ -24,7 +28,7 @@ import * as UNDO from './undo.js'
 import * as FILE from './mapfile.js'
 import { EventSystem } from '@pixi/events';
 
-const debug_flag = false;
+const debug_flag = true;
 
 function tile_index_from_coords(x, y) {
     return x + (y*CONFIG.screenxtiles*g_context.tileDim);
@@ -55,6 +59,9 @@ class LayerContext {
         this.composite_sprites = {};
         this.dragctx = new DragState();
 
+        this.mouseshadow    = new PIXI.Container(); 
+        this.lasttileindex  = -1; 
+
         app.stage.addChild(this.container);
 
         this.square = new PIXI.Graphics();
@@ -66,6 +73,7 @@ class LayerContext {
 
         this.square.on('mousemove', onLevelMousemove.bind(this));
         this.square.on('mouseover', onLevelMouseover.bind(this));
+        this.square.on('pointerout', onLevelMouseOut.bind(this))
         this.square.on('pointerdown', onLevelPointerDown.bind(null, this))
             .on('pointerup', onLevelDragEnd.bind(null, this))
             .on('pointerupoutside', onLevelDragEnd.bind(null, this));
@@ -167,8 +175,6 @@ class LayerContext {
             composite.container.removeChild(this.composite_sprites[new_index]);
             delete this.composite_sprites[new_index];
             // console.log("DELETING ZINDEX ", this.composite_sprites[new_index].zIndex);
-
-            // FIXME .. need to redraw filter if it is on ..
         }
 
         if (!g_context.dkey) {
@@ -264,6 +270,9 @@ class CompositeContext {
         this.sprites = {};
         this.circle = new PIXI.Graphics();
         this.circle.zIndex = 10;
+
+        this.mouseshadow    = new PIXI.Container(); 
+        this.lasttileindex  = -1; 
 
         this.square = new PIXI.Graphics();
         this.square.beginFill(0x2980b9);
@@ -647,15 +656,82 @@ function centerLayerPanes(x, y){
 }
 
 function onLevelMouseover(e) {
+    let x = e.data.global.x;
+    let y = e.data.global.y;
     if(debug_flag){
         console.log("onLevelMouseOver ",this.num);
     }
+    // FIXME change magic number for pane
+    if (x < this.scrollpane.scrollLeft || x > this.scrollpane.scrollLeft + 640) {
+        return;
+    }
+    // FIXME change magic number for pane
+    if (y < this.scrollpane.scrollTop || y > this.scrollpane.scrollTop + 480) {
+        return;
+    }
+
+    // FIXME TEST CODE
+    if (this.lasttileindex != g_context.tile_index) {
+        this.mouseshadow.removeChildren(0);
+        composite.mouseshadow.removeChildren(0);
+        if (g_context.selected_tiles.length == 0) {
+            const shadowsprite = new PIXI.Sprite(g_context.tiles32[g_context.tile_index]); // composite map
+            const shadowsprite2 = new PIXI.Sprite(g_context.tiles32[g_context.tile_index]); // composite map
+            shadowsprite.alpha = .5;
+            shadowsprite2.alpha = .5;
+            this.mouseshadow.addChild(shadowsprite);
+            composite.mouseshadow.addChild(shadowsprite2);
+        } else {
+            for (let i = 0; i < g_context.selected_tiles.length; i++) {
+                let tile = g_context.selected_tiles[i];
+                console.log(tile, tile[2], tile[0], tile[1]);
+                const shadowsprite = new PIXI.Sprite(g_context.tiles32[tile[2]]);
+                const shadowsprite2 = new PIXI.Sprite(g_context.tiles32[tile[2]]);
+                shadowsprite.x = tile[0] * CONFIG.tiledim;
+                shadowsprite.y = tile[1] * CONFIG.tiledim;
+                shadowsprite2.x = tile[0] * CONFIG.tiledim;
+                shadowsprite2.y = tile[1] * CONFIG.tiledim;
+                shadowsprite.alpha = .5;
+                shadowsprite2.alpha = .5;
+                this.mouseshadow.addChild(shadowsprite);
+                composite.mouseshadow.addChild(shadowsprite2);
+            }
+
+        }
+        this.mouseshadow.x = x - 16;
+        this.mouseshadow.y = y - 16;
+        this.container.removeChild(this.mouseshadow);
+        composite.container.removeChild(composite.mouseshadow);
+        this.container.addChild(this.mouseshadow);
+        composite.container.addChild(composite.mouseshadow);
+    }
+    // FIXME TEST CODE
+
+
     composite.app.stage.removeChild(composite.circle);
     composite.app.stage.addChild(composite.circle);
 }
+
+
+function onLevelMouseOut(e) {
+    if (debug_flag) {
+        console.log("onLevelMouseOut ",this.num);
+    }
+    this.mouseshadow.removeChildren(0);
+    composite.mouseshadow.removeChildren(0);
+}
+
 function onLevelMousemove(e) {
     let x = e.data.global.x;
     let y = e.data.global.y;
+
+    // FIXME TEST CODE
+    this.mouseshadow.x = x-16;
+    this.mouseshadow.y = y-16;
+    composite.mouseshadow.x = x-16;
+    composite.mouseshadow.y = y-16;
+    // FIXME TEST CODE
+
 
     // FIXME change magic number for pane
     if (x < this.scrollpane.scrollLeft || x > this.scrollpane.scrollLeft + 640) {
@@ -717,6 +793,10 @@ function onLevelPointerDown(layer, e)
     layer.app.stage.eventMode = 'static';
     layer.app.stage.addEventListener('pointermove', onLevelDrag.bind(null, layer, e));
 
+    //FIXME TEST CODE stop showing mouse shadow while dragging
+    layer.container.removeChild(layer.mouseshadow);
+    composite.container.removeChild(composite.mouseshadow);
+
     layer.dragctx.startx = e.data.global.x;
     layer.dragctx.starty = e.data.global.y;
     layer.dragctx.endx = e.data.global.x;
@@ -763,6 +843,10 @@ function onLevelDragEnd(layer, e)
     if (debug_flag) {
         console.log("onLevelDragEnd()");
     }
+
+    //FIXME TEST CODE show mouseshadow again once done draggin
+    layer.container.addChild(layer.mouseshadow);
+    composite.container.addChild(composite.mouseshadow);
 
     layer.app.stage.eventMode = 'auto';
     layer.app.stage.removeChild(layer.dragctx.square);
