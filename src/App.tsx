@@ -103,7 +103,7 @@ export default function Home() {
             <MusicButton />
             <a
               className="button text-white shadow-solid text-2xl pointer-events-auto"
-              href="https://github.com/convex-dev/ai-town"
+              href="https://github.com/get-convex/ai-town"
             >
               <div className="inline-block bg-clay-700">
                 <span>
