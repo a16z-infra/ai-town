@@ -259,6 +259,32 @@ export const kickPlayers = internalMutation({
   }
 })
 
+export const cleanupWaitlist = internalMutation({
+  args: {worldId: v.id("worlds")},
+  handler: async (ctx, args) => {
+    const allPlayers = await ctx.db.query("players")
+      .withIndex("by_worldId", q => q.eq("worldId", args.worldId))
+      .collect();
+    const humanAgents = allPlayers.filter(p => p.controller !== undefined).length;
+    const first = await ctx.db.query("waitlist")
+      .withIndex("ticket", q => q.eq("worldId", args.worldId))
+      .order("asc")
+      .first();
+    if (first && first.deadline && first.deadline < Date.now()) {
+      console.log("Expiring stale queue head", first);
+      await ctx.db.delete(first._id);
+    }
+    const second = await ctx.db.query("waitlist")
+      .withIndex("ticket", q => q.eq("worldId", args.worldId))
+      .order("asc")
+      .first();
+    if (second && humanAgents < MAX_HUMANS) {
+      await ctx.db.patch(second._id, { deadline: Date.now() + WAITLIST_DEADLINE });
+      await ctx.scheduler.runAfter(WAITLIST_DEADLINE, internal.players.cleanupWaitlist, args);
+    }
+  }
+});
+
 export const createPlayer = mutation({
   args: {
     pose: Pose,
@@ -285,27 +311,12 @@ export const createPlayer = mutation({
       const allPlayers = await ctx.db.query("players")
         .withIndex("by_worldId", q => q.eq("worldId", world._id))
         .collect();
-      const humanAgents = allPlayers
-        .filter(p => p.controller !== undefined)
-        .reduce((a, _) => a + 1, 0);
+      const humanAgents = allPlayers.filter(p => p.controller !== undefined).length;
 
-      // Expire the head of the waitlist if it's past its deadline.
-      let first = await ctx.db.query("waitlist")
+      const first = await ctx.db.query("waitlist")
         .withIndex("ticket", q => q.eq("worldId", world._id))
         .order("asc")
         .first();
-      if (first && first.deadline && first.deadline < Date.now() && first.tokenIdentifier !== userIdentity.tokenIdentifier) {
-        console.log("Expiring stale queue head", first);
-        await ctx.db.delete(first._id);
-        first = await ctx.db.query("waitlist")
-          .withIndex("ticket", q => q.eq("worldId", world._id))
-          .order("asc")
-          .first();
-        if (first && humanAgents < MAX_HUMANS) {
-          first.deadline = Date.now() + WAITLIST_DEADLINE;
-          await ctx.db.replace(first._id, first);
-        }
-      }
 
       const existingWaitlist = await ctx.db.query("waitlist")
         .withIndex("subject", q => q.eq("worldId", world._id).eq("tokenIdentifier", userIdentity.tokenIdentifier))
@@ -383,13 +394,16 @@ async function removePlayer(ctx: MutationCtx, id: Id<"players">) {
       .order("asc")
       .first();
     if (first) {
-      first.deadline = Date.now() + WAITLIST_DEADLINE;
-      await ctx.db.replace(first._id, first);
+      await ctx.db.patch(first._id, { deadline: Date.now() + WAITLIST_DEADLINE });
+      await ctx.scheduler.runAfter(
+        WAITLIST_DEADLINE,
+        internal.players.cleanupWaitlist,
+        { worldId: activePlayer.worldId },
+      )
     }
   }
 }
 
-// Future: this could allow creating an agent
 export const createAgent = mutation({
   args: {
     pose: Pose,
@@ -398,7 +412,6 @@ export const createAgent = mutation({
     characterId: v.id('characters'),
   },
   handler: async (ctx, { name, worldId, characterId, ...args }) => {
-    // Future: associate this with an authed user
     const playerId = await ctx.db.insert('players', {
       name,
       characterId,

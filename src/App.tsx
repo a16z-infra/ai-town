@@ -66,21 +66,6 @@ export default function Home() {
     if (user && waitlistStatus.firstTicket! === waitlistStatus.ticketNumber) {
       void create();
     }
-    const start = Date.now();
-    const timer = setInterval(() => {
-      if (waitlistStatus.firstTicket === null || waitlistStatus.ticketNumber === null) {
-        return;
-      }
-      const position = waitlistStatus.ticketNumber - waitlistStatus.firstTicket
-      if (position === 0) {
-        return;
-      }
-      const deadline = start + position * WAITLIST_DEADLINE;
-      if (deadline < Date.now()) {
-        void create();
-      }
-    }, WAITLIST_DEADLINE / 2);
-    return () => clearInterval(timer);
   }, [waitlistStatus, createCharacter, createPlayer, user])
 
   return (
