@@ -22,9 +22,10 @@ const PixiViewportComponent = PixiComponent('Viewport', {
       .wheel()
       .decelerate()
       .clamp({ direction: 'all', underflow: 'center' })
+      .setZoom(1.5)
       .clampZoom({
-        minWidth: 50,
-        maxWidth: 550,
+        minScale: (1.04 * props.screenWidth) / (props.worldWidth / 2),
+        maxScale: 3.0,
       });
 
     return viewport;
