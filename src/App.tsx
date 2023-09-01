@@ -128,7 +128,8 @@ export default function Home() {
         </h1>
 
         <p className="mx-auto my-4 text-center text-xl sm:text-2xl text-white leading-tight shadow-solid">
-          A virtual town where AI characters live, chat and socialize.
+          A virtual town where AI characters live, chat and socialize.<br />
+          Log in to join the town and the conversation!
         </p>
 
         <GameWrapper />
