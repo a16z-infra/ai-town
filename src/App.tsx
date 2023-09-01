@@ -13,7 +13,7 @@ import helpImg from "../assets/help.svg";
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../convex/_generated/api';
-import { MAX_HUMANS, WAITLIST_DEADLINE } from '../convex/waitlist_constants.ts';
+import { MAX_HUMANS } from '../convex/waitlist_constants.ts';
 
 const modalStyles = {
   overlay: {

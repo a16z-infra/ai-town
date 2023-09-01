@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import { Doc, Id } from './_generated/dataModel';
-import { DatabaseReader, DatabaseWriter, MutationCtx, internalMutation, mutation, query } from './_generated/server';
+import { DatabaseReader, MutationCtx, internalMutation, mutation, query } from './_generated/server';
 import { enqueueAgentWake } from './engine';
 import { HEARTBEAT_PERIOD, WORLD_IDLE_THRESHOLD } from './config';
 import { Characters, Player, Pose } from './schema';
