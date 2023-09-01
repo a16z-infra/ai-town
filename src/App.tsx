@@ -58,7 +58,7 @@ export default function Home() {
           <h2 className="text-4xl mt-4">Interactivity</h2>
           <p>
             If you log in, you can join the simulation and directly talk to different agents! After logging in, click the
-            "Interact" button at the bottom, and your character will appear in the top-left of the map.
+            "Interact" button, and your character will appear in the top-left of the map.
           </p>
           <p className="text-2xl mt-2">
             Controls:
