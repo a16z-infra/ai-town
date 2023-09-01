@@ -3,6 +3,7 @@ import { api } from '../../convex/_generated/api';
 import { useCallback, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { characters } from '../../convex/characterdata/data';
+import interactImg from "../../assets/interact.svg";
 
 export default function InteractButton() {
   const player = useQuery(api.players.getActivePlayer);
@@ -98,7 +99,7 @@ export default function InteractButton() {
         <div className="inline-block h-full bg-clay-700 cursor-pointer">
           <span>
             <div className="inline-flex items-center gap-4">
-              <img className="w-[48px] h-[30px] max-w-[54px]" src="/assets/interact.svg" />
+              <img className="w-[48px] h-[30px] max-w-[54px]" src={interactImg} />
               {isPlaying ? 'Leave' : 'Interact'}
             </div>
           </span>
