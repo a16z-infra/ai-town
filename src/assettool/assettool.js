@@ -60,6 +60,7 @@ class LayerContext {
         this.dragctx = new DragState();
 
         this.mouseshadow    = new PIXI.Container(); 
+        this.mouseshadow.zIndex = 30; // FIXME
         this.lasttileindex  = -1; 
 
         app.stage.addChild(this.container);
@@ -272,6 +273,7 @@ class CompositeContext {
         this.circle.zIndex = 10;
 
         this.mouseshadow    = new PIXI.Container(); 
+        this.mouseshadow.zIndex = 30; // FIXME
         this.lasttileindex  = -1; 
 
         this.square = new PIXI.Graphics();
@@ -452,6 +454,11 @@ window.addEventListener(
     "keyup", (event) => {
         if (event.code == "KeyD"){
             g_context.dkey = false;
+            layer0.container.addChild(layer0.mouseshadow);
+            layer1.container.addChild(layer1.mouseshadow);
+            layer2.container.addChild(layer2.mouseshadow);
+            layer3.container.addChild(layer3.mouseshadow);
+            composite.container.addChild(composite.mouseshadow);
         }
     });
 window.addEventListener(
@@ -459,6 +466,11 @@ window.addEventListener(
 
         if (event.code == "KeyD"){
             g_context.dkey = true;
+            layer0.container.removeChild(layer0.mouseshadow);
+            layer1.container.removeChild(layer1.mouseshadow);
+            layer2.container.removeChild(layer2.mouseshadow);
+            layer3.container.removeChild(layer3.mouseshadow);
+            composite.container.removeChild(composite.mouseshadow);
         }
 
         if (event.code == 'KeyF'){
