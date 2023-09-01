@@ -134,9 +134,9 @@ class LayerContext {
         let xPx = x;
         let yPx = y;
 
-        const ctile = new PIXI.Sprite(curtiles[index]);  // level map
+        const ctile = new PIXI.Sprite(g_context.tiles32[index]);  // level map
         ctile.index = index; // stuff index into sprite for generating map.js
-        const ctile2 = new PIXI.Sprite(curtiles[index]); // composite map
+        const ctile2 = new PIXI.Sprite(g_context.tiles32[index]); // composite map
 
         // snap to grid
         ctile.x = (xPx >> g_context.dimlog) << g_context.dimlog;
@@ -174,7 +174,7 @@ class LayerContext {
         if (!g_context.dkey) {
             this.sprites[new_index] = ctile;
             this.composite_sprites[new_index] = ctile2;
-        } else {
+        } else if (typeof this.filtergraphics != 'undefined') {
             this.filtergraphics.clear();
             this.drawFilter();
             this.drawFilter();
@@ -279,10 +279,6 @@ class CompositeContext {
 
 // -- Editor wide globals --
 
-//  all tiles in tilemap are loaded and stored in these arrays
-const tiles32  = []; 
-const tiles16  = []; 
-
 // First layer of level
 const level_app0 = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('level0')});
 let layer0 = new LayerContext(level_app0,document.getElementById("layer0pane"), 0);
@@ -309,10 +305,6 @@ const { renderer } = tileset_app;
 // Install the EventSystem
 renderer.addSystem(EventSystem, 'tileevents');
 let tileset = new TilesetContext(tileset_app);
-
-// these two are currently unused, was using to switch between 16 bit and 32 bit tiles
-let curtiles = tiles32; 
-let indexswitch = false;
 
 
 window.create_level_file = () => {
@@ -877,7 +869,7 @@ function init() {
     });
     for (let x = 0; x < CONFIG.screenxtiles; x++) {
         for (let y = 0; y < CONFIG.screenytiles; y++) {
-            tiles32[x + y * CONFIG.screenxtiles] = new PIXI.Texture(
+            g_context.tiles32[x + y * CONFIG.screenxtiles] = new PIXI.Texture(
                 bt,
                 new PIXI.Rectangle(x * 32, y * 32, 32, 32),
             );
@@ -885,7 +877,7 @@ function init() {
     }
     for (let x = 0; x < CONFIG.screenxtiles * 2; x++) {
         for (let y = 0; y < CONFIG.screenytiles * 2; y++) {
-            tiles16[x + y * CONFIG.screenxtiles * 2] = new PIXI.Texture(
+            g_context.tiles16[x + y * CONFIG.screenxtiles * 2] = new PIXI.Texture(
                 bt,
                 new PIXI.Rectangle(x * 16, y * 16, 16, 16),
             );
