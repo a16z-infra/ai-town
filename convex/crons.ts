@@ -213,4 +213,9 @@ crons.interval(
   { minutes: 5 },
   internal.crons.vacuumAbandonedInteractions,
 );
+crons.interval(
+  'kick out players',
+  { minutes: 5 },
+  internal.players.kickPlayers,
+)
 export default crons;

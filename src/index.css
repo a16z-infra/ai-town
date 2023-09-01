@@ -65,6 +65,30 @@ body {
   border-image-slice: 25%;
 }
 
+
+.game-progress-bar {
+  border: 5px solid rgb(23, 20, 33);
+}
+
+@keyframes moveStripes {
+  to {
+    background-position: calc(100% + 28px) 0;
+  }
+}
+
+.game-progress-bar-progress {
+  background: repeating-linear-gradient(
+    135deg,
+    white,
+    white 10px,
+    #dfdfdf 10px,
+    #dfdfdf 20px
+  );
+  background-size: 200% 100%;
+  background-position: 100% 0;
+  animation: moveStripes 0.5s linear infinite;
+}
+
 @media screen and (min-width: 640px) {
   .game-frame {
     border-width: 48px;

@@ -302,6 +302,15 @@ export default defineSchema(
       content: v.string(),
       moderationResult: v.optional(v.boolean()),
     }),
+
+    waitlist: defineTable({
+      worldId: v.id('worlds'),
+      ticket: v.float64(),
+      tokenIdentifier: v.string(),
+      deadline: v.optional(v.number()),
+    })
+      .index('ticket', ['worldId', 'ticket'])
+      .index('subject', ['worldId', 'tokenIdentifier']),
   },
   // When schemaValidation is enabled, it prevents pushing code that has a
   // schema incompatible with the current database.

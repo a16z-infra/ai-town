@@ -1,16 +1,19 @@
-import { SignedIn, SignedOut, UserButton } from '@clerk/clerk-react'
+import { SignedIn, SignedOut, UserButton, useUser } from '@clerk/clerk-react'
 import Modal from "react-modal";
 
 import GameWrapper from './components/GameWrapper.tsx'
 import MusicButton from './components/MusicButton.tsx'
-import InteractButton from './components/InteractButton.tsx'
+import InteractButton, { randomSpritesheet } from './components/InteractButton.tsx'
 import LoginButton from './components/LoginButton.tsx';
 
 import a16zImg from "../assets/a16z.png";
 import convexImg from "../assets/convex.svg";
 import starImg from "../assets/star.svg";
 import helpImg from "../assets/help.svg";
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useMutation, useQuery } from 'convex/react';
+import { api } from '../convex/_generated/api';
+import { MAX_HUMANS, WAITLIST_DEADLINE } from '../convex/waitlist_constants.ts';
 
 const modalStyles = {
   overlay: {
@@ -36,6 +39,50 @@ const modalStyles = {
 
 export default function Home() {
   const [helpModalOpen, setHelpModalOpen] = useState(false);
+  const worldState = useQuery(api.players.getWorld, {});
+  const waitlistStatus = useQuery(api.players.waitlistStatus, worldState ? { worldId: worldState.world._id } : "skip");
+  const { user } = useUser();
+  const createCharacter = useMutation(api.players.createCharacter);
+  const createPlayer = useMutation(api.players.createPlayer);
+  useEffect(() => {
+    if (!waitlistStatus || waitlistStatus.ticketNumber === null || !user) {
+      return;
+    }
+    const create = async () => {
+      const characterId = await createCharacter({
+        name: "user",
+        spritesheetData: randomSpritesheet(),
+      });
+      await createPlayer({
+        forUser: true,
+        name: user.firstName ?? "Me",
+        characterId,
+        pose: {
+          position: {x: 1, y: 1},
+          orientation: 1,
+        },
+      });
+    }
+    if (user && waitlistStatus.firstTicket! === waitlistStatus.ticketNumber) {
+      void create();
+    }
+    const start = Date.now();
+    const timer = setInterval(() => {
+      if (waitlistStatus.firstTicket === null || waitlistStatus.ticketNumber === null) {
+        return;
+      }
+      const position = waitlistStatus.ticketNumber - waitlistStatus.firstTicket
+      if (position === 0) {
+        return;
+      }
+      const deadline = start + position * WAITLIST_DEADLINE;
+      if (deadline < Date.now()) {
+        void create();
+      }
+    }, WAITLIST_DEADLINE / 2);
+    return () => clearInterval(timer);
+  }, [waitlistStatus, createCharacter, createPlayer, user])
+
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-between font-body game-background">
       <Modal
@@ -73,6 +120,9 @@ export default function Home() {
             To talk to an agent, click on them and then click "Start conversation," which will ask them to start walking towards you.
             Once they're nearby, the conversation will start, and you can speak to each other. You can leave at any time by closing
             the conversation pane or moving away.
+          </p>
+          <p className="mt-4">
+            AI town only supports {MAX_HUMANS} humans at a time. If other humans are waiting, each human session is limited to five minutes.
           </p>
         </div>
       </Modal>
@@ -114,7 +164,7 @@ export default function Home() {
                 </span>
               </div>
             </a>
-            <InteractButton />
+            <InteractButton waitlistStatus={waitlistStatus} />
             <a
               className="button text-white shadow-solid text-2xl pointer-events-auto"
               onClick={() => setHelpModalOpen(true)}

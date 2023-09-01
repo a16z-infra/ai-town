@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import { Doc, Id } from './_generated/dataModel';
-import { DatabaseReader, mutation, query } from './_generated/server';
+import { DatabaseReader, DatabaseWriter, MutationCtx, internalMutation, mutation, query } from './_generated/server';
 import { enqueueAgentWake } from './engine';
 import { HEARTBEAT_PERIOD, WORLD_IDLE_THRESHOLD } from './config';
 import { Characters, Player, Pose } from './schema';
@@ -8,6 +8,7 @@ import { getPlayer, walkToTarget } from './journal';
 import { internal } from './_generated/api';
 import { getPoseFromMotion, roundPose } from './lib/physics';
 import { Auth } from 'convex/server';
+import { MAX_HUMANS, MAX_PLAYTIME, WAITLIST_DEADLINE } from './waitlist_constants';
 
 export const activeWorld = async (db: DatabaseReader) => {
   // Future: based on auth, fetch the user's world
@@ -189,6 +190,75 @@ export const createCharacter = mutation({
   },
 });
 
+export const waitlistStatus = query({
+  args: {
+    worldId: v.id("worlds"),
+  },
+  handler: async (ctx, args) => {
+    const first = await ctx.db.query("waitlist")
+      .withIndex("ticket", q => q.eq("worldId", args.worldId))
+      .order("asc")
+      .first();
+    const last = await ctx.db.query("waitlist")
+      .withIndex("ticket", q => q.eq("worldId", args.worldId))
+      .order("desc")
+      .first();
+
+    let ticketNumber: number | undefined;
+    const userIdentity = await ctx.auth.getUserIdentity();
+    if (userIdentity) {
+      const existingWaitlist = await ctx.db.query("waitlist")
+        .withIndex("subject", q => q.eq("worldId", args.worldId).eq("tokenIdentifier", userIdentity.tokenIdentifier))
+        .first();
+      ticketNumber = existingWaitlist?.ticket;
+    }
+    return {
+      firstTicket: first?.ticket ?? null,
+      lastTicket: last?.ticket ?? null,
+
+      ticketNumber: ticketNumber ?? null,
+
+      serverNow: Date.now(),
+      firstDeadline: first?.deadline ?? null,
+
+      maxHumans: MAX_HUMANS,
+    };
+  }
+})
+
+export const kickPlayers = internalMutation({
+  handler: async (ctx) => {
+    const world = await activeWorld(ctx.db);
+    if (!world) {
+      console.warn("No active world");
+      return;
+    }
+    if (world.frozen) {
+      return;
+    }
+    const allPlayers = await ctx.db.query("players")
+        .withIndex("by_worldId", q => q.eq("worldId", world._id))
+        .collect();
+    const humanAgents = allPlayers
+      .filter(p => p.controller !== undefined);
+
+    const firstWaitlist = await ctx.db.query("waitlist")
+      .withIndex("ticket", q => q.eq("worldId", world._id))
+      .first();
+    if (firstWaitlist == null) {
+      return;
+    }
+    console.log("Pruning players since there's a waitlist");
+    const now = Date.now();
+    for (const player of humanAgents) {
+      if (now - player._creationTime > MAX_PLAYTIME) {
+        console.log("Kicking out", player._id);
+        await deletePlayer(ctx, player._id);
+      }
+    }
+  }
+})
+
 export const createPlayer = mutation({
   args: {
     pose: Pose,
@@ -198,6 +268,9 @@ export const createPlayer = mutation({
   },
   handler: async (ctx, { name, characterId, pose, forUser }) => {
     const world = await activeWorld(ctx.db);
+    if (!world) {
+      throw new Error("No currently active world");
+    }
     let controller = undefined;
     if (forUser) {
       const activePlayer = await activePlayerDoc(ctx.auth, ctx.db);
@@ -208,20 +281,72 @@ export const createPlayer = mutation({
       if (!userIdentity) {
         throw new Error('must be logged in to make an interacting player');
       }
-      controller = userIdentity.tokenIdentifier;
+
+      const allPlayers = await ctx.db.query("players")
+        .withIndex("by_worldId", q => q.eq("worldId", world._id))
+        .collect();
+      const humanAgents = allPlayers
+        .filter(p => p.controller !== undefined)
+        .reduce((a, _) => a + 1, 0);
+
+      // Expire the head of the waitlist if it's past its deadline.
+      let first = await ctx.db.query("waitlist")
+        .withIndex("ticket", q => q.eq("worldId", world._id))
+        .order("asc")
+        .first();
+      if (first && first.deadline && first.deadline < Date.now() && first.tokenIdentifier !== userIdentity.tokenIdentifier) {
+        console.log("Expiring stale queue head", first);
+        await ctx.db.delete(first._id);
+        first = await ctx.db.query("waitlist")
+          .withIndex("ticket", q => q.eq("worldId", world._id))
+          .order("asc")
+          .first();
+        if (first && humanAgents < MAX_HUMANS) {
+          first.deadline = Date.now() + WAITLIST_DEADLINE;
+          await ctx.db.replace(first._id, first);
+        }
+      }
+
+      const existingWaitlist = await ctx.db.query("waitlist")
+        .withIndex("subject", q => q.eq("worldId", world._id).eq("tokenIdentifier", userIdentity.tokenIdentifier))
+        .first();
+
+      // Allow the user to join if there's room and either (a) no waitlist or (b) they're at the head of the waitlist.
+      if (humanAgents < MAX_HUMANS && (first === null || first.tokenIdentifier == userIdentity.tokenIdentifier)) {
+        if (first !== null) {
+          await ctx.db.delete(first._id);
+        }
+        controller = userIdentity.tokenIdentifier;
+      }
+      // Otherwise, we're on the waitlist. Insert a row if we weren't on it already.
+      else {
+        if (existingWaitlist) {
+          return { kind: "waitlist", ticketId: existingWaitlist._id };
+        }
+        const lastWaitlist = await ctx.db.query("waitlist")
+          .withIndex("ticket", q => q.eq("worldId", world._id))
+          .order("desc")
+          .first();
+        const ticket = lastWaitlist ? lastWaitlist.ticket + 1 : 0;
+        const ticketId = await ctx.db.insert("waitlist", {
+          worldId: world._id,
+          ticket,
+          tokenIdentifier: userIdentity.tokenIdentifier,
+        });
+        return { kind: "waitlist", ticketId };
+      }
     }
-    // Future: associate this with an authed user
     const playerId = await ctx.db.insert('players', {
       name,
       characterId,
-      worldId: world!._id,
+      worldId: world._id,
       controller,
     });
     await ctx.db.insert('journal', {
       playerId,
       data: { type: 'stopped', reason: 'idle', pose },
     });
-    return playerId;
+    return { kind: "success", playerId };
   },
 });
 
@@ -232,12 +357,37 @@ export const deletePlayer = mutation({
     if (!activePlayer) {
       throw new Error('no player to delete');
     }
-    await ctx.scheduler.runAfter(0, internal.journal.leaveConversation, {
-      playerId: activePlayer._id,
-    });
-    await ctx.db.delete(activePlayer._id);
+    await removePlayer(ctx, activePlayer._id);
   },
 });
+
+async function removePlayer(ctx: MutationCtx, id: Id<"players">) {
+  const activePlayer = await ctx.db.get(id);
+  if (!activePlayer) {
+    throw new Error('no player to delete');
+  }
+  await ctx.scheduler.runAfter(0, internal.journal.leaveConversation, {
+    playerId: activePlayer._id,
+  });
+  await ctx.db.delete(activePlayer._id);
+  const allPlayers = await ctx.db.query("players")
+        .withIndex("by_worldId", q => q.eq("worldId", activePlayer.worldId))
+        .collect();
+  const humanAgents = allPlayers
+    .filter(p => p.controller !== undefined)
+    .reduce((a, _) => a + 1, 0);
+
+  if (humanAgents < MAX_HUMANS) {
+    const first = await ctx.db.query("waitlist")
+      .withIndex("ticket", q => q.eq("worldId", activePlayer.worldId))
+      .order("asc")
+      .first();
+    if (first) {
+      first.deadline = Date.now() + WAITLIST_DEADLINE;
+      await ctx.db.replace(first._id, first);
+    }
+  }
+}
 
 // Future: this could allow creating an agent
 export const createAgent = mutation({
