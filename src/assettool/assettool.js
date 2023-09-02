@@ -60,7 +60,7 @@ class LayerContext {
         this.dragctx = new DragState();
 
         this.mouseshadow    = new PIXI.Container(); 
-        this.mouseshadow.zIndex = 30; // FIXME
+        this.mouseshadow.zIndex = CONFIG.zIndexMouseShadow; 
         this.lasttileindex  = -1; 
 
         app.stage.addChild(this.container);
@@ -115,7 +115,7 @@ class LayerContext {
         if (typeof this.filtergraphics == 'undefined') {
             this.filtertoggle = true;
             this.filtergraphics = new PIXI.Graphics();
-            this.filtergraphics.zIndex = 10;
+            this.filtergraphics.zIndex = CONFIG.zIndexFilter;
         }
 
         if (this.filtertoggle) {
@@ -270,10 +270,10 @@ class CompositeContext {
         this.app.stage.addChild(this.container);
         this.sprites = {};
         this.circle = new PIXI.Graphics();
-        this.circle.zIndex = 10;
+        this.circle.zIndex = CONFIG.zIndexCompositePointer;
 
         this.mouseshadow    = new PIXI.Container(); 
-        this.mouseshadow.zIndex = 30; // FIXME
+        this.mouseshadow.zIndex = CONFIG.zIndexMouseShadow; 
         this.lasttileindex  = -1; 
 
         this.square = new PIXI.Graphics();

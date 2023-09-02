@@ -18,3 +18,9 @@ export let leveltileheight = levelheight / tiledim;
 
 export let screenxtiles = tilefilew/tiledim; 
 export let screenytiles = tilefileh/tiledim; 
+
+// -- 
+
+export const zIndexFilter           =  20;
+export const zIndexMouseShadow      =  30;
+export const zIndexCompositePointer =  100;
