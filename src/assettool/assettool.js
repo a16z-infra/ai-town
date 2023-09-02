@@ -59,11 +59,15 @@ class LayerContext {
         this.composite_sprites = {};
         this.dragctx = new DragState();
 
+        app.stage.addChild(this.container);
+
         this.mouseshadow    = new PIXI.Container(); 
         this.mouseshadow.zIndex = CONFIG.zIndexMouseShadow; 
         this.lasttileindex  = -1; 
 
-        app.stage.addChild(this.container);
+        this.gridcontainer = new PIXI.Container();
+        this.gridcontainer.zIndex = CONFIG.zIndexGrid;
+        // this.container.addChild(this.gridcontainer);
 
         this.square = new PIXI.Graphics();
         this.square.beginFill(0x2980b9);
@@ -192,6 +196,7 @@ class LayerContext {
     }
 
     drawGrid() {
+
         if (typeof this.lines == 'undefined') {
             this.toggle = true;
             this.lines = [];
@@ -212,14 +217,20 @@ class LayerContext {
                 this.grid_graphics.moveTo(0, i + gridsize);
                 this.grid_graphics.lineTo(CONFIG.levelwidth, i + gridsize);
             }
-        }
-        if (this.toggle) {
-            this.container.addChild(this.grid_graphics);
-        } else {
-            this.container.removeChild(this.grid_graphics);
+            this.gridcontainer.addChild(this.grid_graphics);
+        //     this.container.addChild(this.gridcontainer);
         }
 
-        this.toggle = !this.toggle;
+         if (this.toggle) {
+            this.gridcontainer.visible = true;
+             // this.gridcontainer.addChild(this.grid_graphics);
+            this.container.addChild(this.gridcontainer);
+         } else {
+            this.gridcontainer.visible = false;
+             // this.gridcontainer.removeChild(this.grid_graphics);
+             this.container.removeChild(this.gridcontainer);
+         }
+         this.toggle = !this.toggle;
     }
 } // class  LayerContext
 
@@ -305,6 +316,12 @@ let layer2 = new LayerContext(level_app2,document.getElementById("layer2pane"), 
 //  object layer of level
 const level_app3    = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('level4')});
 let layer3 = new LayerContext(level_app3,document.getElementById("layer3pane"), 3);
+
+let g_layers = [];
+g_layers.push(layer0);
+g_layers.push(layer1);
+g_layers.push(layer2);
+g_layers.push(layer3);
 
 // composite view 
 const composite_app = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('composite')});
@@ -454,10 +471,7 @@ window.addEventListener(
     "keyup", (event) => {
         if (event.code == "KeyD"){
             g_context.dkey = false;
-            layer0.container.addChild(layer0.mouseshadow);
-            layer1.container.addChild(layer1.mouseshadow);
-            layer2.container.addChild(layer2.mouseshadow);
-            layer3.container.addChild(layer3.mouseshadow);
+            g_layers.map( (l) => l.container.addChild(l.mouseshadow));
             composite.container.addChild(composite.mouseshadow);
         }
     });
@@ -466,10 +480,7 @@ window.addEventListener(
 
         if (event.code == "KeyD"){
             g_context.dkey = true;
-            layer0.container.removeChild(layer0.mouseshadow);
-            layer1.container.removeChild(layer1.mouseshadow);
-            layer2.container.removeChild(layer2.mouseshadow);
-            layer3.container.removeChild(layer3.mouseshadow);
+            g_layers.map((l) => l.container.removeChild(l.mouseshadow) );
             composite.container.removeChild(composite.mouseshadow);
         }
 
@@ -480,16 +491,10 @@ window.addEventListener(
             generate_level_file();
         }
         else if (event.code == 'KeyM'){
-            layer0.drawFilter();
-            layer1.drawFilter();
-            layer2.drawFilter();
-            layer3.drawFilter();
+            g_layers.map((l) => l.drawFilter () );
         }
         else if (event.code == 'KeyG'){
-            layer0.drawGrid();
-            layer1.drawGrid();
-            layer2.drawGrid();
-            layer3.drawGrid();
+            g_layers.map((l) => l.drawGrid () );
             drawGrid(); 
         }
         else if (event.ctrlKey && event.code === 'KeyZ'){
@@ -657,14 +662,10 @@ function centerCompositePane(x, y){
 
 function centerLayerPanes(x, y){
     // TODO remove magic number pulled from index.html
-    layer0.scrollpane.scrollLeft = x - 320;
-    layer0.scrollpane.scrollTop  = y - 240;
-    layer1.scrollpane.scrollLeft = x - 320;
-    layer1.scrollpane.scrollTop  = y - 240;
-    layer2.scrollpane.scrollLeft = x - 320;
-    layer2.scrollpane.scrollTop  = y - 240;
-    layer3.scrollpane.scrollLeft = x - 320;
-    layer3.scrollpane.scrollTop  = y - 240;
+    g_layers.map((l) => {
+        l.scrollpane.scrollLeft = x - 320;
+        l.scrollpane.scrollTop  = y - 240;
+      });
 }
 
 function onLevelMouseover(e) {

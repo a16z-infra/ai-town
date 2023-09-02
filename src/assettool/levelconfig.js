@@ -21,6 +21,8 @@ export let screenytiles = tilefileh/tiledim;
 
 // -- 
 
+// 1-10 taken by layers
 export const zIndexFilter           =  20;
 export const zIndexMouseShadow      =  30;
+export const zIndexGrid             =  50;
 export const zIndexCompositePointer =  100;
