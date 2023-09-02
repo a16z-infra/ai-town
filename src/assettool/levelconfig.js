@@ -19,7 +19,16 @@ export let leveltileheight = levelheight / tiledim;
 export let screenxtiles = tilefilew/tiledim; 
 export let screenytiles = tilefileh/tiledim; 
 
-// -- 
+
+// -- HTML
+
+export const htmlLayerPaneW = 640;
+export const htmlLayerPaneH = 480;
+
+export const htmlCompositePaneW = 640;
+export const htmlCompositePaneH = 480;
+
+// --  zIndex
 
 // 1-10 taken by layers
 export const zIndexFilter           =  20;

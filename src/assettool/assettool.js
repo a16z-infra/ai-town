@@ -336,29 +336,6 @@ renderer.addSystem(EventSystem, 'tileevents');
 let tileset = new TilesetContext(tileset_app);
 
 
-function initFileLoader() {
-    let filecontent = "";
-
-    const fileInput = document.getElementById('input');
-    fileInput.onchange = (evt) => {
-        if (!window.FileReader) return; // Browser is not compatible
-
-        var reader = new FileReader();
-
-        reader.onload = function (evt) {
-            if (evt.target.readyState != 2) return;
-            if (evt.target.error) {
-                alert('Error while reading file');
-                return;
-            }
-
-            filecontent = evt.target.result;
-            doimport(filecontent).then(mod => loadMapFromModule(mod));
-        };
-
-        reader.readAsText(evt.target.files[0]);
-    }
-}
 
 function doimport (str) {
     if (globalThis.URL.createObjectURL) {
@@ -583,15 +560,15 @@ function drawGrid() {
 
 function centerCompositePane(x, y){
     var compositepane = document.getElementById("compositepane");
-    compositepane.scrollLeft = x - 320;
-    compositepane.scrollTop  = y - 240;
+    compositepane.scrollLeft = x - (CONFIG.htmlCompositePaneW/2);
+    compositepane.scrollTop  = y - (CONFIG.htmlCompositePaneH/2);
 }
 
 function centerLayerPanes(x, y){
     // TODO remove magic number pulled from index.html
     g_layers.map((l) => {
-        l.scrollpane.scrollLeft = x - 320;
-        l.scrollpane.scrollTop  = y - 240;
+        l.scrollpane.scrollLeft = x - (CONFIG.htmlCompositePaneW/2);
+        l.scrollpane.scrollTop  = y - (CONFIG.htmlCompositePaneH/2);
       });
 }
 
@@ -601,16 +578,13 @@ function onLevelMouseover(e) {
     if(debug_flag){
         console.log("onLevelMouseOver ",this.num);
     }
-    // FIXME change magic number for pane
-    if (x < this.scrollpane.scrollLeft || x > this.scrollpane.scrollLeft + 640) {
+    if (x < this.scrollpane.scrollLeft || x > this.scrollpane.scrollLeft + CONFIG.htmlCompositePaneW) {
         return;
     }
-    // FIXME change magic number for pane
-    if (y < this.scrollpane.scrollTop || y > this.scrollpane.scrollTop + 480) {
+    if (y < this.scrollpane.scrollTop || y > this.scrollpane.scrollTop + CONFIG.htmlCompositePaneH) {
         return;
     }
 
-    // FIXME TEST CODE
     if (this.lasttileindex != g_context.tile_index) {
         this.mouseshadow.removeChildren(0);
         composite.mouseshadow.removeChildren(0);
@@ -645,8 +619,6 @@ function onLevelMouseover(e) {
         this.container.addChild(this.mouseshadow);
         composite.container.addChild(composite.mouseshadow);
     }
-    // FIXME TEST CODE
-
 
     composite.app.stage.removeChild(composite.circle);
     composite.app.stage.addChild(composite.circle);
@@ -666,19 +638,17 @@ function onLevelMousemove(e) {
     let y = e.data.global.y;
 
     // FIXME TEST CODE
-    this.mouseshadow.x = x-16;
-    this.mouseshadow.y = y-16;
-    composite.mouseshadow.x = x-16;
-    composite.mouseshadow.y = y-16;
+    this.mouseshadow.x = x-8;
+    this.mouseshadow.y = y-8;
+    composite.mouseshadow.x = x-8;
+    composite.mouseshadow.y = y-8;
     // FIXME TEST CODE
 
 
-    // FIXME change magic number for pane
-    if (x < this.scrollpane.scrollLeft || x > this.scrollpane.scrollLeft + 640) {
+    if (x < this.scrollpane.scrollLeft || x > this.scrollpane.scrollLeft + CONFIG.htmlCompositePaneW) {
         return;
     }
-    // FIXME change magic number for pane
-    if (y < this.scrollpane.scrollTop || y > this.scrollpane.scrollTop + 480) {
+    if (y < this.scrollpane.scrollTop || y > this.scrollpane.scrollTop + CONFIG.htmlCompositePaneH) {
         return;
     }
 
@@ -886,7 +856,49 @@ function onLevelDragEnd(layer, e)
     layer.dragctx.starty = -1;
 }
 
-function init() {
+// --
+// 
+// --
+
+function initMainHTMLWindow() {
+    document.getElementById("layer0pane").style.maxWidth  = ""+CONFIG.htmlLayerPaneW+"px"; 
+    document.getElementById("layer0pane").style.maxHeight = ""+CONFIG.htmlLayerPaneH+"px"; 
+    document.getElementById("layer1pane").style.maxWidth  = ""+CONFIG.htmlLayerPaneW+"px"; 
+    document.getElementById("layer1pane").style.maxHeight = ""+CONFIG.htmlLayerPaneH+"px"; 
+    document.getElementById("layer2pane").style.maxWidth  = ""+CONFIG.htmlLayerPaneW+"px"; 
+    document.getElementById("layer2pane").style.maxHeight = ""+CONFIG.htmlLayerPaneH+"px"; 
+    document.getElementById("layer3pane").style.maxWidth  = ""+CONFIG.htmlLayerPaneW+"px"; 
+    document.getElementById("layer3pane").style.maxHeight = ""+CONFIG.htmlLayerPaneH+"px"; 
+
+    document.getElementById("compositepane").style.maxWidth  = ""+CONFIG.htmlCompositePaneW+"px"; 
+    document.getElementById("compositepane").style.maxHeight = ""+CONFIG.htmlCompositePaneH+"px";
+}
+
+function initFileLoader() {
+    let filecontent = "";
+
+    const fileInput = document.getElementById('input');
+    fileInput.onchange = (evt) => {
+        if (!window.FileReader) return; // Browser is not compatible
+
+        var reader = new FileReader();
+
+        reader.onload = function (evt) {
+            if (evt.target.readyState != 2) return;
+            if (evt.target.error) {
+                alert('Error while reading file');
+                return;
+            }
+
+            filecontent = evt.target.result;
+            doimport(filecontent).then(mod => loadMapFromModule(mod));
+        };
+
+        reader.readAsText(evt.target.files[0]);
+    }
+}
+
+function initTiles() {
     // load tileset into a global array of textures for blitting onto levels
     const bt = PIXI.BaseTexture.from(CONFIG.tilesetpath, {
         scaleMode: PIXI.SCALE_MODES.NEAREST,
@@ -907,7 +919,11 @@ function init() {
             );
         }
     }
+}
 
+function init() {
+    initMainHTMLWindow();
+    initTiles();
     initFileLoader();
 }
 
