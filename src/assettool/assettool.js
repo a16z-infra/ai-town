@@ -318,6 +318,7 @@ let layer2 = new LayerContext(level_app2,document.getElementById("layer2pane"), 
 const level_app3    = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('level4')});
 let layer3 = new LayerContext(level_app3,document.getElementById("layer3pane"), 3);
 
+
 let g_layers = [];
 g_layers.push(layer0);
 g_layers.push(layer1);
@@ -327,6 +328,9 @@ g_layers.push(layer3);
 // composite view 
 const composite_app = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('composite')});
 const composite = new CompositeContext(composite_app);
+
+//  map tab 
+const map_app    = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('mapcanvas')});
 
 // tileset
 const tileset_app = new PIXI.Application( {width :CONFIG.tilefilew, height : CONFIG.tilefileh, view: document.getElementById('tileset')});
@@ -358,6 +362,33 @@ function doimport (str) {
     layer3 = new LayerContext(level_app3,document.getElementById("layer3pane"), 3, mod);
   }
   
+window.onTab = (evt, tabName) => {
+    // Declare all variables
+    var i, tabcontent, tablinks;
+
+    // Get all elements with class="tabcontent" and hide them
+    tabcontent = document.getElementsByClassName("tabcontent");
+    for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+
+    // Get all elements with class="tablinks" and remove the class "active"
+    tablinks = document.getElementsByClassName("tablinks");
+    for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+
+    // Show the current tab, and add an "active" class to the button that opened the tab
+    document.getElementById(tabName).style.display = "block";
+    evt.currentTarget.className += " active";
+
+    if (tabName == "map"){
+        console.log("MAP!");
+        map_app.stage.addChild(composite.container);
+    }else {
+        composite.app.stage.addChild(composite.container);
+    }
+}
 
 // fill base level with 32x32 tiles of current index
 window.fill0 = () => {

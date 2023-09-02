@@ -6,6 +6,12 @@
 <body>
     <script src="assettool.js" type="module"></script>
 
+    <div class="tab">
+        <button class="tablinks" onclick="onTab(event, 'edit')">edit</button>
+        <button class="tablinks" onclick="onTab(event, 'map')">map</button>
+      </div>
+
+<div id="edit" class="tabcontent">
     <TABLE WIDTH="100%"><TR>
         <TD ALIGN="center"> <!-- first layer of map tiles -->
           <div ID="layer0pane" style="max-height: 480px;max-width:640px;overflow: scroll;">
@@ -39,8 +45,11 @@
             <canvas ID="level4" height="1600px" width="1600px" ></canvas>
         </div></TD>
         </tr>
-
     </TABLE>
+</div>
+<div id="map" class="tabcontent">
+        <canvas ID="mapcanvas" height="1600px" width="1600px" ></canvas>
+</div>
 
 </body>
 </html>
