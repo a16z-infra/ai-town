@@ -25,7 +25,7 @@ import * as PIXI from 'pixi.js'
 import { g_context }  from './context.js' // global context
 import * as CONFIG from './levelconfig.js' 
 import * as UNDO from './undo.js'
-import * as FILE from './mapfile.js'
+import * as MAPFILE from './mapfile.js'
 import { EventSystem } from '@pixi/events';
 
 const debug_flag = true;
@@ -201,6 +201,7 @@ class LayerContext {
             this.toggle = true;
             this.lines = [];
             this.grid_graphics = new PIXI.Graphics();
+            this.grid_graphics.zIndex = CONFIG.zIndexGrid;
 
             let gridsize = g_context.tileDim;
             this.grid_graphics.lineStyle(1, 0xffffff, 1);
@@ -335,30 +336,28 @@ renderer.addSystem(EventSystem, 'tileevents');
 let tileset = new TilesetContext(tileset_app);
 
 
-window.create_level_file = () => {
-    generate_level_file();
-}
+function initFileLoader() {
+    let filecontent = "";
 
-let filecontent = "";
+    const fileInput = document.getElementById('input');
+    fileInput.onchange = (evt) => {
+        if (!window.FileReader) return; // Browser is not compatible
 
-const fileInput = document.getElementById('input');
-fileInput.onchange = (evt) => {
-    if(!window.FileReader) return; // Browser is not compatible
+        var reader = new FileReader();
 
-    var reader = new FileReader();
+        reader.onload = function (evt) {
+            if (evt.target.readyState != 2) return;
+            if (evt.target.error) {
+                alert('Error while reading file');
+                return;
+            }
 
-    reader.onload = function(evt) {
-        if(evt.target.readyState != 2) return;
-        if(evt.target.error) {
-            alert('Error while reading file');
-            return;
-        }
+            filecontent = evt.target.result;
+            doimport(filecontent).then(mod => loadMapFromModule(mod));
+        };
 
-        filecontent = evt.target.result;
-        doimport(filecontent).then(mod => loadMapFromModule(mod));
-    };
-
-    reader.readAsText(evt.target.files[0]);
+        reader.readAsText(evt.target.files[0]);
+    }
 }
 
 function doimport (str) {
@@ -382,78 +381,6 @@ function doimport (str) {
     layer3 = new LayerContext(level_app3,document.getElementById("layer3pane"), 3, mod);
   }
   
-
-function generate_level_file() {
-    // level0 
-    var tile_array0 = Array.from(Array(CONFIG.leveltilewidth), () => new Array(CONFIG.leveltileheight));
-    for (let x = 0; x < CONFIG.leveltilewidth; x++) {
-        for (let y = 0; y < CONFIG.leveltileheight; y++) {
-            tile_array0[x][y] = -1;
-        }
-    }
-    for (var i = 0; i < layer0.container.children.length; i++) {
-        var child = layer0.container.children[i];
-        if (!child.hasOwnProperty('index')) {
-            continue;
-        }
-        let x_coord = child.x / CONFIG.tiledim;
-        let y_coord = child.y / CONFIG.tiledim;
-        tile_array0[x_coord][y_coord] = child.index;
-    }
-
-    // level1 
-    var tile_array1 = Array.from(Array(CONFIG.leveltilewidth), () => new Array(CONFIG.leveltileheight));
-    for (let x = 0; x < CONFIG.leveltilewidth; x++) {
-        for (let y = 0; y < CONFIG.leveltileheight; y++) {
-            tile_array1[x][y] = -1;
-        }
-    }
-    for (var i = 0; i < layer1.container.children.length; i++) {
-        var child = layer1.container.children[i];
-        if (!child.hasOwnProperty('index')) {
-            continue;
-        }
-        let x_coord = child.x / CONFIG.tiledim;
-        let y_coord = child.y / CONFIG.tiledim;
-        tile_array1[x_coord][y_coord] = child.index;
-    }
-
-    //  object level
-    var tile_array2 = Array.from(Array(CONFIG.leveltilewidth), () => new Array(CONFIG.leveltileheight));
-    for (let x = 0; x < CONFIG.leveltilewidth; x++) {
-        for (let y = 0; y < CONFIG.leveltileheight; y++) {
-            tile_array2[x][y] = -1;
-        }
-    }
-    for (var i = 0; i < layer2.container.children.length; i++) {
-        var child = layer2.container.children[i];
-        if (!child.hasOwnProperty('index')) {
-            continue;
-        }
-        let x_coord = child.x / CONFIG.tiledim;
-        let y_coord = child.y / CONFIG.tiledim;
-        tile_array2[x_coord][y_coord] = child.index;
-    }
-
-    //  object level
-    var tile_array3 = Array.from(Array(CONFIG.leveltilewidth), () => new Array(CONFIG.leveltileheight));
-    for (let x = 0; x < CONFIG.leveltilewidth; x++) {
-        for (let y = 0; y < CONFIG.leveltileheight; y++) {
-            tile_array3[x][y] = -1;
-        }
-    }
-    for (var i = 0; i < layer3.container.children.length; i++) {
-        var child = layer3.container.children[i];
-        if (!child.hasOwnProperty('index')) {
-            continue;
-        }
-        let x_coord = child.x / CONFIG.tiledim;
-        let y_coord = child.y / CONFIG.tiledim;
-        tile_array3[x_coord][y_coord] = child.index;
-    }
-
-    FILE.write_map_file(tile_array0, tile_array1, tile_array2, tile_array3);
-}
 
 // fill base level with 32x32 tiles of current index
 window.fill0 = () => {
@@ -488,7 +415,7 @@ window.addEventListener(
             window.fill0();
         }
         else if (event.code == 'KeyS'){
-            generate_level_file();
+            MAPFILE.generate_level_file(g_layers);
         }
         else if (event.code == 'KeyM'){
             g_layers.map((l) => l.drawFilter () );
@@ -980,6 +907,8 @@ function init() {
             );
         }
     }
+
+    initFileLoader();
 }
 
 init();

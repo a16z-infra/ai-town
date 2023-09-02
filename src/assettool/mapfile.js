@@ -17,7 +17,7 @@ const bgtile_string_start = '' +
 '   [\n'
 
 
-export function write_map_file(bg_tiles_0, bg_tiles_1, obj_tiles_1, obj_tiles_2){
+function write_map_file(bg_tiles_0, bg_tiles_1, obj_tiles_1, obj_tiles_2){
     let text = mapfile_preamble; 
     text += bgtile_string_start;
 
@@ -95,4 +95,81 @@ function download(data, filename, type) {
             window.URL.revokeObjectURL(url);  
         }, 0); 
     }
+}
+
+export function generate_level_file(layers) {
+    let layer0 = layers[0];
+    let layer1 = layers[1];
+    let layer2 = layers[2];
+    let layer3 = layers[3];
+
+    // level0 
+    var tile_array0 = Array.from(Array(CONFIG.leveltilewidth), () => new Array(CONFIG.leveltileheight));
+    for (let x = 0; x < CONFIG.leveltilewidth; x++) {
+        for (let y = 0; y < CONFIG.leveltileheight; y++) {
+            tile_array0[x][y] = -1;
+        }
+    }
+    for (var i = 0; i < layer0.container.children.length; i++) {
+        var child = layer0.container.children[i];
+        if (!child.hasOwnProperty('index')) {
+            continue;
+        }
+        let x_coord = child.x / CONFIG.tiledim;
+        let y_coord = child.y / CONFIG.tiledim;
+        tile_array0[x_coord][y_coord] = child.index;
+    }
+
+    // level1 
+    var tile_array1 = Array.from(Array(CONFIG.leveltilewidth), () => new Array(CONFIG.leveltileheight));
+    for (let x = 0; x < CONFIG.leveltilewidth; x++) {
+        for (let y = 0; y < CONFIG.leveltileheight; y++) {
+            tile_array1[x][y] = -1;
+        }
+    }
+    for (var i = 0; i < layer1.container.children.length; i++) {
+        var child = layer1.container.children[i];
+        if (!child.hasOwnProperty('index')) {
+            continue;
+        }
+        let x_coord = child.x / CONFIG.tiledim;
+        let y_coord = child.y / CONFIG.tiledim;
+        tile_array1[x_coord][y_coord] = child.index;
+    }
+
+    //  object level
+    var tile_array2 = Array.from(Array(CONFIG.leveltilewidth), () => new Array(CONFIG.leveltileheight));
+    for (let x = 0; x < CONFIG.leveltilewidth; x++) {
+        for (let y = 0; y < CONFIG.leveltileheight; y++) {
+            tile_array2[x][y] = -1;
+        }
+    }
+    for (var i = 0; i < layer2.container.children.length; i++) {
+        var child = layer2.container.children[i];
+        if (!child.hasOwnProperty('index')) {
+            continue;
+        }
+        let x_coord = child.x / CONFIG.tiledim;
+        let y_coord = child.y / CONFIG.tiledim;
+        tile_array2[x_coord][y_coord] = child.index;
+    }
+
+    //  object level
+    var tile_array3 = Array.from(Array(CONFIG.leveltilewidth), () => new Array(CONFIG.leveltileheight));
+    for (let x = 0; x < CONFIG.leveltilewidth; x++) {
+        for (let y = 0; y < CONFIG.leveltileheight; y++) {
+            tile_array3[x][y] = -1;
+        }
+    }
+    for (var i = 0; i < layer3.container.children.length; i++) {
+        var child = layer3.container.children[i];
+        if (!child.hasOwnProperty('index')) {
+            continue;
+        }
+        let x_coord = child.x / CONFIG.tiledim;
+        let y_coord = child.y / CONFIG.tiledim;
+        tile_array3[x_coord][y_coord] = child.index;
+    }
+
+    write_map_file(tile_array0, tile_array1, tile_array2, tile_array3);
 }
