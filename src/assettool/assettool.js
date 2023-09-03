@@ -33,24 +33,47 @@ import { EventSystem } from '@pixi/events';
 
 const debug_flag = true;
 
-function tile_index_from_coords(x, y) {
-    return x + (y*CONFIG.leveltilewidth);
+function tileset_index_from_coords(x, y) {
+    return x + (y*CONFIG.tilesettilewidth);
 }
-
-function tile_index_from_px(x, y) {
+function level_index_from_coords(x, y) {
+    // place 16px tiles in separate index space
+    let offset = (g_context.tileDim == 16)? CONFIG.MAXTILEINDEX : 0;
+    return x + (y*CONFIG.leveltilewidth) + offset; 
+}
+function tileset_index_from_px(x, y) {
     let coord_x = Math.floor(x / g_context.tileDim);
     let coord_y = Math.floor(y / g_context.tileDim);
-    return tile_index_from_coords(coord_x, coord_y); 
+    return tileset_index_from_coords(coord_x, coord_y); 
 }
-
-function tile_coords_from_index(index) {
-        let x = index % (CONFIG.leveltilewidth);
-        let y = Math.floor(index / (CONFIG.leveltilewidth));
-        console.log("tile coords: ",x,y);
+function level_index_from_px(x, y) {
+    let coord_x = Math.floor(x / g_context.tileDim);
+    let coord_y = Math.floor(y / g_context.tileDim);
+    return level_index_from_coords(coord_x, coord_y); 
+}
+function tileset_coords_from_index(index) {
+        let x = index % (CONFIG.tilesettilewidth);
+        let y = Math.floor(index / (CONFIG.tilesettilewidth));
+        console.log("tilesettilewidth: ",CONFIG.tilesettilewidth);
+        console.log("tileset_coord tile coords: ",index,x,y);
         return [x,y];
 }
-function tile_px_from_index(index) {
-        let ret = tile_coords_from_index(index); 
+function tileset_px_from_index(index) {
+        let ret = tileset_coords_from_index(index); 
+        return [ret[0] * g_context.tileDim, ret[1] * g_context.tileDim] ;
+}
+function level_coords_from_index(index) {
+        if(g_context.tileDim == 16){
+            index -= CONFIG/CONFIG.MAXTILEINDEX
+
+        }
+        let x = index % (CONFIG.leveltilewidth);
+        let y = Math.floor(index / (CONFIG.leveltilewidth));
+        console.log("level_coords tile coords: ",index,x,y);
+        return [x,y];
+}
+function level_px_from_index(index) {
+        let ret = level_coords_from_index(index); 
         return [ret[0] * g_context.tileDim, ret[1] * g_context.tileDim] ;
 }
 
@@ -170,10 +193,12 @@ class LayerContext {
         this.filtertoggle = ! this.filtertoggle;
     }
 
+    // add tile of "index" to Level at location x,y
     addTileLevelCoords(x, y, dim, index) {
         return this.addTileLevelPx(x * dim, y * dim, index);
     }
 
+    // add tile of "index" to Level at location x,y
     addTileLevelPx(x, y, index) {
         let xPx = x;
         let yPx = y;
@@ -182,11 +207,9 @@ class LayerContext {
         let ctile2 = null;
 
         if(fudgeon(tileset)){
-            console.log("FUDGE ON!");
-            let pxloc = tile_px_from_index(index);
+            let pxloc = tileset_px_from_index(index);
             ctile = sprite_from_px(pxloc[0] + tileset.fudgex, pxloc[1] + tileset.fudgey);
             ctile2 = sprite_from_px(pxloc[0] + tileset.fudgex, pxloc[1] + tileset.fudgey);
-            console.log("Fudge place ",pxloc[0], pxloc[1]);
         } else {
             ctile = new PIXI.Sprite(g_context.curtiles[index]);  // level map
             ctile.index = index; // stuff index into sprite for generating map.js
@@ -203,7 +226,7 @@ class LayerContext {
 
         // console.log(xPx,yPx,ctile.x,ctile.y);
 
-        let new_index = tile_index_from_px(ctile.x, ctile.y);
+        let new_index = level_index_from_px(ctile.x, ctile.y);
 
         if(debug_flag){
             console.log('addTileLevelPx ',this.num,' ctile.x ', ctile.x, 'ctile.y ', ctile.y, "index ", index, "new_index", new_index);
@@ -521,13 +544,13 @@ function onTilesetDragEnd(e)
         return;
     }
 
-    g_context.tile_index = (starttiley * CONFIG.screenxtiles) + starttilex;
+    g_context.tile_index = (starttiley * CONFIG.tilesettilewidth) + starttilex;
 
     let origx = starttilex;
     let origy = starttiley;
     for(let y = starttiley; y <= endtiley; y++){
         for(let x = starttilex; x <= endtilex; x++){
-            let squareindex = (y * CONFIG.screenxtiles) + x;
+            let squareindex = (y * CONFIG.tilesettilewidth) + x;
             g_context.selected_tiles.push([x - origx,y - origy,squareindex]);
         }
     }
@@ -836,7 +859,7 @@ function onLevelDragEnd(layer, e)
         UNDO.undo_mark_task_start(layer);
         for (let i = starttilex; i <= endtilex; i++) {
             for (let j = starttiley; j <= endtiley; j++) {
-                let squareindex = (j * CONFIG.screenxtiles) + i;
+                let squareindex = (j * CONFIG.tilesettilewidth) + i;
                 let ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, g_context.tile_index);
                 UNDO.undo_add_index_to_task(ti);
             }
@@ -866,7 +889,7 @@ function onLevelDragEnd(layer, e)
         let ti=0;
         for (let i = starttilex; i <= endtilex; i++) {
             for (let j = starttiley; j <= endtiley; j++) {
-                let squareindex = (j * CONFIG.screenxtiles) + i;
+                let squareindex = (j * CONFIG.tilesettilewidth) + i;
                 if (j === starttiley) { // first row 
                     if (i === starttilex) { // top left corner
                         ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[0][0][2]);
@@ -959,16 +982,16 @@ function initRadios() {
             }
             if (this.value == 16) {
                 if (g_context.tileDim == 16) { return; }
-                CONFIG.setScreenXTiles(CONFIG.screenxtiles / (this.value / g_context.tileDim));
-                CONFIG.setScreenYTiles(CONFIG.screenytiles / (this.value / g_context.tileDim));
+                CONFIG.settilesettilewidth(CONFIG.tilesettilewidth / (this.value / g_context.tileDim));
+                CONFIG.settilesettileheight(CONFIG.tilesettileheight / (this.value / g_context.tileDim));
                 g_context.tileDim = 16;
                 g_context.dimlog = Math.log2(g_context.tileDim);
                 g_context.curtiles = g_context.tiles16;
                 console.log("set to curTiles16");
             } else if (this.value == 32) {
                 if (g_context.tileDim == 32) { return; }
-                CONFIG.setScreenXTiles(CONFIG.screenxtiles / (this.value / g_context.tileDim));
-                CONFIG.setScreenYTiles(CONFIG.screenytiles / (this.value / g_context.tileDim));
+                CONFIG.settilesettilewidth(CONFIG.tilesettilewidth / (this.value / g_context.tileDim));
+                CONFIG.settilesettileheight(CONFIG.tilesettileheight / (this.value / g_context.tileDim));
                 g_context.tileDim = 32;
                 g_context.dimlog = Math.log2(g_context.tileDim);
                 g_context.curtiles = g_context.tiles32;
@@ -988,17 +1011,17 @@ function initTiles() {
     const bt = PIXI.BaseTexture.from(CONFIG.tilesetpath, {
         scaleMode: PIXI.SCALE_MODES.NEAREST,
     });
-    for (let x = 0; x < CONFIG.screenxtiles; x++) {
-        for (let y = 0; y < CONFIG.screenytiles; y++) {
-            g_context.tiles32[x + y * CONFIG.screenxtiles] = new PIXI.Texture(
+    for (let x = 0; x < CONFIG.tilesettilewidth; x++) {
+        for (let y = 0; y < CONFIG.tilesettileheight; y++) {
+            g_context.tiles32[x + y * CONFIG.tilesettilewidth] = new PIXI.Texture(
                 bt,
                 new PIXI.Rectangle(x * 32, y * 32, 32, 32),
             );
         }
     }
-    for (let x = 0; x < CONFIG.screenxtiles * 2; x++) {
-        for (let y = 0; y < CONFIG.screenytiles * 2; y++) {
-            g_context.tiles16[x + y * CONFIG.screenxtiles * 2] = new PIXI.Texture(
+    for (let x = 0; x < CONFIG.tilesettilewidth * 2; x++) {
+        for (let y = 0; y < CONFIG.tilesettileheight * 2; y++) {
+            g_context.tiles16[x + y * CONFIG.tilesettilewidth * 2] = new PIXI.Texture(
                 bt,
                 new PIXI.Rectangle(x * 16, y * 16, 16, 16),
             );

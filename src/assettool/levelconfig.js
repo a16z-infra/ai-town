@@ -19,14 +19,16 @@ export const levelheight = 1600; // px
 export let leveltilewidth  = levelwidth / tiledim;
 export let leveltileheight = levelheight / tiledim;
 
-export let screenxtiles = Math.floor(tilefilew/tiledim); 
-export let screenytiles = Math.floor(tilefileh/tiledim); 
+export const MAXTILEINDEX = leveltilewidth * leveltileheight;
 
-export function setScreenXTiles(val) {
-    screenxtiles =  val;
+export let tilesettilewidth = Math.floor(tilefilew/tiledim); 
+export let tilesettileheight = Math.floor(tilefileh/tiledim); 
+
+export function settilesettilewidth(val) {
+    tilesettilewidth =  val;
 }
-export function setScreenYTiles(val) {
-    screenytiles = val;
+export function settilesettileheight(val) {
+    tilesettileheight = val;
 }
 
 // -- HTML
