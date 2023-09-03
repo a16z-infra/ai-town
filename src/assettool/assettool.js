@@ -3,10 +3,11 @@
 //
 // TODO: 
 //  - move more globals and class declarations into the global context context.js
-//  - move magic numbers to context / initialization (zIndex, pane size etc.)
+//  - get rid of dangerous CONFIG.tiledim (use g_context.tileDim instead)
 // 
 // Done:
 //  - Delete tiles
+//  - move magic numbers to context / initialization (zIndex, pane size etc.)
 //
 // 
 // Keybindings:
@@ -127,7 +128,7 @@ class LayerContext {
             this.filtergraphics.beginFill(0xff0000, 0.3);
             for (let i in this.sprites) {
                 let spr = this.sprites[i];
-                this.filtergraphics.drawRect(spr.x, spr.y, 32, 32);
+                this.filtergraphics.drawRect(spr.x, spr.y, g_context.tileDim, g_context.tileDim);
             }
             this.filtergraphics.endFill();
             this.container.addChild(this.filtergraphics);
@@ -147,9 +148,9 @@ class LayerContext {
         let xPx = x;
         let yPx = y;
 
-        const ctile = new PIXI.Sprite(g_context.tiles32[index]);  // level map
+        const ctile = new PIXI.Sprite(g_context.curtiles[index]);  // level map
         ctile.index = index; // stuff index into sprite for generating map.js
-        const ctile2 = new PIXI.Sprite(g_context.tiles32[index]); // composite map
+        const ctile2 = new PIXI.Sprite(g_context.curtiles[index]); // composite map
 
         // snap to grid
         ctile.x = (xPx >> g_context.dimlog) << g_context.dimlog;
@@ -195,44 +196,6 @@ class LayerContext {
         return new_index;
     }
 
-    drawGrid() {
-
-        if (typeof this.lines == 'undefined') {
-            this.toggle = true;
-            this.lines = [];
-            this.grid_graphics = new PIXI.Graphics();
-            this.grid_graphics.zIndex = CONFIG.zIndexGrid;
-
-            let gridsize = g_context.tileDim;
-            this.grid_graphics.lineStyle(1, 0xffffff, 1);
-
-            let index = 0;
-            for (let i = 0; i < CONFIG.levelwidth; i += gridsize) {
-                this.grid_graphics.moveTo(i, 0);
-                this.grid_graphics.lineTo(i, CONFIG.levelheight);
-                this.grid_graphics.moveTo(i + gridsize, 0);
-                this.grid_graphics.lineTo(i + gridsize, CONFIG.levelheight);
-
-                this.grid_graphics.moveTo(0, i);
-                this.grid_graphics.lineTo(CONFIG.levelwidth, i);
-                this.grid_graphics.moveTo(0, i + gridsize);
-                this.grid_graphics.lineTo(CONFIG.levelwidth, i + gridsize);
-            }
-            this.gridcontainer.addChild(this.grid_graphics);
-        //     this.container.addChild(this.gridcontainer);
-        }
-
-         if (this.toggle) {
-            this.gridcontainer.visible = true;
-             // this.gridcontainer.addChild(this.grid_graphics);
-            this.container.addChild(this.gridcontainer);
-         } else {
-            this.gridcontainer.visible = false;
-             // this.gridcontainer.removeChild(this.grid_graphics);
-             this.container.removeChild(this.gridcontainer);
-         }
-         this.toggle = !this.toggle;
-    }
 } // class  LayerContext
 
 class TilesetContext {
@@ -259,7 +222,7 @@ class TilesetContext {
             let tilex = Math.floor(e.data.global.x / g_context.tileDim);
             let tiley = Math.floor(e.data.global.y / g_context.tileDim);
 
-            g_context.tile_index = (tiley * mod.tilefilew / mod.tiledim) + tilex;
+            g_context.tile_index = (tiley * mod.tilefilew / g_context.tileDim) + tilex;
 
             if(debug_flag) {
                 console.log("tileset mouse down. index "+g_context.tile_index);
@@ -390,12 +353,12 @@ window.onTab = (evt, tabName) => {
     }
 }
 
-// fill base level with 32x32 tiles of current index
+// fill base level with currentIndex tile 
 window.fill0 = () => {
     UNDO.undo_mark_task_start(layer0);
-    for(let i = 0; i < CONFIG.levelwidth / 32; i++){
-        for(let j = 0; j < CONFIG.levelheight / 32; j++){
-            let ti = layer0.addTileLevelCoords(i,j,32, g_context.tile_index);
+    for(let i = 0; i < CONFIG.levelwidth / g_context.tileDim; i++){
+        for(let j = 0; j < CONFIG.levelheight / g_context.tileDim; j++){
+            let ti = layer0.addTileLevelCoords(i,j,g_context.tileDim, g_context.tile_index);
             UNDO.undo_add_index_to_task(ti);
         }
     }
@@ -429,8 +392,9 @@ window.addEventListener(
             g_layers.map((l) => l.drawFilter () );
         }
         else if (event.code == 'KeyG'){
-            g_layers.map((l) => l.drawGrid () );
-            drawGrid(); 
+            g_layers.map((l) => redrawGrid (l, false) );
+            redrawGrid(tileset, false); 
+            redrawGrid(composite, false); 
         }
         else if (event.ctrlKey && event.code === 'KeyZ'){
             let undome = UNDO.undo_pop();
@@ -449,31 +413,8 @@ window.addEventListener(
      }
   );
 
-// Currently UNUSED
-// Size of tiles we're working with
-// window.setGridDim = (val) => {
-//     if(val == 16){
-//         if(g_context.tileDim == 16) {return;}
-//         CONFIG.screenxtiles /= (val/g_context.tileDim);
-//         CONFIG.screenytiles /= (val/g_context.tileDim);
-//         g_context.tileDim = 16; 
-//         g_context.dimlog = Math.log2(g_context.tileDim); 
-//         curtiles = tiles16;
-//         console.log("set to curTiles16");
-//     }else if (val == 32){
-//         if(g_context.tileDim == 32) {return;}
-//         CONFIG.screenxtiles /= (val/g_context.tileDim);
-//         CONFIG.screenytiles /= (val/g_context.tileDim);
-//         g_context.tileDim = 32; 
-//         g_context.dimlog = Math.log2(g_context.tileDim); 
-//         curtiles = tiles32;
-//         console.log("set to curTiles32");
-//     }else{
-//         console.debug("Invalid TileDim!");
-//     }
-//  }
-
 // Listen to pointermove on stage once handle is pressed.
+
 function onTilesetDragStart(e)
 {
     if (debug_flag) {
@@ -549,39 +490,53 @@ function onTilesetDrag(e)
 
 //tileset.app.stage.addChild(tileset.container);
 
-function drawGrid() {
+function redrawGrid(pane, redraw = false) {
 
-    if (typeof drawGrid.lines == 'undefined') {
-        drawGrid.toggle = true;
-        drawGrid.lines = [];
-        drawGrid.graphics = new PIXI.Graphics();
+    if (typeof pane.gridtoggle == 'undefined') {
+        // first time we're being called, initialized
+        pane.gridtoggle  = false;
+        pane.gridvisible = false;
+        redraw = true;
+        pane.gridvisible = true;
+    }
 
+    if (redraw) {
+        if (typeof pane.gridgraphics != 'undefined') {
+            pane.container.removeChild(pane.gridgraphics);
+        }
+
+        pane.gridgraphics = new PIXI.Graphics();
         let gridsize = g_context.tileDim;
-        drawGrid.graphics.lineStyle(1, 0xffffff, 1);
+        pane.gridgraphics.lineStyle(1, 0xffffff, 1);
+
 
         let index = 0;
         for (let i = 0; i < CONFIG.levelwidth; i += gridsize) {
-            drawGrid.graphics.moveTo(i, 0);
-            drawGrid.graphics.lineTo(i, CONFIG.levelheight);
-            drawGrid.graphics.moveTo(i + gridsize, 0);
-            drawGrid.graphics.lineTo(i + gridsize, CONFIG.levelheight);
+            pane.gridgraphics.moveTo(i, 0);
+            pane.gridgraphics.lineTo(i, CONFIG.levelheight);
+            pane.gridgraphics.moveTo(i + gridsize, 0);
+            pane.gridgraphics.lineTo(i + gridsize, CONFIG.levelheight);
 
-            drawGrid.graphics.moveTo(0, i);
-            drawGrid.graphics.lineTo(CONFIG.levelwidth, i);
-            drawGrid.graphics.moveTo(0, i + gridsize);
-            drawGrid.graphics.lineTo(CONFIG.levelwidth, i + gridsize);
+            pane.gridgraphics.moveTo(0, i);
+            pane.gridgraphics.lineTo(CONFIG.levelwidth, i);
+            pane.gridgraphics.moveTo(0, i + gridsize);
+            pane.gridgraphics.lineTo(CONFIG.levelwidth, i + gridsize);
         }
-            drawGrid.graphics3 = drawGrid.graphics.clone();
+        if(pane.gridvisible){
+            pane.container.addChild(pane.gridgraphics);
+        }
+        return;
     }
 
-    if (drawGrid.toggle) {
-        tileset.container.addChild(drawGrid.graphics);
-        composite.container.addChild(drawGrid.graphics3);
+    if (pane.gridtoggle) {
+        pane.container.addChild(pane.gridgraphics);
+        pane.gridvisible = true;
     }else{
-        tileset.container.removeChild(drawGrid.graphics);
-        composite.container.removeChild(drawGrid.graphics3);
+        pane.container.removeChild(pane.gridgraphics);
+        pane.gridvisible = false;
     }
-    drawGrid.toggle = !drawGrid.toggle;
+
+    pane.gridtoggle = !pane.gridtoggle;
 }
 
 
@@ -620,8 +575,8 @@ function onLevelMouseover(e) {
         this.mouseshadow.removeChildren(0);
         composite.mouseshadow.removeChildren(0);
         if (g_context.selected_tiles.length == 0) {
-            const shadowsprite = new PIXI.Sprite(g_context.tiles32[g_context.tile_index]); // composite map
-            const shadowsprite2 = new PIXI.Sprite(g_context.tiles32[g_context.tile_index]); // composite map
+            const shadowsprite = new PIXI.Sprite(g_context.curtiles[g_context.tile_index]); // composite map
+            const shadowsprite2 = new PIXI.Sprite(g_context.curtiles[g_context.tile_index]); // composite map
             shadowsprite.alpha = .5;
             shadowsprite2.alpha = .5;
             this.mouseshadow.addChild(shadowsprite);
@@ -630,12 +585,12 @@ function onLevelMouseover(e) {
             for (let i = 0; i < g_context.selected_tiles.length; i++) {
                 let tile = g_context.selected_tiles[i];
                 console.log(tile, tile[2], tile[0], tile[1]);
-                const shadowsprite = new PIXI.Sprite(g_context.tiles32[tile[2]]);
-                const shadowsprite2 = new PIXI.Sprite(g_context.tiles32[tile[2]]);
-                shadowsprite.x = tile[0] * CONFIG.tiledim;
-                shadowsprite.y = tile[1] * CONFIG.tiledim;
-                shadowsprite2.x = tile[0] * CONFIG.tiledim;
-                shadowsprite2.y = tile[1] * CONFIG.tiledim;
+                const shadowsprite = new PIXI.Sprite(g_context.curtiles[tile[2]]);
+                const shadowsprite2 = new PIXI.Sprite(g_context.curtiles[tile[2]]);
+                shadowsprite.x = tile[0] * g_context.tileDim;
+                shadowsprite.y = tile[1] * g_context.tileDim;
+                shadowsprite2.x = tile[0] * g_context.tileDim;
+                shadowsprite2.y = tile[1] * g_context.tileDim;
                 shadowsprite.alpha = .5;
                 shadowsprite2.alpha = .5;
                 this.mouseshadow.addChild(shadowsprite);
@@ -929,6 +884,40 @@ function initFileLoader() {
     }
 }
 
+function initRadios() {
+    var rad = document.myForm.radioTiledim;
+    var prev = null;
+    for (var i = 0; i < rad.length; i++) {
+        rad[i].addEventListener('change', function () {
+            if (this !== prev) {
+                prev = this;
+            }
+            if (this.value == 16) {
+                if (g_context.tileDim == 16) { return; }
+                CONFIG.setScreenXTiles(CONFIG.screenxtiles / (this.value / g_context.tileDim));
+                CONFIG.setScreenYTiles(CONFIG.screenytiles / (this.value / g_context.tileDim));
+                g_context.tileDim = 16;
+                g_context.dimlog = Math.log2(g_context.tileDim);
+                g_context.curtiles = g_context.tiles16;
+                console.log("set to curTiles16");
+            } else if (this.value == 32) {
+                if (g_context.tileDim == 32) { return; }
+                CONFIG.setScreenXTiles(CONFIG.screenxtiles / (this.value / g_context.tileDim));
+                CONFIG.setScreenYTiles(CONFIG.screenytiles / (this.value / g_context.tileDim));
+                g_context.tileDim = 32;
+                g_context.dimlog = Math.log2(g_context.tileDim);
+                g_context.curtiles = g_context.tiles32;
+                console.log("set to curTiles32");
+            } else {
+                console.debug("Invalid TileDim!");
+            }
+            g_layers.map((l) => redrawGrid (l, true) );
+            redrawGrid(tileset, true);
+            redrawGrid(composite, true);
+        });
+    }
+}
+
 function initTiles() {
     // load tileset into a global array of textures for blitting onto levels
     const bt = PIXI.BaseTexture.from(CONFIG.tilesetpath, {
@@ -950,10 +939,13 @@ function initTiles() {
             );
         }
     }
+
+    g_context.curtiles = g_context.tiles32;
 }
 
 function init() {
     initMainHTMLWindow();
+    initRadios();
     initTiles();
     initFileLoader();
 }
