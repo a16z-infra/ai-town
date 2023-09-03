@@ -1,7 +1,11 @@
 
-export const tilesetpath = "./forest-tiles.png";
-export const tilefilew = 640; // px
-export const tilefileh = 224; // px 
+// export const tilesetpath = "./forest-tiles.png";
+// export const tilefilew = 640; // px
+// export const tilefileh = 224; // px 
+
+export const tilesetpath = "./rogue.png";
+export const tilefilew = 608; // px
+export const tilefileh = 448; // px 
 
 // export const tilesetpath = "./magecity.png";
 // export const tilefilew = 256; // px
@@ -28,7 +32,6 @@ export function setScreenXTiles(val) {
 export function setScreenYTiles(val) {
     screenytiles = val;
 }
-
 
 // -- HTML
 
