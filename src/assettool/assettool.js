@@ -4,6 +4,8 @@
 // TODO: 
 //  - move more globals and class declarations into the global context context.js
 //  - get rid of dangerous CONFIG.tiledim (use g_context.tileDim instead)
+//  - todo fudge factor on tileset
+//  - todo print locations on screen
 // 
 // Done:
 //  - Delete tiles
@@ -41,6 +43,10 @@ function tile_index_from_px(x, y) {
     return tile_index_from_coords(coord_x, coord_y); 
 }
 
+function fudgeon(ctx) {
+    return ctx.fudgex != 0 || ctx.fudgey != 0;
+}
+
 function DragState() {
     this.square = new PIXI.Graphics();
     this.startx  = 0;
@@ -66,9 +72,8 @@ class LayerContext {
         this.mouseshadow.zIndex = CONFIG.zIndexMouseShadow; 
         this.lasttileindex  = -1; 
 
-        this.gridcontainer = new PIXI.Container();
-        this.gridcontainer.zIndex = CONFIG.zIndexGrid;
-        // this.container.addChild(this.gridcontainer);
+        this.fudgex = 0; // offset from 0,0
+        this.fudgey = 0;
 
         this.square = new PIXI.Graphics();
         this.square.beginFill(0x2980b9);
@@ -152,6 +157,8 @@ class LayerContext {
         ctile.index = index; // stuff index into sprite for generating map.js
         const ctile2 = new PIXI.Sprite(g_context.curtiles[index]); // composite map
 
+        // TODO! if fudge is one, create a new sprite
+
         // snap to grid
         ctile.x = (xPx >> g_context.dimlog) << g_context.dimlog;
         ctile2.x = (xPx >> g_context.dimlog) << g_context.dimlog;
@@ -199,6 +206,7 @@ class LayerContext {
 } // class  LayerContext
 
 class TilesetContext {
+
     constructor(app, mod = CONFIG) {
         this.app = app;
         this.container = new PIXI.Container();
@@ -215,6 +223,9 @@ class TilesetContext {
         this.container.addChild(bg);
         
         this.app.stage.addChild(this.container);
+
+        this.fudgex = 0; // offset from 0,0
+        this.fudgey = 0;
 
         this.dragctx = new DragState();
 
@@ -246,6 +257,9 @@ class CompositeContext {
         this.sprites = {};
         this.circle = new PIXI.Graphics();
         this.circle.zIndex = CONFIG.zIndexCompositePointer;
+
+        this.fudgex = 0; // offset from 0,0
+        this.fudgey = 0;
 
         this.mouseshadow    = new PIXI.Container(); 
         this.mouseshadow.zIndex = CONFIG.zIndexMouseShadow; 
@@ -410,6 +424,22 @@ window.addEventListener(
                 composite.container.removeChild(layer.composite_sprites[undome[i]]);
             }
         }
+        else if (event.shiftKey && event.code == 'ArrowUp') {
+            tileset.fudgey -= 1;
+            redrawGrid(tileset, true);
+        }
+        else if (event.shiftKey && event.code == 'ArrowDown') {
+            tileset.fudgey += 1;
+            redrawGrid(tileset, true);
+        }
+        else if (event.shiftKey && event.code == 'ArrowLeft') {
+            tileset.fudgex -= 1;
+            redrawGrid(tileset, true);
+        }
+        else if (event.shiftKey && event.code == 'ArrowRight') {
+            tileset.fudgex += 1;
+            redrawGrid(tileset, true);
+        }
      }
   );
 
@@ -512,15 +542,15 @@ function redrawGrid(pane, redraw = false) {
 
         let index = 0;
         for (let i = 0; i < CONFIG.levelwidth; i += gridsize) {
-            pane.gridgraphics.moveTo(i, 0);
-            pane.gridgraphics.lineTo(i, CONFIG.levelheight);
-            pane.gridgraphics.moveTo(i + gridsize, 0);
-            pane.gridgraphics.lineTo(i + gridsize, CONFIG.levelheight);
+            pane.gridgraphics.moveTo(i + pane.fudgex, 0 + pane.fudgey);
+            pane.gridgraphics.lineTo(i + pane.fudgex, CONFIG.levelheight + pane.fudgey);
+            pane.gridgraphics.moveTo(i + gridsize + pane.fudgex, 0 + pane.fudgey);
+            pane.gridgraphics.lineTo(i + gridsize + pane.fudgex, CONFIG.levelheight + pane.fudgey);
 
-            pane.gridgraphics.moveTo(0, i);
-            pane.gridgraphics.lineTo(CONFIG.levelwidth, i);
-            pane.gridgraphics.moveTo(0, i + gridsize);
-            pane.gridgraphics.lineTo(CONFIG.levelwidth, i + gridsize);
+            pane.gridgraphics.moveTo(0 + pane.fudgex, i + pane.fudgey);
+            pane.gridgraphics.lineTo(CONFIG.levelwidth + pane.fudgex, i + pane.fudgey);
+            pane.gridgraphics.moveTo(0 + pane.fudgex, i + gridsize + pane.fudgey);
+            pane.gridgraphics.lineTo(CONFIG.levelwidth + pane.fudgex, i + gridsize + pane.fudgey);
         }
         if(pane.gridvisible){
             pane.container.addChild(pane.gridgraphics);

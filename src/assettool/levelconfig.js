@@ -3,13 +3,9 @@
 // export const tilefilew = 640; // px
 // export const tilefileh = 224; // px 
 
-export const tilesetpath = "./rogue.png";
-export const tilefilew = 608; // px
-export const tilefileh = 448; // px 
-
-// export const tilesetpath = "./magecity.png";
-// export const tilefilew = 256; // px
-// export const tilefileh = 1408; // px 
+export const tilesetpath = "./magecity.png";
+export const tilefilew = 256; // px
+export const tilefileh = 1408; // px 
 
 export const tiledim = 32; // px
 
@@ -23,8 +19,8 @@ export const levelheight = 1600; // px
 export let leveltilewidth  = levelwidth / tiledim;
 export let leveltileheight = levelheight / tiledim;
 
-export let screenxtiles = tilefilew/tiledim; 
-export let screenytiles = tilefileh/tiledim; 
+export let screenxtiles = Math.floor(tilefilew/tiledim); 
+export let screenytiles = Math.floor(tilefileh/tiledim); 
 
 export function setScreenXTiles(val) {
     screenxtiles =  val;
