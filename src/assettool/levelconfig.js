@@ -1,11 +1,11 @@
 
-// export const tilesetpath = "./forest-tiles.png";
-// export const tilefilew = 640; // px
-// export const tilefileh = 224; // px 
+export const tilesetpath = "./forest-tiles.png";
+export const tilefilew = 640; // px
+export const tilefileh = 224; // px 
 
-export const tilesetpath = "./magecity.png";
-export const tilefilew = 256; // px
-export const tilefileh = 1408; // px 
+// export const tilesetpath = "./magecity.png";
+// export const tilefilew = 256; // px
+// export const tilefileh = 1408; // px 
 
 export const tiledim = 32; // px
 

@@ -34,7 +34,7 @@ import { EventSystem } from '@pixi/events';
 const debug_flag = true;
 
 function tile_index_from_coords(x, y) {
-    return x + (y*CONFIG.screenxtiles*g_context.tileDim);
+    return x + (y*CONFIG.leveltilewidth);
 }
 
 function tile_index_from_px(x, y) {
@@ -43,8 +43,33 @@ function tile_index_from_px(x, y) {
     return tile_index_from_coords(coord_x, coord_y); 
 }
 
+function tile_coords_from_index(index) {
+        let x = index % (CONFIG.leveltilewidth);
+        let y = Math.floor(index / (CONFIG.leveltilewidth));
+        console.log("tile coords: ",x,y);
+        return [x,y];
+}
+function tile_px_from_index(index) {
+        let ret = tile_coords_from_index(index); 
+        return [ret[0] * g_context.tileDim, ret[1] * g_context.tileDim] ;
+}
+
 function fudgeon(ctx) {
     return ctx.fudgex != 0 || ctx.fudgey != 0;
+}
+
+// return a sprite given 
+function sprite_from_px(x, y) {
+
+    const bt = PIXI.BaseTexture.from(CONFIG.tilesetpath, {
+        scaleMode: PIXI.SCALE_MODES.NEAREST,
+    });
+
+    let texture = new PIXI.Texture(bt,
+                new PIXI.Rectangle(x, y, g_context.tileDim, g_context.tileDim),
+            );
+
+    return new PIXI.Sprite(texture);
 }
 
 function DragState() {
@@ -153,11 +178,21 @@ class LayerContext {
         let xPx = x;
         let yPx = y;
 
-        const ctile = new PIXI.Sprite(g_context.curtiles[index]);  // level map
-        ctile.index = index; // stuff index into sprite for generating map.js
-        const ctile2 = new PIXI.Sprite(g_context.curtiles[index]); // composite map
+        let ctile = null;
+        let ctile2 = null;
 
-        // TODO! if fudge is one, create a new sprite
+        if(fudgeon(tileset)){
+            console.log("FUDGE ON!");
+            let pxloc = tile_px_from_index(index);
+            ctile = sprite_from_px(pxloc[0] + tileset.fudgex, pxloc[1] + tileset.fudgey);
+            ctile2 = sprite_from_px(pxloc[0] + tileset.fudgex, pxloc[1] + tileset.fudgey);
+            console.log("Fudge place ",pxloc[0], pxloc[1]);
+        } else {
+            ctile = new PIXI.Sprite(g_context.curtiles[index]);  // level map
+            ctile.index = index; // stuff index into sprite for generating map.js
+            ctile2 = new PIXI.Sprite(g_context.curtiles[index]); // composite map
+        }
+
 
         // snap to grid
         ctile.x = (xPx >> g_context.dimlog) << g_context.dimlog;
@@ -165,6 +200,8 @@ class LayerContext {
         ctile.y = (yPx >> g_context.dimlog) << g_context.dimlog;
         ctile2.y = (yPx >> g_context.dimlog) << g_context.dimlog;
         ctile2.zIndex = this.num; 
+
+        // console.log(xPx,yPx,ctile.x,ctile.y);
 
         let new_index = tile_index_from_px(ctile.x, ctile.y);
 
@@ -184,10 +221,8 @@ class LayerContext {
             }
             this.container.removeChild(this.sprites[new_index]);
             delete this.sprites[new_index];
-            // composite.container.removeChild(composite.sprites[(this.num, new_index)]);
             composite.container.removeChild(this.composite_sprites[new_index]);
             delete this.composite_sprites[new_index];
-            // console.log("DELETING ZINDEX ", this.composite_sprites[new_index].zIndex);
         }
 
         if (!g_context.dkey) {
