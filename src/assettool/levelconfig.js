@@ -1,17 +1,24 @@
+// export const tilesetpath = "./rpg-tileset.png";
+// export const tilefilew = 1600; // px
+// export const tilefileh = 1600; // px 
 
-export const tilesetpath = "./forest-tiles.png";
+// export const tilesetpath = "./forest-tiles.png";
+// export const tilefilew = 672; // px
+// export const tilefileh = 224; // px 
+
+export const tilesetpath = "./composite.png";
 export const tilefilew = 640; // px
-export const tilefileh = 224; // px 
+export const tilefileh = 288; // px 
 
 // export const tilesetpath = "./magecity.png";
 // export const tilefilew = 256; // px
 // export const tilefileh = 1408; // px 
 
-export const tiledim = 32; // px
+//export const tilesetpath = "./pipo.png";
+//export const tilefilew = 256;
+//export const tilefileh = 4256;
 
-// const TILESETFILE = "./pipo.png";
-// const tilefilew = 256;
-// const tilefileh = 4256;
+export const tiledim = 32; // px
 
 export const levelwidth  = 1600; // px
 export const levelheight = 1600; // px

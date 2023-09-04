@@ -4,12 +4,13 @@
 // TODO: 
 //  - move more globals and class declarations into the global context context.js
 //  - get rid of dangerous CONFIG.tiledim (use g_context.tileDim instead)
-//  - todo fudge factor on tileset
 //  - todo print locations on screen
+//  - <esc> clear selected_tiles
 // 
 // Done:
 //  - Delete tiles
 //  - move magic numbers to context / initialization (zIndex, pane size etc.)
+//  - todo fudge factor on tileset 
 //
 // 
 // Keybindings:
@@ -361,7 +362,7 @@ g_layers.push(layer2);
 g_layers.push(layer3);
 
 // composite view 
-const composite_app = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('composite')});
+const composite_app = new PIXI.Application( { backgroundAlpha: 0, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('composite')});
 const composite = new CompositeContext(composite_app);
 
 //  map tab 
@@ -389,14 +390,43 @@ function doimport (str) {
     return import(url)
   }
 
-  function loadMapFromModule(mod) {
-    tileset = new TilesetContext(tileset_app, mod);
-    layer0 = new LayerContext(level_app0,document.getElementById("layer0pane"), 0, mod);
-    layer1 = new LayerContext(level_app1,document.getElementById("layer1pane"), 1, mod);
-    layer2 = new LayerContext(level_app2,document.getElementById("layer2pane"), 2, mod);
-    layer3 = new LayerContext(level_app3,document.getElementById("layer3pane"), 3, mod);
+function loadMapFromModule(mod) {
+tileset = new TilesetContext(tileset_app, mod);
+layer0 = new LayerContext(level_app0,document.getElementById("layer0pane"), 0, mod);
+layer1 = new LayerContext(level_app1,document.getElementById("layer1pane"), 1, mod);
+layer2 = new LayerContext(level_app2,document.getElementById("layer2pane"), 2, mod);
+layer3 = new LayerContext(level_app3,document.getElementById("layer3pane"), 3, mod);
+}
+
+function downloadpng(filename) {
+    let newcontainer = new PIXI.Container();
+    let children = [...composite.container.children];
+    for(let i = 0; i <  children.length; i++) {
+        let child = children[i];
+        if (! child.hasOwnProperty('isSprite') || !child.isSprite){
+            console.log(child);
+            continue;
+        }
+        // console.log(child, typeof child);
+        composite.container.removeChild(child);
+        newcontainer.addChild(child);
+    }
+      renderer.plugins.extract.canvas(newcontainer).toBlob(function (b) {
+      //renderer.plugins.extract.canvas(composite.container).toBlob(function (b) {
+      console.log(b);
+      var a = document.createElement("a");
+      document.body.append(a);
+      a.download = filename;
+      a.href = URL.createObjectURL(b);
+      a.click();
+      a.remove();
+    }, "image/png");
   }
-  
+
+window.saveCompositeAsImage = () => {
+    downloadpng("composite.png");
+}
+
 window.onTab = (evt, tabName) => {
     // Declare all variables
     var i, tabcontent, tablinks;
@@ -418,7 +448,6 @@ window.onTab = (evt, tabName) => {
     evt.currentTarget.className += " active";
 
     if (tabName == "map"){
-        console.log("MAP!");
         map_app.stage.addChild(composite.container);
     }else {
         composite.app.stage.addChild(composite.container);
@@ -946,6 +975,10 @@ function initMainHTMLWindow() {
 
     document.getElementById("compositepane").style.maxWidth  = ""+CONFIG.htmlCompositePaneW+"px"; 
     document.getElementById("compositepane").style.maxHeight = ""+CONFIG.htmlCompositePaneH+"px";
+
+    // hide map tab
+    let mappane = document.getElementById("map");
+    mappane.style.display = "none";
 }
 
 function initFileLoader() {
