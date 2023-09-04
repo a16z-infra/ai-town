@@ -981,10 +981,10 @@ function initMainHTMLWindow() {
     mappane.style.display = "none";
 }
 
-function initFileLoader() {
+function initLevelLoader() {
     let filecontent = "";
 
-    const fileInput = document.getElementById('input');
+    const fileInput = document.getElementById('levelfile');
     fileInput.onchange = (evt) => {
         if (!window.FileReader) return; // Browser is not compatible
 
@@ -1004,6 +1004,23 @@ function initFileLoader() {
         reader.readAsText(evt.target.files[0]);
     }
 }
+
+function initCompositePNGLoader() {
+    const fileInput = document.getElementById('compositepng');
+    fileInput.onchange = (evt) => {
+        if (!window.FileReader) return; // Browser is not compatible
+        if (debug_flag) {
+            console.log("compositepng ", fileInput.files[0].name);
+        }
+        let bgname = fileInput.files[0].name;
+
+        const texture = PIXI.Texture.from("./"+bgname);
+        const bg      = new PIXI.Sprite(texture);
+        bg.zIndex = 0;
+        composite.container.addChild(bg);
+    }
+}
+
 
 function initRadios() {
     var rad = document.myForm.radioTiledim;
@@ -1068,7 +1085,8 @@ function init() {
     initMainHTMLWindow();
     initRadios();
     initTiles();
-    initFileLoader();
+    initLevelLoader();
+    initCompositePNGLoader();
 }
 
 init();
