@@ -3,6 +3,8 @@ import * as PIXI from 'pixi.js'
 var ContextCreate = (function(){
 
     function ContextSingleton() {
+        this.tilesetwpx = 0;
+        this.tilesethpx = 0;
         this.tile_index = 0;
         this.selected_tiles = []; // current set of selected tiles
         this.tileDim = 32; // px
@@ -10,6 +12,8 @@ var ContextCreate = (function(){
         this.dkey = false;   // is 'd' key depressed? (for delete)
         this.tiles32  = [];  // all tiles from tilemap (32x32)
         this.tiles16  = []; 
+        this.fudgetiles = [];
+
     }
 
     var instance;
@@ -26,4 +30,4 @@ var ContextCreate = (function(){
 })();
 
 // global shared state between all panes
-export let g_context = ContextCreate.getInstance();
+export let g_ctx = ContextCreate.getInstance();

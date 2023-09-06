@@ -14,6 +14,7 @@
     <div class="tab">
         <button class="tablinks" onclick="onTab(event, 'edit')">edit</button>
         <button class="tablinks" onclick="onTab(event, 'map')">map</button>
+        <button class="tablinks" onclick="onTab(event, 'config')">config</button>
       </div>
 
 <div id="edit" class="tabcontent">
@@ -24,27 +25,6 @@
         </TD>
         <TD ALIGN="center"> <!-- tile set-->
 
-            <table><tr>
-                <td></td>
-                <td>level</td>
-                <td>Composite</td>
-                <td></td>
-            </tr>
-            <tr>
-            <td>
-            <button onclick = "saveCompositeAsImage()" > Save Composite </button>
-            </td><td>
-            <input type="file" multiple id="levelfile">
-            </td><td>
-            <input type="file" multiple id="compositepng">
-            </td><td>
-            <form name="myForm">
-                16 <input type="radio" name="radioTiledim"  value="16" />
-                32 <input type="radio" name="radioTiledim"  value="32" checked />
-              </form>
-              </td>
-            </tr>
-            </table>
            <div style="max-height: 480px;max-width:640px;overflow: scroll;">
            <CANVAS ID="tileset" width="1600px" height="1600px" STYLE="border: 1px dotted white;"></CANVAS> </div>   
         </TD>
@@ -73,9 +53,35 @@
         </tr>
     </TABLE>
 </div>
+
 <div id="map" class="tabcontent">
-        <canvas ID="mapcanvas" height="1600px" width="1600px" ></canvas>
+        <canvas id="mapcanvas" height="1600px" width="1600px" ></canvas>
 </div>
+
+<div id="config" class="tabcontent">
+            <table><tr>
+                <td></td>
+                <td>level</td>
+                <td>Composite</td>
+                <td></td>
+            </tr>
+            <tr>
+            <td>
+            <button onclick = "saveCompositeAsImage()" > Save Composite </button>
+            </td><td>
+            <input type="file" multiple id="levelfile">
+            </td><td>
+            <input type="file" multiple id="compositepng">
+            </td><td>
+            <form name="myForm">
+                16 <input type="radio" name="radioTiledim"  value="16" />
+                32 <input type="radio" name="radioTiledim"  value="32" checked />
+              </form>
+              </td>
+            </tr>
+            </table>
+</div>
+
 
 </body>
 </html>

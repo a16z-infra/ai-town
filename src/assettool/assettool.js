@@ -2,15 +2,17 @@
 // Simple level editer. 
 //
 // TODO: 
-//  - move more globals and class declarations into the global context context.js
-//  - get rid of dangerous CONFIG.tiledim (use g_context.tileDim instead)
+//  - use g_ctx for g_ctx.tileset parameters instead of CONFIG (starting with initTilesetConfig) 
 //  - todo print locations on screen
 //  - <esc> clear selected_tiles
+//  - only use fudge to pick sprites rather than fudge and non
 // 
 // Done:
 //  - Delete tiles
 //  - move magic numbers to context / initialization (zIndex, pane size etc.)
-//  - todo fudge factor on tileset 
+//  - todo fudge factor on g_ctx.tileset 
+//  - get rid of dangerous CONFIG.tiledim (use g_ctx.tileDim instead)
+//  - XXX create tilesetpadding for tilesets whos tiles are spaced (e.g. phantasy star II)
 //
 // 
 // Keybindings:
@@ -20,38 +22,47 @@
 // s - generate .js file to move over to convex/maps/
 // m - place a semi-transparent red mask over all tiles. This helps find invisible tiles
 // d - hold while clicking a tile to delete
+// p - toggle between 16pixel and 32 pixel. 
 // 
 // Known bugs and annoyances
 //  - if deleting a tile while filter is on, filter isn't refreshed so need to toggle with "m"
 // --
 
 import * as PIXI from 'pixi.js'
-import { g_context }  from './context.js' // global context
+import { g_ctx }  from './context.js' // global context
 import * as CONFIG from './levelconfig.js' 
 import * as UNDO from './undo.js'
 import * as MAPFILE from './mapfile.js'
+import * as UI from './htmlui.js'
 import { EventSystem } from '@pixi/events';
 
-const debug_flag = true;
+g_ctx.debug_flag = true;
 
 function tileset_index_from_coords(x, y) {
-    return x + (y*CONFIG.tilesettilewidth);
+    let retme = x + (y*CONFIG.tilesettilewidth);
+    console.log("tileset_index_from_coord ",retme, x, y);
+    return retme; 
 }
 function level_index_from_coords(x, y) {
     // place 16px tiles in separate index space
-    let offset = (g_context.tileDim == 16)? CONFIG.MAXTILEINDEX : 0;
-    return x + (y*CONFIG.leveltilewidth) + offset; 
+    let offset = (g_ctx.tileDim == 16)? CONFIG.MAXTILEINDEX : 0;
+    let retme = x + (y*CONFIG.leveltilewidth) + offset; 
+    return retme;
 }
 function tileset_index_from_px(x, y) {
-    let coord_x = Math.floor(x / g_context.tileDim);
-    let coord_y = Math.floor(y / g_context.tileDim);
+    let coord_x = Math.floor(x / (g_ctx.tileDim + CONFIG.tilesetpadding));
+    let coord_y = Math.floor(y / (g_ctx.tileDim+ CONFIG.tilesetpadding));
+
+    console.log("tileset_index_from_px ",x, y);
+
     return tileset_index_from_coords(coord_x, coord_y); 
 }
 function level_index_from_px(x, y) {
-    let coord_x = Math.floor(x / g_context.tileDim);
-    let coord_y = Math.floor(y / g_context.tileDim);
+    let coord_x = Math.floor(x / g_ctx.tileDim);
+    let coord_y = Math.floor(y / g_ctx.tileDim);
     return level_index_from_coords(coord_x, coord_y); 
 }
+
 function tileset_coords_from_index(index) {
         let x = index % (CONFIG.tilesettilewidth);
         let y = Math.floor(index / (CONFIG.tilesettilewidth));
@@ -59,14 +70,17 @@ function tileset_coords_from_index(index) {
         console.log("tileset_coord tile coords: ",index,x,y);
         return [x,y];
 }
+
 function tileset_px_from_index(index) {
         let ret = tileset_coords_from_index(index); 
-        return [ret[0] * g_context.tileDim, ret[1] * g_context.tileDim] ;
+        return [ret[0] * (g_ctx.tileDim+CONFIG.tilesetpadding), ret[1] * (g_ctx.tileDim+CONFIG.tilesetpadding)] ;
 }
-function level_coords_from_index(index) {
-        if(g_context.tileDim == 16){
-            index -= CONFIG/CONFIG.MAXTILEINDEX
 
+
+// FIXME UNUSED?
+function level_coords_from_index(index) {
+        if(g_ctx.tileDim == 16){
+            index -= CONFIG/CONFIG.MAXTILEINDEX
         }
         let x = index % (CONFIG.leveltilewidth);
         let y = Math.floor(index / (CONFIG.leveltilewidth));
@@ -75,24 +89,22 @@ function level_coords_from_index(index) {
 }
 function level_px_from_index(index) {
         let ret = level_coords_from_index(index); 
-        return [ret[0] * g_context.tileDim, ret[1] * g_context.tileDim] ;
+        return [ret[0] * g_ctx.tileDim, ret[1] * g_ctx.tileDim] ;
 }
 
 function fudgeon(ctx) {
     return ctx.fudgex != 0 || ctx.fudgey != 0;
 }
 
-// return a sprite given 
+// return a sprite of size tileDim given (x,y) starting location
 function sprite_from_px(x, y) {
 
     const bt = PIXI.BaseTexture.from(CONFIG.tilesetpath, {
         scaleMode: PIXI.SCALE_MODES.NEAREST,
     });
-
     let texture = new PIXI.Texture(bt,
-                new PIXI.Rectangle(x, y, g_context.tileDim, g_context.tileDim),
+                new PIXI.Rectangle(x, y, g_ctx.tileDim, g_ctx.tileDim),
             );
-
     return new PIXI.Sprite(texture);
 }
 
@@ -161,7 +173,7 @@ class LayerContext {
         for (let x = 0; x < tiles.length; x++) {
             for (let y = 0; y < tiles[0].length; y++) {
                 if (tiles[x][y] != -1) {
-                    this.addTileLevelCoords(x, y, mod.tiledim, tiles[x][y]);
+                    this.addTileLevelCoords(x, y, mod.DEFAULTILEDIM, tiles[x][y]);
                 }
             }
         }
@@ -182,7 +194,7 @@ class LayerContext {
             this.filtergraphics.beginFill(0xff0000, 0.3);
             for (let i in this.sprites) {
                 let spr = this.sprites[i];
-                this.filtergraphics.drawRect(spr.x, spr.y, g_context.tileDim, g_context.tileDim);
+                this.filtergraphics.drawRect(spr.x, spr.y, g_ctx.tileDim, g_ctx.tileDim);
             }
             this.filtergraphics.endFill();
             this.container.addChild(this.filtergraphics);
@@ -207,49 +219,43 @@ class LayerContext {
         let ctile = null;
         let ctile2 = null;
 
-        if(fudgeon(tileset)){
-            let pxloc = tileset_px_from_index(index);
-            ctile = sprite_from_px(pxloc[0] + tileset.fudgex, pxloc[1] + tileset.fudgey);
-            ctile2 = sprite_from_px(pxloc[0] + tileset.fudgex, pxloc[1] + tileset.fudgey);
-        } else {
-            ctile = new PIXI.Sprite(g_context.curtiles[index]);  // level map
-            ctile.index = index; // stuff index into sprite for generating map.js
-            ctile2 = new PIXI.Sprite(g_context.curtiles[index]); // composite map
-        }
+        let pxloc = tileset_px_from_index(index);
+        ctile  = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
+        ctile2 = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
 
 
         // snap to grid
-        ctile.x = (xPx >> g_context.dimlog) << g_context.dimlog;
-        ctile2.x = (xPx >> g_context.dimlog) << g_context.dimlog;
-        ctile.y = (yPx >> g_context.dimlog) << g_context.dimlog;
-        ctile2.y = (yPx >> g_context.dimlog) << g_context.dimlog;
+        ctile.x = (xPx >> g_ctx.dimlog) << g_ctx.dimlog;
+        ctile2.x = (xPx >> g_ctx.dimlog) << g_ctx.dimlog;
+        ctile.y = (yPx >> g_ctx.dimlog) << g_ctx.dimlog;
+        ctile2.y = (yPx >> g_ctx.dimlog) << g_ctx.dimlog;
         ctile2.zIndex = this.num; 
 
         // console.log(xPx,yPx,ctile.x,ctile.y);
 
         let new_index = level_index_from_px(ctile.x, ctile.y);
 
-        if(debug_flag){
+        if(g_ctx.debug_flag){
             console.log('addTileLevelPx ',this.num,' ctile.x ', ctile.x, 'ctile.y ', ctile.y, "index ", index, "new_index", new_index);
         }
 
-        if (!g_context.dkey) {
+        if (!g_ctx.dkey) {
             this.container.addChild(ctile);
-            composite.container.addChild(ctile2);
+            g_ctx.composite.container.addChild(ctile2);
         } 
 
 
         if (this.sprites.hasOwnProperty(new_index)) {
-            if(debug_flag){
+            if(g_ctx.debug_flag){
              console.log("addTileLevelPx: ",this.num,"removing old tile", new_index);
             }
             this.container.removeChild(this.sprites[new_index]);
             delete this.sprites[new_index];
-            composite.container.removeChild(this.composite_sprites[new_index]);
+            g_ctx.composite.container.removeChild(this.composite_sprites[new_index]);
             delete this.composite_sprites[new_index];
         }
 
-        if (!g_context.dkey) {
+        if (!g_ctx.dkey) {
             this.sprites[new_index] = ctile;
             this.composite_sprites[new_index] = ctile2;
         } else if (typeof this.filtergraphics != 'undefined') {
@@ -289,13 +295,11 @@ class TilesetContext {
         this.dragctx = new DragState();
 
         this.square.on('mousedown', function (e) {
-            let tilex = Math.floor(e.data.global.x / g_context.tileDim);
-            let tiley = Math.floor(e.data.global.y / g_context.tileDim);
 
-            g_context.tile_index = (tiley * mod.tilefilew / g_context.tileDim) + tilex;
+            g_ctx.tile_index = tileset_index_from_px(e.global.x, e.global.y); 
 
-            if(debug_flag) {
-                console.log("tileset mouse down. index "+g_context.tile_index);
+            if(g_ctx.debug_flag) {
+                console.log("g_ctx.tileset mouse down. index "+g_ctx.tile_index);
             }
         });
 
@@ -336,46 +340,6 @@ class CompositeContext {
 
 } // class CompositeContext
 
-// -- Editor wide globals --
-
-// First layer of level
-const level_app0 = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('level0')});
-let layer0 = new LayerContext(level_app0,document.getElementById("layer0pane"), 0);
-
-// second layer of level 
-const level_app1 = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('level1')});
-let layer1 = new LayerContext(level_app1,document.getElementById("layer1pane"), 1);
-
-//  object layer of level
-const level_app2    = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('level3')});
-let layer2 = new LayerContext(level_app2,document.getElementById("layer2pane"), 2);
-
-//  object layer of level
-const level_app3    = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('level4')});
-let layer3 = new LayerContext(level_app3,document.getElementById("layer3pane"), 3);
-
-
-let g_layers = [];
-g_layers.push(layer0);
-g_layers.push(layer1);
-g_layers.push(layer2);
-g_layers.push(layer3);
-
-// composite view 
-const composite_app = new PIXI.Application( { backgroundAlpha: 0, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('composite')});
-const composite = new CompositeContext(composite_app);
-
-//  map tab 
-const map_app    = new PIXI.Application( {backgroundColor: 0x2980b9, width : CONFIG.levelwidth, height : CONFIG.levelheight, view: document.getElementById('mapcanvas')});
-
-// tileset
-const tileset_app = new PIXI.Application( {width :CONFIG.tilefilew, height : CONFIG.tilefileh, view: document.getElementById('tileset')});
-const { renderer } = tileset_app;
-// Install the EventSystem
-renderer.addSystem(EventSystem, 'tileevents');
-let tileset = new TilesetContext(tileset_app);
-
-
 
 function doimport (str) {
     if (globalThis.URL.createObjectURL) {
@@ -391,16 +355,16 @@ function doimport (str) {
   }
 
 function loadMapFromModule(mod) {
-tileset = new TilesetContext(tileset_app, mod);
-layer0 = new LayerContext(level_app0,document.getElementById("layer0pane"), 0, mod);
-layer1 = new LayerContext(level_app1,document.getElementById("layer1pane"), 1, mod);
-layer2 = new LayerContext(level_app2,document.getElementById("layer2pane"), 2, mod);
-layer3 = new LayerContext(level_app3,document.getElementById("layer3pane"), 3, mod);
+    g_ctx.tileset = new TilesetContext(tileset_app, mod);
+    layer0 = new LayerContext(g_ctx.g_layer_apps[0], document.getElementById("layer0pane"), 0, mod);
+    layer1 = new LayerContext(g_ctx.g_layer_apps[1], document.getElementById("layer1pane"), 1, mod);
+    layer2 = new LayerContext(g_ctx.g_layer_apps[2], document.getElementById("layer2pane"), 2, mod);
+    layer3 = new LayerContext(g_ctx.g_layer_apps[3], document.getElementById("layer3pane"), 3, mod);
 }
 
 function downloadpng(filename) {
     let newcontainer = new PIXI.Container();
-    let children = [...composite.container.children];
+    let children = [...g_ctx.composite.container.children];
     for(let i = 0; i <  children.length; i++) {
         let child = children[i];
         if (! child.hasOwnProperty('isSprite') || !child.isSprite){
@@ -408,11 +372,11 @@ function downloadpng(filename) {
             continue;
         }
         // console.log(child, typeof child);
-        composite.container.removeChild(child);
+        g_ctx.composite.container.removeChild(child);
         newcontainer.addChild(child);
     }
       renderer.plugins.extract.canvas(newcontainer).toBlob(function (b) {
-      //renderer.plugins.extract.canvas(composite.container).toBlob(function (b) {
+      //renderer.plugins.extract.canvas(g_ctx.composite.container).toBlob(function (b) {
       console.log(b);
       var a = document.createElement("a");
       document.body.append(a);
@@ -424,7 +388,7 @@ function downloadpng(filename) {
   }
 
 window.saveCompositeAsImage = () => {
-    downloadpng("composite.png");
+    downloadpng("g_ctx.composite.png");
 }
 
 window.onTab = (evt, tabName) => {
@@ -448,18 +412,18 @@ window.onTab = (evt, tabName) => {
     evt.currentTarget.className += " active";
 
     if (tabName == "map"){
-        map_app.stage.addChild(composite.container);
+        map_app.stage.addChild(g_ctx.composite.container);
     }else {
-        composite.app.stage.addChild(composite.container);
+        g_ctx.composite.app.stage.addChild(g_ctx.composite.container);
     }
 }
 
 // fill base level with currentIndex tile 
 window.fill0 = () => {
-    UNDO.undo_mark_task_start(layer0);
-    for(let i = 0; i < CONFIG.levelwidth / g_context.tileDim; i++){
-        for(let j = 0; j < CONFIG.levelheight / g_context.tileDim; j++){
-            let ti = layer0.addTileLevelCoords(i,j,g_context.tileDim, g_context.tile_index);
+    UNDO.undo_mark_task_start(g_ctx.g_layers[0]);
+    for(let i = 0; i < CONFIG.levelwidth / g_ctx.tileDim; i++){
+        for(let j = 0; j < CONFIG.levelheight / g_ctx.tileDim; j++){
+            let ti = g_ctx.g_layers[0].addTileLevelCoords(i,j,g_ctx.tileDim, g_ctx.tile_index);
             UNDO.undo_add_index_to_task(ti);
         }
     }
@@ -469,18 +433,18 @@ window.fill0 = () => {
 window.addEventListener(
     "keyup", (event) => {
         if (event.code == "KeyD"){
-            g_context.dkey = false;
+            g_ctx.dkey = false;
             g_layers.map( (l) => l.container.addChild(l.mouseshadow));
-            composite.container.addChild(composite.mouseshadow);
+            g_ctx.composite.container.addChild(g_ctx.composite.mouseshadow);
         }
     });
 window.addEventListener(
     "keydown", (event) => {
 
         if (event.code == "KeyD"){
-            g_context.dkey = true;
-            g_layers.map((l) => l.container.removeChild(l.mouseshadow) );
-            composite.container.removeChild(composite.mouseshadow);
+            g_ctx.dkey = true;
+            g_ctx.g_layers.map((l) => l.container.removeChild(l.mouseshadow) );
+            g_ctx.composite.container.removeChild(g_ctx.composite.mouseshadow);
         }
 
         if (event.code == 'KeyF'){
@@ -490,12 +454,14 @@ window.addEventListener(
             MAPFILE.generate_level_file(g_layers);
         }
         else if (event.code == 'KeyM'){
-            g_layers.map((l) => l.drawFilter () );
+            g_ctx.g_layers.map((l) => l.drawFilter () );
+        }else if (event.code == 'KeyP'){
+            setGridSize((g_ctx.tileDim == 16)?32:16);
         }
         else if (event.code == 'KeyG'){
-            g_layers.map((l) => redrawGrid (l, false) );
-            redrawGrid(tileset, false); 
-            redrawGrid(composite, false); 
+            g_ctx.g_layers.map((l) => redrawGrid (l, false) );
+            redrawGrid(g_ctx.tileset, false); 
+            redrawGrid(g_ctx.composite, false); 
         }
         else if (event.ctrlKey && event.code === 'KeyZ'){
             let undome = UNDO.undo_pop();
@@ -504,28 +470,28 @@ window.addEventListener(
             }
             let layer = undome.shift();
             for(let i = 0; i < undome.length; i++) {
-                if (debug_flag) {
+                if (g_ctx.debug_flag) {
                     console.log("Undo removing ", undome[i])
                 }
                 layer.container.removeChild(layer.sprites[undome[i]]);
-                composite.container.removeChild(layer.composite_sprites[undome[i]]);
+                g_ctx.composite.container.removeChild(layer.composite_sprites[undome[i]]);
             }
         }
         else if (event.shiftKey && event.code == 'ArrowUp') {
-            tileset.fudgey -= 1;
-            redrawGrid(tileset, true);
+            g_ctx.tileset.fudgey -= 1;
+            redrawGrid(g_ctx.tileset, true);
         }
         else if (event.shiftKey && event.code == 'ArrowDown') {
-            tileset.fudgey += 1;
-            redrawGrid(tileset, true);
+            g_ctx.tileset.fudgey += 1;
+            redrawGrid(g_ctx.tileset, true);
         }
         else if (event.shiftKey && event.code == 'ArrowLeft') {
-            tileset.fudgex -= 1;
-            redrawGrid(tileset, true);
+            g_ctx.tileset.fudgex -= 1;
+            redrawGrid(g_ctx.tileset, true);
         }
         else if (event.shiftKey && event.code == 'ArrowRight') {
-            tileset.fudgex += 1;
-            redrawGrid(tileset, true);
+            g_ctx.tileset.fudgex += 1;
+            redrawGrid(g_ctx.tileset, true);
         }
      }
   );
@@ -534,38 +500,38 @@ window.addEventListener(
 
 function onTilesetDragStart(e)
 {
-    if (debug_flag) {
+    if (g_ctx.debug_flag) {
         console.log("onDragStartTileset()");
     }
-    tileset.app.stage.eventMode = 'static';
-    tileset.app.stage.addEventListener('pointermove', onTilesetDrag);
+    g_ctx.tileset.app.stage.eventMode = 'static';
+    g_ctx.tileset.app.stage.addEventListener('pointermove', onTilesetDrag);
     
-    tileset.dragctx.startx = e.data.global.x;
-    tileset.dragctx.starty = e.data.global.y;
-    tileset.dragctx.endx = e.data.global.x;
-    tileset.dragctx.endy = e.data.global.y;
+    g_ctx.tileset.dragctx.startx = e.data.global.x;
+    g_ctx.tileset.dragctx.starty = e.data.global.y;
+    g_ctx.tileset.dragctx.endx = e.data.global.x;
+    g_ctx.tileset.dragctx.endy = e.data.global.y;
 
-    tileset.app.stage.addChild(tileset.dragctx.square);
+    g_ctx.tileset.app.stage.addChild(g_ctx.tileset.dragctx.square);
 
-    g_context.selected_tiles = [];
+    g_ctx.selected_tiles = [];
 }
 
 // Stop dragging feedback once the handle is released.
 function onTilesetDragEnd(e)
 {
-    if (debug_flag) {
+    if (g_ctx.debug_flag) {
         console.log("onDragEndTileset()");
     }
-    tileset.app.stage.eventMode = 'auto';
-    tileset.app.stage.removeEventListener('pointermove', onTilesetDrag);
-    tileset.app.stage.removeChild(tileset.dragctx.square);
+    g_ctx.tileset.app.stage.eventMode = 'auto';
+    g_ctx.tileset.app.stage.removeEventListener('pointermove', onTilesetDrag);
+    g_ctx.tileset.app.stage.removeChild(g_ctx.tileset.dragctx.square);
 
-    let starttilex = Math.floor(tileset.dragctx.startx / g_context.tileDim);
-    let starttiley = Math.floor(tileset.dragctx.starty / g_context.tileDim);
-    let endtilex = Math.floor(tileset.dragctx.endx / g_context.tileDim);
-    let endtiley = Math.floor(tileset.dragctx.endy / g_context.tileDim);
+    let starttilex = Math.floor(g_ctx.tileset.dragctx.startx / g_ctx.tileDim);
+    let starttiley = Math.floor(g_ctx.tileset.dragctx.starty / g_ctx.tileDim);
+    let endtilex = Math.floor(g_ctx.tileset.dragctx.endx / g_ctx.tileDim);
+    let endtiley = Math.floor(g_ctx.tileset.dragctx.endy / g_ctx.tileDim);
 
-    if (debug_flag) {
+    if (g_ctx.debug_flag) {
         console.log("sx sy ex ey ", starttilex, ",", starttiley, ",", endtilex, ",", endtiley);
     }
     // let mouse clicked handle if there isn't a multiple tile square
@@ -573,39 +539,39 @@ function onTilesetDragEnd(e)
         return;
     }
 
-    g_context.tile_index = (starttiley * CONFIG.tilesettilewidth) + starttilex;
+    g_ctx.tile_index = (starttiley * CONFIG.tilesettilewidth) + starttilex;
 
     let origx = starttilex;
     let origy = starttiley;
     for(let y = starttiley; y <= endtiley; y++){
         for(let x = starttilex; x <= endtilex; x++){
             let squareindex = (y * CONFIG.tilesettilewidth) + x;
-            g_context.selected_tiles.push([x - origx,y - origy,squareindex]);
+            g_ctx.selected_tiles.push([x - origx,y - origy,squareindex]);
         }
     }
-    tileset.dragctx.square.clear();
+    g_ctx.tileset.dragctx.square.clear();
 }
 
 function onTilesetDrag(e)
 {
-    if (debug_flag) {
+    if (g_ctx.debug_flag) {
         console.log("onDragTileset()");
     }
-    tileset.dragctx.endx = e.data.global.x;
-    tileset.dragctx.endy = e.data.global.y;
+    g_ctx.tileset.dragctx.endx = e.data.global.x;
+    g_ctx.tileset.dragctx.endy = e.data.global.y;
     
-    tileset.dragctx.square.clear();
-    tileset.dragctx.square.beginFill(0xFF3300, 0.3);
-    tileset.dragctx.square.lineStyle(2, 0xffd900, 1);
-    tileset.dragctx.square.moveTo(tileset.dragctx.startx, tileset.dragctx.starty);
-    tileset.dragctx.square.lineTo(tileset.dragctx.endx, tileset.dragctx.starty);
-    tileset.dragctx.square.lineTo(tileset.dragctx.endx, tileset.dragctx.endy);
-    tileset.dragctx.square.lineTo(tileset.dragctx.startx, tileset.dragctx.endy);
-    tileset.dragctx.square.closePath();
-    tileset.dragctx.square.endFill();
+    g_ctx.tileset.dragctx.square.clear();
+    g_ctx.tileset.dragctx.square.beginFill(0xFF3300, 0.3);
+    g_ctx.tileset.dragctx.square.lineStyle(2, 0xffd900, 1);
+    g_ctx.tileset.dragctx.square.moveTo(g_ctx.tileset.dragctx.startx, g_ctx.tileset.dragctx.starty);
+    g_ctx.tileset.dragctx.square.lineTo(g_ctx.tileset.dragctx.endx, g_ctx.tileset.dragctx.starty);
+    g_ctx.tileset.dragctx.square.lineTo(g_ctx.tileset.dragctx.endx, g_ctx.tileset.dragctx.endy);
+    g_ctx.tileset.dragctx.square.lineTo(g_ctx.tileset.dragctx.startx, g_ctx.tileset.dragctx.endy);
+    g_ctx.tileset.dragctx.square.closePath();
+    g_ctx.tileset.dragctx.square.endFill();
 }
 
-//tileset.app.stage.addChild(tileset.container);
+//g_ctx.tileset.app.stage.addChild(g_ctx.tileset.container);
 
 function redrawGrid(pane, redraw = false) {
 
@@ -623,7 +589,7 @@ function redrawGrid(pane, redraw = false) {
         }
 
         pane.gridgraphics = new PIXI.Graphics();
-        let gridsize = g_context.tileDim;
+        let gridsize = g_ctx.tileDim;
         pane.gridgraphics.lineStyle(1, 0xffffff, 1);
 
 
@@ -678,7 +644,7 @@ function centerLayerPanes(x, y){
 function onLevelMouseover(e) {
     let x = e.data.global.x;
     let y = e.data.global.y;
-    if(debug_flag){
+    if(g_ctx.debug_flag){
         console.log("onLevelMouseOver ",this.num);
     }
     if (x < this.scrollpane.scrollLeft || x > this.scrollpane.scrollLeft + CONFIG.htmlCompositePaneW) {
@@ -688,52 +654,58 @@ function onLevelMouseover(e) {
         return;
     }
 
-    if (this.lasttileindex != g_context.tile_index) {
+    if (this.lasttileindex != g_ctx.tile_index) {
         this.mouseshadow.removeChildren(0);
-        composite.mouseshadow.removeChildren(0);
-        if (g_context.selected_tiles.length == 0) {
-            const shadowsprite = new PIXI.Sprite(g_context.curtiles[g_context.tile_index]); // composite map
-            const shadowsprite2 = new PIXI.Sprite(g_context.curtiles[g_context.tile_index]); // composite map
+        g_ctx.composite.mouseshadow.removeChildren(0);
+        if (g_ctx.selected_tiles.length == 0) {
+            let shadowsprite = null;
+            let shadowsprite2 = null;
+
+            let pxloc = tileset_px_from_index(g_ctx.tile_index);
+            shadowsprite = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
+            shadowsprite2 = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
+
             shadowsprite.alpha = .5;
             shadowsprite2.alpha = .5;
             this.mouseshadow.addChild(shadowsprite);
-            composite.mouseshadow.addChild(shadowsprite2);
+            g_ctx.composite.mouseshadow.addChild(shadowsprite2);
         } else {
-            for (let i = 0; i < g_context.selected_tiles.length; i++) {
-                let tile = g_context.selected_tiles[i];
+            // TODO! adjust for fudge
+            for (let i = 0; i < g_ctx.selected_tiles.length; i++) {
+                let tile = g_ctx.selected_tiles[i];
                 console.log(tile, tile[2], tile[0], tile[1]);
-                const shadowsprite = new PIXI.Sprite(g_context.curtiles[tile[2]]);
-                const shadowsprite2 = new PIXI.Sprite(g_context.curtiles[tile[2]]);
-                shadowsprite.x = tile[0] * g_context.tileDim;
-                shadowsprite.y = tile[1] * g_context.tileDim;
-                shadowsprite2.x = tile[0] * g_context.tileDim;
-                shadowsprite2.y = tile[1] * g_context.tileDim;
+                const shadowsprite = new PIXI.Sprite(g_ctx.curtiles[tile[2]]);
+                const shadowsprite2 = new PIXI.Sprite(g_ctx.curtiles[tile[2]]);
+                shadowsprite.x = tile[0] * g_ctx.tileDim;
+                shadowsprite.y = tile[1] * g_ctx.tileDim;
+                shadowsprite2.x = tile[0] * g_ctx.tileDim;
+                shadowsprite2.y = tile[1] * g_ctx.tileDim;
                 shadowsprite.alpha = .5;
                 shadowsprite2.alpha = .5;
                 this.mouseshadow.addChild(shadowsprite);
-                composite.mouseshadow.addChild(shadowsprite2);
+                g_ctx.composite.mouseshadow.addChild(shadowsprite2);
             }
 
         }
         this.mouseshadow.x = x - 16;
         this.mouseshadow.y = y - 16;
         this.container.removeChild(this.mouseshadow);
-        composite.container.removeChild(composite.mouseshadow);
+        g_ctx.composite.container.removeChild(g_ctx.composite.mouseshadow);
         this.container.addChild(this.mouseshadow);
-        composite.container.addChild(composite.mouseshadow);
+        g_ctx.composite.container.addChild(g_ctx.composite.mouseshadow);
     }
 
-    composite.app.stage.removeChild(composite.circle);
-    composite.app.stage.addChild(composite.circle);
+    g_ctx.composite.app.stage.removeChild(g_ctx.composite.circle);
+    g_ctx.composite.app.stage.addChild(g_ctx.composite.circle);
 }
 
 
 function onLevelMouseOut(e) {
-    if (debug_flag) {
+    if (g_ctx.debug_flag) {
         console.log("onLevelMouseOut ",this.num);
     }
     this.mouseshadow.removeChildren(0);
-    composite.mouseshadow.removeChildren(0);
+    g_ctx.composite.mouseshadow.removeChildren(0);
 }
 
 function onLevelMousemove(e) {
@@ -743,8 +715,8 @@ function onLevelMousemove(e) {
     // FIXME TEST CODE
     this.mouseshadow.x = x-8;
     this.mouseshadow.y = y-8;
-    composite.mouseshadow.x = x-8;
-    composite.mouseshadow.y = y-8;
+    g_ctx.composite.mouseshadow.x = x-8;
+    g_ctx.composite.mouseshadow.y = y-8;
     // FIXME TEST CODE
 
 
@@ -755,13 +727,13 @@ function onLevelMousemove(e) {
         return;
     }
 
-    composite.circle.clear();
-    composite.circle.beginFill(0xe50000, 0.5);
-    composite.circle.drawCircle(e.data.global.x, e.data.global.y, 3);
-    composite.circle.endFill();
+    g_ctx.composite.circle.clear();
+    g_ctx.composite.circle.beginFill(0xe50000, 0.5);
+    g_ctx.composite.circle.drawCircle(e.data.global.x, e.data.global.y, 3);
+    g_ctx.composite.circle.endFill();
 }
 function onCompositeMousedown(layer, e) {
-    if (debug_flag) {
+    if (g_ctx.debug_flag) {
         console.log('onCompositeMouseDown: X', e.data.global.x, 'Y', e.data.global.y);
     }
 
@@ -774,7 +746,7 @@ function onCompositeMousedown(layer, e) {
 
 // Place with no variable target at destination
 function levelPlaceNoVariable(layer, e) {
-    if (debug_flag) {
+    if (g_ctx.debug_flag) {
         console.log('levelPlaceNoVariable: X', e.data.global.x, 'Y', e.data.global.y);
     }
 
@@ -783,14 +755,14 @@ function levelPlaceNoVariable(layer, e) {
 
     centerCompositePane(xorig,yorig);
 
-    if (g_context.dkey || g_context.selected_tiles.length == 0) {
-        let ti = layer.addTileLevelPx(e.data.global.x, e.data.global.y, g_context.tile_index);
+    if (g_ctx.dkey || g_ctx.selected_tiles.length == 0) {
+        let ti = layer.addTileLevelPx(e.data.global.x, e.data.global.y, g_ctx.tile_index);
         UNDO.undo_add_single_index_as_task(layer, ti);
     } else {
         let undolist = [];
         UNDO.undo_mark_task_start(layer);
-        for (let index of g_context.selected_tiles) {
-            let ti = layer.addTileLevelPx(xorig + index[0] * g_context.tileDim, yorig + index[1] * g_context.tileDim, index[2]);
+        for (let index of g_ctx.selected_tiles) {
+            let ti = layer.addTileLevelPx(xorig + index[0] * g_ctx.tileDim, yorig + index[1] * g_ctx.tileDim, index[2]);
             UNDO.undo_add_index_to_task(ti);
         }
         UNDO.undo_mark_task_end();
@@ -800,7 +772,7 @@ function levelPlaceNoVariable(layer, e) {
 // Listen to pointermove on stage once handle is pressed.
 function onLevelPointerDown(layer, e)
 {
-    if (debug_flag) {
+    if (g_ctx.debug_flag) {
         console.log("onLevelPointerDown()");
     }
     layer.app.stage.eventMode = 'static';
@@ -808,7 +780,7 @@ function onLevelPointerDown(layer, e)
 
     //FIXME TEST CODE stop showing mouse shadow while dragging
     layer.container.removeChild(layer.mouseshadow);
-    composite.container.removeChild(composite.mouseshadow);
+    g_ctx.composite.container.removeChild(g_ctx.composite.mouseshadow);
 
     layer.dragctx.startx = e.data.global.x;
     layer.dragctx.starty = e.data.global.y;
@@ -828,7 +800,7 @@ function onLevelDrag(layer, e)
     layer.dragctx.endx = e.data.global.x;
     layer.dragctx.endy = e.data.global.y;
 
-    if (debug_flag) {
+    if (g_ctx.debug_flag) {
         console.log("onLevelDrag()");
     }
     
@@ -853,23 +825,23 @@ function onLevelDragEnd(layer, e)
         console.log("onLevelDragEnd() start is -1 bailing");
         return;
     }
-    if (debug_flag) {
+    if (g_ctx.debug_flag) {
         console.log("onLevelDragEnd()");
     }
 
     //FIXME TEST CODE show mouseshadow again once done draggin
     layer.container.addChild(layer.mouseshadow);
-    composite.container.addChild(composite.mouseshadow);
+    g_ctx.composite.container.addChild(g_ctx.composite.mouseshadow);
 
     layer.app.stage.eventMode = 'auto';
     layer.app.stage.removeChild(layer.dragctx.square);
 
-    let starttilex = Math.floor(layer.dragctx.startx / g_context.tileDim);
-    let starttiley = Math.floor(layer.dragctx.starty / g_context.tileDim);
-    let endtilex = Math.floor(layer.dragctx.endx / g_context.tileDim);
-    let endtiley = Math.floor(layer.dragctx.endy / g_context.tileDim);
+    let starttilex = Math.floor(layer.dragctx.startx / g_ctx.tileDim);
+    let starttiley = Math.floor(layer.dragctx.starty / g_ctx.tileDim);
+    let endtilex = Math.floor(layer.dragctx.endx / g_ctx.tileDim);
+    let endtiley = Math.floor(layer.dragctx.endy / g_ctx.tileDim);
 
-    if (debug_flag) {
+    if (g_ctx.debug_flag) {
         console.log("sx ", starttilex, " ex ", endtilex);
         console.log("sy ", starttiley, " ey ", endtiley);
     }
@@ -884,12 +856,12 @@ function onLevelDragEnd(layer, e)
         return;
     }
 
-    if (g_context.selected_tiles.length == 0) {
+    if (g_ctx.selected_tiles.length == 0) {
         UNDO.undo_mark_task_start(layer);
         for (let i = starttilex; i <= endtilex; i++) {
             for (let j = starttiley; j <= endtiley; j++) {
                 let squareindex = (j * CONFIG.tilesettilewidth) + i;
-                let ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, g_context.tile_index);
+                let ti = layer.addTileLevelPx(i * g_ctx.tileDim, j * g_ctx.tileDim, g_ctx.tile_index);
                 UNDO.undo_add_index_to_task(ti);
             }
         }
@@ -899,9 +871,9 @@ function onLevelDragEnd(layer, e)
         let selected_grid = Array.from(Array(64), () => new Array(64)); // FIXME ... hope 64x64 is enough
         let row = 0;
         let column = 0;
-        let selected_row = g_context.selected_tiles[0][1];
+        let selected_row = g_ctx.selected_tiles[0][1];
         // selected_grid[0] = [];
-        for (let index of g_context.selected_tiles) {
+        for (let index of g_ctx.selected_tiles) {
             // console.log("Selected row ", selected_row, index);
             if(index[1] != selected_row){
                 selected_row = index[1];
@@ -921,30 +893,30 @@ function onLevelDragEnd(layer, e)
                 let squareindex = (j * CONFIG.tilesettilewidth) + i;
                 if (j === starttiley) { // first row 
                     if (i === starttilex) { // top left corner
-                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[0][0][2]);
+                        ti = layer.addTileLevelPx(i * g_ctx.tileDim, j * g_ctx.tileDim, selected_grid[0][0][2]);
                     }
                     else if (i == endtilex) { // top right corner
-                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[column - 1][0][2]);
+                        ti = layer.addTileLevelPx(i * g_ctx.tileDim, j * g_ctx.tileDim, selected_grid[column - 1][0][2]);
                     } else { // top middle
-                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[1][0][2]);
+                        ti = layer.addTileLevelPx(i * g_ctx.tileDim, j * g_ctx.tileDim, selected_grid[1][0][2]);
                     }
                 } else if (j === endtiley) { // last row
                     if (i === starttilex) { // bottom left corner
-                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[0][row][2]);
+                        ti = layer.addTileLevelPx(i * g_ctx.tileDim, j * g_ctx.tileDim, selected_grid[0][row][2]);
                     }
                     else if (i == endtilex) { // bottom right corner
-                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[column - 1][row][2]);
+                        ti = layer.addTileLevelPx(i * g_ctx.tileDim, j * g_ctx.tileDim, selected_grid[column - 1][row][2]);
                     } else { // bottom middle
-                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[1][row][2]);
+                        ti = layer.addTileLevelPx(i * g_ctx.tileDim, j * g_ctx.tileDim, selected_grid[1][row][2]);
                     }
                 } else { // middle row
                     if (i === starttilex) { // middle left 
-                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[0][(row > 0)? 1 : 0][2]);
+                        ti = layer.addTileLevelPx(i * g_ctx.tileDim, j * g_ctx.tileDim, selected_grid[0][(row > 0)? 1 : 0][2]);
                     }
                     else if (i === endtilex) { // middle end 
-                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[column - 1][(row > 0)? 1 : 0][2]);
+                        ti = layer.addTileLevelPx(i * g_ctx.tileDim, j * g_ctx.tileDim, selected_grid[column - 1][(row > 0)? 1 : 0][2]);
                     } else { // middle middle
-                        ti = layer.addTileLevelPx(i * g_context.tileDim, j * g_context.tileDim, selected_grid[1][(row > 0)? 1 : 0][2]);
+                        ti = layer.addTileLevelPx(i * g_ctx.tileDim, j * g_ctx.tileDim, selected_grid[1][(row > 0)? 1 : 0][2]);
                     }
                 }
                 UNDO.undo_add_index_to_task(ti);
@@ -959,27 +931,63 @@ function onLevelDragEnd(layer, e)
     layer.dragctx.starty = -1;
 }
 
+
+
 // --
-// 
+// Initialized all pixi apps / components for application
 // --
+function initPixiApps() {
 
-function initMainHTMLWindow() {
-    document.getElementById("layer0pane").style.maxWidth  = ""+CONFIG.htmlLayerPaneW+"px"; 
-    document.getElementById("layer0pane").style.maxHeight = ""+CONFIG.htmlLayerPaneH+"px"; 
-    document.getElementById("layer1pane").style.maxWidth  = ""+CONFIG.htmlLayerPaneW+"px"; 
-    document.getElementById("layer1pane").style.maxHeight = ""+CONFIG.htmlLayerPaneH+"px"; 
-    document.getElementById("layer2pane").style.maxWidth  = ""+CONFIG.htmlLayerPaneW+"px"; 
-    document.getElementById("layer2pane").style.maxHeight = ""+CONFIG.htmlLayerPaneH+"px"; 
-    document.getElementById("layer3pane").style.maxWidth  = ""+CONFIG.htmlLayerPaneW+"px"; 
-    document.getElementById("layer3pane").style.maxHeight = ""+CONFIG.htmlLayerPaneH+"px"; 
+    // -- Editor wide globals --
 
-    document.getElementById("compositepane").style.maxWidth  = ""+CONFIG.htmlCompositePaneW+"px"; 
-    document.getElementById("compositepane").style.maxHeight = ""+CONFIG.htmlCompositePaneH+"px";
+    // First layer of level
+    const level_app0 = new PIXI.Application({ backgroundColor: 0x2980b9, width: CONFIG.levelwidth, height: CONFIG.levelheight, view: document.getElementById('level0') });
+    let layer0 = new LayerContext(level_app0, document.getElementById("layer0pane"), 0);
 
-    // hide map tab
-    let mappane = document.getElementById("map");
-    mappane.style.display = "none";
+    // second layer of level 
+    const level_app1 = new PIXI.Application({ backgroundColor: 0x2980b9, width: CONFIG.levelwidth, height: CONFIG.levelheight, view: document.getElementById('level1') });
+    let layer1 = new LayerContext(level_app1, document.getElementById("layer1pane"), 1);
+
+    //  object layer of level
+    const level_app2 = new PIXI.Application({ backgroundColor: 0x2980b9, width: CONFIG.levelwidth, height: CONFIG.levelheight, view: document.getElementById('level3') });
+    let layer2 = new LayerContext(level_app2, document.getElementById("layer2pane"), 2);
+
+    //  object layer of level
+    const level_app3 = new PIXI.Application({ backgroundColor: 0x2980b9, width: CONFIG.levelwidth, height: CONFIG.levelheight, view: document.getElementById('level4') });
+
+    let layer3 = new LayerContext(level_app3, document.getElementById("layer3pane"), 3);
+
+    g_ctx.g_layer_apps = [];
+    g_ctx.g_layer_apps.push(level_app0 );
+    g_ctx.g_layer_apps.push(level_app1);
+    g_ctx.g_layer_apps.push(level_app2);
+    g_ctx.g_layer_apps.push(level_app3);
+
+
+    g_ctx.g_layers = [];
+    g_ctx.g_layers.push(layer0);
+    g_ctx.g_layers.push(layer1);
+    g_ctx.g_layers.push(layer2);
+    g_ctx.g_layers.push(layer3);
+
+    // g_ctx.composite view 
+    g_ctx.composite_app = new PIXI.Application({ backgroundAlpha: 0, width: CONFIG.levelwidth, height: CONFIG.levelheight, view: document.getElementById('composite') });
+    g_ctx.composite = new CompositeContext(g_ctx.composite_app);
+
+    //  map tab 
+    g_ctx.map_app = new PIXI.Application({ backgroundColor: 0x2980b9, width: CONFIG.levelwidth, height: CONFIG.levelheight, view: document.getElementById('mapcanvas') });
+
+    // g_ctx.tileset
+    g_ctx.tileset_app = new PIXI.Application({ width: CONFIG.tilefilew, height: CONFIG.tilefileh, view: document.getElementById('tileset') });
+    const { renderer } = g_ctx.tileset_app;
+    // Install the EventSystem
+    renderer.addSystem(EventSystem, 'tileevents');
+    g_ctx.tileset = new TilesetContext(g_ctx.tileset_app);
 }
+
+// --
+// Initialize handlers for file loading
+// --
 
 function initLevelLoader() {
     let filecontent = "";
@@ -1005,22 +1013,32 @@ function initLevelLoader() {
     }
 }
 
-function initCompositePNGLoader() {
-    const fileInput = document.getElementById('compositepng');
-    fileInput.onchange = (evt) => {
-        if (!window.FileReader) return; // Browser is not compatible
-        if (debug_flag) {
-            console.log("compositepng ", fileInput.files[0].name);
-        }
-        let bgname = fileInput.files[0].name;
 
-        const texture = PIXI.Texture.from("./"+bgname);
-        const bg      = new PIXI.Sprite(texture);
-        bg.zIndex = 0;
-        composite.container.addChild(bg);
+function setGridSize(size) {
+    if (size == 16) {
+        if (g_ctx.tileDim == 16) { return; }
+        CONFIG.settilesettilewidth(CONFIG.tilesettilewidth / (size / g_ctx.tileDim));
+        CONFIG.settilesettileheight(CONFIG.tilesettileheight / (size / g_ctx.tileDim));
+        g_ctx.tileDim = 16;
+        g_ctx.dimlog = Math.log2(g_ctx.tileDim);
+        g_ctx.curtiles = g_ctx.tiles16;
+        console.log("set to curTiles16");
+    } else if (size == 32) {
+        if (g_ctx.tileDim == 32) { return; }
+        CONFIG.settilesettilewidth(CONFIG.tilesettilewidth / (size / g_ctx.tileDim));
+        CONFIG.settilesettileheight(CONFIG.tilesettileheight / (size / g_ctx.tileDim));
+        g_ctx.tileDim = 32;
+        g_ctx.dimlog = Math.log2(g_ctx.tileDim);
+        g_ctx.curtiles = g_ctx.tiles32;
+        console.log("set to curTiles32");
+    } else {
+        console.debug("Invalid TileDim!");
+        return;
     }
+    g_layers.map((l) => redrawGrid (l, true) );
+    redrawGrid(g_ctx.tileset, true);
+    redrawGrid(g_ctx.composite, true);
 }
-
 
 function initRadios() {
     var rad = document.myForm.radioTiledim;
@@ -1030,40 +1048,44 @@ function initRadios() {
             if (this !== prev) {
                 prev = this;
             }
-            if (this.value == 16) {
-                if (g_context.tileDim == 16) { return; }
-                CONFIG.settilesettilewidth(CONFIG.tilesettilewidth / (this.value / g_context.tileDim));
-                CONFIG.settilesettileheight(CONFIG.tilesettileheight / (this.value / g_context.tileDim));
-                g_context.tileDim = 16;
-                g_context.dimlog = Math.log2(g_context.tileDim);
-                g_context.curtiles = g_context.tiles16;
-                console.log("set to curTiles16");
-            } else if (this.value == 32) {
-                if (g_context.tileDim == 32) { return; }
-                CONFIG.settilesettilewidth(CONFIG.tilesettilewidth / (this.value / g_context.tileDim));
-                CONFIG.settilesettileheight(CONFIG.tilesettileheight / (this.value / g_context.tileDim));
-                g_context.tileDim = 32;
-                g_context.dimlog = Math.log2(g_context.tileDim);
-                g_context.curtiles = g_context.tiles32;
-                console.log("set to curTiles32");
-            } else {
-                console.debug("Invalid TileDim!");
-            }
-            g_layers.map((l) => redrawGrid (l, true) );
-            redrawGrid(tileset, true);
-            redrawGrid(composite, true);
+            setGridSize(this.value);
         });
     }
 }
 
+// --
+// Load g_ctx.tileset and use details to set CONFIG parameters. Eventually this should
+// all go into g_ctx
+// 
+// --
+function initTilesetConfig() {
+    const texture = new PIXI.BaseTexture(CONFIG.tilesetpath);
+    console.log("Loading texture ",CONFIG.tilesetpath);
+    texture .on('loaded', function() {
+        console.log("Texture size w:", texture.width, "h:", texture.height);
+        // size of g_ctx.tileset in px
+        g_ctx.tilesetpxw = texture.width;
+        g_ctx.tilesetpxh = texture.height;
+        // size of g_ctx.tileset in tiles
+        let tileandpad = g_ctx.tileDim + CONFIG.tilesetpadding;
+        let numtilesandpadw = Math.floor(g_ctx.tilesetpxw / tileandpad);
+        g_ctx.tilesettilew = numtilesandpadw + Math.floor((g_ctx.tilesetpxw - (numtilesandpadw * tileandpad))/g_ctx.tileDim);
+        let numtilesandpadh = Math.floor(g_ctx.tilesetpxh / tileandpad);
+        g_ctx.tilesettileh = numtilesandpadh + Math.floor((g_ctx.tilesetpxh - (numtilesandpadh * tileandpad))/g_ctx.tileDim);
+        console.log("Number of x tiles ",g_ctx.tilesettilew," y tiles ",g_ctx.tilesettileh);
+        CONFIG.settilesettilewidth(g_ctx.tilesettilew);
+        CONFIG.settilesettileheight(g_ctx.tilesettileh);
+    });
+}
+
 function initTiles() {
-    // load tileset into a global array of textures for blitting onto levels
+    // load g_ctx.tileset into a global array of textures for blitting onto levels
     const bt = PIXI.BaseTexture.from(CONFIG.tilesetpath, {
         scaleMode: PIXI.SCALE_MODES.NEAREST,
     });
     for (let x = 0; x < CONFIG.tilesettilewidth; x++) {
         for (let y = 0; y < CONFIG.tilesettileheight; y++) {
-            g_context.tiles32[x + y * CONFIG.tilesettilewidth] = new PIXI.Texture(
+            g_ctx.tiles32[x + y * CONFIG.tilesettilewidth] = new PIXI.Texture(
                 bt,
                 new PIXI.Rectangle(x * 32, y * 32, 32, 32),
             );
@@ -1071,22 +1093,24 @@ function initTiles() {
     }
     for (let x = 0; x < CONFIG.tilesettilewidth * 2; x++) {
         for (let y = 0; y < CONFIG.tilesettileheight * 2; y++) {
-            g_context.tiles16[x + y * CONFIG.tilesettilewidth * 2] = new PIXI.Texture(
+            g_ctx.tiles16[x + y * CONFIG.tilesettilewidth * 2] = new PIXI.Texture(
                 bt,
                 new PIXI.Rectangle(x * 16, y * 16, 16, 16),
             );
         }
     }
 
-    g_context.curtiles = g_context.tiles32;
+    g_ctx.curtiles = g_ctx.tiles32;
 }
 
 function init() {
-    initMainHTMLWindow();
+    UI.initMainHTMLWindow();
+    initPixiApps();
     initRadios();
     initTiles();
+    initTilesetConfig();
     initLevelLoader();
-    initCompositePNGLoader();
+    UI.initCompositePNGLoader();
 }
 
 init();
