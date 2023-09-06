@@ -20,9 +20,7 @@
 // export const tilefileh = 406; // px 
 // export const tilesetpadding = 2; // some tilesets put spaces between tiles (annoying)
 
-export const tilesetpath = "./ps1.png";
-export const tilefilew = 320; // px
-export const tilefileh = 224; // px 
+export const DEFAULTTILESETPATH = "./ps1.png";
 export const tilesetpadding = 0; // some tilesets put spaces between tiles (annoying)
 
 //export const tilesetpath = "./phantasystar.png";
@@ -61,15 +59,15 @@ export let leveltileheight = levelheight / DEFAULTILEDIM;
 export const MAXTILEINDEX = leveltilewidth * leveltileheight;
 
 // FIXME
-export let tilesettilewidth  = Math.floor(tilefilew/(DEFAULTILEDIM + tilesetpadding)); 
-export let tilesettileheight = Math.floor(tilefileh/(DEFAULTILEDIM + tilesetpadding)); 
+// export let tilesettilewidth  = Math.floor(tilefilew/(DEFAULTILEDIM + tilesetpadding)); 
+// export let tilesettileheight = Math.floor(tilefileh/(DEFAULTILEDIM + tilesetpadding)); 
 
-export function settilesettilewidth(val) {
-    tilesettilewidth =  val;
-}
-export function settilesettileheight(val) {
-    tilesettileheight = val;
-}
+// export function settilesettilewidth(val) {
+//     tilesettilewidth =  val;
+// }
+// export function settilesettileheight(val) {
+//     tilesettileheight = val;
+// }
 
 // -- HTML
 

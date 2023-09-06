@@ -5,7 +5,6 @@
 //  - use g_ctx for g_ctx.tileset parameters instead of CONFIG (starting with initTilesetConfig) 
 //  - todo print locations on screen
 //  - <esc> clear selected_tiles
-//  - only use fudge to pick sprites rather than fudge and non
 // 
 // Done:
 //  - Delete tiles
@@ -13,6 +12,7 @@
 //  - todo fudge factor on g_ctx.tileset 
 //  - get rid of dangerous CONFIG.tiledim (use g_ctx.tileDim instead)
 //  - XXX create tilesetpadding for tilesets whos tiles are spaced (e.g. phantasy star II)
+//  - only use fudge to pick sprites rather than fudge and non
 //
 // 
 // Keybindings:
@@ -39,7 +39,7 @@ import { EventSystem } from '@pixi/events';
 g_ctx.debug_flag = true;
 
 function tileset_index_from_coords(x, y) {
-    let retme = x + (y*CONFIG.tilesettilewidth);
+    let retme = x + (y*g_ctx.tilesettilew);
     console.log("tileset_index_from_coord ",retme, x, y);
     return retme; 
 }
@@ -64,9 +64,9 @@ function level_index_from_px(x, y) {
 }
 
 function tileset_coords_from_index(index) {
-        let x = index % (CONFIG.tilesettilewidth);
-        let y = Math.floor(index / (CONFIG.tilesettilewidth));
-        console.log("tilesettilewidth: ",CONFIG.tilesettilewidth);
+        let x = index % (g_ctx.tilesettilew);
+        let y = Math.floor(index / (g_ctx.tilesettilew));
+        console.log("tilesettilewidth: ",g_ctx.tilesettilew);
         console.log("tileset_coord tile coords: ",index,x,y);
         return [x,y];
 }
@@ -77,29 +77,10 @@ function tileset_px_from_index(index) {
 }
 
 
-// FIXME UNUSED?
-function level_coords_from_index(index) {
-        if(g_ctx.tileDim == 16){
-            index -= CONFIG/CONFIG.MAXTILEINDEX
-        }
-        let x = index % (CONFIG.leveltilewidth);
-        let y = Math.floor(index / (CONFIG.leveltilewidth));
-        console.log("level_coords tile coords: ",index,x,y);
-        return [x,y];
-}
-function level_px_from_index(index) {
-        let ret = level_coords_from_index(index); 
-        return [ret[0] * g_ctx.tileDim, ret[1] * g_ctx.tileDim] ;
-}
-
-function fudgeon(ctx) {
-    return ctx.fudgex != 0 || ctx.fudgey != 0;
-}
-
 // return a sprite of size tileDim given (x,y) starting location
 function sprite_from_px(x, y) {
 
-    const bt = PIXI.BaseTexture.from(CONFIG.tilesetpath, {
+    const bt = PIXI.BaseTexture.from(g_ctx.tilesetpath, {
         scaleMode: PIXI.SCALE_MODES.NEAREST,
     });
     let texture = new PIXI.Texture(bt,
@@ -140,7 +121,7 @@ class LayerContext {
         this.square.beginFill(0x2980b9);
         this.square.drawRect(0, 0, CONFIG.levelwidth, CONFIG.levelheight);
         this.square.endFill();
-        this.square.interactive = true;
+        this.square.eventMode = 'static';
         this.container.addChild(this.square);
 
         this.square.on('mousemove', onLevelMousemove.bind(this));
@@ -272,7 +253,7 @@ class LayerContext {
 
 class TilesetContext {
 
-    constructor(app, mod = CONFIG) {
+    constructor(app, mod = g_ctx) {
         this.app = app;
         this.container = new PIXI.Container();
 
@@ -280,10 +261,9 @@ class TilesetContext {
         const texture = PIXI.Texture.from(mod.tilesetpath);
         const bg    = new PIXI.Sprite(texture);
         this.square = new PIXI.Graphics();
-        this.square.drawRect(0, 0, mod.tilefilew, mod.tilefileh);
         this.square.beginFill(0x2980b9);
-        this.square.drawRect(0, 0, mod.tilefilew, mod.tilefileh);
-        this.square.interactive = true;
+        this.square.drawRect(0, 0, mod.tilesetpxw, mod.tilesetpxh);
+        this.square.eventMode = 'static';
         this.container.addChild(this.square);
         this.container.addChild(bg);
         
@@ -332,7 +312,7 @@ class CompositeContext {
         this.square.beginFill(0x2980b9);
         this.square.drawRect(0, 0, CONFIG.levelwidth, CONFIG.levelheight);
         this.square.endFill();
-        this.square.interactive = true;
+        this.square.eventMode = 'static';
         this.container.addChild(this.square);
 
         this.square.on('mousedown', onCompositeMousedown.bind(null, this));
@@ -539,13 +519,13 @@ function onTilesetDragEnd(e)
         return;
     }
 
-    g_ctx.tile_index = (starttiley * CONFIG.tilesettilewidth) + starttilex;
+    g_ctx.tile_index = (starttiley * g_ctx.tilesettilew) + starttilex;
 
     let origx = starttilex;
     let origy = starttiley;
     for(let y = starttiley; y <= endtiley; y++){
         for(let x = starttilex; x <= endtilex; x++){
-            let squareindex = (y * CONFIG.tilesettilewidth) + x;
+            let squareindex = (y * g_ctx.tilesettilew) + x;
             g_ctx.selected_tiles.push([x - origx,y - origy,squareindex]);
         }
     }
@@ -635,7 +615,7 @@ function centerCompositePane(x, y){
 
 function centerLayerPanes(x, y){
     // TODO remove magic number pulled from index.html
-    g_layers.map((l) => {
+    g_ctx.g_layers.map((l) => {
         l.scrollpane.scrollLeft = x - (CONFIG.htmlCompositePaneW/2);
         l.scrollpane.scrollTop  = y - (CONFIG.htmlCompositePaneH/2);
       });
@@ -662,7 +642,7 @@ function onLevelMouseover(e) {
             let shadowsprite2 = null;
 
             let pxloc = tileset_px_from_index(g_ctx.tile_index);
-            shadowsprite = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
+            shadowsprite  = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
             shadowsprite2 = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
 
             shadowsprite.alpha = .5;
@@ -860,7 +840,7 @@ function onLevelDragEnd(layer, e)
         UNDO.undo_mark_task_start(layer);
         for (let i = starttilex; i <= endtilex; i++) {
             for (let j = starttiley; j <= endtiley; j++) {
-                let squareindex = (j * CONFIG.tilesettilewidth) + i;
+                let squareindex = (j * g_ctx.tilesettilew) + i;
                 let ti = layer.addTileLevelPx(i * g_ctx.tileDim, j * g_ctx.tileDim, g_ctx.tile_index);
                 UNDO.undo_add_index_to_task(ti);
             }
@@ -890,7 +870,7 @@ function onLevelDragEnd(layer, e)
         let ti=0;
         for (let i = starttilex; i <= endtilex; i++) {
             for (let j = starttiley; j <= endtiley; j++) {
-                let squareindex = (j * CONFIG.tilesettilewidth) + i;
+                let squareindex = (j * g_ctx.tilesettilew) + i;
                 if (j === starttiley) { // first row 
                     if (i === starttilex) { // top left corner
                         ti = layer.addTileLevelPx(i * g_ctx.tileDim, j * g_ctx.tileDim, selected_grid[0][0][2]);
@@ -978,7 +958,7 @@ function initPixiApps() {
     g_ctx.map_app = new PIXI.Application({ backgroundColor: 0x2980b9, width: CONFIG.levelwidth, height: CONFIG.levelheight, view: document.getElementById('mapcanvas') });
 
     // g_ctx.tileset
-    g_ctx.tileset_app = new PIXI.Application({ width: CONFIG.tilefilew, height: CONFIG.tilefileh, view: document.getElementById('tileset') });
+    g_ctx.tileset_app = new PIXI.Application({ width: g_ctx.tilesetpxw, height: g_ctx.tilesetpxh, view: document.getElementById('tileset') });
     const { renderer } = g_ctx.tileset_app;
     // Install the EventSystem
     renderer.addSystem(EventSystem, 'tileevents');
@@ -1017,16 +997,16 @@ function initLevelLoader() {
 function setGridSize(size) {
     if (size == 16) {
         if (g_ctx.tileDim == 16) { return; }
-        CONFIG.settilesettilewidth(CONFIG.tilesettilewidth / (size / g_ctx.tileDim));
-        CONFIG.settilesettileheight(CONFIG.tilesettileheight / (size / g_ctx.tileDim));
+        g_ctx.tilesettilew = (g_ctx.tilesettilew/ (size / g_ctx.tileDim));
+        g_ctx.tilesettileh = (g_ctx.tilesettileh / (size / g_ctx.tileDim));
         g_ctx.tileDim = 16;
         g_ctx.dimlog = Math.log2(g_ctx.tileDim);
         g_ctx.curtiles = g_ctx.tiles16;
         console.log("set to curTiles16");
     } else if (size == 32) {
         if (g_ctx.tileDim == 32) { return; }
-        CONFIG.settilesettilewidth(CONFIG.tilesettilewidth / (size / g_ctx.tileDim));
-        CONFIG.settilesettileheight(CONFIG.tilesettileheight / (size / g_ctx.tileDim));
+        g_ctx.tilesettilew = (g_ctx.tilesettilew/ (size / g_ctx.tileDim));
+        g_ctx.tilesettileh = (g_ctx.tilesettileh / (size / g_ctx.tileDim));
         g_ctx.tileDim = 32;
         g_ctx.dimlog = Math.log2(g_ctx.tileDim);
         g_ctx.curtiles = g_ctx.tiles32;
@@ -1035,7 +1015,7 @@ function setGridSize(size) {
         console.debug("Invalid TileDim!");
         return;
     }
-    g_layers.map((l) => redrawGrid (l, true) );
+    g_ctx.g_layers.map((l) => redrawGrid (l, true) );
     redrawGrid(g_ctx.tileset, true);
     redrawGrid(g_ctx.composite, true);
 }
@@ -1054,13 +1034,16 @@ function initRadios() {
 }
 
 // --
-// Load g_ctx.tileset and use details to set CONFIG parameters. Eventually this should
-// all go into g_ctx
-// 
+// Load in default tileset and use to set properties
 // --
-function initTilesetConfig() {
-    const texture = new PIXI.BaseTexture(CONFIG.tilesetpath);
-    console.log("Loading texture ",CONFIG.tilesetpath);
+const initTilesConfig = async () => {
+
+    g_ctx.tilesetpath = CONFIG.DEFAULTTILESETPATH;
+
+    return new Promise((resolve, reject) => {
+        
+    const texture = new PIXI.BaseTexture(g_ctx.tilesetpath);
+    console.log("Loading texture ",g_ctx.tilesetpath);
     texture .on('loaded', function() {
         console.log("Texture size w:", texture.width, "h:", texture.height);
         // size of g_ctx.tileset in px
@@ -1073,14 +1056,17 @@ function initTilesetConfig() {
         let numtilesandpadh = Math.floor(g_ctx.tilesetpxh / tileandpad);
         g_ctx.tilesettileh = numtilesandpadh + Math.floor((g_ctx.tilesetpxh - (numtilesandpadh * tileandpad))/g_ctx.tileDim);
         console.log("Number of x tiles ",g_ctx.tilesettilew," y tiles ",g_ctx.tilesettileh);
-        CONFIG.settilesettilewidth(g_ctx.tilesettilew);
-        CONFIG.settilesettileheight(g_ctx.tilesettileh);
+        g_ctx.MAXTILEINDEX = g_ctx.tilesettilew * g_ctx.tilesettileh;
+        resolve();
     });
-}
+
+  
+      });
+  };
 
 function initTiles() {
     // load g_ctx.tileset into a global array of textures for blitting onto levels
-    const bt = PIXI.BaseTexture.from(CONFIG.tilesetpath, {
+    const bt = PIXI.BaseTexture.from(g_ctx.tilesetpath, {
         scaleMode: PIXI.SCALE_MODES.NEAREST,
     });
     for (let x = 0; x < CONFIG.tilesettilewidth; x++) {
@@ -1103,12 +1089,14 @@ function initTiles() {
     g_ctx.curtiles = g_ctx.tiles32;
 }
 
-function init() {
+async function init() {
+
     UI.initMainHTMLWindow();
+    await initTilesConfig(); // needs to be called before Pixi apps are initialized
+
     initPixiApps();
     initRadios();
     initTiles();
-    initTilesetConfig();
     initLevelLoader();
     UI.initCompositePNGLoader();
 }

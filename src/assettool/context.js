@@ -5,6 +5,9 @@ var ContextCreate = (function(){
     function ContextSingleton() {
         this.tilesetwpx = 0;
         this.tilesethpx = 0;
+        this.tilesettilew = 0;
+        this.tilesettileh = 0;
+        this.MAXTILEINDEX = 0;
         this.tile_index = 0;
         this.selected_tiles = []; // current set of selected tiles
         this.tileDim = 32; // px
