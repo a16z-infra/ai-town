@@ -114,7 +114,7 @@ export default function Home() {
 
       <div className="p-6 absolute top-0 right-0 z-10 text-2xl">
         <SignedIn>
-          <UserButton afterSignOutUrl="/" />
+          <UserButton afterSignOutUrl="/ai-town" />
         </SignedIn>
 
         <SignedOut>
