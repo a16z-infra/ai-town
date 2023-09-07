@@ -16,6 +16,7 @@ var ContextCreate = (function(){
         this.tiles32  = [];  // all tiles from tilemap (32x32)
         this.tiles16  = []; 
         this.fudgetiles = [];
+        this.g_layers = []; // level layers
 
     }
 

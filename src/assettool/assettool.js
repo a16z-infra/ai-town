@@ -67,7 +67,7 @@ function tileset_coords_from_index(index) {
         let x = index % (g_ctx.tilesettilew);
         let y = Math.floor(index / (g_ctx.tilesettilew));
         console.log("tilesettilewidth: ",g_ctx.tilesettilew);
-        console.log("tileset_coord tile coords: ",index,x,y);
+        console.log("tileset_coords_from_index tile coords: ",index,x,y);
         return [x,y];
 }
 
@@ -202,6 +202,7 @@ class LayerContext {
 
         let pxloc = tileset_px_from_index(index);
         ctile  = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
+        ctile.index = index;
         ctile2 = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
 
 
@@ -431,7 +432,7 @@ window.addEventListener(
             window.fill0();
         }
         else if (event.code == 'KeyS'){
-            MAPFILE.generate_level_file(g_layers);
+            MAPFILE.generate_level_file(g_ctx.g_layers);
         }
         else if (event.code == 'KeyM'){
             g_ctx.g_layers.map((l) => l.drawFilter () );
@@ -519,7 +520,9 @@ function onTilesetDragEnd(e)
         return;
     }
 
-    g_ctx.tile_index = (starttiley * g_ctx.tilesettilew) + starttilex;
+//    g_ctx.tile_index = (starttiley * g_ctx.tilesettilew) + starttilex;
+
+    g_ctx.tile_index = tileset_index_from_px(e.global.x, e.global.y); 
 
     let origx = starttilex;
     let origy = starttiley;
@@ -653,9 +656,13 @@ function onLevelMouseover(e) {
             // TODO! adjust for fudge
             for (let i = 0; i < g_ctx.selected_tiles.length; i++) {
                 let tile = g_ctx.selected_tiles[i];
-                console.log(tile, tile[2], tile[0], tile[1]);
-                const shadowsprite = new PIXI.Sprite(g_ctx.curtiles[tile[2]]);
-                const shadowsprite2 = new PIXI.Sprite(g_ctx.curtiles[tile[2]]);
+                console.log("TILE", tile);
+                let pxloc = tileset_px_from_index(tile[2]);
+                console.log('PXLOC',pxloc);
+
+
+                const shadowsprite  = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
+                const shadowsprite2 = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
                 shadowsprite.x = tile[0] * g_ctx.tileDim;
                 shadowsprite.y = tile[1] * g_ctx.tileDim;
                 shadowsprite2.x = tile[0] * g_ctx.tileDim;

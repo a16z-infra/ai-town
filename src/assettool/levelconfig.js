@@ -58,24 +58,14 @@ export let leveltileheight = levelheight / DEFAULTILEDIM;
 
 export const MAXTILEINDEX = leveltilewidth * leveltileheight;
 
-// FIXME
-// export let tilesettilewidth  = Math.floor(tilefilew/(DEFAULTILEDIM + tilesetpadding)); 
-// export let tilesettileheight = Math.floor(tilefileh/(DEFAULTILEDIM + tilesetpadding)); 
-
-// export function settilesettilewidth(val) {
-//     tilesettilewidth =  val;
-// }
-// export function settilesettileheight(val) {
-//     tilesettileheight = val;
-// }
 
 // -- HTML
 
-export const htmlLayerPaneW = 640;
-export const htmlLayerPaneH = 480;
+export const htmlLayerPaneW = 800;
+export const htmlLayerPaneH = 600;
 
-export const htmlCompositePaneW = 640;
-export const htmlCompositePaneH = 480;
+export const htmlCompositePaneW = 800;
+export const htmlCompositePaneH = 600;
 
 // --  zIndex
 
