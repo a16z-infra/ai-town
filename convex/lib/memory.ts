@@ -16,7 +16,7 @@ import { chatHistoryFromMessages } from '../conversation.js';
 import { MEMORY_ACCESS_THROTTLE } from '../config.js';
 import { fetchEmbeddingBatchWithCache } from './cached_llm.js';
 
-const { embeddingId: _, lastAccess, ...MemoryWithoutEmbeddingId } = Memories.fields;
+const { embeddingId, lastAccess, ...MemoryWithoutEmbeddingId } = Memories.fields;
 const NewMemory = { ...MemoryWithoutEmbeddingId, importance: v.optional(v.number()) };
 const NewMemoryWithEmbedding = { ...MemoryWithoutEmbeddingId, embedding: v.array(v.number()) };
 const NewMemoryObject = v.object(NewMemory);
