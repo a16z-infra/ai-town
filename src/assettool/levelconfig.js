@@ -1,60 +1,63 @@
-// TODO
-// CONFIG should only have 
-// defaulttilesetpath
-// defaultlevelwidthpx
-// defaultlevelheightpx
-// HTTML defaults
-// the rest should be calculated at runtime and put into g_context
-
-//export const tilesetpath = "./avalon.png";
-//export const tilefilew = 672; // px
-//export const tilefileh = 544; // px 
-
-// export const tilesetpath = "./phantasy2.png";
-// export const tilefilew = 288; // px
-// export const tilefileh = 384; // px 
-// export const tilesetpadding = 0; // some tilesets put spaces between tiles (annoying)
-
-// export const tilesetpath = "./ps2-town-tiles.png";
-// export const tilefilew = 270; // px
-// export const tilefileh = 406; // px 
-// export const tilesetpadding = 2; // some tilesets put spaces between tiles (annoying)
-
-export const DEFAULTTILESETPATH = "./ps1.png";
+export const DEFAULTTILESETPATH = "./Modern.png";
 export const tilesetpadding = 0; // some tilesets put spaces between tiles (annoying)
 
-//export const tilesetpath = "./phantasystar.png";
-//export const tilefilew = 1664; // px
-//export const tilefileh = 1280; // px 
+//export const DEFAULTTILESETPATH = "./avalon.png";
 //export const tilesetpadding = 0; // some tilesets put spaces between tiles (annoying)
 
-//export const tilesetpath = "./terrain_atlas.png";
-//export const tilefilew = 1024; // px
-//export const tilefileh = 1024; // px 
+// export const DEFAULTTILESETPATH = "./phantasy2.png";
+// export const tilesetpadding = 0; // some tilesets put spaces between tiles (annoying)
 
-// export const tilesetpath = "./rpg-tileset.png";
-// export const tilefilew = 1600; // px
-// export const tilefileh = 1600; // px 
+// export const DEFAULTTILESETPATH = "./ps2-town-tiles.png";
+// export const tilesetpadding = 2; // some tilesets put spaces between tiles (annoying)
 
-// export const tilesetpath = "./composite.png";
-// export const tilefilew = 640; // px
-// export const tilefileh = 320; // px 
+// export const DEFAULTTILESETPATH = "./ps1.png";
+// export const tilesetpadding = 0; // some tilesets put spaces between tiles (annoying)
 
-// export const tilesetpath = "./magecity.png";
-// export const tilefilew = 256; // px
-// export const tilefileh = 1408; // px 
+//export const DEFAULTTILESETPATH = "./phantasystar.png";
+//export const tilesetpadding = 0; // some tilesets put spaces between tiles (annoying)
 
-//export const tilesetpath = "./pipo.png";
-//export const tilefilew = 256;
-//export const tilefileh = 4256;
+//export const DEFAULTTILESETPATH = "./terrain_atlas.png";
+//export const tilesetpadding = 0; // some tilesets put spaces between tiles (annoying)
 
-export const DEFAULTILEDIM = 32; // px
+// export const DEFAULTTILESETPATH = "./rpg-tileset.png";
+//export const tilesetpadding = 0; // some tilesets put spaces between tiles (annoying)
 
-export const levelwidth  = 1152; // px
+// export const DEFAULTTILESETPATH = "./composite.png";
+//export const tilesetpadding = 0; // some tilesets put spaces between tiles (annoying)
+
+//export const DEFAULTTILESETPATH = "./mana.png";
+
+//export const DEFAULTTILESETPATH = "./tree.jpg";
+//export const DEFAULTTILESETPATH = "./dude.png";
+//export const DEFAULTTILESETPATH = "./spiderman.png";
+//export const DEFAULTTILESETPATH = "./girl.png";
+//export const DEFAULTTILESETPATH = "./peeps.png";
+// export const DEFAULTTILESETPATH = "./strange.png";
+//export const DEFAULTTILESETPATH = "./skeleton.png";
+//export const DEFAULTTILESETPATH = "./link.png";
+//export const DEFAULTTILESETPATH = "./ps-sprite.png";
+//export const DEFAULTTILESETPATH = "./tall.png";
+//export const DEFAULTTILESETPATH = "./spook.png";
+//export const DEFAULTTILESETPATH = "./knuckles.png";
+//export const tilesetpadding = 0; // some tilesets put spaces between tiles (annoying)
+
+//export const DEFAULTTILESETPATH = "./forest.png";
+//export const tilesetpadding = 0; // some tilesets put spaces between tiles (annoying)
+
+//export const DEFAULTTILESETPATH = "./magecity.png";
+//export const tilesetpadding = 0; // some tilesets put spaces between tiles (annoying)
+
+//export const DEFAULTTILESETPATH = "./pipo.png";
+//export const tilesetpadding = 0; // some tilesets put spaces between tiles (annoying)
+
+export const DEFAULTILEDIMX = 32; // px
+export const DEFAULTILEDIMY = 32; // px
+
+export const levelwidth  = 1024; // px
 export const levelheight = 768; // px
 
-export let leveltilewidth  = levelwidth / DEFAULTILEDIM;
-export let leveltileheight = levelheight / DEFAULTILEDIM;
+export let leveltilewidth  = Math.floor(levelwidth / DEFAULTILEDIMX);
+export let leveltileheight = Math.floor(levelheight / DEFAULTILEDIMX);
 
 export const MAXTILEINDEX = leveltilewidth * leveltileheight;
 

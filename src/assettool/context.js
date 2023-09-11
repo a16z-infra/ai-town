@@ -3,14 +3,15 @@ import * as PIXI from 'pixi.js'
 var ContextCreate = (function(){
 
     function ContextSingleton() {
-        this.tilesetwpx = 0;
-        this.tilesethpx = 0;
+        this.tilesetpxw = 0;
+        this.tilesetpxh = 0;
         this.tilesettilew = 0;
         this.tilesettileh = 0;
         this.MAXTILEINDEX = 0;
         this.tile_index = 0;
         this.selected_tiles = []; // current set of selected tiles
-        this.tileDim = 32; // px
+        this.tiledimx = 32; // px
+        this.tiledimy = 32; // px
         this.dimlog = Math.log2(this.tileDim);  //log2(TileDim)
         this.dkey = false;   // is 'd' key depressed? (for delete)
         this.tiles32  = [];  // all tiles from tilemap (32x32)

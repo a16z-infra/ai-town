@@ -10,7 +10,7 @@
     "dev:backend": "convex dev",
     "dev:frontend": "next dev",
     "dev:init": "convex dev --run init --until-success",
-    "assettool": "vite src/assettool/"
+    "le": "vite src/assettool/"
   },
   "dependencies": {
     "@clerk/clerk-react": "^4.21.9-snapshot.56dc3e3",
