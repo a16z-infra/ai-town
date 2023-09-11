@@ -18,19 +18,6 @@ export function pineconeAvailable(): boolean {
   );
 }
 
-if (!pineconeAvailable()) {
-  const deploymentName = process.env.CONVEX_CLOUD_URL?.slice(8).replace('.convex.cloud', '');
-  throw new Error(
-    '\n  Missing PINECONE_API_KEY, PINECONE_ENVIRONMENT, or PINECONE_INDEX_NAME' +
-      ' in environment variables.\n\n' +
-      '  Get one at https://app.pinecone.io/\n\n' +
-      '  Paste it on the Convex dashboard:\n' +
-      '  https://dashboard.convex.dev/d/' +
-      deploymentName +
-      '/settings?var=PINECONE_API_KEY&var=PINECONE_ENVIRONMENT&var=PINECONE_INDEX_NAME',
-  );
-}
-
 export async function pineconeIndex() {
   const client = new PineconeClient();
   await client.init({
@@ -120,8 +107,8 @@ export async function queryVectors<TableName extends TableNames>(
   if (!matches) {
     throw new Error('Pinecone returned undefined results');
   }
-  return matches.filter((m) => !!m.score).map(({ id, score }) => ({ _id: id, score })) as {
-    _id: Id<TableName>;
+  return matches.filter((m) => !!m.score) as {
+    id: Id<TableName>;
     score: number;
   }[];
 }
