@@ -66,6 +66,11 @@ b. **OpenAI API key**
 
 Visit https://platform.openai.com/account/api-keys to get your OpenAI API key if you're using OpenAI for your language model.
 
+You can use the default `https://api.openai.com` or a third-party website. (such as: Azure, proxy website, etc.)
+
+To use a custom provider, make sure that the third-party website supports and enables the corresponding model (for example: `gpt-3.5-turbo-16k`, `text-embedding-ada-002`)
+In addition to the `OPENAI_API_KEY` environment variable (see below), add `OPENAI_API_BASE=<your-base-url>`
+
 c. **Pinecone API keys (Optional)**
 
 By default it will use the Convex vector storage.
@@ -95,6 +100,7 @@ Go to "settings" and add the following environment variables. `CLERK_ISSUER_URL`
 
 ```bash
 OPENAI_API_KEY  sk-*******
+OPENAI_API_BASE  sk-******* # optional
 CLERK_ISSUER_URL  https://****
 PINECONE_API_KEY  ******** # optional
 PINECONE_ENVIRONMENT us**** # optional
