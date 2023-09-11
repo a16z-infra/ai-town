@@ -16,7 +16,7 @@ import { chatHistoryFromMessages } from '../conversation.js';
 import { MEMORY_ACCESS_THROTTLE } from '../config.js';
 import { fetchEmbeddingBatchWithCache } from './cached_llm.js';
 
-const { embeddingId: _, lastAccess, ...MemoryWithoutEmbeddingId } = Memories.fields;
+const { embeddingId, lastAccess, ...MemoryWithoutEmbeddingId } = Memories.fields;
 const NewMemory = { ...MemoryWithoutEmbeddingId, importance: v.optional(v.number()) };
 const NewMemoryWithEmbedding = { ...MemoryWithoutEmbeddingId, embedding: v.array(v.number()) };
 const NewMemoryObject = v.object(NewMemory);
@@ -44,21 +44,33 @@ export interface MemoryDB {
 }
 
 export function MemoryDB(ctx: ActionCtx): MemoryDB {
-  if (!pineconeAvailable()) {
-    throw new Error('Pinecone environment variables not set. See the README.');
-  }
-  // If Pinecone env variables are defined, use that.
-  const vectorSearch = async (embedding: number[], playerId: Id<'players'>, limit: number) =>
-    queryVectors('embeddings', embedding, { playerId }, limit);
-  const externalEmbeddingStore = async (
+  // Use Convex vector search by default.
+  let vectorSearch = async (embedding: number[], playerId: Id<'players'>, limit: number) => {
+    return (
+      await ctx.vectorSearch('embeddings', 'embedding', {
+        vector: embedding,
+        filter: (q) => q.eq('playerId', playerId),
+        limit,
+      })
+    ).map(({ _id, _score }) => ({ id: _id, score: _score }));
+  };
+  let externalVectorUpsert: (
     embeddings: { id: Id<'embeddings'>; values: number[]; metadata: object }[],
-  ) => upsertVectors('embeddings', embeddings);
+  ) => Promise<any>;
+  // If Pinecone env variables are defined, use that for the vector DB.
+  if (pineconeAvailable()) {
+    vectorSearch = async (embedding: number[], playerId: Id<'players'>, limit: number) =>
+      queryVectors('embeddings', embedding, { playerId }, limit);
+    externalVectorUpsert = async (
+      embeddings: { id: Id<'embeddings'>; values: number[]; metadata: object }[],
+    ) => upsertVectors('embeddings', embeddings);
+  }
 
   return {
     // Finds memories but doesn't mark them as accessed.
     async search(playerId, queryEmbedding, limit = 100) {
       const results = await vectorSearch(queryEmbedding, playerId, limit);
-      const embeddingIds = results.map((r) => r._id);
+      const embeddingIds = results.map((r) => r.id);
       const memories = await ctx.runQuery(internal.lib.memory.getMemories, {
         playerId,
         embeddingIds,
@@ -115,8 +127,8 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
         }
       });
       const embeddingIds = await ctx.runMutation(internal.lib.memory.addMemories, { memories });
-      if (externalEmbeddingStore) {
-        await externalEmbeddingStore(
+      if (externalVectorUpsert) {
+        await externalVectorUpsert(
           embeddingIds.map((id, idx) => ({
             id,
             values: embeddings[idx],
@@ -196,10 +208,9 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
 
         try {
           const insights: { insight: string; statementIds: number[] }[] = JSON.parse(reflection);
-          let memoriesToSave: MemoryOfType<'reflection'>[] = [];
-          insights.forEach((item) => {
+          const memoriesToSave = insights.map((item) => {
             const relatedMemoryIds = item.statementIds.map((idx: number) => memories[idx]._id);
-            const reflectionMemory = {
+            return {
               playerId,
               description: item.insight,
               data: {
@@ -207,7 +218,6 @@ export function MemoryDB(ctx: ActionCtx): MemoryDB {
                 relatedMemoryIds,
               },
             } as MemoryOfType<'reflection'>;
-            memoriesToSave.push(reflectionMemory);
           });
           console.debug('adding reflection memory...', memoriesToSave);
 
@@ -243,13 +253,13 @@ export const getMemories = internalQuery({
 export const accessMemories = internalMutation({
   args: {
     playerId: v.id('players'),
-    candidates: v.array(v.object({ _id: v.id('embeddings'), score: v.number() })),
+    candidates: v.array(v.object({ id: v.id('embeddings'), score: v.number() })),
     count: v.number(),
   },
   handler: async (ctx, { playerId, candidates, count }) => {
     const ts = Date.now();
-    const relatedMemories = await asyncMap(candidates, ({ _id }) =>
-      getMemoryByEmbeddingId(ctx.db, playerId, _id),
+    const relatedMemories = await asyncMap(candidates, ({ id }) =>
+      getMemoryByEmbeddingId(ctx.db, playerId, id),
     );
     // TODO: fetch <count> recent memories and <count> important memories
     // so we don't miss them in case they were a little less relevant.
