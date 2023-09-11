@@ -1,5 +1,5 @@
 import * as PIXI from 'pixi.js'
-import { g_ctx }  from './context.js' // global context
+import { g_ctx }  from './lecontext.js' // global context
 import * as CONFIG from './levelconfig.js' 
 
 // --
@@ -16,6 +16,8 @@ export function initMainHTMLWindow() {
     document.getElementById("layer3pane").style.maxWidth  = ""+CONFIG.htmlLayerPaneW+"px"; 
     document.getElementById("layer3pane").style.maxHeight = ""+CONFIG.htmlLayerPaneH+"px"; 
 
+    document.getElementById("tilesetpane").style.maxWidth  = ""+CONFIG.htmlTilesetPaneW+"px"; 
+    document.getElementById("tilesetpane").style.maxHeight = ""+CONFIG.htmlTilesetPaneH+"px";
     document.getElementById("compositepane").style.maxWidth  = ""+CONFIG.htmlCompositePaneW+"px"; 
     document.getElementById("compositepane").style.maxHeight = ""+CONFIG.htmlCompositePaneH+"px";
 
