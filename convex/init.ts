@@ -39,8 +39,6 @@ async function makeWorld(db: DatabaseWriter, frozen: boolean) {
     objectTiles: objmap,
   });
   const worldId = await db.insert('worlds', {
-    width: bgtiles[0].length,
-    height: bgtiles[0][0].length,
     mapId,
     frozen,
   });

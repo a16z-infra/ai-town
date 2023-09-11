@@ -86,7 +86,7 @@ export async function fetchEmbeddingBatch(texts: string[]) {
     throw new Error('Unexpected number of embeddings');
   }
   const allembeddings = json.data;
-  allembeddings.sort((a, b) => b.index - a.index);
+  allembeddings.sort((a, b) => a.index - b.index);
   return {
     embeddings: allembeddings.map(({ embedding }) => embedding),
     usage: json.usage.total_tokens,
