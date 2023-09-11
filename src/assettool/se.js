@@ -32,8 +32,8 @@ import * as PIXI from 'pixi.js'
 import { g_ctx }  from './secontext.js' // global context
 import * as CONFIG from './seconfig.js' 
 import * as UNDO from './undo.js'
-import * as MAPFILE from './mapfile.js'
-import * as UI from './htmlui.js'
+import * as SPRITEFILE from './spritefile.js'
+import * as UI from './sehtmlui.js'
 import { EventSystem } from '@pixi/events';
 
 g_ctx.debug_flag = true;
@@ -482,7 +482,7 @@ window.addEventListener(
         //     window.fill0();
         // }
         if (event.code == 'KeyS'){
-            MAPFILE.generate_level_file();
+            SPRITEFILE.generate_sprite_file();
         }
         else if (event.code == 'Escape'){
             g_ctx.selected_tiles = [];

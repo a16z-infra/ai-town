@@ -29,11 +29,11 @@
 // --
 
 import * as PIXI from 'pixi.js'
-import { g_ctx }  from './secontext.js' // global context
+import { g_ctx }  from './lecontext.js' // global context
 import * as CONFIG from './levelconfig.js' 
 import * as UNDO from './undo.js'
 import * as MAPFILE from './mapfile.js'
-import * as UI from './htmlui.js'
+import * as UI from './lehtmlui.js'
 import { EventSystem } from '@pixi/events';
 
 g_ctx.debug_flag = true;
@@ -1013,7 +1013,7 @@ function initPixiApps() {
     g_ctx.map_app = new PIXI.Application({ backgroundColor: 0x2980b9, width: CONFIG.levelwidth, height: CONFIG.levelheight, view: document.getElementById('mapcanvas') });
 
     // g_ctx.tileset
-    g_ctx.tileset_app = new PIXI.Application({ width: 5632 , height: 8672, view: document.getElementById('tilesetpane') });
+    g_ctx.tileset_app = new PIXI.Application({ width: 5632 , height: 8672, view: document.getElementById('tileset') });
     //g_ctx.tileset_app = new PIXI.Application({ width: g_ctx.tilesetpxw, height: g_ctx.tilesetpxh, view: document.getElementById('tileset') });
     const { renderer } = g_ctx.tileset_app;
     // Install the EventSystem

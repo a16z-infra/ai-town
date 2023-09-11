@@ -65,10 +65,10 @@ export const MAXTILEINDEX = leveltilewidth * leveltileheight;
 // -- HTML
 
 export const htmlLayerPaneW = 800;
-export const htmlLayerPaneH = 800;
+export const htmlLayerPaneH = 600
 
-export const htmlTilesetPaneW = 3200;
-export const htmlTilesetPaneH = 3200;
+export const htmlTilesetPaneW = 800;
+export const htmlTilesetPaneH = 600;
 
 export const htmlCompositePaneW = 800;
 export const htmlCompositePaneH = 600;
