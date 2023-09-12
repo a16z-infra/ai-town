@@ -291,7 +291,7 @@ function handleDone(ctx: ActionCtx, noSchedule?: boolean): DoneFn {
     });
   };
   // Simple serialization: only one agent finishes at a time.
-  let queue = new Set<Promise<unknown>>();
+  const queue = new Set<Promise<unknown>>();
   return async (agentId, activity) => {
     let unlock;
     const wait = new Promise((resolve) => (unlock = resolve));

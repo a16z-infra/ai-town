@@ -187,8 +187,8 @@ export const runAgentLoop = internalAction({
     const playerIds = players.map((p) => p.id);
 
     let index = args.numberOfLoops || 100;
-    let randomX: number[] = [];
-    let displacement = 25;
+    const randomX: number[] = [];
+    const displacement = 25;
     for (let i = 0; i < playerIds.length; i++) {
       randomX.push(displacement * i);
     }
