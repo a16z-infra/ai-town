@@ -29,6 +29,9 @@ export async function pineconeIndex() {
 
 export const deleteVectors = internalAction({
   handler: async (ctx, { tableName, ids }: { tableName: TableNames; ids: Id<TableNames>[] }) => {
+    if (!pineconeAvailable()) {
+      return;
+    }
     const pinecone = await pineconeIndex();
     await pinecone.delete1({
       // NOTE: Pinecone namespaces are a paid feature. Uncomment this line
