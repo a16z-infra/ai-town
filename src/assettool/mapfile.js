@@ -115,13 +115,21 @@ export function generate_level_file() {
     }
     for (var i = 0; i < layer0.container.children.length; i++) {
         var child = layer0.container.children[i];
-        console.log(child);
         if (!child.hasOwnProperty('index')) {
             continue;
         }
         let x_coord = child.x / g_ctx.tiledimx;
         let y_coord = child.y / g_ctx.tiledimy;
-        tile_array0[x_coord][y_coord] = child.index;
+
+        if (typeof tile_array0[x_coord] == 'undefined'){
+            console.log("**Error xcoord undefined ", x_coord);
+
+        }
+        else if (typeof tile_array0[x_coord][y_coord] == 'undefined'){
+            console.log("**Error xcoord/ycoord undefined ", x_coord, y_coord);
+        }else{
+            tile_array0[x_coord][y_coord] = child.index;
+        }
     }
 
     // level1 
@@ -138,7 +146,15 @@ export function generate_level_file() {
         }
         let x_coord = child.x / g_ctx.tiledimx;
         let y_coord = child.y / g_ctx.tiledimy;
-        tile_array1[x_coord][y_coord] = child.index;
+        if (typeof tile_array1[x_coord] == 'undefined'){
+            console.log("**Error xcoord undefined ", x_coord);
+
+        }
+        else if (typeof tile_array1[x_coord][y_coord] == 'undefined'){
+            console.log("**Error xcoord/ycoord undefined ", x_coord, y_coord);
+        }else{
+            tile_array1[x_coord][y_coord] = child.index;
+        }
     }
 
     //  object level
@@ -155,7 +171,15 @@ export function generate_level_file() {
         }
         let x_coord = child.x / g_ctx.tiledimx;
         let y_coord = child.y / g_ctx.tiledimy;
+        if (typeof tile_array2[x_coord] == 'undefined'){
+            console.log("**Error xcoord undefined ", x_coord);
+
+        }
+        else if (typeof tile_array2[x_coord][y_coord] == 'undefined'){
+            console.log("**Error xcoord/ycoord undefined ", x_coord, y_coord);
+        }else{
         tile_array2[x_coord][y_coord] = child.index;
+        }
     }
 
     //  object level
@@ -172,7 +196,15 @@ export function generate_level_file() {
         }
         let x_coord = child.x / g_ctx.tiledimx;
         let y_coord = child.y / g_ctx.tiledimy;
+        if (typeof tile_array3[x_coord] == 'undefined'){
+            console.log("**Error xcoord undefined ", x_coord);
+
+        }
+        else if (typeof tile_array3[x_coord][y_coord] == 'undefined'){
+            console.log("**Error xcoord/ycoord undefined ", x_coord, y_coord);
+        }else{
         tile_array3[x_coord][y_coord] = child.index;
+        }
     }
 
     write_map_file(tile_array0, tile_array1, tile_array2, tile_array3);

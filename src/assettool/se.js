@@ -127,7 +127,7 @@ class LayerContext {
         this.sprites = {};
         this.composite_sprites = {};
         this.dragctx = new DragState();
-        this.tilearray = Array.from(Array(CONFIG.leveltileheight), () => new Array().fill(null)); // FIXME ... hope 64x64 is enough
+        this.tilearray = Array.from(Array(CONFIG.leveltileheight), () => new Array().fill(null)); 
 
         app.stage.addChild(this.container);
 
@@ -213,6 +213,34 @@ class LayerContext {
         return this.addTileLevelPx(x * dim, y * dim, index);
     }
 
+    // -- delete all sprites / textures on a given index
+    // will NOOP if no tile exists
+    deleteFromIndex(index) {
+        if(g_ctx.debug_flag){
+            console.log("deleteFromIndex ",index)
+        }
+        
+        if(this.sprites.hasOwnProperty(index)){
+            let ctile = this.sprites[index];
+            let row = Math.floor(ctile.y / g_ctx.tiledimy);
+            let col = Math.floor(ctile.x / g_ctx.tiledimx);
+            for(let x = 0; x < this.tilearray[row].length; x++){
+                if(this.tilearray[row][x].x == col * g_ctx.tiledimx){
+                    console.log("Removing texture from tilearray ",x,row);
+                    this.tilearray[row].splice(x, 1);
+                    // delete this.tilearray[row][x];
+                    // this.tilearray[row][x] = null;
+                }
+            }
+
+
+            this.container.removeChild(this.sprites[index]);
+            delete this.sprites[index];
+            this.updateAnimatedTiles();
+        }
+
+    }
+
     // add tile of "index" to Level at location x,y
     addTileLevelPx(x, y, index) {
         let xPx = x;
@@ -224,16 +252,12 @@ class LayerContext {
         let pxloc = tileset_px_from_index(index);
         ctile  = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
         ctile.index = index;
-        // ctile2 = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
 
         // snap to grid
         const dx = g_ctx.tiledimx;
         const dy = g_ctx.tiledimy;
         ctile.x  = Math.floor(xPx / dx) * dx; 
-        // ctile2.x = Math.floor(xPx / dx) * dx; 
         ctile.y  = Math.floor(yPx / dy) * dy;
-        // ctile2.y = Math.floor(yPx / dy) * dy;
-        // ctile2.zIndex = this.num; 
 
         let new_index = level_index_from_px(ctile.x, ctile.y);
 
@@ -243,35 +267,36 @@ class LayerContext {
 
         if (!g_ctx.dkey) {
             this.container.addChild(ctile);
-            // g_ctx.composite.container.addChild(ctile2);
         } 
 
-
         if (this.sprites.hasOwnProperty(new_index)) {
-            if(g_ctx.debug_flag){
-             console.log("addTileLevelPx: ",this.num,"removing old tile", new_index);
-            }
-            this.container.removeChild(this.sprites[new_index]);
-            delete this.sprites[new_index];
-            // g_ctx.composite.container.removeChild(this.composite_sprites[new_index]);
-            // delete this.composite_sprites[new_index];
+            this.deleteFromIndex(new_index);
+            // if(g_ctx.debug_flag){
+            //  console.log("addTileLevelPx: ",this.num,"removing old tile", new_index);
+            // }
+            // this.container.removeChild(this.sprites[new_index]);
+            // // TODO remove from animated sprite
+            // delete this.sprites[new_index];
         }
 
         if (!g_ctx.dkey) {
             this.tilearray[Math.floor(yPx / dy)].push(ctile);
             this.sprites[new_index] = ctile;
-            // this.composite_sprites[new_index] = ctile2;
         } else if (typeof this.filtergraphics != 'undefined') {
-            this.filtergraphics.clear();
-            this.drawFilter();
-            this.drawFilter();
+                this.filtergraphics.clear();
+                this.drawFilter();
+                this.drawFilter();
         }
 
         // consolelog("SETTING ZINDEX ", this.composite_sprites[new_index].zIndex);
         return new_index;
     }
 
+    // --
+    // FIXME : currently just a naive loop. 
+    // --
     updateAnimatedTiles() {
+        console.log("updateAnimatedTiles");
         for (let row = 0; row < CONFIG.leveltileheight; row++) {
             if (!this.tilearray[row][0]) {
                 continue;
@@ -465,7 +490,7 @@ window.addEventListener(
     "keyup", (event) => {
         if (event.code == "KeyD"){
             g_ctx.dkey = false;
-            g_layers.map( (l) => l.container.addChild(l.mouseshadow));
+            g_ctx.g_layers.map( (l) => l.container.addChild(l.mouseshadow));
             g_ctx.composite.container.addChild(g_ctx.composite.mouseshadow);
         }
     });

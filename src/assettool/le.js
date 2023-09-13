@@ -434,7 +434,7 @@ window.addEventListener(
     "keyup", (event) => {
         if (event.code == "KeyD"){
             g_ctx.dkey = false;
-            g_layers.map( (l) => l.container.addChild(l.mouseshadow));
+            g_ctx.g_layers.map( (l) => l.container.addChild(l.mouseshadow));
             g_ctx.composite.container.addChild(g_ctx.composite.mouseshadow);
         }
     });
