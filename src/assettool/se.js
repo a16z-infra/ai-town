@@ -228,11 +228,8 @@ class LayerContext {
                 if(this.tilearray[row][x].x == col * g_ctx.tiledimx){
                     console.log("Removing texture from tilearray ",x,row);
                     this.tilearray[row].splice(x, 1);
-                    // delete this.tilearray[row][x];
-                    // this.tilearray[row][x] = null;
                 }
             }
-
 
             this.container.removeChild(this.sprites[index]);
             delete this.sprites[index];
@@ -250,45 +247,38 @@ class LayerContext {
         let ctile2 = null;
 
         let pxloc = tileset_px_from_index(index);
-        ctile  = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
+        ctile = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
         ctile.index = index;
 
         // snap to grid
         const dx = g_ctx.tiledimx;
         const dy = g_ctx.tiledimy;
-        ctile.x  = Math.floor(xPx / dx) * dx; 
-        ctile.y  = Math.floor(yPx / dy) * dy;
+        ctile.x = Math.floor(xPx / dx) * dx;
+        ctile.y = Math.floor(yPx / dy) * dy;
 
         let new_index = level_index_from_px(ctile.x, ctile.y);
 
-        if(g_ctx.debug_flag){
-            console.log('addTileLevelPx ',this.num,' ctile.x ', ctile.x, 'ctile.y ', ctile.y, "index ", index, "new_index", new_index);
+        if (g_ctx.debug_flag) {
+            console.log('addTileLevelPx ', this.num, ' ctile.x ', ctile.x, 'ctile.y ', ctile.y, "index ", index, "new_index", new_index);
         }
 
         if (!g_ctx.dkey) {
             this.container.addChild(ctile);
-        } 
+        }
 
         if (this.sprites.hasOwnProperty(new_index)) {
             this.deleteFromIndex(new_index);
-            // if(g_ctx.debug_flag){
-            //  console.log("addTileLevelPx: ",this.num,"removing old tile", new_index);
-            // }
-            // this.container.removeChild(this.sprites[new_index]);
-            // // TODO remove from animated sprite
-            // delete this.sprites[new_index];
         }
 
         if (!g_ctx.dkey) {
             this.tilearray[Math.floor(yPx / dy)].push(ctile);
             this.sprites[new_index] = ctile;
         } else if (typeof this.filtergraphics != 'undefined') {
-                this.filtergraphics.clear();
-                this.drawFilter();
-                this.drawFilter();
+            this.filtergraphics.clear();
+            this.drawFilter();
+            this.drawFilter(); // do twice to get toggle back to original state
         }
 
-        // consolelog("SETTING ZINDEX ", this.composite_sprites[new_index].zIndex);
         return new_index;
     }
 
