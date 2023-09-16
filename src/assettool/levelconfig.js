@@ -1,4 +1,5 @@
-export const DEFAULTTILESETPATH = "./Modern.png";
+export const DEFAULTTILESETPATH = "./Serene.png";
+//export const DEFAULTTILESETPATH = "./Modern.png";
 export const tilesetpadding = 0; // some tilesets put spaces between tiles (annoying)
 
 //export const DEFAULTTILESETPATH = "./avalon.png";

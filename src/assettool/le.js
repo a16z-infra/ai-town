@@ -202,8 +202,14 @@ class LayerContext {
         return this.addTileLevelPx(x * dim, y * dim, index);
     }
 
-    // add tile of "index" to Level at location x,y
+    // add tile of tileset "index" to Level at location x,y
     addTileLevelPx(x, y, index) {
+
+        if (x > CONFIG.levelwidth || y > CONFIG.levelheight){
+            console.log("tile placed outside of level boundary, ignoring",x,y)
+            return -1;
+        } 
+
         let xPx = x;
         let yPx = y;
 
@@ -214,7 +220,6 @@ class LayerContext {
         ctile  = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
         ctile.index = index;
         ctile2 = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
-
 
         // snap to grid
         const dx = g_ctx.tiledimx;
@@ -456,7 +461,7 @@ window.addEventListener(
         else if (event.code == 'Escape'){
             g_ctx.selected_tiles = [];
             g_ctx.g_layers.map((l) => l.mouseshadow.removeChildren());
-            composite.mouseshadow.removeChildren();
+            g_ctx.composite.mouseshadow.removeChildren();
         }
         else if (event.code == 'KeyM'){
             g_ctx.g_layers.map((l) => l.drawFilter () );
@@ -695,10 +700,7 @@ function onLevelMouseover(e) {
             // TODO! adjust for fudge
             for (let i = 0; i < g_ctx.selected_tiles.length; i++) {
                 let tile = g_ctx.selected_tiles[i];
-                console.log("TILE", tile);
                 let pxloc = tileset_px_from_index(tile[2]);
-                console.log('PXLOC',pxloc);
-
 
                 const shadowsprite  = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
                 const shadowsprite2 = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
