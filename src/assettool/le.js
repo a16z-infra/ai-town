@@ -2,9 +2,11 @@
 // Simple level editer. 
 //
 // TODO: 
-//  - <esc> clear selected_tiles
+//  -- add portals to level for character start positions
+// 
 // 
 // Done:
+//  - <esc> clear selected_tiles
 //  - Delete tiles
 //  - move magic numbers to context / initialization (zIndex, pane size etc.)
 //  - todo fudge factor on g_ctx.tileset 
@@ -533,10 +535,23 @@ function onTilesetDragEnd(e)
     if (g_ctx.debug_flag) {
         console.log("onDragEndTileset()");
     }
+
     g_ctx.tileset.app.stage.eventMode = 'auto';
     g_ctx.tileset.app.stage.removeEventListener('pointermove', onTilesetDrag);
     g_ctx.tileset.app.stage.removeChild(g_ctx.tileset.dragctx.square);
     g_ctx.tileset.app.stage.removeChild(g_ctx.tileset.dragctx.tooltip);
+
+
+    if(g_ctx.tileset.dragctx.endx < g_ctx.tileset.dragctx.startx){
+        let tmp = g_ctx.tileset.dragctx.endx;
+        g_ctx.tileset.dragctx.endx = g_ctx.tileset.dragctx.startx;
+        g_ctx.tileset.dragctx.startx = tmp;
+    }
+    if(g_ctx.tileset.dragctx.endy < g_ctx.tileset.dragctx.starty){
+        let tmp = g_ctx.tileset.dragctx.endy;
+        g_ctx.tileset.dragctx.endy = g_ctx.tileset.dragctx.starty;
+        g_ctx.tileset.dragctx.starty = tmp;
+    }
 
     let starttilex = Math.floor(g_ctx.tileset.dragctx.startx / g_ctx.tiledimx);
     let starttiley = Math.floor(g_ctx.tileset.dragctx.starty / g_ctx.tiledimx);
@@ -732,8 +747,12 @@ function onLevelMouseOut(e) {
     if (g_ctx.debug_flag) {
         console.log("onLevelMouseOut ",this.num);
     }
+
+    //FIXME there is a funky race condition where the mouse enters a second layer before leaving the last and the following line
+    //deletes the composite mouseshadow. I'm not quite sure how to solve without mapping the composite.mouseshadow to each layer
+
     this.mouseshadow.removeChildren(0);
-    g_ctx.composite.mouseshadow.removeChildren(0);
+    g_ctx.composite.mouseshadow.removeChildren();
 }
 
 function onLevelMousemove(e) {
@@ -863,6 +882,17 @@ function onLevelDragEnd(layer, e)
     }
     if (g_ctx.debug_flag) {
         console.log("onLevelDragEnd()");
+    }
+
+    if(layer.dragctx.endx < layer.dragctx.startx){
+        let tmp = layer.dragctx.endx;
+        layer.dragctx.endx = layer.dragctx.startx;
+        layer.dragctx.startx = tmp;
+    }
+    if(layer.dragctx.endy < layer.dragctx.starty){
+        let tmp = layer.dragctx.endy;
+        layer.dragctx.endy = layer.dragctx.starty;
+        layer.dragctx.starty = tmp;
     }
 
     //FIXME TEST CODE show mouseshadow again once done draggin
@@ -1051,22 +1081,21 @@ function initLevelLoader() {
     }
 }
 
-
 function setGridSize(size) {
     if (size == 16) {
         if (g_ctx.tiledimx == 16) { return; }
         g_ctx.tilesettilew = (g_ctx.tilesettilew/ (size / g_ctx.tiledimx));
-        g_ctx.tilesettileh = (g_ctx.tilesettileh / (size / g_ctx.tiledimx));
+        g_ctx.tilesettileh = (g_ctx.tilesettileh / (size / g_ctx.tiledimy));
         g_ctx.tiledimx = 16;
-        g_ctx.dimlog = Math.log2(g_ctx.tiledimx);
+        g_ctx.tiledimy = 16;
         g_ctx.curtiles = g_ctx.tiles16;
         console.log("set to curTiles16");
     } else if (size == 32) {
         if (g_ctx.tiledimx == 32) { return; }
         g_ctx.tilesettilew = (g_ctx.tilesettilew/ (size / g_ctx.tiledimx));
-        g_ctx.tilesettileh = (g_ctx.tilesettileh / (size / g_ctx.tiledimx));
+        g_ctx.tilesettileh = (g_ctx.tilesettileh / (size / g_ctx.tiledimy));
         g_ctx.tiledimx = 32;
-        g_ctx.dimlog = Math.log2(g_ctx.tiledimx);
+        g_ctx.tiledimy = 32;
         g_ctx.curtiles = g_ctx.tiles32;
         console.log("set to curTiles32");
     } else {
