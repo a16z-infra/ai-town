@@ -32,7 +32,7 @@
 
 import * as PIXI from 'pixi.js'
 import { g_ctx }  from './lecontext.js' // global context
-import * as CONFIG from './levelconfig.js' 
+import * as CONFIG from './leconfig.js' 
 import * as UNDO from './undo.js'
 import * as MAPFILE from './mapfile.js'
 import * as UI from './lehtmlui.js'

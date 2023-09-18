@@ -1,21 +1,30 @@
+export const DEFAULTTILESETPATH = "./spritesheets/women.png";
+export const DEFAULTILEDIMX = 32; // px
+export const DEFAULTILEDIMY = 34; // px
+
+//export const DEFAULTTILESETPATH = "./spritesheets/doll.png";
+//export const DEFAULTILEDIMX = 48; // px
+//export const DEFAULTILEDIMY = 48; // px
+
+// export const DEFAULTTILESETPATH = "./spritesheets/peeps.png";
+// export const DEFAULTILEDIMX = 48; // px
+// export const DEFAULTILEDIMY = 96; // px
+
+// export const DEFAULTTILESETPATH = "./spritesheets/tall.png";
+// export const DEFAULTILEDIMX = 48; // px
+// export const DEFAULTILEDIMY = 80; // px
+
 //export const DEFAULTTILESETPATH = "./tree.jpg";
 //export const DEFAULTTILESETPATH = "./dude.png";
 //export const DEFAULTTILESETPATH = "./spiderman.png";
-//export const DEFAULTTILESETPATH = "./girl.png";
-//export const DEFAULTTILESETPATH = "./ap1.jpg";
-export const DEFAULTTILESETPATH = "./spritesheets/peeps.png";
 // export const DEFAULTTILESETPATH = "./strange.png";
 //export const DEFAULTTILESETPATH = "./skeleton.png";
 //export const DEFAULTTILESETPATH = "./link.png";
 //export const DEFAULTTILESETPATH = "./ps-sprite.png";
-//export const DEFAULTTILESETPATH = "./tall.png";
-//export const DEFAULTTILESETPATH = "./spook.png";
 //export const DEFAULTTILESETPATH = "./knuckles.png";
 
 export const tilesetpadding = 0; 
 
-export const DEFAULTILEDIMX = 64; // px
-export const DEFAULTILEDIMY = 64; // px
 
 export const levelwidth  = 1024; // px
 export const levelheight = 768; // px

@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js'
 import { g_ctx }  from './lecontext.js' // global context
-import * as CONFIG from './levelconfig.js' 
+import * as CONFIG from './leconfig.js' 
 
 // --
 //  Set sizes and limits for HTML in main UI

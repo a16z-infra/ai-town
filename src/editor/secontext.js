@@ -1,4 +1,5 @@
 import * as PIXI from 'pixi.js'
+import * as CONFIG from './seconfig.js'
 
 var ContextCreate = (function(){
 
@@ -10,8 +11,8 @@ var ContextCreate = (function(){
         this.MAXTILEINDEX = 0;
         this.tile_index = 0;
         this.selected_tiles = []; // current set of selected tiles
-        this.tiledimx = 48; // px
-        this.tiledimy = 96; // px
+        this.tiledimx = CONFIG.DEFAULTILEDIMX ; // px
+        this.tiledimy = CONFIG.DEFAULTILEDIMY; // px
         this.dimlog = Math.log2(this.tileDim);  //log2(TileDim)
         this.dkey = false;   // is 'd' key depressed? (for delete)
         this.tiles32  = [];  // all tiles from tilemap (32x32)

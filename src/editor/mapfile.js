@@ -1,4 +1,4 @@
-import * as CONFIG from './levelconfig.js' 
+import * as CONFIG from './leconfig.js' 
 import { g_ctx }  from './lecontext.js' // global context
 
 
