@@ -132,21 +132,26 @@ export const vacuumOldMemories = internalMutation({
         ids: vectorsToDelete,
       });
     }
+    const soFar = args.soFar + results.page.length;
     if (results.isDone) {
-      console.debug(`Vacuumed ${results.page.length} old memories.`);
+      console.debug(`Vacuumed ${soFar} old memories.`);
     } else {
       await ctx.scheduler.runAfter(0, internal.crons.vacuumOldMemories, {
         untilTs,
         age,
         cursor: results.continueCursor,
-        soFar: args.soFar + results.page.length,
+        soFar,
       });
     }
   },
 });
 
 const crons = cronJobs();
-crons.interval('generate new background music', { hours: 24 }, internal.lib.replicate.enqueueBackgroundMusicGeneration);
+crons.interval(
+  'generate new background music',
+  { hours: 24 },
+  internal.lib.replicate.enqueueBackgroundMusicGeneration,
+);
 crons.interval('restart idle agents', { seconds: 60 }, internal.crons.recoverStoppedAgents);
 crons.interval('restart thinking agents', { seconds: 60 }, internal.crons.recoverThinkingAgents);
 crons.interval('vacuum old journal entries', { hours: 1 }, internal.crons.vacuumOldEntries, {
