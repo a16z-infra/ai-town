@@ -8,7 +8,8 @@
     "lint": "eslint .",
     "dev:backend": "convex dev",
     "dev:frontend": "vite",
-    "dev:init": "convex dev --run init --until-success"
+    "dev:init": "convex dev --run init --until-success",
+    "le": "vite src/editor/"
   },
   "dependencies": {
     "@clerk/clerk-react": "^4.21.9-snapshot.56dc3e3",
