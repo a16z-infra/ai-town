@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js'
-import { g_ctx }  from './lecontext.js' // global context
-import * as CONFIG from './levelconfig.js' 
+import { g_ctx }  from './secontext.js' // global context
+import * as CONFIG from './seconfig.js' 
 
 // --
 //  Set sizes and limits for HTML in main UI

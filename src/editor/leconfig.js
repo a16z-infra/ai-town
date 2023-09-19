@@ -1,6 +1,6 @@
-export const DEFAULTTILESETPATH = "./tilesets/magecity.png";
+//export const DEFAULTTILESETPATH = "./tilesets/magecity.png";
 //export const DEFAULTTILESETPATH = "./tilesets/forest.png";
-//export const DEFAULTTILESETPATH = "./tilesets/Serene.png";
+export const DEFAULTTILESETPATH = "./tilesets/Serene.png";
 //export const DEFAULTTILESETPATH = "./tilesets/Modern.png";
 //export const DEFAULTTILESETPATH = "./tilesets/phantasy2.png";
 
