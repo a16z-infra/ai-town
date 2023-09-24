@@ -1,5 +1,7 @@
 import * as CONFIG from './leconfig.js' 
+import * as UTIL   from './eutils.js'
 import { g_ctx }  from './lecontext.js' // global context
+
 
 
 function generate_preamble() {
@@ -77,28 +79,9 @@ function write_map_file(bg_tiles_0, bg_tiles_1, obj_tiles_1, obj_tiles_2){
     }
     text += '],];\n';
 
-    download(text, "map.js", "text/plain");
+    UTIL.download(text, "map.js", "text/plain");
 }
 
-
-// Function to download data to a file
-function download(data, filename, type) {
-    var file = new Blob([data], {type: type});
-    if (window.navigator.msSaveOrOpenBlob) // IE10+
-        window.navigator.msSaveOrOpenBlob(file, filename);
-    else { // Others
-        var a = document.createElement("a"),
-                url = URL.createObjectURL(file);
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(function() {
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);  
-        }, 0); 
-    }
-}
 
 export function generate_level_file() {
     let layer0 = g_ctx.g_layers[0];
