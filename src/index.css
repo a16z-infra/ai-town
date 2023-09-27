@@ -3,21 +3,21 @@
 @tailwind utilities;
 
 @font-face {
-  font-family: "Upheaval Pro";
+  font-family: 'Upheaval Pro';
   src: url(/assets/fonts/upheaval_pro.ttf);
 }
 
 @font-face {
-  font-family: "VCR OSD Mono";
+  font-family: 'VCR OSD Mono';
   src: url(/assets/fonts/vcr_osd_mono.ttf);
 }
 
 .font-display {
-  font-family: "Upheaval Pro", "sans-serif";
+  font-family: 'Upheaval Pro', 'sans-serif';
 }
 
 .font-body {
-  font-family: "VCR OSD Mono", "monospace";
+  font-family: 'VCR OSD Mono', 'monospace';
 }
 
 :root {
@@ -65,7 +65,6 @@ body {
   border-image-slice: 25%;
 }
 
-
 .game-progress-bar {
   border: 5px solid rgb(23, 20, 33);
 }
@@ -77,13 +76,7 @@ body {
 }
 
 .game-progress-bar-progress {
-  background: repeating-linear-gradient(
-    135deg,
-    white,
-    white 10px,
-    #dfdfdf 10px,
-    #dfdfdf 20px
-  );
+  background: repeating-linear-gradient(135deg, white, white 10px, #dfdfdf 10px, #dfdfdf 20px);
   background-size: 200% 100%;
   background-position: 100% 0;
   animation: moveStripes 0.5s linear infinite;
@@ -159,7 +152,7 @@ body {
   transform: none;
 }
 
-p[contenteditable="true"]:empty::before {
+p[contenteditable='true']:empty::before {
   content: attr(placeholder);
   color: #aaa;
 }

@@ -48,8 +48,8 @@ export const Character = ({
   }, []);
 
   // The first "left" is "right" but reflected.
-  const roundedOrientation = Math.round(orientation / 90);
-  const direction = ['left', 'up', 'left', 'down'][roundedOrientation];
+  const roundedOrientation = Math.floor(orientation / 90);
+  const direction = ['right', 'down', 'left', 'up'][roundedOrientation];
 
   // Prevents the animation from stopping when the texture changes
   // (see https://github.com/pixijs/pixi-react/issues/359)
@@ -62,8 +62,24 @@ export const Character = ({
 
   if (!spriteSheet) return null;
 
+  let blockOffset = { x: 0, y: 0 };
+  switch (roundedOrientation) {
+    case 2:
+      blockOffset = { x: -20, y: 0 };
+      break;
+    case 0:
+      blockOffset = { x: 20, y: 0 };
+      break;
+    case 3:
+      blockOffset = { x: 0, y: -20 };
+      break;
+    case 1:
+      blockOffset = { x: 0, y: 20 };
+      break;
+  }
+
   return (
-    <Container x={x} y={y} interactive={true} pointerdown={onClick}>
+    <Container x={x} y={y} interactive={true} pointerdown={onClick} cursor="pointer">
       {isThinking && (
         // TODO: We'll eventually have separate assets for thinking and speech animations.
         <Text x={-20} y={-10} scale={{ x: -0.8, y: 0.8 }} text={'💭'} anchor={{ x: 0.5, y: 0.5 }} />
@@ -77,8 +93,6 @@ export const Character = ({
         isPlaying={isMoving}
         textures={spriteSheet.animations[direction]}
         animationSpeed={speed}
-        // If the orientation is 90 (facing right), we need to flip the sprite.
-        scale={roundedOrientation === 0 ? { x: -1, y: 1 } : { x: 1, y: 1 }}
         anchor={{ x: 0.5, y: 0.5 }}
       />
     </Container>

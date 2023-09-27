@@ -1,102 +1,102 @@
-	{
-		"Convex Imports": {
-			"prefix": "convex:imports",
-			"body": [
-				"import { v } from \"convex/values\";",
-				"import { api, internal } from \"./_generated/api\";",
-				"import { Doc, Id } from \"./_generated/dataModel\";",
-				"import {",
-				"  action,",
-				"  internalAction,",
-				"  internalMutation,",
-				"  internalQuery,",
-				"  mutation,",
-				"  query,",
-				"} from \"./_generated/server\";"
-			],
-			"scope": "javascript,typescript",
-			"isFileTemplate": true,
-		},
+{
+  "Convex Imports": {
+    "prefix": "convex:imports",
+    "body": [
+      "import { v } from \"convex/values\";",
+      "import { api, internal } from \"./_generated/api\";",
+      "import { Doc, Id } from \"./_generated/dataModel\";",
+      "import {",
+      "  action,",
+      "  internalAction,",
+      "  internalMutation,",
+      "  internalQuery,",
+      "  mutation,",
+      "  query,",
+      "} from \"./_generated/server\";"
+    ],
+    "scope": "javascript,typescript",
+    "isFileTemplate": true
+  },
 
-		"Convex Query": {
-			"prefix": "convex:query",
-			"body": [
-				"export const $1 = query({",
-				"  args: {},",
-				"  handler: async (ctx, args) => {",
-				"    $0",
-				"  },",
-				"});",
-			],
-			"scope": "javascript,typescript",
-		},
+  "Convex Query": {
+    "prefix": "convex:query",
+    "body": [
+      "export const $1 = query({",
+      "  args: {},",
+      "  handler: async (ctx, args) => {",
+      "    $0",
+      "  },",
+      "});"
+    ],
+    "scope": "javascript,typescript"
+  },
 
-		"Convex Internal Query": {
-			"prefix": "convex:internalQuery",
-			"body": [
-				"export const $1 = internalQuery({",
-				"  args: {},",
-				"  handler: async (ctx, args) => {",
-				"    $0",
-				"  },",
-				"});",
-			],
-			"scope": "javascript,typescript",
-		},
+  "Convex Internal Query": {
+    "prefix": "convex:internalQuery",
+    "body": [
+      "export const $1 = internalQuery({",
+      "  args: {},",
+      "  handler: async (ctx, args) => {",
+      "    $0",
+      "  },",
+      "});"
+    ],
+    "scope": "javascript,typescript"
+  },
 
-		"Convex Mutation": {
-			"prefix": "convex:mutation",
-			"body": [
-				"export const $1 = mutation({",
-				"  args: {},",
-				"  handler: async (ctx, args) => {",
-				"    $0",
-				"  },",
-				"});",
-			],
-			"scope": "javascript,typescript",
-		},
+  "Convex Mutation": {
+    "prefix": "convex:mutation",
+    "body": [
+      "export const $1 = mutation({",
+      "  args: {},",
+      "  handler: async (ctx, args) => {",
+      "    $0",
+      "  },",
+      "});"
+    ],
+    "scope": "javascript,typescript"
+  },
 
-		"Convex Internal Mutation": {
-			"prefix": "convex:internalMutation",
-			"body": [
-				"export const $1 = internalMutation({",
-				"  args: {},",
-				"  handler: async (ctx, args) => {",
-				"    $0",
-				"  },",
-				"});",
-			],
-			"scope": "javascript,typescript",
-		},
+  "Convex Internal Mutation": {
+    "prefix": "convex:internalMutation",
+    "body": [
+      "export const $1 = internalMutation({",
+      "  args: {},",
+      "  handler: async (ctx, args) => {",
+      "    $0",
+      "  },",
+      "});"
+    ],
+    "scope": "javascript,typescript"
+  },
 
-		"Convex Action": {
-			"prefix": "convex:action",
-			"body": [
-				"import { action } from \"./_generated/server\";",
-				"",
-				"export const $1 = action({",
-				"  args: {},",
-				"  handler: async (ctx, args) => {",
-				"    $0",
-				"  },",
-				"});",
-			],
-			"scope": "javascript,typescript",
-		},
+  "Convex Action": {
+    "prefix": "convex:action",
+    "body": [
+      "import { action } from \"./_generated/server\";",
+      "",
+      "export const $1 = action({",
+      "  args: {},",
+      "  handler: async (ctx, args) => {",
+      "    $0",
+      "  },",
+      "});"
+    ],
+    "scope": "javascript,typescript"
+  },
 
-		"Convex Internal Action": {
-			"prefix": "convex:internalAction",
-			"body": [
-				"import { internalAction } from \"./_generated/server\";",
-				"",
-				"export const $1 = internalAction({",
-				"  args: {},",
-				"  handler: async (ctx, args) => {",
-				"    $0",
-				"  },",
-				"});",
-			],
-			"scope": "javascript,typescript",
-		},
-	}
+  "Convex Internal Action": {
+    "prefix": "convex:internalAction",
+    "body": [
+      "import { internalAction } from \"./_generated/server\";",
+      "",
+      "export const $1 = internalAction({",
+      "  args: {},",
+      "  handler: async (ctx, args) => {",
+      "    $0",
+      "  },",
+      "});"
+    ],
+    "scope": "javascript,typescript"
+  }
+}

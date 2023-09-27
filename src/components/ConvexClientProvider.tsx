@@ -1,8 +1,7 @@
 import { ReactNode } from 'react';
 import { ConvexReactClient } from 'convex/react';
-import { ConvexProviderWithClerk } from "convex/react-clerk";
+import { ConvexProviderWithClerk } from 'convex/react-clerk';
 import { ClerkProvider, useAuth } from '@clerk/clerk-react';
-
 
 /**
  * Determines the Convex deployment to use.
@@ -11,32 +10,21 @@ import { ClerkProvider, useAuth } from '@clerk/clerk-react';
  * We use localStorage so that individual users stay on the same instance.
  */
 function convexUrl(): string {
-  const urlsString = import.meta.env.VITE_CONVEX_URLS as string;
-  if (!urlsString) {
-    const url = import.meta.env.VITE_CONVEX_URL as string;
-    if (!url) {
-      throw new Error('Couldn’t find the Convex deployment URL.');
-    }
-    return url;
+  const url = import.meta.env.VITE_CONVEX_URL as string;
+  if (!url) {
+    throw new Error('Couldn’t find the Convex deployment URL.');
   }
-
-  const urls = urlsString.split('\n');
-  const activeUrl = window.localStorage?.getItem('convexDeploymentUrl');
-  if (activeUrl && urls.includes(activeUrl)) {
-    return activeUrl;
-  }
-
-  const newUrl = urls[Math.floor(Math.random() * urls.length)].trim();
-  window.localStorage?.setItem('convexDeploymentUrl', newUrl);
-  return newUrl;
+  return url;
 }
 
-const convex = new ConvexReactClient(convexUrl());
+const convex = new ConvexReactClient(convexUrl(), { unsavedChangesWarning: false });
 
 export default function ConvexClientProvider({ children }: { children: ReactNode }) {
-  return <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string}>
-    <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-      {children}
-    </ConvexProviderWithClerk>
-  </ClerkProvider>;
+  return (
+    <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string}>
+      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+        {children}
+      </ConvexProviderWithClerk>
+    </ClerkProvider>
+  );
 }
