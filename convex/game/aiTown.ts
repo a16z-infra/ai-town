@@ -4,7 +4,7 @@ import { InputArgs, InputReturnValue, Inputs } from './inputs';
 import { assertNever } from '../util/assertNever';
 import { Players } from './players';
 import { DatabaseWriter } from '../_generated/server';
-import { Locations } from './location';
+import { Locations } from './locations';
 import { blocked, findRoute } from './movement';
 import { characters } from '../data/characters';
 import { EPSILON, distance, normalize, pathPosition, pointsEqual, vector } from '../util/geometry';

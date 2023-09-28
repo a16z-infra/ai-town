@@ -5,10 +5,6 @@ import { DatabaseWriter } from '../_generated/server';
 import { Doc, Id } from '../_generated/dataModel';
 import { Conversations } from './conversations';
 
-// Invariants:
-// A player is in at most one conversation.
-// At most two players are in one conversation.
-// Two players in a conversation are close together if they're both participating.
 export const conversationMembers = defineTable({
   conversationId: v.id('conversations'),
   playerId: v.id('players'),

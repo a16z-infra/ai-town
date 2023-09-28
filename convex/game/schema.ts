@@ -1,6 +1,6 @@
 import { engineTables } from '../engine/schema';
 import { players } from './players';
-import { locations } from './location';
+import { locations } from './locations';
 import { conversations } from './conversations';
 import { conversationMembers } from './conversationMembers';
 
