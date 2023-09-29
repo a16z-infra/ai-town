@@ -3,7 +3,7 @@ import { v } from 'convex/values';
 import { ActionCtx, internalMutation, internalQuery } from '../_generated/server';
 import { Doc, Id } from '../_generated/dataModel';
 import { internal } from '../_generated/api';
-import { LLMMessage, chatCompletion } from '../util/openai';
+import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/openai';
 import * as embeddingsCache from './embeddingsCache';
 
 const selfInternal = internal.agent.memory;
@@ -50,7 +50,7 @@ export async function rememberConversation(
     max_tokens: 500,
   });
   const summary = await description.readAll();
-  const embedding = await embeddingsCache.fetch(ctx, summary);
+  const { embedding } = await fetchEmbedding(summary);
   await ctx.runMutation(selfInternal.insertMemory, {
     agentId,
     generationNumber,
