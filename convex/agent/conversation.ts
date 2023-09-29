@@ -37,7 +37,7 @@ export async function startConversation(
       },
     ],
     max_tokens: 300,
-    stop: stopWords(otherPlayer),
+    stop: stopWords(otherPlayer, player),
   });
   return content;
 }
@@ -75,7 +75,7 @@ export async function continueConversation(
   const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 300,
-    stop: stopWords(otherPlayer),
+    stop: stopWords(otherPlayer, player),
   });
   return content;
 }
@@ -114,7 +114,7 @@ export async function leaveConversation(
   const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 300,
-    stop: stopWords(otherPlayer),
+    stop: stopWords(otherPlayer, player),
   });
   return content;
 }
@@ -283,7 +283,8 @@ export const previousConversation = internalQuery({
   },
 });
 
-function stopWords(otherPlayer: Doc<'players'>) {
+function stopWords(otherPlayer: Doc<'players'>, player: Doc<'players'>) {
   // These are the words we ask the LLM to stop on. OpenAI only supports 4.
-  return [otherPlayer.name + ':', otherPlayer.name.toLowerCase() + ':'];
+  const variants = [otherPlayer.name, `${otherPlayer.name} to ${player.name}`];
+  return variants.flatMap((stop) => [stop + ':', stop.toLowerCase() + ':']);
 }
