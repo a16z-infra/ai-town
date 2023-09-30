@@ -3,7 +3,7 @@ import { defineTable } from 'convex/server';
 import { DatabaseWriter } from '../_generated/server';
 import { Players } from './players';
 import { Doc, Id } from '../_generated/dataModel';
-import { HistoricalTable } from '../engine/historicalTable';
+import { FieldConfig, HistoricalTable } from '../engine/historicalTable';
 
 export const locations = defineTable({
   // Position.
@@ -21,7 +21,13 @@ export const locations = defineTable({
   history: v.optional(v.bytes()),
 });
 
-export const locationFields = ['x', 'y', 'dx', 'dy', 'velocity'];
+export const locationFields: FieldConfig = [
+  { name: 'x', precision: 8 },
+  { name: 'y', precision: 8 },
+  { name: 'dx', precision: 8 },
+  { name: 'dy', precision: 8 },
+  { name: 'velocity', precision: 16 },
+];
 export class Locations extends HistoricalTable<'locations'> {
   table = 'locations' as const;
 

@@ -1,9 +1,10 @@
 import { WithoutSystemFields } from 'convex/server';
 import { Doc, TableNames } from '../../convex/_generated/dataModel';
-import { History, unpackSampleRecord } from '../../convex/engine/historicalTable';
+import { FieldConfig, History, unpackSampleRecord } from '../../convex/engine/historicalTable';
 import { useMemo, useRef } from 'react';
 
 export function useHistoricalValue<Name extends TableNames>(
+  fields: FieldConfig,
   historicalTime: number | undefined,
   value: Doc<Name> | undefined,
 ): WithoutSystemFields<Doc<Name>> | undefined {
@@ -15,7 +16,7 @@ export function useHistoricalValue<Name extends TableNames>(
     if (!(value.history instanceof ArrayBuffer)) {
       throw new Error(`Expected ArrayBuffer, found ${typeof value.history}`);
     }
-    return unpackSampleRecord(value.history as ArrayBuffer);
+    return unpackSampleRecord(fields, value.history as ArrayBuffer);
   }, [value && value.history]);
   if (sampleRecord) {
     manager.current.receive(sampleRecord);

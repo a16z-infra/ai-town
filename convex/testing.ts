@@ -113,3 +113,50 @@ async function getDefaultWorld(db: DatabaseReader) {
   }
   return { world, engine };
 }
+
+export const debugCreatePlayers = internalMutation({
+  args: {
+    numPlayers: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const world = await ctx.db
+      .query('worlds')
+      .filter((q) => q.eq(q.field('isDefault'), true))
+      .first();
+    if (!world) {
+      throw new Error('No default world');
+    }
+    for (let i = 0; i < args.numPlayers; i++) {
+      const inputId = await insertInput(ctx, world?.engineId, 'join', {
+        name: `Robot${i}`,
+        description: `This player is a robot.`,
+        character: `f${1 + (i % 8)}`,
+      });
+    }
+  },
+});
+
+export const randomPositions = internalMutation({
+  handler: async (ctx) => {
+    const world = await ctx.db
+      .query('worlds')
+      .filter((q) => q.eq(q.field('isDefault'), true))
+      .first();
+    if (!world) {
+      throw new Error('No default world');
+    }
+    const players = await ctx.db
+      .query('players')
+      .withIndex('active', (q) => q.eq('engineId', world.engineId).eq('active', true))
+      .collect();
+    for (const player of players) {
+      await insertInput(ctx, world.engineId, 'moveTo', {
+        playerId: player._id,
+        destination: {
+          x: 1 + Math.floor(Math.random() * (mapWidth - 2)),
+          y: 1 + Math.floor(Math.random() * (mapHeight - 2)),
+        },
+      });
+    }
+  },
+});
