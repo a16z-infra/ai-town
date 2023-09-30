@@ -7,6 +7,7 @@ import { useHistoricalValue } from '../hooks/useHistoricalValue.ts';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { PlayerMetadata } from '../../convex/world.ts';
+import { locationFields } from '../../convex/game/locations.ts';
 
 export type SelectElement = (element?: { kind: 'player'; id: Id<'players'> }) => void;
 
@@ -25,7 +26,11 @@ export const Player = ({
 }) => {
   const world = useQuery(api.world.defaultWorld);
   const character = characters.find((c) => c.name === player.character);
-  const historicalLocation = useHistoricalValue<'locations'>(historicalTime, player.location);
+  const historicalLocation = useHistoricalValue<'locations'>(
+    locationFields,
+    historicalTime,
+    player.location,
+  );
   if (!character) {
     if (!logged.has(player.character)) {
       logged.add(player.character);

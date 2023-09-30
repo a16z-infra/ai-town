@@ -1,8 +1,31 @@
 import { WithoutSystemFields } from 'convex/server';
 import { Doc, Id, TableNames } from '../_generated/dataModel';
 import { DatabaseWriter } from '../_generated/server';
+import { xxHash32 } from '../util/xxhash';
+import { compressSigned, uncompressSigned } from '../util/FastIntegerCompression';
+import {
+  runLengthEncode,
+  deltaEncode,
+  quantize,
+  deltaDecode,
+  runLengthDecode,
+  unquantize,
+} from '../util/compression';
 
-type FieldName = string;
+export type FieldName = string;
+
+export type FieldConfig = Array<string | { name: string; precision: number }>;
+
+const PACKED_VERSION = 1;
+const MAX_FIELDS = 16;
+
+type NormalizedFieldConfig = Array<{
+  name: string;
+  // HistorialTable quantizes floating point values introducing up
+  // to `1 / 2^precision` error. For example, setting precision to 4
+  // maintains precision up to the nearest 1/16.
+  precision: number;
+}>;
 
 export type History = {
   initialValue: number;
@@ -19,7 +42,7 @@ export abstract class HistoricalTable<T extends TableNames> {
   abstract db: DatabaseWriter;
   startTs?: number;
 
-  fields: FieldName[];
+  fieldConfig: NormalizedFieldConfig;
 
   data: Map<Id<T>, Doc<T>> = new Map();
   modified: Set<Id<T>> = new Set();
@@ -27,8 +50,11 @@ export abstract class HistoricalTable<T extends TableNames> {
 
   history: Map<Id<T>, Record<FieldName, History>> = new Map();
 
-  constructor(fields: FieldName[], rows: Doc<T>[]) {
-    this.fields = fields;
+  constructor(fields: FieldConfig, rows: Doc<T>[]) {
+    if (fields.length >= MAX_FIELDS) {
+      throw new Error(`HistoricalTable can have at most ${MAX_FIELDS} fields.`);
+    }
+    this.fieldConfig = normalizeFieldConfig(fields);
     for (const row of rows) {
       if ('history' in row) {
         delete row.history;
@@ -114,7 +140,7 @@ export abstract class HistoricalTable<T extends TableNames> {
     if (typeof value !== 'number') {
       throw new Error(`Cannot set field '${fieldName}' to ${JSON.stringify(value)}`);
     }
-    if (this.fields.indexOf(fieldName) === -1) {
+    if (!this.fieldConfig.find((f) => f.name === fieldName)) {
       throw new Error(`Mutating undeclared field name: ${fieldName}`);
     }
     const doc = this.data.get(id);
@@ -171,7 +197,7 @@ export abstract class HistoricalTable<T extends TableNames> {
       }
       const sampleRecord = this.history.get(id);
       if (sampleRecord && Object.entries(sampleRecord).length > 0) {
-        const packed = packSampleRecord(sampleRecord);
+        const packed = packSampleRecord(this.fieldConfig, sampleRecord);
         (row as any).history = packed;
         totalSize += packed.byteLength;
         buffersPacked += 1;
@@ -192,19 +218,191 @@ export abstract class HistoricalTable<T extends TableNames> {
   }
 }
 
-export function packSampleRecord(sampleMap: Record<FieldName, History>): ArrayBuffer {
-  // TODO: This is very inefficient in space.
-  // [ ] Switch to fixed point and quantize the floats.
-  // [ ] Delta encode differences
-  // [ ] Use an integer compressor: https://github.com/lemire/FastIntegerCompression.js/blob/master/FastIntegerCompression.js
-  const s = JSON.stringify(sampleMap);
+// Packed field config format:
+// [ u8 version ]
+// for each field config:
+//   [ u8 field name length ]
+//   [ UTF8 encoded field name ]
+//   [ u8 precision ]
+function packFieldConfig(fields: NormalizedFieldConfig) {
+  const out = new ArrayBuffer(1024);
+  const outView = new DataView(out);
+  let pos = 0;
+
+  outView.setUint8(pos, PACKED_VERSION);
+  pos += 1;
+
   const encoder = new TextEncoder();
-  const bytes = encoder.encode(s);
-  return bytes.buffer;
+  for (const fieldConfig of fields) {
+    const name = encoder.encode(fieldConfig.name);
+
+    outView.setUint8(pos, name.length);
+    pos += 1;
+
+    new Uint8Array(out, pos, name.length).set(name);
+    pos += name.length;
+
+    outView.setUint8(pos, fieldConfig.precision);
+    pos += 1;
+  }
+  return out.slice(0, pos);
 }
 
-export function unpackSampleRecord(buffer: ArrayBuffer): Record<FieldName, History> {
-  const decoder = new TextDecoder();
-  const s = decoder.decode(buffer);
-  return JSON.parse(s);
+// Packed sample record format:
+// [ 4 byte xxhash of packed field config ]
+// for each set field:
+//   [ 0 0 0 useRLE? ]
+//   [ u4 field number ]
+//
+//   Sample timestamps:
+//   [ u64le initial timestamp ]
+//   [ u16le timestamp buffer length ]
+//   [ vint(RLE(delta(remaining timestamps)))]
+//
+//   Sample values:
+//   [ u16le value buffer length ]
+//   [ vint(RLE?(delta([initialValue, ...values])))]
+export function packSampleRecord(
+  fields: NormalizedFieldConfig,
+  sampleMap: Record<FieldName, History>,
+): ArrayBuffer {
+  // Pack the field configuration into a buffer and compute a four byte hash.
+  const out = new ArrayBuffer(65536);
+  const outView = new DataView(out);
+  let pos = 0;
+
+  const configHash = xxHash32(new Uint8Array(packFieldConfig(fields)));
+  outView.setUint32(pos, configHash, true);
+  pos += 4;
+
+  for (let fieldNumber = 0; fieldNumber < fields.length; fieldNumber += 1) {
+    const { name, precision } = fields[fieldNumber];
+    const history = sampleMap[name];
+    if (!history || history.samples.length === 0) {
+      continue;
+    }
+
+    const timestamps = history.samples.map((s) => Math.floor(s.time));
+    const initialTimestamp = timestamps[0];
+    const encodedTimestamps = runLengthEncode(deltaEncode(timestamps.slice(1), initialTimestamp));
+    const compressedTimestamps = compressSigned(encodedTimestamps);
+    if (compressedTimestamps.byteLength >= 1 << 16) {
+      throw new Error(`Compressed buffer too long: ${compressedTimestamps.byteLength}`);
+    }
+
+    const values = [history.initialValue, ...history.samples.map((s) => s.value)];
+    const quantized = quantize(values, precision);
+    const deltaEncoded = deltaEncode(quantized);
+    const runLengthEncoded = runLengthEncode(deltaEncoded);
+
+    // Decide if we're going to run length encode the values based on whether
+    // it actually made the encoded buffer smaller.
+    const useRLE = runLengthEncoded.length < deltaEncoded.length;
+    let fieldHeader = fieldNumber;
+    if (useRLE) {
+      fieldHeader |= 1 << 4;
+    }
+
+    const encoded = useRLE ? runLengthEncoded : deltaEncoded;
+    const compressed = compressSigned(encoded);
+    if (compressed.byteLength >= 1 << 16) {
+      throw new Error(`Compressed buffer too long: ${compressed.byteLength}`);
+    }
+
+    outView.setUint8(pos, fieldHeader);
+    pos += 1;
+
+    outView.setBigUint64(pos, BigInt(initialTimestamp), true);
+    pos += 8;
+
+    outView.setUint16(pos, compressedTimestamps.byteLength, true);
+    pos += 2;
+
+    new Uint8Array(out, pos, compressedTimestamps.byteLength).set(
+      new Uint8Array(compressedTimestamps),
+    );
+    pos += compressedTimestamps.byteLength;
+
+    outView.setUint16(pos, compressed.byteLength, true);
+    pos += 2;
+
+    new Uint8Array(out, pos, compressed.byteLength).set(new Uint8Array(compressed));
+    pos += compressed.byteLength;
+  }
+
+  return out.slice(0, pos);
+}
+
+export function unpackSampleRecord(fields: FieldConfig, buffer: ArrayBuffer) {
+  const view = new DataView(buffer);
+  let pos = 0;
+
+  const normalizedFields = normalizeFieldConfig(fields);
+  const expectedConfigHash = xxHash32(new Uint8Array(packFieldConfig(normalizedFields)));
+
+  const configHash = view.getUint32(pos, true);
+  pos += 4;
+
+  if (configHash !== expectedConfigHash) {
+    throw new Error(`Config hash mismatch: ${configHash} !== ${expectedConfigHash}`);
+  }
+
+  const out = {} as Record<FieldName, History>;
+  while (pos < buffer.byteLength) {
+    const fieldHeader = view.getUint8(pos);
+    pos += 1;
+
+    const fieldNumber = fieldHeader & 0b00001111;
+    const useRLE = (fieldHeader & (1 << 4)) !== 0;
+    const fieldConfig = normalizedFields[fieldNumber];
+    if (!fieldConfig) {
+      throw new Error(`Invalid field number: ${fieldNumber}`);
+    }
+
+    const initialTimestamp = Number(view.getBigUint64(pos, true));
+    pos += 8;
+
+    const compressedTimestampLength = view.getUint16(pos, true);
+    pos += 2;
+
+    const compressedTimestampBuffer = buffer.slice(pos, pos + compressedTimestampLength);
+    pos += compressedTimestampLength;
+
+    const timestamps = [
+      initialTimestamp,
+      ...deltaDecode(
+        runLengthDecode(uncompressSigned(compressedTimestampBuffer)),
+        initialTimestamp,
+      ),
+    ];
+
+    const compressedLength = view.getUint16(pos, true);
+    pos += 2;
+
+    const compressedBuffer = buffer.slice(pos, pos + compressedLength);
+    pos += compressedLength;
+
+    const encoded = uncompressSigned(compressedBuffer);
+    const deltaEncoded = useRLE ? runLengthDecode(encoded) : encoded;
+    const quantized = deltaDecode(deltaEncoded);
+    const values = unquantize(quantized, fieldConfig.precision);
+
+    if (timestamps.length + 1 !== values.length) {
+      throw new Error(`Invalid sample record: ${timestamps.length} + 1 !== ${values.length}`);
+    }
+    const initialValue = values[0];
+    const samples = [];
+    for (let i = 0; i < timestamps.length; i++) {
+      const time = timestamps[i];
+      const value = values[i + 1];
+      samples.push({ value, time });
+    }
+    const history = { initialValue, samples };
+    out[fieldConfig.name] = history;
+  }
+  return out;
+}
+
+function normalizeFieldConfig(fields: FieldConfig): NormalizedFieldConfig {
+  return fields.map((f) => (typeof f === 'string' ? { name: f, precision: 0 } : f));
 }
