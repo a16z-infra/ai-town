@@ -4,8 +4,8 @@ import { characters } from './data/characters';
 import { defineTable } from 'convex/server';
 import { sendInput } from './game/main';
 import { IDLE_WORLD_TIMEOUT } from './constants';
-import { api } from './_generated/api';
 import { restartAgents } from './agent/init';
+import { restartWorld } from './init';
 
 export const worlds = defineTable({
   isDefault: v.boolean(),
@@ -41,22 +41,11 @@ export const heartbeatWorld = mutation({
     if (!engine) {
       throw new Error(`Invalid engine ID: ${world.engineId}`);
     }
-    if (engine.active) {
+    if (!engine.active) {
       return;
     }
-    console.log(`Restarting engine ${engine._id}...`);
-    engine.active = true;
-    const generationNumber = engine.generationNumber + 1;
-    engine.generationNumber = generationNumber;
-    engine.idleUntil = now;
-    await ctx.db.replace(engine._id, engine);
-    ctx.scheduler.runAt(now, api.game.main.runStep, {
-      engineId: engine._id,
-      generationNumber,
-    });
-
-    // TODO: Only restart agents affiliated with this world.
-    await restartAgents(ctx, {});
+    await restartWorld(ctx, args.worldId);
+    await restartAgents(ctx, { engineId: world.engineId });
   },
 });
 
@@ -78,7 +67,6 @@ export const stopInactiveWorlds = internalMutation({
       }
       // TODO: When we can cancel scheduled jobs, do that transactionally here. For now,
       // just bump the generation number to cancel future runs.
-      engine.active = false;
       engine.generationNumber = engine.generationNumber + 1;
       await ctx.db.replace(engine._id, engine);
     }

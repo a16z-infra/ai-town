@@ -5,6 +5,7 @@ import { internal } from '../_generated/api';
 
 export const initAgent = internalMutation({
   args: {
+    engineId: v.id('engines'),
     playerId: v.id('players'),
     character: v.string(),
   },
@@ -21,6 +22,7 @@ export const initAgent = internalMutation({
       throw new Error(`No description found for character ${args.character}`);
     }
     const agentId = await ctx.db.insert('agents', {
+      engineId: args.engineId,
       playerId: args.playerId,
       identity: description.identity,
       plan: description.plan,
@@ -34,8 +36,14 @@ export const initAgent = internalMutation({
 });
 
 export const restartAgents = internalMutation({
-  handler: async (ctx) => {
-    const agents = await ctx.db.query('agents').collect();
+  args: {
+    engineId: v.id('engines'),
+  },
+  handler: async (ctx, args) => {
+    const agents = await ctx.db
+      .query('agents')
+      .withIndex('engineId', (q) => q.eq('engineId', args.engineId))
+      .collect();
     for (const agent of agents) {
       const generationNumber = agent.generationNumber + 1;
       await ctx.db.patch(agent._id, { generationNumber });
@@ -47,9 +55,15 @@ export const restartAgents = internalMutation({
   },
 });
 
-export const debugStopAllAgents = internalMutation({
-  handler: async (ctx) => {
-    const agents = await ctx.db.query('agents').collect();
+export const stopAgents = internalMutation({
+  args: {
+    engineId: v.id('engines'),
+  },
+  handler: async (ctx, args) => {
+    const agents = await ctx.db
+      .query('agents')
+      .withIndex('engineId', (q) => q.eq('engineId', args.engineId))
+      .collect();
     for (const agent of agents) {
       await ctx.db.patch(agent._id, { generationNumber: agent.generationNumber + 1 });
     }

@@ -5,7 +5,7 @@ import { internal } from './_generated/api';
 const crons = cronJobs();
 
 crons.interval(
-  'cleanup inactive worlds',
+  'stop inactive worlds',
   { seconds: IDLE_WORLD_TIMEOUT / 1000 },
   internal.world.stopInactiveWorlds,
 );
