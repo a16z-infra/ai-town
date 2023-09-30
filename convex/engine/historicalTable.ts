@@ -14,19 +14,46 @@ import {
 
 export type FieldName = string;
 
+// `HistoricalTable`s require the developer to pass in the
+// field names that'll be tracked and sent down to the client.
+//
+// By default, the historical tracking will round each floating point
+// value to an integer. The developer can specify more or less precision
+// via the `precision` parameter: the table's quantization will maintain
+// less than `1 / 2^precision` error. Note that higher precision values
+// imply less error.
 export type FieldConfig = Array<string | { name: string; precision: number }>;
 
-const PACKED_VERSION = 1;
+// `HistoricalTable`s support at most 16 fields.
 const MAX_FIELDS = 16;
+
+const PACKED_VERSION = 1;
 
 type NormalizedFieldConfig = Array<{
   name: string;
-  // HistorialTable quantizes floating point values introducing up
-  // to `1 / 2^precision` error. For example, setting precision to 4
-  // maintains precision up to the nearest 1/16.
   precision: number;
 }>;
 
+// The `History` structure represents the history of a continuous
+// value over all bounded time. Each sample represents a line
+// segment that's extends to the previous sample's time inclusively
+// and to the sample's time non-inclusively. We track an `initialValue`
+// that goes to `-\infty` up until the first sample, and the final
+// sample persists out to `+\infty`.
+// ```
+//                    ^
+//                 position
+//                    |
+// samples[0].value - |         x---------------o
+//                    |
+// samples[1].value - |                         x-------->
+//                    |
+// initialValue     - <---------o
+//                    |
+//                     ------------------------------> time
+//                              |               |
+//                      samples[0].time  samples[1].time
+// ```
 export type History = {
   initialValue: number;
   samples: Sample[];
@@ -37,6 +64,17 @@ export type Sample = {
   value: number;
 };
 
+// `HistoricalTable` is a more restricted version of `GameTable` that
+// tracks its intermediate value throughout a step. This can be useful
+// for continuous properties like position, where we'd want to smoothly
+// replay their tick-by-tick progress at a high frame rate on the client.
+//
+// `HistoricalTable`s have a few limitations:
+// - Other than the built in `_id` and `_creationTime`, they can only
+//   have numeric values. Nested objects are not supported.
+// - Documents in a historical can only have up to 16 fields.
+// - The historical tracking only applies to a specified list of fields,
+//   and these fields must match between the client and server.
 export abstract class HistoricalTable<T extends TableNames> {
   abstract table: T;
   abstract db: DatabaseWriter;
@@ -218,12 +256,16 @@ export abstract class HistoricalTable<T extends TableNames> {
   }
 }
 
-// Packed field config format:
+// Pack (normalized) field configuration into a binary buffer.
+//
+// Format:
+// ```
 // [ u8 version ]
 // for each field config:
 //   [ u8 field name length ]
 //   [ UTF8 encoded field name ]
 //   [ u8 precision ]
+// ```
 function packFieldConfig(fields: NormalizedFieldConfig) {
   const out = new ArrayBuffer(1024);
   const outView = new DataView(out);
@@ -248,8 +290,27 @@ function packFieldConfig(fields: NormalizedFieldConfig) {
   return out.slice(0, pos);
 }
 
-// Packed sample record format:
+// Pack a document's sample record into a binary buffer.
+//
+// We encode each field's history with a few layered forms of
+// compression:
+// 1. Quantization: Turn each floating point number into an integer
+//    by multiplying by 2^precision and then `Math.floor()`.
+// 2. Delta encoding: Assume that values are continuous and don't
+//    abruptly change over time, so their differences will be small.
+//    This step turns the large integers from (1) into small ones.
+// 3. Run length encoding (optional): Assume that some quantities
+//    in the system will have constant velocity, so encode `k`
+//    repetitions of `n` as `[k, n]`. If run length encoding doesn't
+//    make (2) smaller, we skip it.
+// 4. Varint encoding: Using FastIntegerCompression.js, we use a
+//    variable length integer encoding that uses fewer bytes for
+//    smaller numbers.
+//
+// Format:
+// ```
 // [ 4 byte xxhash of packed field config ]
+//
 // for each set field:
 //   [ 0 0 0 useRLE? ]
 //   [ u4 field number ]
@@ -262,11 +323,11 @@ function packFieldConfig(fields: NormalizedFieldConfig) {
 //   Sample values:
 //   [ u16le value buffer length ]
 //   [ vint(RLE?(delta([initialValue, ...values])))]
+// ```
 export function packSampleRecord(
   fields: NormalizedFieldConfig,
-  sampleMap: Record<FieldName, History>,
+  sampleRecord: Record<FieldName, History>,
 ): ArrayBuffer {
-  // Pack the field configuration into a buffer and compute a four byte hash.
   const out = new ArrayBuffer(65536);
   const outView = new DataView(out);
   let pos = 0;
@@ -277,7 +338,7 @@ export function packSampleRecord(
 
   for (let fieldNumber = 0; fieldNumber < fields.length; fieldNumber += 1) {
     const { name, precision } = fields[fieldNumber];
-    const history = sampleMap[name];
+    const history = sampleRecord[name];
     if (!history || history.samples.length === 0) {
       continue;
     }
