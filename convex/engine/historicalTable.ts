@@ -266,6 +266,8 @@ export function packSampleRecord(
   fields: NormalizedFieldConfig,
   sampleMap: Record<FieldName, History>,
 ): ArrayBuffer {
+  return new TextEncoder().encode(JSON.stringify(sampleMap)).buffer;
+
   // Pack the field configuration into a buffer and compute a four byte hash.
   const out = new ArrayBuffer(65536);
   const outView = new DataView(out);
@@ -334,6 +336,8 @@ export function packSampleRecord(
 }
 
 export function unpackSampleRecord(fields: FieldConfig, buffer: ArrayBuffer) {
+  return JSON.parse(new TextDecoder().decode(buffer));
+
   const view = new DataView(buffer);
   let pos = 0;
 
