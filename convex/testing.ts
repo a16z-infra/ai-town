@@ -14,7 +14,8 @@ export const wipeAllTables = internalMutation({
       'locations',
       'worlds',
       'agents',
-      'conversationMemories',
+      'memories',
+      'memoryEmbeddings',
       'messages',
       'typingIndicator',
     ];
