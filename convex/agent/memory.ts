@@ -1,6 +1,6 @@
 import { defineTable } from 'convex/server';
 import { v } from 'convex/values';
-import { ActionCtx, internalMutation, internalQuery } from '../_generated/server';
+import { ActionCtx, DatabaseReader, internalMutation, internalQuery } from '../_generated/server';
 import { Doc, Id } from '../_generated/dataModel';
 import { internal } from '../_generated/api';
 import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/openai';
@@ -19,10 +19,6 @@ export async function rememberConversation(
     playerId,
     conversationId,
   });
-  if (data === null) {
-    console.log(`Conversation ${conversationId} already remembered`);
-    return;
-  }
   const { player, otherPlayer } = data;
   const messages = await ctx.runQuery(selfInternal.loadMessages, { conversationId });
   if (!messages.length) {
@@ -70,15 +66,6 @@ export const loadConversation = internalQuery({
     conversationId: v.id('conversations'),
   },
   handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query('conversationMemories')
-      .withIndex('owner', (q) =>
-        q.eq('owner', args.playerId).eq('conversation', args.conversationId),
-      )
-      .first();
-    if (existing) {
-      return null;
-    }
     const player = await ctx.db.get(args.playerId);
     if (!player) {
       throw new Error(`Player ${args.playerId} not found`);
