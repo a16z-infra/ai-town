@@ -12,8 +12,8 @@ function generate_preamble() {
         'export const tiledim = ' + g_ctx.tiledimx + '\n' +
         'export const screenxtiles = ' + g_ctx.tilesettilew + '\n' +
         'export const screenytiles = ' + g_ctx.tilesettileh + '\n' +
-        'export const tilefilew = ' + g_ctx.tilesetpxw + '\n' +
-        'export const tilefileh = ' + g_ctx.tilesetpxh + '\n\n'
+        'export const tilesetpxw = ' + g_ctx.tilesetpxw + '\n' +
+        'export const tilesetpxh = ' + g_ctx.tilesetpxh + '\n\n'
 
        return mapfile_preamble; 
 }
@@ -22,7 +22,7 @@ const bgtile_string_start = '' +
     'export const bgtiles = [\n' +
     '   [\n'
 
-function write_map_file(bg_tiles_0, bg_tiles_1, obj_tiles_1, obj_tiles_2){
+function write_map_file(bg_tiles_0, bg_tiles_1, obj_tiles_1, obj_tiles_2, animated_tiles){
     let text = generate_preamble(); 
     text += bgtile_string_start;
 
@@ -79,6 +79,19 @@ function write_map_file(bg_tiles_0, bg_tiles_1, obj_tiles_1, obj_tiles_2){
     }
     text += '],];\n';
 
+
+    text += ''+
+    'export const animatedsprites = [\n';
+
+    for(let x = 0 ; x < animated_tiles.length; x++){
+        let atile = animated_tiles[x];
+        text += '{ x: '+atile.x+", y: "+ atile.y+ ", w: "+ atile.width+ ", h: "+ atile.height ; 
+        text += ', layer: '+atile.layer;
+        text += ', sheet: "'+ atile.spritesheetname+ '", animation: "'+ atile.animationname+'" },\n';
+    }
+
+    text += '];\n';
+
     UTIL.download(text, "map.js", "text/plain");
 }
 
@@ -89,6 +102,8 @@ export function generate_level_file() {
     let layer2 = g_ctx.g_layers[2];
     let layer3 = g_ctx.g_layers[3];
 
+    let animated_tiles = [];
+
     // level0 
     var tile_array0 = Array.from(Array(CONFIG.leveltilewidth), () => new Array(CONFIG.leveltileheight));
     for (let x = 0; x < CONFIG.leveltilewidth; x++) {
@@ -98,6 +113,14 @@ export function generate_level_file() {
     }
     for (var i = 0; i < layer0.container.children.length; i++) {
         var child = layer0.container.children[i];
+
+        // check if it's an animated sprite
+        if(child.hasOwnProperty('animationSpeed')){
+            child.layer = 0;
+            animated_tiles.push(child);
+            continue;
+        }
+
         if (!child.hasOwnProperty('index')) {
             continue;
         }
@@ -124,6 +147,14 @@ export function generate_level_file() {
     }
     for (var i = 0; i < layer1.container.children.length; i++) {
         var child = layer1.container.children[i];
+
+        // check if it's an animated sprite
+        if(child.hasOwnProperty('animationSpeed')){
+            child.layer = 1;
+            animated_tiles.push(child);
+            continue;
+        }
+
         if (!child.hasOwnProperty('index')) {
             continue;
         }
@@ -149,6 +180,15 @@ export function generate_level_file() {
     }
     for (var i = 0; i < layer2.container.children.length; i++) {
         var child = layer2.container.children[i];
+
+        // check if it's an animated sprite
+        if(child.hasOwnProperty('animationSpeed')){
+            child.layer = 2;
+            animated_tiles.push(child);
+            continue;
+
+        }
+
         if (!child.hasOwnProperty('index')) {
             continue;
         }
@@ -174,6 +214,15 @@ export function generate_level_file() {
     }
     for (var i = 0; i < layer3.container.children.length; i++) {
         var child = layer3.container.children[i];
+
+        // check if it's an animated sprite
+        if(child.hasOwnProperty('animationSpeed')){
+            child.layer = 3;
+            animated_tiles.push(child);
+            continue;
+
+        }
+
         if (!child.hasOwnProperty('index')) {
             continue;
         }
@@ -190,5 +239,6 @@ export function generate_level_file() {
         }
     }
 
-    write_map_file(tile_array0, tile_array1, tile_array2, tile_array3);
+
+    write_map_file(tile_array0, tile_array1, tile_array2, tile_array3, animated_tiles);
 }

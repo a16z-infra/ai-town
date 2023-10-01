@@ -1,11 +1,16 @@
 // --
 // Simple level editer. 
 //
-// TODO: 
+// TODO:
+//  -- fix hardcoded animations, hack of putting spritesheet into g_ctx etc
+//  -- create tab that contains all animations for a given json file 
 //  -- add portals to level for character start positions
+//  -- if you load an animated sprite and then load a level, it just puts the sprite everywhere
 // 
 // 
 // Done:
+//  -- fix level load bug where texture doesn't fit (load, mage, serene and then gentle)
+//  -- write maps with sprites
 //  - <esc> clear selected_tiles
 //  - Delete tiles
 //  - move magic numbers to context / initialization (zIndex, pane size etc.)
@@ -38,7 +43,8 @@ import * as MAPFILE from './mapfile.js'
 import * as UI from './lehtmlui.js'
 import { EventSystem } from '@pixi/events';
 
-g_ctx.debug_flag = true;
+g_ctx.debug_flag  = true;
+g_ctx.debug_flag2 = false; // really verbose output
 
 function tileset_index_from_coords(x, y) {
     let retme = x + (y*g_ctx.tilesettilew);
@@ -68,8 +74,8 @@ function level_index_from_px(x, y) {
 function tileset_coords_from_index(index) {
         let x = index % (g_ctx.tilesettilew);
         let y = Math.floor(index / (g_ctx.tilesettilew));
-        console.log("tilesettilewidth: ",g_ctx.tilesettilew);
-        console.log("tileset_coords_from_index tile coords: ",index,x,y);
+        // console.log("tilesettilewidth: ",g_ctx.tilesettilew);
+        // console.log("tileset_coords_from_index tile coords: ",index,x,y);
         return [x,y];
 }
 
@@ -124,7 +130,9 @@ class LayerContext {
 
         this.mouseshadow    = new PIXI.Container(); 
         this.mouseshadow.zIndex = CONFIG.zIndexMouseShadow; 
-        this.lasttileindex  = -1; 
+
+        this.lasttileindex  = -1;  // current tileset index
+        this.curanimatedtile = null;
 
         this.fudgex = 0; // offset from 0,0
         this.fudgey = 0;
@@ -143,7 +151,7 @@ class LayerContext {
             .on('pointerup', onLevelDragEnd.bind(null, this))
             .on('pointerupoutside', onLevelDragEnd.bind(null, this));
 
-        if (mod != null) {
+        if (mod != null && !(mod  === g_ctx)) {
             this.loadFromMapFile(mod);
         }
     }
@@ -218,10 +226,26 @@ class LayerContext {
         let ctile = null;
         let ctile2 = null;
 
-        let pxloc = tileset_px_from_index(index);
-        ctile  = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
-        ctile.index = index;
-        ctile2 = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
+        if(g_ctx.spritesheet != null){
+            ctile  =  new PIXI.AnimatedSprite(g_ctx.spritesheet.animations['pixels_large']);
+            ctile2 =  new PIXI.AnimatedSprite(g_ctx.spritesheet.animations['pixels_large']);
+            ctile.animationSpeed = .1;
+            ctile2.animationSpeed = .1;
+            ctile.autoUpdate = true;
+            ctile2.autoUpdate = true;
+            ctile.play();
+            ctile2.play();
+
+            // HACK for now just stuff animated sprite details into the sprite
+            ctile.animationname   = 'pixels_large';
+            ctile.spritesheetname = g_ctx.spritesheetname; 
+
+        } else {
+            let pxloc = tileset_px_from_index(index);
+            ctile = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
+            ctile.index = index;
+            ctile2 = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
+        }
 
         // snap to grid
         const dx = g_ctx.tiledimx;
@@ -236,7 +260,7 @@ class LayerContext {
 
         let new_index = level_index_from_px(ctile.x, ctile.y);
 
-        if(g_ctx.debug_flag){
+        if(g_ctx.debug_flag2){
             console.log('addTileLevelPx ',this.num,' ctile.x ', ctile.x, 'ctile.y ', ctile.y, "index ", index, "new_index", new_index);
         }
 
@@ -284,9 +308,11 @@ class TilesetContext {
         console.log(mod.tilesetpath);
         const texture = PIXI.Texture.from(mod.tilesetpath);
         const bg    = new PIXI.Sprite(texture);
+
         this.square = new PIXI.Graphics();
         this.square.beginFill(0x2980b9);
         this.square.drawRect(0, 0, mod.tilesetpxw, mod.tilesetpxh);
+        this.square.endFill();
         this.square.eventMode = 'static';
         this.container.addChild(this.square);
         this.container.addChild(bg);
@@ -300,6 +326,16 @@ class TilesetContext {
 
         this.square.on('mousedown', function (e) {
 
+            // if a spritesheet has been loaded from a file, delete
+            // FIXME, we should be able to add animated tiles to the 
+            // tileset ... 
+            if(g_ctx.spritesheet != null){
+                // FIXME .. creating a leak here. But animatedsprites are still on the map so
+                // cannot destroy. In the future these should be part of the UI 
+                // g_ctx.spritesheet.destroy();
+                g_ctx.spritesheet = null;
+            }
+
             g_ctx.tile_index = tileset_index_from_px(e.global.x, e.global.y); 
 
             if(g_ctx.debug_flag) {
@@ -310,6 +346,22 @@ class TilesetContext {
         this.square.on('pointerdown', onTilesetDragStart)
                 .on('pointerup', onTilesetDragEnd)
                 .on('pointerupoutside', onTilesetDragEnd);
+    }
+
+    addTileSheet(name, sheet){
+        console.log(" tileset.addTileSheet ", sheet);
+
+
+        // FIXME ... development code
+        g_ctx.spritesheet = sheet;
+        g_ctx.spritesheetname = name;
+
+        let as =  new PIXI.AnimatedSprite(sheet.animations['pixels_large']);
+        as.animationSpeed = .1;
+        as.autoUpdate = true;
+        as.play();
+        as.alpha = .5;
+        g_ctx.g_layers[0].curanimatedtile = as;
     }
 } // class TilesetContext
 
@@ -347,26 +399,64 @@ class CompositeContext {
 
 } // class CompositeContext
 
+function loadAnimatedSpritesFromModule(mod){
 
-function doimport (str) {
-    if (globalThis.URL.createObjectURL) {
-      const blob = new Blob([str], { type: 'text/javascript' })
-      const url = URL.createObjectURL(blob)
-      const module = import(url)
-      URL.revokeObjectURL(url) // GC objectURLs
-      return module
+    if(!('animatedsprites' in mod) || mod.animatedsprites.length <= 0){
+        return;
     }
-    
-    const url = "data:text/javascript;base64," + btoa(moduleData)
-    return import(url)
-  }
+
+    let m = new Map();
+
+    for(let x = 0; x < mod.animatedsprites.length; x++){
+        let spr = mod.animatedsprites[x];
+        if(! m.has(spr.sheet)){
+            m.set(spr.sheet, [spr]);
+        }else{
+            m.get(spr.sheet).push(spr);
+        }
+    }
+
+    for(let key of m.keys()){
+        console.log("loadAnimatedSpritesFromModule: ",key);
+        PIXI.Assets.load("./"+key).then(
+            function(sheet) {
+
+                // setup global state so we can use layer addTileLevelMethod
+                g_ctx.spritesheet     = sheet;
+                g_ctx.spritesheetname = key;
+                let asprarray = m.get(key);
+                for (let asprite of asprarray) {
+                    // TODO FIXME, pass in animation name
+                    console.log("Loading animation", asprite.animation);
+                    g_ctx.g_layers[asprite.layer].addTileLevelPx(asprite.x, asprite.y, -1);
+                }
+                g_ctx.spritesheet     = null;
+                g_ctx.spritesheetname = null;
+            }
+        );
+    }
+}
+
+function loadMapFromModuleFinish(mod) {
+    g_ctx.composite.container.removeChildren();
+    g_ctx.tileset_app.stage.removeChildren()
+    g_ctx.tileset = new TilesetContext(g_ctx.tileset_app, mod);
+    g_ctx.g_layer_apps[0].stage.removeChildren()
+    g_ctx.g_layers[0] = new LayerContext(g_ctx.g_layer_apps[0], document.getElementById("layer0pane"), 0, mod);
+    g_ctx.g_layer_apps[1].stage.removeChildren()
+    g_ctx.g_layers[1] = new LayerContext(g_ctx.g_layer_apps[1], document.getElementById("layer1pane"), 1, mod);
+    g_ctx.g_layer_apps[2].stage.removeChildren()
+    g_ctx.g_layers[2] = new LayerContext(g_ctx.g_layer_apps[2], document.getElementById("layer2pane"), 2, mod);
+    g_ctx.g_layer_apps[3].stage.removeChildren()
+    g_ctx.g_layers[3] = new LayerContext(g_ctx.g_layer_apps[3], document.getElementById("layer3pane"), 3, mod);
+
+    loadAnimatedSpritesFromModule(mod);
+}
 
 function loadMapFromModule(mod) {
-    g_ctx.tileset = new TilesetContext(g_ctx.tileset_app, mod);
-    g_ctx.g_layers[0] = new LayerContext(g_ctx.g_layer_apps[0], document.getElementById("layer0pane"), 0, mod);
-    g_ctx.g_layers[1] = new LayerContext(g_ctx.g_layer_apps[1], document.getElementById("layer1pane"), 1, mod);
-    g_ctx.g_layers[2] = new LayerContext(g_ctx.g_layer_apps[2], document.getElementById("layer2pane"), 2, mod);
-    g_ctx.g_layers[3] = new LayerContext(g_ctx.g_layer_apps[3], document.getElementById("layer3pane"), 3, mod);
+    g_ctx.tilesetpath = mod.tilesetpath;
+    initTilesSync(loadMapFromModuleFinish.bind(null, mod));
+    initTiles();
 }
 
 function downloadpng(filename) {
@@ -382,8 +472,10 @@ function downloadpng(filename) {
         g_ctx.composite.container.removeChild(child);
         newcontainer.addChild(child);
     }
+
+      const { renderer } = g_ctx.composite_app;
       renderer.plugins.extract.canvas(newcontainer).toBlob(function (b) {
-      //renderer.plugins.extract.canvas(g_ctx.composite.container).toBlob(function (b) {
+
       console.log(b);
       var a = document.createElement("a");
       document.body.append(a);
@@ -685,7 +777,7 @@ function centerLayerPanes(x, y){
 function onLevelMouseover(e) {
     let x = e.data.global.x;
     let y = e.data.global.y;
-    if(g_ctx.debug_flag){
+    if(g_ctx.debug_flag2){
         console.log("onLevelMouseOver ",this.num);
     }
     if (x < this.scrollpane.scrollLeft || x > this.scrollpane.scrollLeft + CONFIG.htmlCompositePaneW) {
@@ -695,7 +787,24 @@ function onLevelMouseover(e) {
         return;
     }
 
-    if (this.lasttileindex != g_ctx.tile_index) {
+    // FIXME test code
+    if ( g_ctx.spritesheet != null){
+        let ctile  =  new PIXI.AnimatedSprite(g_ctx.spritesheet.animations['pixels_large']);
+        let ctile2 =  new PIXI.AnimatedSprite(g_ctx.spritesheet.animations['pixels_large']);
+        ctile.animationSpeed = .1;
+        ctile2.animationSpeed = .1;
+        ctile.autoUpdate = true;
+        ctile2.autoUpdate = true;
+        ctile.alpha = .5;
+        ctile2.alpha = .5;
+        ctile.play();
+        ctile2.play();
+
+        this.mouseshadow.addChild(ctile);
+        g_ctx.composite.mouseshadow.addChild(ctile2);
+    // FIXME test code
+    }
+    else if (this.lasttileindex != g_ctx.tile_index) {
         this.mouseshadow.removeChildren(0);
         g_ctx.composite.mouseshadow.removeChildren(0);
         if (g_ctx.selected_tiles.length == 0) {
@@ -703,7 +812,7 @@ function onLevelMouseover(e) {
             let shadowsprite2 = null;
 
             let pxloc = tileset_px_from_index(g_ctx.tile_index);
-            console.log("onLevelMouseover", pxloc);
+
             shadowsprite  = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
             shadowsprite2 = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
 
@@ -744,7 +853,7 @@ function onLevelMouseover(e) {
 
 
 function onLevelMouseOut(e) {
-    if (g_ctx.debug_flag) {
+    if (g_ctx.debug_flag2) {
         console.log("onLevelMouseOut ",this.num);
     }
 
@@ -1047,38 +1156,10 @@ function initPixiApps() {
     // g_ctx.tileset
     g_ctx.tileset_app = new PIXI.Application({ width: 5632 , height: 8672, view: document.getElementById('tileset') });
     //g_ctx.tileset_app = new PIXI.Application({ width: g_ctx.tilesetpxw, height: g_ctx.tilesetpxh, view: document.getElementById('tileset') });
-    const { renderer } = g_ctx.tileset_app;
-    // Install the EventSystem
-    renderer.addSystem(EventSystem, 'tileevents');
+    // const { renderer } = g_ctx.tileset_app;
+    // // Install the EventSystem
+    // renderer.addSystem(EventSystem, 'tileevents');
     g_ctx.tileset = new TilesetContext(g_ctx.tileset_app);
-}
-
-// --
-// Initialize handlers for file loading
-// --
-
-function initLevelLoader() {
-    let filecontent = "";
-
-    const fileInput = document.getElementById('levelfile');
-    fileInput.onchange = (evt) => {
-        if (!window.FileReader) return; // Browser is not compatible
-
-        var reader = new FileReader();
-
-        reader.onload = function (evt) {
-            if (evt.target.readyState != 2) return;
-            if (evt.target.error) {
-                alert('Error while reading file');
-                return;
-            }
-
-            filecontent = evt.target.result;
-            doimport(filecontent).then(mod => loadMapFromModule(mod));
-        };
-
-        reader.readAsText(evt.target.files[0]);
-    }
 }
 
 function setGridSize(size) {
@@ -1123,6 +1204,45 @@ function initRadios() {
 // --
 // Load in default tileset and use to set properties
 // --
+
+function initTilesSync(callme) {
+    return new Promise((resolve, reject) => {
+
+        console.log("initTileSync");
+        const texture = new PIXI.BaseTexture(g_ctx.tilesetpath);
+        if(texture.valid) {
+            console.log("BaseTexture already valid");
+            callme();
+            return;
+        }
+
+        console.log("Loading texture ", g_ctx.tilesetpath);
+        texture.on('loaded', function () {
+            // size of g_ctx.tileset in px
+            g_ctx.tilesetpxw = texture.width;
+            g_ctx.tilesetpxh = texture.height;
+            console.log("Texture size w:", g_ctx.tilesetpxw, "h:", g_ctx.tilesetpxh);
+            // size of g_ctx.tileset in tiles
+            let tileandpad = g_ctx.tiledimx + CONFIG.tilesetpadding;
+            let numtilesandpadw = Math.floor(g_ctx.tilesetpxw / tileandpad);
+            g_ctx.tilesettilew = numtilesandpadw + Math.floor((g_ctx.tilesetpxw - (numtilesandpadw * tileandpad)) / g_ctx.tiledimx);
+            let numtilesandpadh = Math.floor(g_ctx.tilesetpxh / tileandpad);
+            g_ctx.tilesettileh = numtilesandpadh + Math.floor((g_ctx.tilesetpxh - (numtilesandpadh * tileandpad)) / g_ctx.tiledimx);
+            console.log("Number of x tiles ", g_ctx.tilesettilew, " y tiles ", g_ctx.tilesettileh);
+            g_ctx.MAXTILEINDEX = g_ctx.tilesettilew * g_ctx.tilesettileh;
+
+            texture.destroy();
+            resolve();
+            callme();
+        });
+
+    });
+}
+
+// --
+// Load default Tileset
+// --
+
 const initTilesConfig = async () => {
 
     g_ctx.tilesetpath = CONFIG.DEFAULTTILESETPATH;
@@ -1130,19 +1250,28 @@ const initTilesConfig = async () => {
     return new Promise((resolve, reject) => {
         
     const texture = new PIXI.BaseTexture(g_ctx.tilesetpath);
-    console.log("Loading texture ",g_ctx.tilesetpath);
+    if (g_ctx.debug_flag) {
+        console.log("initTilessConfi: Loading texture ",g_ctx.tilesetpath);
+    }
     texture .on('loaded', function() {
         // size of g_ctx.tileset in px
         g_ctx.tilesetpxw = texture.width;
         g_ctx.tilesetpxh = texture.height;
-        console.log("Texture size w:", g_ctx.tilesetpxw, "h:", g_ctx.tilesetpxh);
+        if (g_ctx.debug_flag) {
+            console.log("\tsize w:", g_ctx.tilesetpxw, "h:", g_ctx.tilesetpxh);
+        }
+
         // size of g_ctx.tileset in tiles
         let tileandpad = g_ctx.tiledimx + CONFIG.tilesetpadding;
         let numtilesandpadw = Math.floor(g_ctx.tilesetpxw / tileandpad);
         g_ctx.tilesettilew = numtilesandpadw + Math.floor((g_ctx.tilesetpxw - (numtilesandpadw * tileandpad))/g_ctx.tiledimx);
         let numtilesandpadh = Math.floor(g_ctx.tilesetpxh / tileandpad);
         g_ctx.tilesettileh = numtilesandpadh + Math.floor((g_ctx.tilesetpxh - (numtilesandpadh * tileandpad))/g_ctx.tiledimx);
-        console.log("Number of x tiles ",g_ctx.tilesettilew," y tiles ",g_ctx.tilesettileh);
+
+        if (g_ctx.debug_flag) {
+            console.log("\tnum tiles x ", g_ctx.tilesettilew, " y ", g_ctx.tilesettileh);
+        }
+
         g_ctx.MAXTILEINDEX = g_ctx.tilesettilew * g_ctx.tilesettileh;
 
         texture.destroy();
@@ -1181,13 +1310,18 @@ function initTiles() {
 async function init() {
 
     UI.initMainHTMLWindow();
-    await initTilesConfig(); // needs to be called before Pixi apps are initialized
+
+    // We need to load the Tileset to know how to size things. So we block until done. 
+    await initTilesConfig(); 
 
     initPixiApps();
     initRadios();
     initTiles();
-    initLevelLoader();
+
+    UI.initLevelLoader(loadMapFromModule);
     UI.initCompositePNGLoader();
+    UI.initSpriteSheetLoader();
+    UI.initTilesetLoader( loadMapFromModule.bind(null, g_ctx));
 }
 
 init();

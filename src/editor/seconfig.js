@@ -10,9 +10,13 @@
 // export const DEFAULTILEDIMX = 48; // px
 // export const DEFAULTILEDIMY = 96; // px
 
-export const DEFAULTTILESETPATH = "./spritesheets/tall.png";
-export const DEFAULTILEDIMX = 48; // px
-export const DEFAULTILEDIMY = 80; // px
+//export const DEFAULTTILESETPATH = "./spritesheets/tall.png";
+//export const DEFAULTILEDIMX = 48; // px
+//export const DEFAULTILEDIMY = 80; // px
+
+export const DEFAULTTILESETPATH = "./spritesheets/wateranimate2.png";
+export const DEFAULTILEDIMX = 32; // px
+export const DEFAULTILEDIMY = 32; // px
 
 
 // If there is padding between tilesets, set this to the pixel size

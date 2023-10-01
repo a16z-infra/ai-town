@@ -11,6 +11,7 @@ var ContextCreate = (function(){
         this.MAXTILEINDEX = 0;
         this.tile_index = 0;
         this.selected_tiles = []; // current set of selected tiles
+        this.spritesheet = null; // loaded spritesheet
         this.tiledimx = CONFIG.DEFAULTILEDIMX ; // px
         this.tiledimy = CONFIG.DEFAULTILEDIMY; // px
         this.dimlog = Math.log2(this.tileDim);  //log2(TileDim)

@@ -152,7 +152,7 @@ class LayerContext {
             .on('pointerup', onLevelDragEnd.bind(null, this))
             .on('pointerupoutside', onLevelDragEnd.bind(null, this));
 
-        if (mod != null) {
+        if (mod != null && !(mod === g_ctx)) {
             this.loadFromMapFile(mod);
         }
     }
@@ -401,11 +401,11 @@ function doimport (str) {
   }
 
 function loadMapFromModule(mod) {
-    g_ctx.tileset = new TilesetContext(tileset_app, mod);
-    layer0 = new LayerContext(g_ctx.g_layer_apps[0], document.getElementById("layer0pane"), 0, mod);
-    layer1 = new LayerContext(g_ctx.g_layer_apps[1], document.getElementById("layer1pane"), 1, mod);
-    layer2 = new LayerContext(g_ctx.g_layer_apps[2], document.getElementById("layer2pane"), 2, mod);
-    layer3 = new LayerContext(g_ctx.g_layer_apps[3], document.getElementById("layer3pane"), 3, mod);
+    g_ctx.tileset = new TilesetContext(g_ctx.tileset_app, mod);
+    g_ctx.layer0 = new LayerContext(g_ctx.g_layer_apps[0], document.getElementById("layer0pane"), 0, mod);
+    g_ctx.layer1 = new LayerContext(g_ctx.g_layer_apps[1], document.getElementById("layer1pane"), 1, mod);
+    g_ctx.layer2 = new LayerContext(g_ctx.g_layer_apps[2], document.getElementById("layer2pane"), 2, mod);
+    g_ctx.layer3 = new LayerContext(g_ctx.g_layer_apps[3], document.getElementById("layer3pane"), 3, mod);
 }
 
 function downloadpng(filename) {
@@ -1198,6 +1198,23 @@ function initTiles() {
     g_ctx.curtiles = g_ctx.tiles32;
 }
 
+// -- 
+// initailized handler to load a new tileset 
+// --
+
+function initTilesetLoader() {
+    const fileInput = document.getElementById('tilesetfile');
+    fileInput.onchange = async (evt) => {
+        if (!window.FileReader) return; // Browser is not compatible
+        if (g_ctx.debug_flag) {
+            console.log("tilesetfile ", fileInput.files[0].name);
+        }
+        g_ctx.tilesetpath =  "./spritesheets/"+fileInput.files[0].name;
+
+        loadMapFromModule(g_ctx);
+    }
+}
+
 async function init() {
 
     UI.initMainHTMLWindow();
@@ -1207,6 +1224,7 @@ async function init() {
     initRadios();
     initTiles();
     initLevelLoader();
+    initTilesetLoader();
     UI.initCompositePNGLoader();
 }
 

@@ -59,10 +59,12 @@
 </div>
 
 <div id="config" class="tabcontent">
-            <table><tr>
-                <td></td>
-                <td>level</td>
-                <td>Composite</td>
+            <table>
+            <tr>
+                <td>Composite to png</td>
+                <td>Load level</td>
+                <td>Load png to Composite</td>
+                <td>Load Sprite</td>
                 <td></td>
             </tr>
             <tr>
@@ -73,12 +75,23 @@
             </td><td>
             <input type="file" multiple id="compositepng">
             </td><td>
+            <input type="file" multiple id="spritesheet">
+            </td><td>
             <form name="myForm">
                 16 <input type="radio" name="radioTiledim"  value="16" />
                 32 <input type="radio" name="radioTiledim"  value="32" checked />
               </form>
               </td>
             </tr>
+
+            <tr>
+                <td>Load Tileset</td>
+            </tr>
+            <tr>
+                <td> <input type="file" multiple id="tilesetfile"> </td>
+            </tr>
+
+
             </table>
 </div>
 

@@ -4,8 +4,8 @@ export const tilesetpath = "./tilesets/magecity.png"
 export const tiledim = 32
 export const screenxtiles = 8
 export const screenytiles = 44
-export const tilefilew = 256
-export const tilefileh = 1408
+export const tilesetpxw = 256
+export const tilesetpxh = 1408
 
 export const bgtiles = [
    [
