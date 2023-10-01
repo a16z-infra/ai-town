@@ -19,7 +19,14 @@ export const defaultWorld = query({
       .query('worlds')
       .filter((q) => q.eq(q.field('isDefault'), true))
       .first();
-    return world;
+    if (!world) {
+      return null;
+    }
+    const engine = await ctx.db.get(world.engineId);
+    if (!engine) {
+      throw new Error(`Invalid engine ID: ${world.engineId}`);
+    }
+    return { engine, ...world };
   },
 });
 

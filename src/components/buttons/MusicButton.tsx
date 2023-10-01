@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
 import volumeImg from '../../../assets/volume.svg';
-
 import { sound } from '@pixi/sound';
 import Button from './Button';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 
 export default function MusicButton() {
-  const musicUrl = '/ai-town/assets/background.mp3';
+  const musicUrl = useQuery(api.music.getBackgroundMusic);
   const [isPlaying, setPlaying] = useState(false);
-  const [isLoaded, setLoaded] = useState(false);
+
   useEffect(() => {
-    if (!isLoaded) {
+    if (musicUrl) {
       sound.add('background', musicUrl).loop = true;
-      setLoaded(true);
     }
-  }, [isLoaded]);
+  }, [musicUrl]);
 
   const flipSwitch = async () => {
     if (isPlaying) {
@@ -35,10 +35,7 @@ export default function MusicButton() {
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyPress);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyPress);
-    };
+    return () => window.removeEventListener('keydown', handleKeyPress);
   }, [handleKeyPress]);
 
   return (

@@ -7,6 +7,11 @@ import { agentTables } from './agent/schema';
 export default defineSchema({
   worlds,
 
+  music: defineTable({
+    storageId: v.string(),
+    type: v.union(v.literal('background'), v.literal('player')),
+  }),
+
   typingIndicator: defineTable({
     conversationId: v.id('conversations'),
     typing: v.optional(v.object({ playerId: v.id('players'), since: v.number() })),
