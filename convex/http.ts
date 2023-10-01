@@ -1,14 +1,10 @@
-import { httpRouter } from "convex/server";
-import { handleReplicateWebhook } from "./lib/replicate";
+import { httpRouter } from 'convex/server';
+import { handleReplicateWebhook } from './music';
 
 const http = httpRouter();
-
 http.route({
-    path: "/replicate_webhook",
-    method: "POST",
-    handler: handleReplicateWebhook,
+  path: '/replicate_webhook',
+  method: 'POST',
+  handler: handleReplicateWebhook,
 });
-
-
-// Convex expects the router to be the default export of `convex/http.js`.
 export default http;
