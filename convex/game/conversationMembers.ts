@@ -11,8 +11,8 @@ export const conversationMembers = defineTable({
   status: v.union(
     v.object({ kind: v.literal('invited') }),
     v.object({ kind: v.literal('walkingOver') }),
-    v.object({ kind: v.literal('participating'), since: v.number() }),
-    v.object({ kind: v.literal('left'), when: v.number() }),
+    v.object({ kind: v.literal('participating'), started: v.number() }),
+    v.object({ kind: v.literal('left'), started: v.optional(v.number()), ended: v.number() }),
   ),
 })
   .index('conversationId', ['conversationId', 'playerId'])

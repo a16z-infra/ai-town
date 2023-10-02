@@ -282,7 +282,8 @@ export class AiTown extends Game<Inputs> {
     conversation.finished = now;
     const members = this.conversationMembers.filter((m) => m.conversationId === conversation._id);
     for (const member of members) {
-      member.status = { kind: 'left', when: now };
+      const started = member.status.kind === 'participating' ? member.status.started : undefined;
+      member.status = { kind: 'left', started, ended: now };
     }
   }
 
@@ -398,8 +399,8 @@ export class AiTown extends Game<Inputs> {
       if (playerDistance < CONVERSATION_DISTANCE) {
         console.log(`Starting conversation between ${player1._id} and ${player2._id}`);
 
-        member1.status = { kind: 'participating', since: now };
-        member2.status = { kind: 'participating', since: now };
+        member1.status = { kind: 'participating', started: now };
+        member2.status = { kind: 'participating', started: now };
 
         // Stop the two players from moving.
         delete player1.pathfinding;

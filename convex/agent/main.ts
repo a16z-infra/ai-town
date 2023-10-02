@@ -197,7 +197,7 @@ class Agent {
         return this.now + INPUT_DELAY;
       }
       if (playerConversation.member.status.kind === 'participating') {
-        const started = playerConversation.member.status.since;
+        const started = playerConversation.member.status.started;
 
         // If we're in a conversation and someone else is typing, wait for
         // them to finish.
@@ -383,7 +383,7 @@ class Agent {
           if (playerMember.status.kind !== 'left') {
             throw new Error(`Conversation ${conversation._id} is not left`);
           }
-          lastConversationWithPlayer = { playerLeft: playerMember.status.when, ...conversation };
+          lastConversationWithPlayer = { playerLeft: playerMember.status.ended, ...conversation };
         }
       }
       players.push({ position, conversation, lastConversationWithPlayer, ...otherPlayer });

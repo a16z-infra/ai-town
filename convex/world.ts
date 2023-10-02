@@ -5,6 +5,7 @@ import { sendInput } from './game/main';
 import { IDLE_WORLD_TIMEOUT } from './constants';
 import { restartAgents, stopAgents } from './agent/init';
 import { restartWorld } from './init';
+import { Doc, Id } from './_generated/dataModel';
 
 export const defaultWorld = query({
   handler: async (ctx) => {
@@ -230,11 +231,16 @@ export const activePlayers = query({
   },
 });
 
+export type ConversationState = Doc<'conversations'> & {
+  member: Doc<'conversationMembers'>;
+  otherPlayerId: Id<'players'>;
+};
+
 export const loadConversationState = query({
   args: {
     playerId: v.id('players'),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<null | ConversationState> => {
     const player = await ctx.db.get(args.playerId);
     if (!player) {
       throw new Error(`Invalid player ID: ${args.playerId}`);
@@ -305,5 +311,26 @@ export const previousConversation = query({
       return conversation;
     }
     return null;
+  },
+});
+
+export const conversationMembers = query({
+  args: {
+    conversationId: v.id('conversations'),
+  },
+  handler: async (ctx, args) => {
+    const members = await ctx.db
+      .query('conversationMembers')
+      .withIndex('conversationId', (q) => q.eq('conversationId', args.conversationId))
+      .collect();
+    const out = [];
+    for (const member of members) {
+      const player = await ctx.db.get(member.playerId);
+      if (!player) {
+        throw new Error(`Invalid player ID: ${member.playerId}`);
+      }
+      out.push({ playerName: player.name, ...member });
+    }
+    return out;
   },
 });

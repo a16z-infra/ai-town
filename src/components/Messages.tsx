@@ -20,30 +20,65 @@ export function Messages({
   const currentlyTyping = useQuery(api.messages.currentlyTyping, {
     conversationId: conversation._id,
   });
+  const members = useQuery(api.world.conversationMembers, { conversationId: conversation._id });
 
-  if (messages === undefined || currentlyTyping === undefined) {
+  if (messages === undefined || currentlyTyping === undefined || members === undefined) {
     return null;
   }
   if (messages.length === 0 && !inConversationWithMe) {
     return null;
   }
+  const messageNodes: { time: number; node: React.ReactNode }[] = messages.map((m) => {
+    const node = (
+      <div key={`text-${m._id}`} className="leading-tight mb-6">
+        <div className="flex gap-4">
+          <span className="uppercase flex-grow">{m.authorName}</span>
+          <time dateTime={m._creationTime.toString()}>
+            {new Date(m._creationTime).toLocaleString()}
+          </time>
+        </div>
+        <div className={clsx('bubble', m.author === humanPlayerId && 'bubble-mine')}>
+          <p className="bg-white -mx-3 -my-1">{m.text}</p>
+        </div>
+      </div>
+    );
+    return { node, time: m._creationTime };
+  });
+  const membershipNodes: typeof messageNodes = members.flatMap((m) => {
+    let started;
+    if (m.status.kind === 'participating' || m.status.kind === 'left') {
+      started = m.status.started;
+    }
+    const ended = m.status.kind === 'left' ? m.status.ended : undefined;
+    const out = [];
+    if (started) {
+      out.push({
+        node: (
+          <div key={`joined-${m._id}`} className="leading-tight mb-6">
+            <p className="text-brown-700 text-center">{m.playerName} joined the conversation</p>
+          </div>
+        ),
+        time: started,
+      });
+    }
+    if (ended) {
+      out.push({
+        node: (
+          <div key={`left-${m._id}`} className="leading-tight mb-6">
+            <p className="text-brown-700 text-center">{m.playerName} left the conversation</p>
+          </div>
+        ),
+        time: ended,
+      });
+    }
+    return out;
+  });
+  const nodes = [...messageNodes, ...membershipNodes];
+  nodes.sort((a, b) => a.time - b.time);
   return (
     <div className="chats">
       <div className="bg-brown-200 text-black p-2">
-        {messages.length > 0 &&
-          messages.map((m) => (
-            <div key={m._id} className="leading-tight mb-6">
-              <div className="flex gap-4">
-                <span className="uppercase flex-grow">{m.authorName}</span>
-                <time dateTime={m._creationTime.toString()}>
-                  {new Date(m._creationTime).toLocaleString()}
-                </time>
-              </div>
-              <div className={clsx('bubble', m.author === humanPlayerId && 'bubble-mine')}>
-                <p className="bg-white -mx-3 -my-1">{m.text}</p>
-              </div>
-            </div>
-          ))}
+        {nodes.length > 0 && nodes.map((n) => n.node)}
         {currentlyTyping && currentlyTyping.playerId !== humanPlayerId && (
           <div key="typing" className="leading-tight mb-6">
             <div className="flex gap-4">
