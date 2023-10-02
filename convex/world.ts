@@ -3,7 +3,7 @@ import { internalMutation, mutation, query } from './_generated/server';
 import { characters } from '../data/characters';
 import { sendInput } from './game/main';
 import { IDLE_WORLD_TIMEOUT } from './constants';
-import { restartAgents } from './agent/init';
+import { restartAgents, stopAgents } from './agent/init';
 import { restartWorld } from './init';
 
 export const defaultWorld = query({
@@ -67,6 +67,7 @@ export const stopInactiveWorlds = internalMutation({
       }
       // TODO: When we can cancel scheduled jobs, do that transactionally here. For now,
       // just bump the generation number to cancel future runs.
+      await stopAgents(ctx, { worldId: world._id });
       engine.generationNumber = engine.generationNumber + 1;
       await ctx.db.replace(engine._id, engine);
     }
