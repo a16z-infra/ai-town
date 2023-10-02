@@ -5,6 +5,7 @@ import { v } from 'convex/values';
 import schema from './schema';
 import { kickEngine, startEngine, stopEngine } from './engine/game';
 import { DELETE_BATCH_SIZE } from './constants';
+import { insertInput } from './game/main';
 
 // Clear all of the tables except for the embeddings cache.
 const excludedTables: Array<TableNames> = ['embeddingsCache'];
@@ -126,7 +127,7 @@ export const debugCreatePlayers = internalMutation({
       throw new Error('No default world');
     }
     for (let i = 0; i < args.numPlayers; i++) {
-      const inputId = await insertInput(ctx, world?.engineId, 'join', {
+      const inputId = await insertInput(ctx, world._id, 'join', {
         name: `Robot${i}`,
         description: `This player is a robot.`,
         character: `f${1 + (i % 8)}`,
@@ -144,16 +145,20 @@ export const randomPositions = internalMutation({
     if (!world) {
       throw new Error('No default world');
     }
+    const map = await ctx.db.get(world.mapId);
+    if (!map) {
+      throw new Error(`Invalid map ID: ${world.mapId}`);
+    }
     const players = await ctx.db
       .query('players')
-      .withIndex('active', (q) => q.eq('engineId', world.engineId).eq('active', true))
+      .withIndex('active', (q) => q.eq('worldId', world._id).eq('active', true))
       .collect();
     for (const player of players) {
-      await insertInput(ctx, world.engineId, 'moveTo', {
+      await insertInput(ctx, world._id, 'moveTo', {
         playerId: player._id,
         destination: {
-          x: 1 + Math.floor(Math.random() * (mapWidth - 2)),
-          y: 1 + Math.floor(Math.random() * (mapHeight - 2)),
+          x: 1 + Math.floor(Math.random() * (map.width - 2)),
+          y: 1 + Math.floor(Math.random() * (map.height - 2)),
         },
       });
     }
