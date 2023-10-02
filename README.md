@@ -118,7 +118,17 @@ the functions. If you already have `npm run dev` running, this will be faster.
 If you remove it, it'll push up the latest version of code before running the
 command.
 
-**To stop the back end, in case of too much activity**
+**To pause your backend deployment, stopping all activity**
+
+You can go to the [dashboard](https://dashboard.convex.dev) to your deployment
+settings to pause and un-pause your deployment. This will stop all functions, whether invoked
+from the client, scheduled, or as a cron job. See this as a last resort, as
+there are gentler ways of stopping below.
+
+**To stop the back end**
+
+This will stop running the engine and agents. You can still run queries and
+run functions to debug.
 
 ```bash
 npx convex run --no-push init:stop
