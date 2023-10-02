@@ -6,12 +6,11 @@ import { Players } from './players';
 import { DatabaseWriter } from '../_generated/server';
 import { Locations } from './locations';
 import { blocked, findRoute } from './movement';
-import { characters } from '../data/characters';
+import { characters } from '../../data/characters';
 import { EPSILON, distance, normalize, pathPosition, pointsEqual, vector } from '../util/geometry';
 import { CONVERSATION_DISTANCE, PATHFINDING_BACKOFF, PATHFINDING_TIMEOUT } from '../constants';
 import { Conversations } from './conversations';
 import { ConversationMembers } from './conversationMembers';
-import { mapHeight, mapWidth } from '../data/map';
 
 export class AiTown extends Game<Inputs> {
   tickDuration = 16;
@@ -21,6 +20,8 @@ export class AiTown extends Game<Inputs> {
 
   constructor(
     public engineId: Id<'engines'>,
+    public world: Doc<'worlds'>,
+    public map: Doc<'maps'>,
     public players: Players,
     public locations: Locations,
     public conversations: Conversations,
@@ -29,12 +30,21 @@ export class AiTown extends Game<Inputs> {
     super();
   }
 
-  static async load(db: DatabaseWriter, engineId: Id<'engines'>) {
-    const players = await Players.load(db, engineId);
+  static async load(db: DatabaseWriter, worldId: Id<'worlds'>) {
+    const world = await db.get(worldId);
+    if (!world) {
+      throw new Error(`Invalid world ID: ${worldId}`);
+    }
+    const map = await db.get(world.mapId);
+    if (!map) {
+      throw new Error(`Invalid map ID: ${world.mapId}`);
+    }
+    const { engineId } = world;
+    const players = await Players.load(db, worldId);
     const locations = await Locations.load(db, engineId, players);
-    const conversations = await Conversations.load(db, engineId);
+    const conversations = await Conversations.load(db, worldId);
     const conversationMembers = await ConversationMembers.load(db, engineId, conversations);
-    return new AiTown(engineId, players, locations, conversations, conversationMembers);
+    return new AiTown(engineId, world, map, players, locations, conversations, conversationMembers);
   }
 
   async handleInput(
@@ -70,8 +80,8 @@ export class AiTown extends Game<Inputs> {
     let position;
     for (let attempt = 0; attempt < 10; attempt++) {
       const candidate = {
-        x: Math.floor(Math.random() * mapWidth),
-        y: Math.floor(Math.random() * mapHeight),
+        x: Math.floor(Math.random() * this.map.width),
+        y: Math.floor(Math.random() * this.map.height),
       };
       if (blocked(this, now, candidate)) {
         continue;
@@ -100,7 +110,7 @@ export class AiTown extends Game<Inputs> {
       velocity: 0,
     });
     const playerId = await this.players.insert({
-      engineId: this.engineId,
+      worldId: this.world._id,
       name,
       description,
       active: true,
@@ -186,7 +196,7 @@ export class AiTown extends Game<Inputs> {
     }
     const conversationId = await this.conversations.insert({
       creator: playerId,
-      engineId: this.engineId,
+      worldId: this.world._id,
     });
     console.log(`Creating conversation ${conversationId}`);
     await this.conversationMembers.insert({

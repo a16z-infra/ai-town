@@ -5,25 +5,25 @@ import { DatabaseWriter } from '../_generated/server';
 import { Doc, Id } from '../_generated/dataModel';
 
 export const conversations = defineTable({
-  engineId: v.id('engines'),
+  worldId: v.id('worlds'),
   creator: v.id('players'),
   finished: v.optional(v.number()),
-}).index('engineId', ['engineId', 'finished']);
+}).index('worldId', ['worldId', 'finished']);
 
 export class Conversations extends GameTable<'conversations'> {
   table = 'conversations' as const;
 
-  static async load(db: DatabaseWriter, engineId: Id<'engines'>): Promise<Conversations> {
+  static async load(db: DatabaseWriter, worldId: Id<'worlds'>): Promise<Conversations> {
     const rows = await db
       .query('conversations')
-      .withIndex('engineId', (q) => q.eq('engineId', engineId).eq('finished', undefined))
+      .withIndex('worldId', (q) => q.eq('worldId', worldId).eq('finished', undefined))
       .collect();
-    return new Conversations(db, engineId, rows);
+    return new Conversations(db, worldId, rows);
   }
 
   constructor(
     public db: DatabaseWriter,
-    public engineId: Id<'engines'>,
+    public worldId: Id<'worlds'>,
     rows: Doc<'conversations'>[],
   ) {
     super(rows);

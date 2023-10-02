@@ -1,11 +1,27 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { gameTables } from './game/schema';
-import { worlds } from './world';
 import { v } from 'convex/values';
 import { agentTables } from './agent/schema';
 
 export default defineSchema({
-  worlds,
+  worlds: defineTable({
+    isDefault: v.boolean(),
+    engineId: v.id('engines'),
+    lastViewed: v.number(),
+    mapId: v.id('maps'),
+  }),
+  maps: defineTable({
+    width: v.number(),
+    height: v.number(),
+
+    tileSetUrl: v.string(),
+    //  Width & height of tileset image, px (assume square)
+    tileSetDim: v.number(),
+    // Tile size in pixels (assume square)
+    tileDim: v.number(),
+    bgTiles: v.array(v.array(v.array(v.number()))),
+    objectTiles: v.array(v.array(v.number())),
+  }),
 
   music: defineTable({
     storageId: v.string(),

@@ -8,14 +8,14 @@ import { Id } from '../_generated/dataModel';
 
 export const runStep = mutation({
   args: {
-    engineId: v.id('engines'),
+    worldId: v.id('worlds'),
     generationNumber: v.number(),
   },
   handler: async (ctx, args): Promise<void> => {
-    const game = await AiTown.load(ctx.db, args.engineId);
+    const game = await AiTown.load(ctx.db, args.worldId);
     const { idleUntil, generationNumber } = await game.runStep(ctx, args.generationNumber);
     await ctx.scheduler.runAt(idleUntil, api.game.main.runStep, {
-      engineId: args.engineId,
+      worldId: args.worldId,
       generationNumber,
     });
   },
@@ -23,15 +23,19 @@ export const runStep = mutation({
 
 export async function insertInput<Name extends InputNames>(
   ctx: MutationCtx,
-  engineId: Id<'engines'>,
+  worldId: Id<'worlds'>,
   name: Name,
   args: InputArgs<Name>,
 ): Promise<Id<'inputs'>> {
-  const { inputId, preemption } = await gameInsertInput(ctx, engineId, name, args);
+  const world = await ctx.db.get(worldId);
+  if (!world) {
+    throw new Error(`Invalid world ID: ${worldId}`);
+  }
+  const { inputId, preemption } = await gameInsertInput(ctx, world.engineId, name, args);
   if (preemption) {
     const { now, generationNumber } = preemption;
     await ctx.scheduler.runAt(now, api.game.main.runStep, {
-      engineId,
+      worldId,
       generationNumber,
     });
   }
@@ -40,12 +44,12 @@ export async function insertInput<Name extends InputNames>(
 
 export const sendInput = mutation({
   args: {
-    engineId: v.id('engines'),
+    worldId: v.id('worlds'),
     name: v.string(),
     args: v.any(),
   },
   handler: async (ctx, args) => {
-    return await insertInput(ctx, args.engineId, args.name as InputNames, args.args);
+    return await insertInput(ctx, args.worldId, args.name as InputNames, args.args);
   },
 });
 

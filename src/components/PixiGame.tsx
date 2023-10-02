@@ -3,7 +3,6 @@ import { Player, SelectElement } from './Player.tsx';
 import { useRef } from 'react';
 import { PixiStaticMap } from './PixiStaticMap.tsx';
 import PixiViewport from './PixiViewport.tsx';
-import map from '../../convex/data/map.ts';
 import { Viewport } from 'pixi-viewport';
 import { Id } from '../../convex/_generated/dataModel';
 import { useQuery } from 'convex/react';
@@ -21,6 +20,8 @@ export const PixiGame = (props: {
   // PIXI setup.
   const pixiApp = useApp();
   const viewportRef = useRef<Viewport | undefined>();
+
+  const world = useQuery(api.world.defaultWorld);
 
   const humanPlayerId = useQuery(api.world.userStatus, { worldId: props.worldId }) ?? null;
   const players = useQuery(api.world.activePlayers, { worldId: props.worldId }) ?? [];
@@ -47,28 +48,34 @@ export const PixiGame = (props: {
       return;
     }
     const viewport = viewportRef.current;
-    if (!viewport) {
+    if (!viewport || !world) {
       return;
     }
     const gameSpacePx = viewport.toWorld(e.screenX, e.screenY);
     const gameSpaceTiles = {
-      x: Math.floor(gameSpacePx.x / map.tileDim),
-      y: Math.floor(gameSpacePx.y / map.tileDim),
+      x: Math.floor(gameSpacePx.x / world.map.tileDim),
+      y: Math.floor(gameSpacePx.y / world.map.tileDim),
     };
     console.log(`Moving to ${JSON.stringify(gameSpaceTiles)}`);
     await toastOnError(moveTo({ playerId: humanPlayerId, destination: gameSpaceTiles }));
   };
-
+  if (!world) {
+    return null;
+  }
   return (
     <PixiViewport
       app={pixiApp}
       screenWidth={props.width}
       screenHeight={props.height}
-      worldWidth={map.tileSetDim}
-      worldHeight={map.tileSetDim}
+      worldWidth={world.map.tileSetDim}
+      worldHeight={world.map.tileSetDim}
       viewportRef={viewportRef}
     >
-      <PixiStaticMap onpointerup={onMapPointerUp} onpointerdown={onMapPointerDown} />
+      <PixiStaticMap
+        map={world.map}
+        onpointerup={onMapPointerUp}
+        onpointerdown={onMapPointerDown}
+      />
       {players.map((p) => (
         <Player
           key={p._id}

@@ -2,25 +2,25 @@
 // Definition of a very basic map
 //
 
-// - Curremtly pulls tiles from a 1600x1600 pixel tilemap of 32x32pixel tiles
+// - Currently pulls tiles from a 1600x1600 pixel tilemap of 32x32pixel tiles
 // - Map has two layers, the first are background tiles that the characters can walk on
 // - The second is populated with objects the characters cannot walk on
 // --
 
-export const tilesetpath = '/ai-town/assets/rpg-tileset.png';
+export const tilesetPath = '/ai-town/assets/rpg-tileset.png';
 // sort of a hack to deal with limitations in the tile map
-export const bgtileindex = 51;
+export const bgTileIndex = 51;
 
 // properties of tilemap
-export const tiledim = 32; // 32x32 pixel tiles
+export const tileDim = 32; // 32x32 pixel tiles
 // properties of onscreen map
-export const screenxtiles = 24;
-export const screenytiles = 16;
+export const screenXTiles = 24;
+export const screenYTiles = 16;
 
-export const tilefiledim = 1600; // 1600x1600 pixel file
+export const tileFileDim = 1600; // 1600x1600 pixel file
 
 // background tiles. Character should be able to walk over there
-export const bgtiles = [
+export const bgTiles = [
   [
     [
       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -196,13 +196,5 @@ export const objmap = [
   [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
 ];
 
-export const mapWidth = bgtiles[0][0].length;
-export const mapHeight = bgtiles[0].length;
-
-export default {
-  tileSetUrl: tilesetpath,
-  tileSetDim: tilefiledim,
-  tileDim: tiledim,
-  bgTiles: bgtiles,
-  objectTiles: objmap,
-};
+export const mapWidth = bgTiles[0][0].length;
+export const mapHeight = bgTiles[0].length;

@@ -49,7 +49,7 @@ export const enqueueBackgroundMusicGeneration = internalAction({
       return;
     }
     const world = await ctx.runQuery(api.world.defaultWorld);
-    if (!world || !world.engine.active) {
+    if (!world) {
       console.log('No active default world, returning.');
       return;
     }

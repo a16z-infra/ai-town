@@ -1,17 +1,10 @@
 import { v } from 'convex/values';
 import { internalMutation, mutation, query } from './_generated/server';
-import { characters } from './data/characters';
-import { defineTable } from 'convex/server';
+import { characters } from '../data/characters';
 import { sendInput } from './game/main';
 import { IDLE_WORLD_TIMEOUT } from './constants';
 import { restartAgents } from './agent/init';
 import { restartWorld } from './init';
-
-export const worlds = defineTable({
-  isDefault: v.boolean(),
-  engineId: v.id('engines'),
-  lastViewed: v.number(),
-});
 
 export const defaultWorld = query({
   handler: async (ctx) => {
@@ -22,11 +15,11 @@ export const defaultWorld = query({
     if (!world) {
       return null;
     }
-    const engine = await ctx.db.get(world.engineId);
-    if (!engine) {
-      throw new Error(`Invalid engine ID: ${world.engineId}`);
+    const map = await ctx.db.get(world.mapId);
+    if (!map) {
+      throw new Error(`Invalid map ID: ${world.mapId}`);
     }
-    return { engine, ...world };
+    return { map, ...world };
   },
 });
 
@@ -52,7 +45,7 @@ export const heartbeatWorld = mutation({
       return;
     }
     await restartWorld(ctx, args.worldId);
-    await restartAgents(ctx, { engineId: world.engineId });
+    await restartAgents(ctx, { worldId: args.worldId });
   },
 });
 
@@ -113,7 +106,7 @@ export const userStatus = query({
     const player = await ctx.db
       .query('players')
       .withIndex('active', (q) =>
-        q.eq('engineId', world.engineId).eq('active', true).eq('human', identity.tokenIdentifier),
+        q.eq('worldId', world._id).eq('active', true).eq('human', identity.tokenIdentifier),
       )
       .first();
     return player?._id ?? null;
@@ -140,14 +133,14 @@ export const joinWorld = mutation({
     const existingPlayer = await ctx.db
       .query('players')
       .withIndex('active', (q) =>
-        q.eq('engineId', world.engineId).eq('active', true).eq('human', identity.tokenIdentifier),
+        q.eq('worldId', world._id).eq('active', true).eq('human', identity.tokenIdentifier),
       )
       .first();
     if (existingPlayer) {
       throw new Error(`Already joined as ${existingPlayer._id}`);
     }
     await sendInput(ctx, {
-      engineId: world.engineId,
+      worldId: world._id,
       name: 'join',
       args: {
         name: identity.givenName,
@@ -176,14 +169,14 @@ export const leaveWorld = mutation({
     const existingPlayer = await ctx.db
       .query('players')
       .withIndex('active', (q) =>
-        q.eq('engineId', world.engineId).eq('active', true).eq('human', tokenIdentifier),
+        q.eq('worldId', world._id).eq('active', true).eq('human', tokenIdentifier),
       )
       .first();
     if (!existingPlayer) {
       return;
     }
     await sendInput(ctx, {
-      engineId: world.engineId,
+      worldId: world._id,
       name: 'leave',
       args: {
         playerId: existingPlayer._id,
@@ -204,7 +197,7 @@ export const sendWorldInput = mutation({
       throw new Error(`Invalid world ID: ${args.worldId}`);
     }
     return await sendInput(ctx, {
-      engineId: world.engineId,
+      worldId: world._id,
       name: args.name,
       args: args.args,
     });
@@ -223,7 +216,7 @@ export const activePlayers = query({
     const out = [];
     const players = await ctx.db
       .query('players')
-      .withIndex('active', (q) => q.eq('engineId', world.engineId).eq('active', true))
+      .withIndex('active', (q) => q.eq('worldId', world._id).eq('active', true))
       .collect();
     for (const player of players) {
       const location = await ctx.db.get(player.locationId);
