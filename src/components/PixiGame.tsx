@@ -102,9 +102,6 @@ export const PixiGame = (props: {
         <PositionIndicator destination={lastDestination} tileDim={world.map.tileDim} />
       )}
       {players.map((p) => (
-        <PlayerPath key={`path-${p._id}`} player={p} />
-      ))}
-      {players.map((p) => (
         <Player
           key={`player-${p._id}`}
           player={p}
