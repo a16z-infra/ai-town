@@ -4,7 +4,12 @@ import { ActionCtx, DatabaseReader, internalMutation, internalQuery } from '../_
 import { Doc, Id } from '../_generated/dataModel';
 import { internal } from '../_generated/api';
 import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/openai';
-import * as embeddingsCache from './embeddingsCache';
+
+// How long to wait before update a memory's last access time.
+export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
+// We fetch 10x the number of memories by relevance, to have more candidates
+// for sorting by relevance + recency + importance.
+const MEMORY_OVERFETCH = 10;
 
 const selfInternal = internal.agent.memory;
 
@@ -15,21 +20,19 @@ const memoryFields = {
   importance: v.number(),
   lastAccess: v.number(),
   data: v.union(
-    // Useful for seed memories, high level goals
     // Setting up dynamics between players
     v.object({
       type: v.literal('relationship'),
+      // The player this memory is about, from the perspective of the player
+      // whose memory this is.
       playerId: v.id('players'),
     }),
-    // Per-agent summary of recent observations
-    // Can start out all the same, but could be dependent on personality
     v.object({
       type: v.literal('conversation'),
       conversationId: v.id('conversations'),
+      // The other player(s) in the conversation.
+      playerIds: v.array(v.id('players')),
     }),
-
-    // Exercises left to the reader:
-
     v.object({
       type: v.literal('reflection'),
       relatedMemoryIds: v.array(v.id('memories')),
@@ -66,8 +69,10 @@ export async function rememberConversation(
       "I," and add if you liked or disliked this interaction.`,
     },
   ];
+  const authors = new Set<Id<'players'>>();
   for (const message of messages) {
     const author = message.author === player._id ? player : otherPlayer;
+    authors.add(author._id);
     const recipient = message.author === player._id ? otherPlayer : player;
     llmMessages.push({
       role: 'user',
@@ -84,6 +89,7 @@ export async function rememberConversation(
   ).toLocaleString()}: ${await content.readAll()}`;
   const importance = await calculateImportance(player, description);
   const { embedding } = await fetchEmbedding(description);
+  authors.delete(player._id);
   await ctx.runMutation(selfInternal.insertMemory, {
     agentId,
     generationNumber,
@@ -95,6 +101,7 @@ export async function rememberConversation(
     data: {
       type: 'conversation',
       conversationId,
+      playerIds: [...authors],
     },
     embedding,
   });
@@ -135,43 +142,93 @@ export const loadConversation = internalQuery({
   },
 });
 
-export async function queryOpinionAboutPlayer(
+export async function searchMemories(
   ctx: ActionCtx,
   player: Doc<'players'>,
-  otherPlayer: Doc<'players'>,
+  searchEmbedding: number[],
+  n: number = 3,
 ) {
-  const embedding = await embeddingsCache.fetch(
-    ctx,
-    `What do you think about ${otherPlayer.name}?`,
-  );
-  const results = await ctx.vectorSearch('memoryEmbeddings', 'embedding', {
-    vector: embedding,
+  const candidates = await ctx.vectorSearch('memoryEmbeddings', 'embedding', {
+    vector: searchEmbedding,
     filter: (q) => q.eq('playerId', player._id),
-    limit: 3,
+    limit: n * MEMORY_OVERFETCH,
   });
-  const summaries = await ctx.runQuery(selfInternal.loadMemories, {
-    embeddingIds: results.map((r) => r._id),
+  const rankedMemories = await ctx.runMutation(selfInternal.rankAndTouchMemories, {
+    candidates,
+    n,
   });
-  return summaries;
+  return rankedMemories.map(({ memory }) => memory);
 }
 
-export const loadMemories = internalQuery({
+/**
+ * asyncMap returns the results of applying an async function over an list.
+ *
+ * @param list - Iterable object of items, e.g. an Array, Set, Object.keys
+ * @param asyncTransform
+ * @returns
+ */
+export async function asyncMap<FromType, ToType>(
+  list: Iterable<FromType>,
+  asyncTransform: (item: FromType, index: number) => Promise<ToType>,
+): Promise<ToType[]> {
+  const promises: Promise<ToType>[] = [];
+  let idx = 0;
+  for (const item of list) {
+    promises.push(asyncTransform(item, idx));
+    idx += 1;
+  }
+  return Promise.all(promises);
+}
+
+function makeRange(values: number[]) {
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  return [min, max] as const;
+}
+
+function normalize(value: number, range: readonly [number, number]) {
+  const [min, max] = range;
+  return (value - min) / (max - min);
+}
+
+export const rankAndTouchMemories = internalMutation({
   args: {
-    embeddingIds: v.array(v.id('memoryEmbeddings')),
+    candidates: v.array(v.object({ _id: v.id('memoryEmbeddings'), _score: v.number() })),
+    n: v.number(),
   },
   handler: async (ctx, args) => {
-    const out = [];
-    for (const embeddingId of args.embeddingIds) {
-      const memory = await ctx.db
-        .query('memories')
-        .withIndex('embeddingId', (q) => q.eq('embeddingId', embeddingId))
-        .first();
-      if (!memory) {
-        throw new Error(`Memory with embedding ${embeddingId} not found`);
+    const ts = Date.now();
+    const relatedMemories = await asyncMap(
+      args.candidates,
+      async ({ _id }) =>
+        (await ctx.db
+          .query('memories')
+          .withIndex('embeddingId', (q) => q.eq('embeddingId', _id))
+          .first())!,
+    );
+    // TODO: fetch <count> recent memories and <count> important memories
+    // so we don't miss them in case they were a little less relevant.
+    const recencyScore = relatedMemories.map((memory) => {
+      return 0.99 ^ Math.floor((ts - memory!.lastAccess) / 1000 / 60 / 60);
+    });
+    const relevanceRange = makeRange(args.candidates.map((c) => c._score));
+    const importanceRange = makeRange(relatedMemories.map((m) => m.importance));
+    const recencyRange = makeRange(recencyScore);
+    const memoryScores = relatedMemories.map((memory, idx) => ({
+      memory,
+      overallScore:
+        normalize(args.candidates[idx]._score, relevanceRange) +
+        normalize(memory.importance, importanceRange) +
+        normalize(recencyScore[idx], recencyRange),
+    }));
+    memoryScores.sort((a, b) => b.overallScore - a.overallScore);
+    const accessed = memoryScores.slice(0, args.n);
+    await asyncMap(accessed, async ({ memory }) => {
+      if (memory.lastAccess < ts - MEMORY_ACCESS_THROTTLE) {
+        await ctx.db.patch(memory._id, { lastAccess: ts });
       }
-      out.push(memory.description);
-    }
-    return out;
+    });
+    return accessed;
   },
 });
 
