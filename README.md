@@ -190,7 +190,7 @@ NOTE: every time you change character data, you should re-run
 This is because character data is sent to Convex on the initial load.
 However, beware that `npx convex run testing:debugClearAll --no-push` WILL wipe all of your data.
 
-1. Create your own characters and stories: All characters and stories, as well as their spritesheet references are stored in [data.ts](./data/characters.ts). You can start by changing character descriptions.
+1. Create your own characters and stories: All characters and stories, as well as their spritesheet references are stored in [characters.ts](./data/characters.ts). You can start by changing character descriptions.
 
 2. Updating spritesheets: in `data/characters.ts`, you will see this code:
 
