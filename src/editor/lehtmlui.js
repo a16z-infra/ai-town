@@ -47,7 +47,7 @@ export function initCompositePNGLoader() {
         }
         let bgname = fileInput.files[0].name;
 
-        const texture = PIXI.Texture.from("./"+bgname);
+        const texture = PIXI.Texture.from("./tilesets/"+bgname);
         const bg      = new PIXI.Sprite(texture);
         bg.zIndex = 0;
         g_ctx.composite.container.addChild(bg);

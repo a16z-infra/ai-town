@@ -25,4 +25,4 @@ export default defineSchema({
 
   ...gameTables,
   ...agentTables,
-});
+}, {schemaValidation: false});

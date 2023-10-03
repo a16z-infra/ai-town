@@ -2,6 +2,8 @@
 // Simple level editer. 
 //
 // TODO:
+//  -- right now if plaxing a sprite, will place based on selected tiles. So need to clear that when
+//     loading a sprite
 //  -- fix hardcoded animations, hack of putting spritesheet into g_ctx etc
 //  -- create tab that contains all animations for a given json file 
 //  -- add portals to level for character start positions
