@@ -4,6 +4,7 @@ import { ActionCtx, DatabaseReader, internalMutation, internalQuery } from '../_
 import { Doc, Id } from '../_generated/dataModel';
 import { internal } from '../_generated/api';
 import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/openai';
+import { ACTION_TIMEOUT } from './constants';
 
 // How long to wait before updating a memory's last access time.
 export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
@@ -61,6 +62,13 @@ export async function rememberConversation(
   if (!messages.length) {
     return;
   }
+  const now = Date.now();
+
+  // Set the `isThinking` flag and schedule a function to clear it after 60s. We'll
+  // also clear the flag in `insertMemory` below to stop thinking early on success.
+  await ctx.runMutation(selfInternal.startThinking, { agentId, now });
+  await ctx.scheduler.runAfter(ACTION_TIMEOUT, selfInternal.clearThinking, { agentId, since: now });
+
   const llmMessages: LLMMessage[] = [
     {
       role: 'user',
@@ -283,6 +291,35 @@ async function calculateImportance(player: Doc<'players'>, description: string) 
 }
 
 const { embeddingId, ...memoryFieldsWithoutEmbeddingId } = memoryFields;
+export const startThinking = internalMutation({
+  args: {
+    agentId: v.id('agents'),
+    now: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.agentId, { isThinking: { since: args.now } });
+  },
+});
+
+export const clearThinking = internalMutation({
+  args: {
+    agentId: v.id('agents'),
+    since: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent) {
+      throw new Error(`Agent ${args.agentId} not found`);
+    }
+    if (!agent.isThinking) {
+      return;
+    }
+    if (agent.isThinking.since !== args.since) {
+      return;
+    }
+    await ctx.db.patch(args.agentId, { isThinking: undefined });
+  },
+});
 
 export const insertMemory = internalMutation({
   args: {
@@ -302,6 +339,8 @@ export const insertMemory = internalMutation({
         `Agent ${agentId} generation number ${agent.generationNumber} does not match ${generationNumber}`,
       );
     }
+    // Clear the `isThinking` flag atomically with inserting the memory.
+    await ctx.db.patch(agentId, { isThinking: undefined });
     const embeddingId = await ctx.db.insert('memoryEmbeddings', {
       playerId: memory.playerId,
       embedding: embedding,

@@ -9,6 +9,8 @@ const agents = v.object({
   identity: v.string(),
   plan: v.string(),
 
+  isThinking: v.optional(v.object({ since: v.number() })),
+
   generationNumber: v.number(),
 });
 
