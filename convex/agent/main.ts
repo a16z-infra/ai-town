@@ -22,7 +22,7 @@ import {
 } from './constants';
 import { continueConversation, leaveConversation, startConversation } from './conversation';
 import { internal } from '../_generated/api';
-import { rememberConversation } from './memory';
+import { latestMemoryOfType, rememberConversation } from './memory';
 
 const selfInternal = internal.agent.main;
 
@@ -323,13 +323,10 @@ class Agent {
       if (!firstMessage) {
         continue;
       }
-      const memory = await this.ctx.db
-        .query('conversationMemories')
-        .withIndex('owner', (q) =>
-          q.eq('owner', this.player._id).eq('conversation', member.conversationId),
-        )
-        .first();
-      if (!memory) {
+      const memory = await latestMemoryOfType(this.ctx.db, this.player._id, 'conversation');
+      // If the most recent memory is not for this conversation, remember it.
+      // We assume we've remembered previous conversations.
+      if (memory?.data.conversationId !== member.conversationId) {
         conversationId = member.conversationId;
       }
       break;

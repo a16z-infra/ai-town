@@ -4,6 +4,7 @@ import { ActionCtx, QueryCtx, internalQuery } from '../_generated/server';
 import { LLMMessage, chatCompletion } from '../util/openai';
 import * as memory from './memory';
 import { api, internal } from '../_generated/api';
+import * as embeddingsCache from './embeddingsCache';
 
 const selfInternal = internal.agent.conversation;
 
@@ -14,15 +15,30 @@ export async function startConversation(
   otherPlayerId: Id<'players'>,
   lastConversationId: Id<'conversations'> | null,
 ) {
-  const { player, otherPlayer, agent, otherAgent, lastConversation, previousSummaries } =
-    await loadPromptData(ctx, playerId, otherPlayerId, conversationId, lastConversationId);
+  const { player, otherPlayer, agent, otherAgent, lastConversation } = await ctx.runQuery(
+    selfInternal.queryPromptData,
+    {
+      playerId,
+      otherPlayerId,
+      conversationId,
+      lastConversationId,
+    },
+  );
+  const embedding = await embeddingsCache.fetch(
+    ctx,
+    `What do you think about ${otherPlayer.name}?`,
+  );
+  const memories = await memory.searchMemories(ctx, player, embedding, 3);
+  const memoryWithOtherPlayer = memories.find(
+    (m) => m.data.type === 'conversation' && m.data.playerIds.includes(otherPlayerId),
+  );
   const prompt = [
     `You are ${player.name}, and you just started a conversation with ${otherPlayer.name}.`,
   ];
   prompt.push(...agentPrompts(otherPlayer, agent, otherAgent));
   prompt.push(...previousConversationPrompt(otherPlayer, lastConversation));
-  prompt.push(...conversationMemoriesPrompt(otherPlayer, previousSummaries));
-  if (previousSummaries.length > 0) {
+  prompt.push(...relatedMemoriesPrompt(otherPlayer, memories));
+  if (memoryWithOtherPlayer) {
     prompt.push(
       `Be sure to include some detail or question about a previous conversation in your greeting.`,
     );
@@ -37,7 +53,7 @@ export async function startConversation(
       },
     ],
     max_tokens: 300,
-    stop: stopWords(otherPlayer),
+    stop: stopWords(otherPlayer, player),
   });
   return content;
 }
@@ -49,16 +65,28 @@ export async function continueConversation(
   otherPlayerId: Id<'players'>,
   lastConversationId: Id<'conversations'> | null,
 ) {
-  const { player, otherPlayer, conversation, agent, otherAgent, previousSummaries } =
-    await loadPromptData(ctx, playerId, otherPlayerId, conversationId, lastConversationId);
+  const { player, otherPlayer, conversation, agent, otherAgent } = await ctx.runQuery(
+    selfInternal.queryPromptData,
+    {
+      playerId,
+      otherPlayerId,
+      conversationId,
+      lastConversationId,
+    },
+  );
   const now = Date.now();
   const started = new Date(conversation._creationTime);
+  const embedding = await embeddingsCache.fetch(
+    ctx,
+    `What do you think about ${otherPlayer.name}?`,
+  );
+  const memories = await memory.searchMemories(ctx, player, embedding, 3);
   const prompt = [
     `You are ${player.name}, and you're currently in a conversation with ${otherPlayer.name}.`,
     `The conversation started at ${started.toLocaleString()}. It's now ${now.toLocaleString()}.`,
   ];
   prompt.push(...agentPrompts(otherPlayer, agent, otherAgent));
-  prompt.push(...conversationMemoriesPrompt(otherPlayer, previousSummaries));
+  prompt.push(...relatedMemoriesPrompt(otherPlayer, memories));
   prompt.push(
     `Below is the current chat history between you and ${otherPlayer.name}.`,
     `DO NOT greet them again. Do NOT use the word "Hey" too often. Your response should be brief and within 200 characters.`,
@@ -75,7 +103,7 @@ export async function continueConversation(
   const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 300,
-    stop: stopWords(otherPlayer),
+    stop: stopWords(otherPlayer, player),
   });
   return content;
 }
@@ -87,12 +115,14 @@ export async function leaveConversation(
   otherPlayerId: Id<'players'>,
   lastConversationId: Id<'conversations'> | null,
 ) {
-  const { player, otherPlayer, conversation, agent, otherAgent } = await loadPromptData(
-    ctx,
-    playerId,
-    otherPlayerId,
-    conversationId,
-    lastConversationId,
+  const { player, otherPlayer, conversation, agent, otherAgent } = await ctx.runQuery(
+    selfInternal.queryPromptData,
+    {
+      playerId,
+      otherPlayerId,
+      conversationId,
+      lastConversationId,
+    },
   );
   const prompt = [
     `You are ${player.name}, and you're currently in a conversation with ${otherPlayer.name}.`,
@@ -114,7 +144,7 @@ export async function leaveConversation(
   const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 300,
-    stop: stopWords(otherPlayer),
+    stop: stopWords(otherPlayer, player),
   });
   return content;
 }
@@ -152,14 +182,12 @@ function previousConversationPrompt(
   return prompt;
 }
 
-function conversationMemoriesPrompt(otherPlayer: Doc<'players'>, summaries: string[]): string[] {
+function relatedMemoriesPrompt(otherPlayer: Doc<'players'>, memories: memory.Memory[]): string[] {
   const prompt = [];
-  if (summaries.length > 0) {
-    prompt.push(
-      `Here are some summaries of previous conversations with ${otherPlayer.name} in decreasing relevance order:`,
-    );
-    for (const text of summaries) {
-      prompt.push(' - ' + text);
+  if (memories.length > 0) {
+    prompt.push(`Here are some related memories in decreasing relevance order:`);
+    for (const memory of memories) {
+      prompt.push(' - ' + memory.description);
     }
   }
   return prompt;
@@ -182,27 +210,6 @@ async function previousMessages(
     });
   }
   return llmMessages;
-}
-
-async function loadPromptData(
-  ctx: ActionCtx,
-  playerId: Id<'players'>,
-  otherPlayerId: Id<'players'>,
-  conversationId: Id<'conversations'>,
-  lastConversationId: Id<'conversations'> | null,
-) {
-  const promptData = await ctx.runQuery(selfInternal.queryPromptData, {
-    playerId,
-    otherPlayerId,
-    conversationId,
-    lastConversationId,
-  });
-  const previousSummaries = await memory.queryOpinionAboutPlayer(
-    ctx,
-    promptData.player,
-    promptData.otherPlayer,
-  );
-  return { previousSummaries, ...promptData };
 }
 
 export const queryPromptData = internalQuery({
@@ -283,7 +290,8 @@ export const previousConversation = internalQuery({
   },
 });
 
-function stopWords(otherPlayer: Doc<'players'>) {
+function stopWords(otherPlayer: Doc<'players'>, player: Doc<'players'>) {
   // These are the words we ask the LLM to stop on. OpenAI only supports 4.
-  return [otherPlayer.name + ':', otherPlayer.name.toLowerCase() + ':'];
+  const variants = [otherPlayer.name, `${otherPlayer.name} to ${player.name}`];
+  return variants.flatMap((stop) => [stop + ':', stop.toLowerCase() + ':']);
 }

@@ -1,12 +1,49 @@
 import { defineTable } from 'convex/server';
 import { v } from 'convex/values';
-import { ActionCtx, internalMutation, internalQuery } from '../_generated/server';
+import { ActionCtx, DatabaseReader, internalMutation, internalQuery } from '../_generated/server';
 import { Doc, Id } from '../_generated/dataModel';
 import { internal } from '../_generated/api';
-import { LLMMessage, chatCompletion } from '../util/openai';
-import * as embeddingsCache from './embeddingsCache';
+import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/openai';
+
+// How long to wait before updating a memory's last access time.
+export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
+// We fetch 10x the number of memories by relevance, to have more candidates
+// for sorting by relevance + recency + importance.
+const MEMORY_OVERFETCH = 10;
 
 const selfInternal = internal.agent.memory;
+
+const memoryFields = {
+  playerId: v.id('players'),
+  description: v.string(),
+  embeddingId: v.id('memoryEmbeddings'),
+  importance: v.number(),
+  lastAccess: v.number(),
+  data: v.union(
+    // Setting up dynamics between players
+    v.object({
+      type: v.literal('relationship'),
+      // The player this memory is about, from the perspective of the player
+      // whose memory this is.
+      playerId: v.id('players'),
+    }),
+    v.object({
+      type: v.literal('conversation'),
+      conversationId: v.id('conversations'),
+      // The other player(s) in the conversation.
+      playerIds: v.array(v.id('players')),
+    }),
+    v.object({
+      type: v.literal('reflection'),
+      relatedMemoryIds: v.array(v.id('memories')),
+    }),
+  ),
+};
+export type Memory = Doc<'memories'>;
+export type MemoryType = Memory['data']['type'];
+export type MemoryOfType<T extends MemoryType> = Omit<Memory, 'data'> & {
+  data: Extract<Memory['data'], { type: T }>;
+};
 
 export async function rememberConversation(
   ctx: ActionCtx,
@@ -19,10 +56,6 @@ export async function rememberConversation(
     playerId,
     conversationId,
   });
-  if (data === null) {
-    console.log(`Conversation ${conversationId} already remembered`);
-    return;
-  }
   const { player, otherPlayer } = data;
   const messages = await ctx.runQuery(selfInternal.loadMessages, { conversationId });
   if (!messages.length) {
@@ -36,8 +69,10 @@ export async function rememberConversation(
       "I," and add if you liked or disliked this interaction.`,
     },
   ];
+  const authors = new Set<Id<'players'>>();
   for (const message of messages) {
     const author = message.author === player._id ? player : otherPlayer;
+    authors.add(author._id);
     const recipient = message.author === player._id ? otherPlayer : player;
     llmMessages.push({
       role: 'user',
@@ -45,23 +80,32 @@ export async function rememberConversation(
     });
   }
   llmMessages.push({ role: 'user', content: 'Summary:' });
-  const { content: description } = await chatCompletion({
+  const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 500,
   });
-  const summary = await description.readAll();
-  const embedding = await embeddingsCache.fetch(ctx, summary);
+  const description = `Conversation with ${otherPlayer.name} at ${new Date(
+    data.conversation._creationTime,
+  ).toLocaleString()}: ${await content.readAll()}`;
+  const importance = await calculateImportance(player, description);
+  const { embedding } = await fetchEmbedding(description);
+  authors.delete(player._id);
   await ctx.runMutation(selfInternal.insertMemory, {
     agentId,
     generationNumber,
 
-    owner: player._id,
-    conversation: conversationId,
-    summary,
-    talkingTo: otherPlayer._id,
+    playerId: player._id,
+    description,
+    importance,
+    lastAccess: messages[messages.length - 1]._creationTime,
+    data: {
+      type: 'conversation',
+      conversationId,
+      playerIds: [...authors],
+    },
     embedding,
   });
-  return summary;
+  return description;
 }
 
 export const loadConversation = internalQuery({
@@ -70,15 +114,6 @@ export const loadConversation = internalQuery({
     conversationId: v.id('conversations'),
   },
   handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query('conversationMemories')
-      .withIndex('owner', (q) =>
-        q.eq('owner', args.playerId).eq('conversation', args.conversationId),
-      )
-      .first();
-    if (existing) {
-      return null;
-    }
     const player = await ctx.db.get(args.playerId);
     if (!player) {
       throw new Error(`Player ${args.playerId} not found`);
@@ -107,40 +142,93 @@ export const loadConversation = internalQuery({
   },
 });
 
-export async function queryOpinionAboutPlayer(
+export async function searchMemories(
   ctx: ActionCtx,
   player: Doc<'players'>,
-  otherPlayer: Doc<'players'>,
+  searchEmbedding: number[],
+  n: number = 3,
 ) {
-  const embedding = await embeddingsCache.fetch(
-    ctx,
-    `What do you think about ${otherPlayer.name}?`,
-  );
-  const results = await ctx.vectorSearch('conversationMemories', 'embedding', {
-    vector: embedding,
-    filter: (q) => q.eq('conversationTag', conversationTag(player._id, otherPlayer._id)),
-    limit: 3,
+  const candidates = await ctx.vectorSearch('memoryEmbeddings', 'embedding', {
+    vector: searchEmbedding,
+    filter: (q) => q.eq('playerId', player._id),
+    limit: n * MEMORY_OVERFETCH,
   });
-  const summaries = await ctx.runQuery(selfInternal.loadMemories, {
-    memoryIds: results.map((r) => r._id),
+  const rankedMemories = await ctx.runMutation(selfInternal.rankAndTouchMemories, {
+    candidates,
+    n,
   });
-  return summaries;
+  return rankedMemories.map(({ memory }) => memory);
 }
 
-export const loadMemories = internalQuery({
+/**
+ * asyncMap returns the results of applying an async function over an list.
+ *
+ * @param list - Iterable object of items, e.g. an Array, Set, Object.keys
+ * @param asyncTransform
+ * @returns
+ */
+export async function asyncMap<FromType, ToType>(
+  list: Iterable<FromType>,
+  asyncTransform: (item: FromType, index: number) => Promise<ToType>,
+): Promise<ToType[]> {
+  const promises: Promise<ToType>[] = [];
+  let idx = 0;
+  for (const item of list) {
+    promises.push(asyncTransform(item, idx));
+    idx += 1;
+  }
+  return Promise.all(promises);
+}
+
+function makeRange(values: number[]) {
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  return [min, max] as const;
+}
+
+function normalize(value: number, range: readonly [number, number]) {
+  const [min, max] = range;
+  return (value - min) / (max - min);
+}
+
+export const rankAndTouchMemories = internalMutation({
   args: {
-    memoryIds: v.array(v.id('conversationMemories')),
+    candidates: v.array(v.object({ _id: v.id('memoryEmbeddings'), _score: v.number() })),
+    n: v.number(),
   },
   handler: async (ctx, args) => {
-    const out = [];
-    for (const memoryId of args.memoryIds) {
-      const memory = await ctx.db.get(memoryId);
-      if (!memory) {
-        throw new Error(`Memory ${memoryId} not found`);
+    const ts = Date.now();
+    const relatedMemories = await asyncMap(
+      args.candidates,
+      async ({ _id }) =>
+        (await ctx.db
+          .query('memories')
+          .withIndex('embeddingId', (q) => q.eq('embeddingId', _id))
+          .first())!,
+    );
+    // TODO: fetch <count> recent memories and <count> important memories
+    // so we don't miss them in case they were a little less relevant.
+    const recencyScore = relatedMemories.map((memory) => {
+      return 0.99 ^ Math.floor((ts - memory!.lastAccess) / 1000 / 60 / 60);
+    });
+    const relevanceRange = makeRange(args.candidates.map((c) => c._score));
+    const importanceRange = makeRange(relatedMemories.map((m) => m.importance));
+    const recencyRange = makeRange(recencyScore);
+    const memoryScores = relatedMemories.map((memory, idx) => ({
+      memory,
+      overallScore:
+        normalize(args.candidates[idx]._score, relevanceRange) +
+        normalize(memory.importance, importanceRange) +
+        normalize(recencyScore[idx], recencyRange),
+    }));
+    memoryScores.sort((a, b) => b.overallScore - a.overallScore);
+    const accessed = memoryScores.slice(0, args.n);
+    await asyncMap(accessed, async ({ memory }) => {
+      if (memory.lastAccess < ts - MEMORY_ACCESS_THROTTLE) {
+        await ctx.db.patch(memory._id, { lastAccess: ts });
       }
-      out.push(memory.summary);
-    }
-    return out;
+    });
+    return accessed;
   },
 });
 
@@ -157,63 +245,99 @@ export const loadMessages = internalQuery({
   },
 });
 
+async function calculateImportance(player: Doc<'players'>, description: string) {
+  // TODO: make a better prompt based on the user's memories
+  const { content } = await chatCompletion({
+    messages: [
+      // {
+      //   role: 'user',
+      //   content: `You are ${player.name}. Here's a little about you:
+      //         ${player.description}
+
+      //         Now I'm going to give you a description of a memory to gauge the importance of.`,
+      // },
+      {
+        role: 'user',
+        content: `On the scale of 0 to 9, where 0 is purely mundane (e.g., brushing teeth, making bed) and 9 is extremely poignant (e.g., a break up, college acceptance), rate the likely poignancy of the following piece of memory.
+        Memory: ${description}
+        Rating: <fill in>`,
+      },
+    ],
+    max_tokens: 1,
+  });
+  const importanceRaw = await content.readAll();
+  let importance = NaN;
+  for (let i = 0; i < importanceRaw.length; i++) {
+    const number = parseInt(importanceRaw[i]);
+    if (!isNaN(number)) {
+      importance = number;
+      break;
+    }
+  }
+  importance = parseFloat(importanceRaw);
+  if (isNaN(importance)) {
+    console.debug('importance is NaN', importanceRaw);
+    importance = 5;
+  }
+  return importance;
+}
+
+const { embeddingId, ...memoryFieldsWithoutEmbeddingId } = memoryFields;
+
 export const insertMemory = internalMutation({
   args: {
     agentId: v.id('agents'),
     generationNumber: v.number(),
 
-    owner: v.id('players'),
-    conversation: v.id('conversations'),
-    talkingTo: v.id('players'),
-    summary: v.string(),
     embedding: v.array(v.float64()),
+    ...memoryFieldsWithoutEmbeddingId,
   },
-  handler: async (ctx, args) => {
-    const agent = await ctx.db.get(args.agentId);
+  handler: async (ctx, { agentId, generationNumber, embedding, ...memory }) => {
+    const agent = await ctx.db.get(agentId);
     if (!agent) {
-      throw new Error(`Agent ${args.agentId} not found`);
+      throw new Error(`Agent ${agentId} not found`);
     }
-    if (agent.generationNumber !== args.generationNumber) {
+    if (agent.generationNumber !== generationNumber) {
       throw new Error(
-        `Agent ${args.agentId} generation number ${agent.generationNumber} does not match ${args.generationNumber}`,
+        `Agent ${agentId} generation number ${agent.generationNumber} does not match ${generationNumber}`,
       );
     }
-    await ctx.db.insert('conversationMemories', {
-      owner: args.owner,
-      conversation: args.conversation,
-      talkingTo: args.talkingTo,
-      conversationTag: conversationTag(args.owner, args.talkingTo),
-      summary: args.summary,
-      embedding: args.embedding,
+    const embeddingId = await ctx.db.insert('memoryEmbeddings', {
+      playerId: memory.playerId,
+      embedding: embedding,
+    });
+    await ctx.db.insert('memories', {
+      ...memory,
+      embeddingId,
     });
   },
 });
 
-export function conversationTag(playerId: Id<'players'>, otherPlayerId: Id<'players'>) {
-  return `${playerId}:${otherPlayerId}`;
+export async function latestMemoryOfType<T extends MemoryType>(
+  db: DatabaseReader,
+  playerId: Id<'players'>,
+  type: T,
+) {
+  const entry = await db
+    .query('memories')
+    .withIndex('playerId_type', (q) => q.eq('playerId', playerId).eq('data.type', type))
+    .order('desc')
+    .first();
+  if (!entry) return null;
+  return entry as MemoryOfType<T>;
 }
 
-const conversationMemories = v.object({
-  owner: v.id('players'),
-  conversation: v.id('conversations'),
-  talkingTo: v.id('players'),
-
-  summary: v.string(),
-
-  // Computed embedding of `summary`
-  embedding: v.array(v.float64()),
-
-  // Concatenation of `${owner}-${talkingTo}` to work around not having `.and()`
-  // for vector indexes.
-  conversationTag: v.string(),
-});
-
 export const memoryTables = {
-  conversationMemories: defineTable(conversationMemories)
-    .index('owner', ['owner', 'conversation'])
-    .vectorIndex('embedding', {
-      vectorField: 'embedding',
-      filterFields: ['conversationTag'],
-      dimensions: 1536,
-    }),
+  memories: defineTable(memoryFields)
+    .index('embeddingId', ['embeddingId'])
+    .index('playerId_type', ['playerId', 'data.type'])
+    .index('playerId', ['playerId']),
+  memoryEmbeddings: defineTable({
+    playerId: v.id('players'),
+    embedding: v.array(v.float64()),
+  }).vectorIndex('embedding', {
+    vectorField: 'embedding',
+    filterFields: ['playerId'],
+    dimensions: 1536,
+  }),
 };
