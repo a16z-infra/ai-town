@@ -40,6 +40,7 @@ import type * as messages from "../messages";
 import type * as music from "../music";
 import type * as testing from "../testing";
 import type * as util_assertNever from "../util/assertNever";
+import type * as util_asyncMap from "../util/asyncMap";
 import type * as util_geometry from "../util/geometry";
 import type * as util_isSimpleObject from "../util/isSimpleObject";
 import type * as util_minheap from "../util/minheap";
@@ -83,6 +84,7 @@ declare const fullApi: ApiFromModules<{
   music: typeof music;
   testing: typeof testing;
   "util/assertNever": typeof util_assertNever;
+  "util/asyncMap": typeof util_asyncMap;
   "util/geometry": typeof util_geometry;
   "util/isSimpleObject": typeof util_isSimpleObject;
   "util/minheap": typeof util_minheap;

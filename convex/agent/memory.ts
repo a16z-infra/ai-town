@@ -5,6 +5,7 @@ import { Doc, Id } from '../_generated/dataModel';
 import { internal } from '../_generated/api';
 import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/openai';
 import { ACTION_TIMEOUT } from './constants';
+import { asyncMap } from '../util/asyncMap';
 
 // How long to wait before updating a memory's last access time.
 export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
@@ -168,26 +169,6 @@ export async function searchMemories(
   return rankedMemories.map(({ memory }) => memory);
 }
 
-/**
- * asyncMap returns the results of applying an async function over an list.
- *
- * @param list - Iterable object of items, e.g. an Array, Set, Object.keys
- * @param asyncTransform
- * @returns
- */
-export async function asyncMap<FromType, ToType>(
-  list: Iterable<FromType>,
-  asyncTransform: (item: FromType, index: number) => Promise<ToType>,
-): Promise<ToType[]> {
-  const promises: Promise<ToType>[] = [];
-  let idx = 0;
-  for (const item of list) {
-    promises.push(asyncTransform(item, idx));
-    idx += 1;
-  }
-  return Promise.all(promises);
-}
-
 function makeRange(values: number[]) {
   const min = Math.min(...values);
   const max = Math.max(...values);
@@ -206,18 +187,20 @@ export const rankAndTouchMemories = internalMutation({
   },
   handler: async (ctx, args) => {
     const ts = Date.now();
-    const relatedMemories = await asyncMap(
-      args.candidates,
-      async ({ _id }) =>
-        (await ctx.db
-          .query('memories')
-          .withIndex('embeddingId', (q) => q.eq('embeddingId', _id))
-          .first())!,
-    );
+    const relatedMemories = await asyncMap(args.candidates, async ({ _id }) => {
+      const memory = await ctx.db
+        .query('memories')
+        .withIndex('embeddingId', (q) => q.eq('embeddingId', _id))
+        .first();
+      if (!memory) throw new Error(`Memory for embedding ${_id} not found`);
+      return memory;
+    });
+
     // TODO: fetch <count> recent memories and <count> important memories
     // so we don't miss them in case they were a little less relevant.
     const recencyScore = relatedMemories.map((memory) => {
-      return 0.99 ^ Math.floor((ts - memory!.lastAccess) / 1000 / 60 / 60);
+      const hoursSinceAccess = (ts - memory.lastAccess) / 1000 / 60 / 60;
+      return 0.99 ** Math.floor(hoursSinceAccess);
     });
     const relevanceRange = makeRange(args.candidates.map((c) => c._score));
     const importanceRange = makeRange(relatedMemories.map((m) => m.importance));
@@ -274,17 +257,13 @@ async function calculateImportance(player: Doc<'players'>, description: string) 
     max_tokens: 1,
   });
   const importanceRaw = await content.readAll();
-  let importance = NaN;
-  for (let i = 0; i < importanceRaw.length; i++) {
-    const number = parseInt(importanceRaw[i]);
-    if (!isNaN(number)) {
-      importance = number;
-      break;
-    }
-  }
-  importance = parseFloat(importanceRaw);
+
+  let importance = parseFloat(importanceRaw);
   if (isNaN(importance)) {
-    console.debug('importance is NaN', importanceRaw);
+    importance = +(importanceRaw.match(/\d+/)?.[0] ?? NaN);
+  }
+  if (isNaN(importance)) {
+    console.debug('Could not parse memory importance from: ', importanceRaw);
     importance = 5;
   }
   return importance;
