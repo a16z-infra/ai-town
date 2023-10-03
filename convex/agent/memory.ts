@@ -187,18 +187,20 @@ export const rankAndTouchMemories = internalMutation({
   },
   handler: async (ctx, args) => {
     const ts = Date.now();
-    const relatedMemories = await asyncMap(
-      args.candidates,
-      async ({ _id }) =>
-        (await ctx.db
-          .query('memories')
-          .withIndex('embeddingId', (q) => q.eq('embeddingId', _id))
-          .first())!,
-    );
+    const relatedMemories = await asyncMap(args.candidates, async ({ _id }) => {
+      const memory = await ctx.db
+        .query('memories')
+        .withIndex('embeddingId', (q) => q.eq('embeddingId', _id))
+        .first();
+      if (!memory) throw new Error(`Memory for embedding ${_id} not found`);
+      return memory;
+    });
+
     // TODO: fetch <count> recent memories and <count> important memories
     // so we don't miss them in case they were a little less relevant.
     const recencyScore = relatedMemories.map((memory) => {
-      return 0.99 ^ Math.floor((ts - memory!.lastAccess) / 1000 / 60 / 60);
+      const hoursSinceAccess = (ts - memory.lastAccess) / 1000 / 60 / 60;
+      return 0.99 ^ Math.floor(hoursSinceAccess);
     });
     const relevanceRange = makeRange(args.candidates.map((c) => c._score));
     const importanceRange = makeRange(relatedMemories.map((m) => m.importance));
@@ -255,17 +257,13 @@ async function calculateImportance(player: Doc<'players'>, description: string) 
     max_tokens: 1,
   });
   const importanceRaw = await content.readAll();
-  let importance = NaN;
-  for (let i = 0; i < importanceRaw.length; i++) {
-    const number = parseInt(importanceRaw[i]);
-    if (!isNaN(number)) {
-      importance = number;
-      break;
-    }
-  }
-  importance = parseFloat(importanceRaw);
+
+  let importance = parseFloat(importanceRaw);
   if (isNaN(importance)) {
-    console.debug('importance is NaN', importanceRaw);
+    importance = +(importanceRaw.match(/\d+/)?.[0] ?? NaN);
+  }
+  if (isNaN(importance)) {
+    console.debug('Could not parse memory importance from: ', importanceRaw);
     importance = 5;
   }
   return importance;
