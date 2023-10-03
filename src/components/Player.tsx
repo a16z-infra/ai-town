@@ -16,10 +16,12 @@ export type SelectElement = (element?: { kind: 'player'; id: Id<'players'> }) =>
 const logged = new Set<string>();
 
 export const Player = ({
+  isViewer,
   player,
   onClick,
   historicalTime,
 }: {
+  isViewer: boolean;
   player: Doc<'players'> & { location: Doc<'locations'> };
   onClick: SelectElement;
   historicalTime?: number;
@@ -52,6 +54,7 @@ export const Player = ({
         isMoving={location.velocity > 0}
         isThinking={false}
         isSpeaking={false}
+        isViewer={isViewer}
         textureUrl={character.textureUrl}
         spritesheetData={character.spritesheetData}
         speed={character.speed}

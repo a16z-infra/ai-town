@@ -80,6 +80,7 @@ export const PixiGame = (props: {
         <Player
           key={p._id}
           player={p}
+          isViewer={p._id === humanPlayerId}
           onClick={props.setSelectedElement}
           historicalTime={props.historicalTime}
         />
