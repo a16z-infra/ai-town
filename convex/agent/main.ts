@@ -2,7 +2,6 @@ import { v } from 'convex/values';
 import { Doc, Id } from '../_generated/dataModel';
 import { MutationCtx, internalAction, internalMutation } from '../_generated/server';
 import { CONVERSATION_DISTANCE } from '../constants';
-import { mapHeight, mapWidth } from '../data/map';
 import { InputArgs, InputNames } from '../game/inputs';
 import { insertInput } from '../game/main';
 import { startTyping, writeMessage } from '../messages';
@@ -23,7 +22,7 @@ import {
 } from './constants';
 import { continueConversation, leaveConversation, startConversation } from './conversation';
 import { internal } from '../_generated/api';
-import { rememberConversation } from './memory';
+import { latestMemoryOfType, rememberConversation } from './memory';
 
 const selfInternal = internal.agent.main;
 
@@ -31,6 +30,8 @@ class Agent {
   constructor(
     private ctx: MutationCtx,
     private now: number,
+    private world: Doc<'worlds'>,
+    private map: Doc<'maps'>,
     private agent: Doc<'agents'>,
     private player: Doc<'players'> & { position: Point },
     private engine: Doc<'engines'>,
@@ -42,23 +43,31 @@ class Agent {
     if (!agent) {
       throw new Error(`Invalid agent ID: ${agentId}`);
     }
+    const world = await ctx.db.get(agent.worldId);
+    if (!world) {
+      throw new Error(`Invalid world ID: ${agent.worldId}`);
+    }
+    const map = await ctx.db.get(world.mapId);
+    if (!map) {
+      throw new Error(`Invalid map ID: ${world.mapId}`);
+    }
     const player = await ctx.db.get(agent.playerId);
     if (!player) {
       throw new Error(`Invalid player ID: ${agent.playerId}`);
     }
-    const engine = await ctx.db.get(player.engineId);
+    const engine = await ctx.db.get(world.engineId);
     if (!engine) {
-      throw new Error(`Invalid engine ID: ${player.engineId}`);
+      throw new Error(`Invalid engine ID: ${world.engineId}`);
     }
     if (!engine.active) {
-      throw new Error(`Engine ${player.engineId} is not active`);
+      throw new Error(`Engine ${world.engineId} is not active`);
     }
     const location = await ctx.db.get(player.locationId);
     if (!location) {
       throw new Error(`Invalid location ID: ${player.locationId}`);
     }
     const position = { x: location.x, y: location.y };
-    return new Agent(ctx, now, agent, { ...player, position }, engine);
+    return new Agent(ctx, now, world, map, agent, { ...player, position }, engine);
   }
 
   async run(): Promise<number> {
@@ -188,7 +197,7 @@ class Agent {
         return this.now + INPUT_DELAY;
       }
       if (playerConversation.member.status.kind === 'participating') {
-        const started = playerConversation.member.status.since;
+        const started = playerConversation.member.status.started;
 
         // If we're in a conversation and someone else is typing, wait for
         // them to finish.
@@ -294,7 +303,7 @@ class Agent {
   }
 
   async insertInput<Name extends InputNames>(name: Name, args: InputArgs<Name>) {
-    return await insertInput(this.ctx, this.engine._id, name, args);
+    return await insertInput(this.ctx, this.world._id, name, args);
   }
 
   async conversationToRemember() {
@@ -314,13 +323,10 @@ class Agent {
       if (!firstMessage) {
         continue;
       }
-      const memory = await this.ctx.db
-        .query('conversationMemories')
-        .withIndex('owner', (q) =>
-          q.eq('owner', this.player._id).eq('conversation', member.conversationId),
-        )
-        .first();
-      if (!memory) {
+      const memory = await latestMemoryOfType(this.ctx.db, this.player._id, 'conversation');
+      // If the most recent memory is not for this conversation, remember it.
+      // We assume we've remembered previous conversations.
+      if (memory?.data.conversationId !== member.conversationId) {
         conversationId = member.conversationId;
       }
       break;
@@ -331,15 +337,15 @@ class Agent {
   wanderDestination() {
     // Wander someonewhere at least one tile away from the edge.
     return {
-      x: 1 + Math.floor(Math.random() * (mapWidth - 2)),
-      y: 1 + Math.floor(Math.random() * (mapHeight - 2)),
+      x: 1 + Math.floor(Math.random() * (this.map.width - 2)),
+      y: 1 + Math.floor(Math.random() * (this.map.height - 2)),
     };
   }
 
   async loadOtherPlayers() {
     const otherPlayers = await this.ctx.db
       .query('players')
-      .withIndex('active', (q) => q.eq('engineId', this.player.engineId).eq('active', true))
+      .withIndex('active', (q) => q.eq('worldId', this.player.worldId).eq('active', true))
       .filter((q) => q.neq(q.field('_id'), this.player._id))
       .collect();
     const players = [];
@@ -374,7 +380,7 @@ class Agent {
           if (playerMember.status.kind !== 'left') {
             throw new Error(`Conversation ${conversation._id} is not left`);
           }
-          lastConversationWithPlayer = { playerLeft: playerMember.status.when, ...conversation };
+          lastConversationWithPlayer = { playerLeft: playerMember.status.ended, ...conversation };
         }
       }
       players.push({ position, conversation, lastConversationWithPlayer, ...otherPlayer });
@@ -580,7 +586,7 @@ export const agentWriteMessage = internalMutation({
       if (!player) {
         throw new Error(`Invalid player ID: ${args.playerId}`);
       }
-      return await insertInput(ctx, player.engineId, 'leaveConversation', {
+      return await insertInput(ctx, player.worldId, 'leaveConversation', {
         conversationId: args.conversationId,
         playerId: args.playerId,
       });

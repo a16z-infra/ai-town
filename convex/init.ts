@@ -7,10 +7,11 @@ import {
   internalMutation,
   mutation,
 } from './_generated/server';
-import { Descriptions } from './data/characters';
+import { Descriptions } from '../data/characters';
+import * as firstmap from '../data/firstmap';
 import { insertInput } from './game/main';
 import { initAgent, restartAgents, stopAgents } from './agent/init';
-import { Id } from './_generated/dataModel';
+import { Doc, Id } from './_generated/dataModel';
 
 const init = mutation({
   handler: async (ctx) => {
@@ -36,15 +37,15 @@ const init = mutation({
     await restartWorld(ctx, world._id);
 
     // Send inputs to create players for all of the agents.
-    if (await shouldCreateAgents(ctx.db, engine._id)) {
+    if (await shouldCreateAgents(ctx.db, world)) {
       for (const agent of Descriptions) {
-        const inputId = await insertInput(ctx, engine._id, 'join', {
+        const inputId = await insertInput(ctx, world._id, 'join', {
           name: agent.name,
           description: agent.identity,
           character: agent.character,
         });
         await ctx.scheduler.runAfter(1000, internal.init.completeAgentCreation, {
-          engineId: engine._id,
+          worldId: world._id,
           joinInputId: inputId,
           character: agent.character,
         });
@@ -52,7 +53,7 @@ const init = mutation({
     }
 
     // Restart the agents if needed.
-    await restartAgents(ctx, { engineId: engine._id });
+    await restartAgents(ctx, { worldId: world._id });
   },
 });
 export default init;
@@ -66,7 +67,7 @@ export const stop = internalMutation({
     }
     console.log(`Stopping engine ${engine._id}...`);
     await ctx.db.patch(engine._id, { active: false });
-    stopAgents(ctx, { engineId: world.engineId });
+    stopAgents(ctx, { worldId: world._id });
   },
 });
 
@@ -79,7 +80,7 @@ export const resume = internalMutation({
     }
     await ctx.db.patch(engine._id, { active: true });
     await restartWorld(ctx, world._id);
-    await restartAgents(ctx, { engineId: engine._id });
+    await restartAgents(ctx, { worldId: world._id });
   },
 });
 
@@ -122,7 +123,21 @@ async function getOrCreateDefaultWorld(db: DatabaseWriter) {
       generationNumber: 0,
       idleUntil: now,
     });
-    const worldId = await db.insert('worlds', { engineId, isDefault: true, lastViewed: now });
+    const mapId = await db.insert('maps', {
+      width: firstmap.mapWidth,
+      height: firstmap.mapHeight,
+      tileSetUrl: firstmap.tilesetPath,
+      tileSetDim: firstmap.tileFileDim,
+      tileDim: firstmap.tileDim,
+      bgTiles: firstmap.bgTiles,
+      objectTiles: firstmap.objmap,
+    });
+    const worldId = await db.insert('worlds', {
+      engineId,
+      isDefault: true,
+      lastViewed: now,
+      mapId,
+    });
     world = (await db.get(worldId))!;
   }
   const engine = await db.get(world.engineId);
@@ -132,10 +147,10 @@ async function getOrCreateDefaultWorld(db: DatabaseWriter) {
   return { world, engine };
 }
 
-async function shouldCreateAgents(db: DatabaseReader, engineId: Id<'engines'>) {
+async function shouldCreateAgents(db: DatabaseReader, world: Doc<'worlds'>) {
   const players = await db
     .query('players')
-    .withIndex('active', (q) => q.eq('engineId', engineId))
+    .withIndex('active', (q) => q.eq('worldId', world._id))
     .collect();
   for (const player of players) {
     const agent = await db
@@ -148,7 +163,7 @@ async function shouldCreateAgents(db: DatabaseReader, engineId: Id<'engines'>) {
   }
   const unactionedJoinInputs = await db
     .query('inputs')
-    .withIndex('byInputNumber', (q) => q.eq('engineId', engineId))
+    .withIndex('byInputNumber', (q) => q.eq('engineId', world.engineId))
     .order('asc')
     .filter((q) => q.eq(q.field('name'), 'join'))
     .filter((q) => q.eq(q.field('returnValue'), undefined))
@@ -161,7 +176,7 @@ async function shouldCreateAgents(db: DatabaseReader, engineId: Id<'engines'>) {
 
 export const completeAgentCreation = internalMutation({
   args: {
-    engineId: v.id('engines'),
+    worldId: v.id('worlds'),
     joinInputId: v.id('inputs'),
     character: v.string(),
   },
@@ -187,7 +202,7 @@ export const completeAgentCreation = internalMutation({
     if (existingAgent) {
       throw new Error(`Agent for player ${playerId} already exists`);
     }
-    await initAgent(ctx, { engineId: args.engineId, playerId, character: args.character });
+    await initAgent(ctx, { worldId: args.worldId, playerId, character: args.character });
   },
 });
 
@@ -210,7 +225,7 @@ export async function restartWorld(ctx: MutationCtx, worldId: Id<'worlds'>) {
   engine.idleUntil = now;
   await ctx.db.replace(engine._id, engine);
   await ctx.scheduler.runAt(now, api.game.main.runStep, {
-    engineId: engine._id,
+    worldId: world._id,
     generationNumber,
   });
 }

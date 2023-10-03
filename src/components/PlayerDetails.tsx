@@ -20,6 +20,15 @@ export default function PlayerDetails({
   const humanPlayerId = useQuery(api.world.userStatus, { worldId });
   const players = useQuery(api.world.activePlayers, { worldId }) ?? [];
 
+  const humanConversation = useQuery(
+    api.world.loadConversationState,
+    humanPlayerId ? { playerId: humanPlayerId } : 'skip',
+  );
+  // Always select the other player if we're in a conversation with them.
+  if (humanConversation) {
+    playerId = humanConversation.otherPlayerId;
+  }
+
   const playerConversation = useQuery(
     api.world.loadConversationState,
     playerId ? { playerId } : 'skip',
@@ -28,15 +37,6 @@ export default function PlayerDetails({
     api.world.previousConversation,
     playerId ? { playerId } : 'skip',
   );
-  const humanConversation = useQuery(
-    api.world.loadConversationState,
-    humanPlayerId ? { playerId: humanPlayerId } : 'skip',
-  );
-
-  // Always select the other player if we're in a conversation with them.
-  if (humanConversation) {
-    playerId = humanConversation.otherPlayerId;
-  }
 
   const player = players.find((p) => p._id === playerId);
   const humanPlayer = players.find((p) => p._id === humanPlayerId);

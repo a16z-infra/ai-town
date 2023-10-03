@@ -1,8 +1,6 @@
 import { Doc, Id } from '../_generated/dataModel';
-import { movementSpeed } from '../data/characters';
+import { movementSpeed } from '../../data/characters';
 import { COLLISION_THRESHOLD } from '../constants';
-import { mapHeight, mapWidth } from '../data/map';
-import map from '../data/map';
 import { Point, Vector } from '../util/types';
 import { distance, manhattanDistance, pointsEqual } from '../util/geometry';
 import { MinHeap } from '../util/minheap';
@@ -129,14 +127,14 @@ export function blocked(game: AiTown, now: number, pos: Point, playerId?: Id<'pl
     .allDocuments()
     .filter((p) => p._id !== playerId)
     .map((p) => game.locations.lookup(now, p.locationId));
-  return blockedWithPositions(pos, otherPositions);
+  return blockedWithPositions(pos, otherPositions, game.map);
 }
 
-export function blockedWithPositions(position: Point, otherPositions: Point[]) {
+export function blockedWithPositions(position: Point, otherPositions: Point[], map: Doc<'maps'>) {
   if (isNaN(position.x) || isNaN(position.y)) {
     throw new Error(`NaN position in ${JSON.stringify(position)}`);
   }
-  if (position.x < 0 || position.y < 0 || position.x >= mapWidth || position.y >= mapHeight) {
+  if (position.x < 0 || position.y < 0 || position.x >= map.width || position.y >= map.height) {
     return 'out of bounds';
   }
   if (map.objectTiles[Math.floor(position.y)][Math.floor(position.x)] !== -1) {

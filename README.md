@@ -118,7 +118,17 @@ the functions. If you already have `npm run dev` running, this will be faster.
 If you remove it, it'll push up the latest version of code before running the
 command.
 
-**To stop the back end, in case of too much activity**
+**To pause your backend deployment, stopping all activity**
+
+You can go to the [dashboard](https://dashboard.convex.dev) to your deployment
+settings to pause and un-pause your deployment. This will stop all functions, whether invoked
+from the client, scheduled, or as a cron job. See this as a last resort, as
+there are gentler ways of stopping below.
+
+**To stop the back end**
+
+This will stop running the engine and agents. You can still run queries and
+run functions to debug.
 
 ```bash
 npx convex run --no-push init:stop
@@ -180,23 +190,26 @@ NOTE: every time you change character data, you should re-run
 This is because character data is sent to Convex on the initial load.
 However, beware that `npx convex run testing:debugClearAll --no-push` WILL wipe all of your data.
 
-1. Create your own characters and stories: All characters and stories, as well as their spritesheet references are stored in [data.ts](./convex/characterdata/data.ts#L4). You can start by changing character descriptions.
+1. Create your own characters and stories: All characters and stories, as well as their spritesheet references are stored in [data.ts](./data/characters.ts). You can start by changing character descriptions.
 
-2. Updating spritesheets: in `convex/data/characters.ts`, you will see this code:
+2. Updating spritesheets: in `data/characters.ts`, you will see this code:
 
-```export const characters = [
+```ts
+export const characters = [
   {
     name: 'f1',
     textureUrl: '/assets/32x32folk.png',
     spritesheetData: f1SpritesheetData,
     speed: 0.1,
-  },...
+  },
+  ...
+];
 ```
 
 You should find a sprite sheet for your character, and define sprite motion / assets in the corresponding file (in the above example, `f1SpritesheetData` was defined in f1.ts)
 
-3. Update the background (environment): `convex/data/map.ts` is where the map gets loaded. The easiest way to export a tilemap is by using [Tiled](https://www.mapeditor.org/) -- Tiled exports tilemaps as a CSV and you can convert CSV to a 2d array accepted by firstmap.ts
-4. Change the background music by modifying the prompt in `convex/backgroundMusic.ts`
+3. Update the background (environment): `data/firstmap.ts` is where the map gets loaded. The easiest way to export a tilemap is by using [Tiled](https://www.mapeditor.org/) -- Tiled exports tilemaps as a CSV and you can convert CSV to a 2d array accepted by firstmap.ts
+4. Change the background music by modifying the prompt in `convex/music.ts`
 5. Change how often to generate new music at `convex/crons.ts` by modifying the `generate new background music` job
 
 ## Credits

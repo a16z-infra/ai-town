@@ -1,9 +1,9 @@
 import { PixiComponent, applyDefaultProps } from '@pixi/react';
 import * as PIXI from 'pixi.js';
-import map from '../../convex/data/map';
 
 export const PixiStaticMap = PixiComponent('StaticMap', {
-  create: () => {
+  create: (props: any) => {
+    const map = props.map;
     const numytiles = map.tileSetDim / map.tileDim;
     const bt = PIXI.BaseTexture.from(map.tileSetUrl, {
       scaleMode: PIXI.SCALE_MODES.NEAREST,
