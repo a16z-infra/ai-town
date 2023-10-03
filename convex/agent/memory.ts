@@ -200,7 +200,7 @@ export const rankAndTouchMemories = internalMutation({
     // so we don't miss them in case they were a little less relevant.
     const recencyScore = relatedMemories.map((memory) => {
       const hoursSinceAccess = (ts - memory.lastAccess) / 1000 / 60 / 60;
-      return 0.99 ^ Math.floor(hoursSinceAccess);
+      return 0.99 ** Math.floor(hoursSinceAccess);
     });
     const relevanceRange = makeRange(args.candidates.map((c) => c._score));
     const importanceRange = makeRange(relatedMemories.map((m) => m.importance));
