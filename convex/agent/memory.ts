@@ -5,6 +5,7 @@ import { Doc, Id } from '../_generated/dataModel';
 import { internal } from '../_generated/api';
 import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/openai';
 import { ACTION_TIMEOUT } from './constants';
+import { asyncMap } from '../util/asyncMap';
 
 // How long to wait before updating a memory's last access time.
 export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
@@ -166,26 +167,6 @@ export async function searchMemories(
     n,
   });
   return rankedMemories.map(({ memory }) => memory);
-}
-
-/**
- * asyncMap returns the results of applying an async function over an list.
- *
- * @param list - Iterable object of items, e.g. an Array, Set, Object.keys
- * @param asyncTransform
- * @returns
- */
-export async function asyncMap<FromType, ToType>(
-  list: Iterable<FromType>,
-  asyncTransform: (item: FromType, index: number) => Promise<ToType>,
-): Promise<ToType[]> {
-  const promises: Promise<ToType>[] = [];
-  let idx = 0;
-  for (const item of list) {
-    promises.push(asyncTransform(item, idx));
-    idx += 1;
-  }
-  return Promise.all(promises);
 }
 
 function makeRange(values: number[]) {
