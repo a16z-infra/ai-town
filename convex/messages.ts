@@ -51,6 +51,17 @@ export const startTyping = mutation({
     playerId: v.id('players'),
   },
   handler: async (ctx, args) => {
+    const member = await ctx.db
+      .query('conversationMembers')
+      .withIndex('conversationId', (q) =>
+        q.eq('conversationId', args.conversationId).eq('playerId', args.playerId),
+      )
+      .unique();
+    if (!member || member.status.kind !== 'participating') {
+      throw new Error(
+        `Player ${args.playerId} is not participating in conversation ${args.conversationId}`,
+      );
+    }
     const indicator = await ctx.db
       .query('typingIndicator')
       .withIndex('conversationId', (q) => q.eq('conversationId', args.conversationId))
@@ -91,6 +102,17 @@ export const writeMessage = mutation({
     const conversation = await ctx.db.get(args.conversationId);
     if (!conversation) {
       throw new Error(`Invalid conversation ID: ${args.conversationId}`);
+    }
+    const member = await ctx.db
+      .query('conversationMembers')
+      .withIndex('conversationId', (q) =>
+        q.eq('conversationId', args.conversationId).eq('playerId', args.playerId),
+      )
+      .unique();
+    if (!member || member.status.kind !== 'participating') {
+      throw new Error(
+        `Player ${args.playerId} is not participating in conversation ${args.conversationId}`,
+      );
     }
     const indicator = await ctx.db
       .query('typingIndicator')
