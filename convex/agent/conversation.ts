@@ -53,6 +53,7 @@ export async function startConversation(
       },
     ],
     max_tokens: 300,
+    stream: true,
     stop: stopWords(otherPlayer, player),
   });
   return content;
@@ -103,6 +104,7 @@ export async function continueConversation(
   const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 300,
+    stream: true,
     stop: stopWords(otherPlayer, player),
   });
   return content;
@@ -144,6 +146,7 @@ export async function leaveConversation(
   const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 300,
+    stream: true,
     stop: stopWords(otherPlayer, player),
   });
   return content;

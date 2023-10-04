@@ -95,7 +95,7 @@ export async function rememberConversation(
   });
   const description = `Conversation with ${otherPlayer.name} at ${new Date(
     data.conversation._creationTime,
-  ).toLocaleString()}: ${await content.readAll()}`;
+  ).toLocaleString()}: ${content}`;
   const importance = await calculateImportance(player, description);
   const { embedding } = await fetchEmbedding(description);
   authors.delete(player._id);
@@ -238,7 +238,7 @@ export const loadMessages = internalQuery({
 
 async function calculateImportance(player: Doc<'players'>, description: string) {
   // TODO: make a better prompt based on the user's memories
-  const { content } = await chatCompletion({
+  const { content: importanceRaw } = await chatCompletion({
     messages: [
       // {
       //   role: 'user',
@@ -256,7 +256,6 @@ async function calculateImportance(player: Doc<'players'>, description: string) 
     ],
     max_tokens: 1,
   });
-  const importanceRaw = await content.readAll();
 
   let importance = parseFloat(importanceRaw);
   if (isNaN(importance)) {
