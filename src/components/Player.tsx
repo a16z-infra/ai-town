@@ -10,17 +10,20 @@ import { Path } from '../../convex/util/types.ts';
 import { useCallback } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import { PlayerMetadata } from '../../convex/world.ts';
 
 export type SelectElement = (element?: { kind: 'player'; id: Id<'players'> }) => void;
 
 const logged = new Set<string>();
 
 export const Player = ({
+  isViewer,
   player,
   onClick,
   historicalTime,
 }: {
-  player: Doc<'players'> & { location: Doc<'locations'> };
+  isViewer: boolean;
+  player: PlayerMetadata;
   onClick: SelectElement;
   historicalTime?: number;
 }) => {
@@ -50,8 +53,9 @@ export const Player = ({
         y={location.y * tileDim + tileDim / 2}
         orientation={orientationDegrees({ dx: location.dx, dy: location.dy })}
         isMoving={location.velocity > 0}
-        isThinking={false}
-        isSpeaking={false}
+        isThinking={player.isThinking}
+        isSpeaking={player.isSpeaking}
+        isViewer={isViewer}
         textureUrl={character.textureUrl}
         spritesheetData={character.spritesheetData}
         speed={character.speed}

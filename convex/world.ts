@@ -206,11 +206,17 @@ export const sendWorldInput = mutation({
   },
 });
 
+export type PlayerMetadata = Doc<'players'> & {
+  location: Doc<'locations'>;
+  isSpeaking: boolean;
+  isThinking: boolean;
+};
+
 export const activePlayers = query({
   args: {
     worldId: v.id('worlds'),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<PlayerMetadata[]> => {
     const world = await ctx.db.get(args.worldId);
     if (!world) {
       throw new Error(`Invalid world ID: ${args.worldId}`);
@@ -225,7 +231,26 @@ export const activePlayers = query({
       if (!location) {
         throw new Error(`Invalid location ID: ${player.locationId}`);
       }
-      out.push({ ...player, location });
+      let isSpeaking = false;
+      const member = await ctx.db
+        .query('conversationMembers')
+        .withIndex('playerId', (q) =>
+          q.eq('playerId', player._id).eq('status.kind', 'participating'),
+        )
+        .first();
+      if (member) {
+        const indicator = await ctx.db
+          .query('typingIndicator')
+          .withIndex('conversationId', (q) => q.eq('conversationId', member.conversationId))
+          .first();
+        isSpeaking = !!indicator && indicator.typing?.playerId === player._id;
+      }
+      const agent = await ctx.db
+        .query('agents')
+        .withIndex('playerId', (q) => q.eq('playerId', player._id))
+        .first();
+      const isThinking = !!agent && agent.isThinking !== undefined;
+      out.push({ ...player, isSpeaking, isThinking, location });
     }
     return out;
   },

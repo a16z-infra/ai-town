@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import { Doc, Id } from '../_generated/dataModel';
-import { ActionCtx, QueryCtx, internalQuery } from '../_generated/server';
+import { ActionCtx, internalQuery } from '../_generated/server';
 import { LLMMessage, chatCompletion } from '../util/openai';
 import * as memory from './memory';
 import { api, internal } from '../_generated/api';
