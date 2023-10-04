@@ -67,8 +67,8 @@ export const PixiGame = (props: {
       app={pixiApp}
       screenWidth={props.width}
       screenHeight={props.height}
-      worldWidth={world.map.tileSetDim}
-      worldHeight={world.map.tileSetDim}
+      worldWidth={world.map.width * world.map.tileDim}
+      worldHeight={world.map.height * world.map.tileDim}
       viewportRef={viewportRef}
     >
       <PixiStaticMap

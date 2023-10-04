@@ -8,7 +8,8 @@ import {
   mutation,
 } from './_generated/server';
 import { Descriptions } from '../data/characters';
-import * as firstmap from '../data/firstmap';
+//import * as firstmap from '../data/firstmap';
+import * as firstmap from '../data/mage3';
 import { insertInput } from './game/main';
 import { initAgent, restartAgents, stopAgents } from './agent/init';
 import { Doc, Id } from './_generated/dataModel';
@@ -124,12 +125,13 @@ async function getOrCreateDefaultWorld(db: DatabaseWriter) {
       idleUntil: now,
     });
     const mapId = await db.insert('maps', {
-      width: firstmap.mapWidth,
-      height: firstmap.mapHeight,
-      tileSetUrl: firstmap.tilesetPath,
-      tileSetDim: firstmap.tileFileDim,
-      tileDim: firstmap.tileDim,
-      bgTiles: firstmap.bgTiles,
+      width: firstmap.mapwidth,
+      height: firstmap.mapheight,
+      tileSetUrl: firstmap.tilesetpath,
+      tileSetDimX: firstmap.tilesetpxw,
+      tileSetDimY: firstmap.tilesetpxh,
+      tileDim: firstmap.tiledim,
+      bgTiles: firstmap.bgtiles,
       objectTiles: firstmap.objmap,
     });
     const worldId = await db.insert('worlds', {
