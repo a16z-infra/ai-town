@@ -3,9 +3,10 @@ import { internalMutation, mutation, query } from './_generated/server';
 import { characters } from '../data/characters';
 import { sendInput } from './game/main';
 import { IDLE_WORLD_TIMEOUT } from './constants';
-import { restartAgents, stopAgents } from './agent/init';
-import { restartWorld } from './init';
+import { kickAgents, stopAgents } from './agent/init';
 import { Doc, Id } from './_generated/dataModel';
+import { internal } from './_generated/api';
+import { startEngine, stopEngine } from './engine/game';
 
 export const defaultWorld = query({
   handler: async (ctx) => {
@@ -33,20 +34,25 @@ export const heartbeatWorld = mutation({
     if (!world) {
       throw new Error(`Invalid world ID: ${args.worldId}`);
     }
-    const now = Date.now();
-    world.lastViewed = Math.max(world.lastViewed ?? now, now);
-    await ctx.db.replace(world._id, world);
-
-    // Restart the engine if it's stopped.
     const engine = await ctx.db.get(world.engineId);
     if (!engine) {
       throw new Error(`Invalid engine ID: ${world.engineId}`);
     }
-    if (!engine.active) {
-      return;
+
+    const now = Date.now();
+    await ctx.db.patch(world._id, { lastViewed: Math.max(world.lastViewed ?? now, now) });
+
+    // Restart inactive worlds, but leave worlds explicitly stopped by the developer alone.
+    if (world.status === 'stoppedByDeveloper') {
+      console.debug(`World ${world._id} is stopped by developer, not restarting.`);
     }
-    await restartWorld(ctx, args.worldId);
-    await restartAgents(ctx, { worldId: args.worldId });
+
+    if (world.status === 'inactive') {
+      console.log(`Restarting inactive world ${world._id}...`);
+      await ctx.db.patch(world._id, { status: 'running' });
+      await startEngine(ctx, internal.game.main.runStep, engine._id);
+      await kickAgents(ctx, { worldId: world._id });
+    }
   },
 });
 
@@ -59,18 +65,9 @@ export const stopInactiveWorlds = internalMutation({
         continue;
       }
       console.log(`Stopping inactive world ${world._id}`);
-      const engine = await ctx.db.get(world.engineId);
-      if (!engine) {
-        throw new Error(`Invalid engine ID: ${world.engineId}`);
-      }
-      if (!engine.active) {
-        continue;
-      }
-      // TODO: When we can cancel scheduled jobs, do that transactionally here. For now,
-      // just bump the generation number to cancel future runs.
+      await ctx.db.patch(world._id, { status: 'inactive' });
+      await stopEngine(ctx, world.engineId);
       await stopAgents(ctx, { worldId: world._id });
-      engine.generationNumber = engine.generationNumber + 1;
-      await ctx.db.replace(engine._id, engine);
     }
   },
 });

@@ -38,9 +38,18 @@ const engines = v.object({
   // What was `currentTime` for the preceding step of the engine?
   lastStepTs: v.optional(v.number()),
 
-  // Should the engine be running this world? If this is set to false,
-  // the engine will quickly stop simulating the world.
-  active: v.boolean(),
+  // How far has the engine processed in the input queue?
+  processedInputNumber: v.optional(v.number()),
+
+  state: v.union(
+    v.object({
+      kind: v.literal('running'),
+      nextRun: v.number(),
+    }),
+    v.object({
+      kind: v.literal('stopped'),
+    }),
+  ),
 
   // Monotonically increasing counter that allows inputs to restart the engine
   // when it's sleeping. In particular, every scheduled run of the engine
@@ -48,13 +57,6 @@ const engines = v.object({
   // atomically cancel that future execution. This provides mutual exclusion
   // for our core event loop.
   generationNumber: v.number(),
-
-  // Timestamp of the next time we're scheduled. Eventually, this can be the
-  // direct id of the scheduled job.
-  idleUntil: v.number(),
-
-  // How far has the engine processed in the input queue?
-  processedInputNumber: v.optional(v.number()),
 });
 
 export const engineTables = {

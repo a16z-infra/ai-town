@@ -1,23 +1,37 @@
 import { v } from 'convex/values';
-import { MutationCtx, mutation, query } from '../_generated/server';
+import {
+  DatabaseReader,
+  MutationCtx,
+  internalMutation,
+  mutation,
+  query,
+} from '../_generated/server';
 import { AiTown } from './aiTown';
-import { api } from '../_generated/api';
+import { api, internal } from '../_generated/api';
 import { insertInput as gameInsertInput } from '../engine/game';
 import { InputArgs, InputNames } from './inputs';
 import { Id } from '../_generated/dataModel';
 
-export const runStep = mutation({
+async function getWorldId(db: DatabaseReader, engineId: Id<'engines'>) {
+  const world = await db
+    .query('worlds')
+    .withIndex('engineId', (q) => q.eq('engineId', engineId))
+    .first();
+  if (!world) {
+    throw new Error(`World for engine ${engineId} not found`);
+  }
+  return world._id;
+}
+
+export const runStep = internalMutation({
   args: {
-    worldId: v.id('worlds'),
+    engineId: v.id('engines'),
     generationNumber: v.number(),
   },
   handler: async (ctx, args): Promise<void> => {
-    const game = await AiTown.load(ctx.db, args.worldId);
-    const { idleUntil, generationNumber } = await game.runStep(ctx, args.generationNumber);
-    await ctx.scheduler.runAt(idleUntil, api.game.main.runStep, {
-      worldId: args.worldId,
-      generationNumber,
-    });
+    const worldId = await getWorldId(ctx.db, args.engineId);
+    const game = await AiTown.load(ctx.db, worldId);
+    await game.runStep(ctx, internal.game.main.runStep, args.generationNumber);
   },
 });
 
@@ -31,15 +45,7 @@ export async function insertInput<Name extends InputNames>(
   if (!world) {
     throw new Error(`Invalid world ID: ${worldId}`);
   }
-  const { inputId, preemption } = await gameInsertInput(ctx, world.engineId, name, args);
-  if (preemption) {
-    const { now, generationNumber } = preemption;
-    await ctx.scheduler.runAt(now, api.game.main.runStep, {
-      worldId,
-      generationNumber,
-    });
-  }
-  return inputId;
+  return await gameInsertInput(ctx, internal.game.main.runStep, world.engineId, name, args);
 }
 
 export const sendInput = mutation({
