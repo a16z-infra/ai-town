@@ -133,6 +133,12 @@ npx convex run --no-push init:stop
 npx convex run init:resume
 ```
 
+**To kick the engine in case the game engine or agents aren't running**
+
+```bash
+npx convex run init:kick
+```
+
 **To archive the world**
 
 If you'd like to reset the world and start from scratch, you can archive the current world:
