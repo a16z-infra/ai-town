@@ -44,9 +44,7 @@ export function Messages({
     );
     return { node, time: m._creationTime };
   });
-  const lastMessageTs = messages
-    .map((m) => m._creationTime)
-    .reduce((a, b) => Math.max(a, b), messages[0]._creationTime);
+  const lastMessageTs = messages.map((m) => m._creationTime).reduce((a, b) => Math.max(a, b), 0);
 
   const membershipNodes: typeof messageNodes = members.flatMap((m) => {
     let started;
