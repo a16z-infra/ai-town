@@ -93,7 +93,6 @@ export async function queryVectors<TableName extends TableNames>(
   filter: object,
   limit: number,
 ) {
-  const start = Date.now();
   const pinecone = await pineconeIndex();
   const { matches } = await pinecone.query({
     queryRequest: {
@@ -110,8 +109,11 @@ export async function queryVectors<TableName extends TableNames>(
   if (!matches) {
     throw new Error('Pinecone returned undefined results');
   }
-  return matches.filter((m) => !!m.score) as {
-    id: Id<TableName>;
-    score: number;
-  }[];
+  const results = [];
+  for (const { id, score } of matches) {
+    if (score) {
+      results.push({ id: id as Id<TableName>, score });
+    }
+  }
+  return results;
 }
