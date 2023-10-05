@@ -150,6 +150,7 @@ export abstract class Game<Handlers extends InputHandlers> {
       engineId: this.engineId,
       generationNumber: nextGenerationNumber,
     });
+    console.log(`Simulated from ${startTs} to ${currentTs} (${currentTs - startTs}ms)`);
   }
 }
 
@@ -217,6 +218,13 @@ export async function startEngine(
   const now = Date.now();
   const generationNumber = engine.generationNumber + 1;
   await ctx.db.patch(engineId, {
+    // Forcibly advance time to the present. This does mean we'll skip
+    // simulating the time the engine was stopped, but we don't want
+    // to have to simulate a potentially large stopped window and send
+    // it down to clients.
+    lastStepTs: engine.currentTime,
+    currentTime: now,
+
     state: { kind: 'running', nextRun: now },
     generationNumber,
   });

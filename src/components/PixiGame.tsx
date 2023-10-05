@@ -1,6 +1,6 @@
-import { useApp } from '@pixi/react';
+import { useApp, useTick } from '@pixi/react';
 import { Player, SelectElement } from './Player.tsx';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { PixiStaticMap } from './PixiStaticMap.tsx';
 import PixiViewport from './PixiViewport.tsx';
 import { Viewport } from 'pixi-viewport';
@@ -9,6 +9,8 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api.js';
 import { useSendInput } from '../hooks/sendInput.ts';
 import { toastOnError } from '../toasts.ts';
+import { DebugPath } from './DebugPath.tsx';
+import { PositionIndicator } from './PositionIndicator.tsx';
 
 export const PixiGame = (props: {
   worldId: Id<'worlds'>;
@@ -33,6 +35,12 @@ export const PixiGame = (props: {
     // https://pixijs.download/dev/docs/PIXI.FederatedPointerEvent.html
     dragStart.current = { screenX: e.screenX, screenY: e.screenY };
   };
+
+  const [lastDestination, setLastDestination] = useState<{
+    x: number;
+    y: number;
+    t: number;
+  } | null>(null);
   const onMapPointerUp = async (e: any) => {
     if (dragStart.current) {
       const { screenX, screenY } = dragStart.current;
@@ -53,11 +61,16 @@ export const PixiGame = (props: {
     }
     const gameSpacePx = viewport.toWorld(e.screenX, e.screenY);
     const gameSpaceTiles = {
-      x: Math.floor(gameSpacePx.x / world.map.tileDim),
-      y: Math.floor(gameSpacePx.y / world.map.tileDim),
+      x: gameSpacePx.x / world.map.tileDim,
+      y: gameSpacePx.y / world.map.tileDim,
     };
-    console.log(`Moving to ${JSON.stringify(gameSpaceTiles)}`);
-    await toastOnError(moveTo({ playerId: humanPlayerId, destination: gameSpaceTiles }));
+    setLastDestination({ t: Date.now(), ...gameSpaceTiles });
+    const roundedTiles = {
+      x: Math.floor(gameSpaceTiles.x),
+      y: Math.floor(gameSpaceTiles.y),
+    };
+    console.log(`Moving to ${JSON.stringify(roundedTiles)}`);
+    await toastOnError(moveTo({ playerId: humanPlayerId, destination: roundedTiles }));
   };
   if (!world) {
     return null;
@@ -77,8 +90,14 @@ export const PixiGame = (props: {
         onpointerdown={onMapPointerDown}
       />
       {players.map((p) => (
+        <DebugPath key={`path-${p._id}`} player={p} tileDim={world.map.tileDim} />
+      ))}
+      {lastDestination && (
+        <PositionIndicator destination={lastDestination} tileDim={world.map.tileDim} />
+      )}
+      {players.map((p) => (
         <Player
-          key={p._id}
+          key={`player-${p._id}`}
           player={p}
           isViewer={p._id === humanPlayerId}
           onClick={props.setSelectedElement}

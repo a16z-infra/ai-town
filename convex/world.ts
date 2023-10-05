@@ -61,7 +61,7 @@ export const stopInactiveWorlds = internalMutation({
     const cutoff = Date.now() - IDLE_WORLD_TIMEOUT;
     const worlds = await ctx.db.query('worlds').collect();
     for (const world of worlds) {
-      if (cutoff < world.lastViewed) {
+      if (cutoff < world.lastViewed  || world.status !== "running") {
         continue;
       }
       console.log(`Stopping inactive world ${world._id}`);

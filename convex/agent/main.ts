@@ -71,6 +71,9 @@ class Agent {
     if (!engine) {
       throw new Error(`Invalid engine ID: ${world.engineId}`);
     }
+    // NB: We're just being defensive with this check, but any process (e.g. `stopInactiveWorlds`)
+    // that stops the engine should also stop the agents, bumping their generation number and
+    // causing us to hit the generation number check above first.
     if (engine.state.kind !== 'running') {
       console.debug(`Engine ${world.engineId} isn't running`);
       return null;
