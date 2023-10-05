@@ -9,7 +9,7 @@ import {
 } from './_generated/server';
 import { Descriptions } from '../data/characters';
 //import * as firstmap from '../data/firstmap';
-import * as firstmap from '../data/mage3';
+import * as firstmap from '../data/mage';
 import { insertInput } from './game/main';
 import { initAgent, kickAgents, stopAgents } from './agent/init';
 import { Doc, Id } from './_generated/dataModel';
