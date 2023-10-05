@@ -9,7 +9,9 @@ import PlayerDetails from './PlayerDetails.tsx';
 import { api } from '../../convex/_generated/api';
 import { useWorldHeartbeat } from '../hooks/useWorldHeartbeat.ts';
 import { useHistoricalTime } from '../hooks/useHistoricalTime.ts';
-import { BufferHealth } from './BufferHealth.tsx';
+import { DebugTimeManager } from './DebugTimeManager.tsx';
+
+const SHOW_ENGINE_STATS = true;
 
 export default function Game() {
   const convex = useConvex();
@@ -22,14 +24,14 @@ export default function Game() {
   // Send a periodic heartbeat to our world to keep it alive.
   useWorldHeartbeat(worldId);
 
-  const { historicalTime, bufferHealth } = useHistoricalTime(worldId);
+  const { historicalTime, timeManager } = useHistoricalTime(worldId);
 
   if (!worldId) {
     return null;
   }
   return (
     <>
-      <BufferHealth bufferHealth={bufferHealth} width={300} height={150} />
+      {SHOW_ENGINE_STATS && <DebugTimeManager timeManager={timeManager} width={200} height={100} />}
       <div className="mx-auto w-full max-w mt-7 grid grid-rows-[240px_1fr] lg:grid-rows-[1fr] lg:grid-cols-[1fr_auto] lg:h-[700px] max-w-[1400px] min-h-[480px] game-frame">
         {/* Game area */}
         <div className="relative overflow-hidden bg-brown-900" ref={gameWrapperRef}>

@@ -15,7 +15,7 @@ import { ConversationMembers } from './conversationMembers';
 export class AiTown extends Game<Inputs> {
   tickDuration = 16;
   stepDuration = 1000;
-  maxTicksPerStep = 120;
+  maxTicksPerStep = 600;
   maxInputsPerStep = 32;
 
   constructor(

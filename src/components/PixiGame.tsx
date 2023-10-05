@@ -9,6 +9,7 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api.js';
 import { useSendInput } from '../hooks/sendInput.ts';
 import { toastOnError } from '../toasts.ts';
+import { DebugPath } from './DebugPath.tsx';
 
 export const PixiGame = (props: {
   worldId: Id<'worlds'>;
@@ -77,8 +78,11 @@ export const PixiGame = (props: {
         onpointerdown={onMapPointerDown}
       />
       {players.map((p) => (
+        <DebugPath key={`path-${p._id}`} player={p} tileDim={world.map.tileDim} />
+      ))}
+      {players.map((p) => (
         <Player
-          key={p._id}
+          key={`player-${p._id}`}
           player={p}
           isViewer={p._id === humanPlayerId}
           onClick={props.setSelectedElement}

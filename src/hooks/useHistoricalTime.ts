@@ -5,25 +5,25 @@ import { useEffect, useRef, useState } from 'react';
 
 export function useHistoricalTime(worldId?: Id<'worlds'>) {
   const engineStatus = useQuery(api.world.engineStatus, worldId ? { worldId } : 'skip');
-  const manager = useRef(new HistoricalTimeManager());
+  const timeManager = useRef(new HistoricalTimeManager());
   const rafRef = useRef<number>();
   const [historicalTime, setHistoricalTime] = useState<number | undefined>(undefined);
   const [bufferHealth, setBufferHealth] = useState(0);
   if (engineStatus) {
-    manager.current.receive(engineStatus);
+    timeManager.current.receive(engineStatus);
   }
-  const updateTime = (now: number) => {
-    // We don't need sub-millisecond precision for interpolation.
-    const roundedNow = Math.floor(now);
-    setHistoricalTime(manager.current.historicalServerTime(roundedNow));
-    setBufferHealth(manager.current.bufferHealth());
+  const updateTime = (performanceNow: number) => {
+    // We don't need sub-millisecond precision for interpolation, so just use `Date.now()`.
+    const now = Date.now();
+    setHistoricalTime(timeManager.current.historicalServerTime(now));
+    setBufferHealth(timeManager.current.bufferHealth());
     rafRef.current = requestAnimationFrame(updateTime);
   };
   useEffect(() => {
     rafRef.current = requestAnimationFrame(updateTime);
     return () => cancelAnimationFrame(rafRef.current!);
   }, []);
-  return { historicalTime, bufferHealth };
+  return { historicalTime, timeManager: timeManager.current };
 }
 
 type ServerTimeInterval = {
@@ -31,13 +31,16 @@ type ServerTimeInterval = {
   endTs: number;
 };
 
-class HistoricalTimeManager {
+export class HistoricalTimeManager {
   intervals: Array<ServerTimeInterval> = [];
   prevClientTs?: number;
   prevServerTs?: number;
   totalDuration: number = 0;
 
+  latestEngineStatus?: Doc<'engines'>;
+
   receive(engineStatus: Doc<'engines'>) {
+    this.latestEngineStatus = engineStatus;
     if (!engineStatus.currentTime || !engineStatus.lastStepTs) {
       return;
     }
@@ -130,6 +133,13 @@ class HistoricalTimeManager {
     }
     const lastServerTs = this.prevServerTs ?? this.intervals[0].startTs;
     return this.intervals[this.intervals.length - 1].endTs - lastServerTs;
+  }
+
+  clockSkew(): number {
+    if (!this.prevClientTs || !this.prevServerTs) {
+      return 0;
+    }
+    return this.prevClientTs - this.prevServerTs;
   }
 }
 
