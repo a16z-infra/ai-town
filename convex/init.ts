@@ -134,6 +134,7 @@ async function getOrCreateDefaultWorld(ctx: MutationCtx) {
       width: firstmap.mapwidth,
       height: firstmap.mapheight,
       tileSetUrl: firstmap.tilesetpath,
+      tileDim: firstmap.tiledim,
       tileSetDimX: firstmap.tilesetpxw,
       tileSetDimY: firstmap.tilesetpxh,
       bgTiles: firstmap.bgtiles,

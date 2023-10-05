@@ -137,7 +137,9 @@ export function blockedWithPositions(position: Point, otherPositions: Point[], m
   if (position.x < 0 || position.y < 0 || position.x >= map.width || position.y >= map.height) {
     return 'out of bounds';
   }
-  if (map.objectTiles[Math.floor(position.y)][Math.floor(position.x)] !== -1) {
+  if ((map.objectTiles[0][Math.floor(position.x)][Math.floor(position.y)]  ||
+       map.objectTiles[1][Math.floor(position.x)][Math.floor(position.y)]) 
+      !== -1) {
     return 'world blocked';
   }
   for (const otherPosition of otherPositions) {
