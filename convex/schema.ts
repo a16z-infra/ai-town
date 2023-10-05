@@ -7,9 +7,11 @@ export default defineSchema({
   worlds: defineTable({
     isDefault: v.boolean(),
     engineId: v.id('engines'),
-    lastViewed: v.number(),
     mapId: v.id('maps'),
-  }),
+
+    lastViewed: v.number(),
+    status: v.union(v.literal('running'), v.literal('stoppedByDeveloper'), v.literal('inactive')),
+  }).index('engineId', ['engineId']),
   maps: defineTable({
     width: v.number(),
     height: v.number(),

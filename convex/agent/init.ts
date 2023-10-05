@@ -35,7 +35,7 @@ export const initAgent = internalMutation({
   },
 });
 
-export const restartAgents = internalMutation({
+export const kickAgents = internalMutation({
   args: {
     worldId: v.id('worlds'),
   },

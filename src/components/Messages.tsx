@@ -44,6 +44,8 @@ export function Messages({
     );
     return { node, time: m._creationTime };
   });
+  const lastMessageTs = messages.map((m) => m._creationTime).reduce((a, b) => Math.max(a, b), 0);
+
   const membershipNodes: typeof messageNodes = members.flatMap((m) => {
     let started;
     if (m.status.kind === 'participating' || m.status.kind === 'left') {
@@ -55,7 +57,7 @@ export function Messages({
       out.push({
         node: (
           <div key={`joined-${m._id}`} className="leading-tight mb-6">
-            <p className="text-brown-700 text-center">{m.playerName} joined the conversation</p>
+            <p className="text-brown-700 text-center">{m.playerName} joined the conversation.</p>
           </div>
         ),
         time: started,
@@ -65,10 +67,12 @@ export function Messages({
       out.push({
         node: (
           <div key={`left-${m._id}`} className="leading-tight mb-6">
-            <p className="text-brown-700 text-center">{m.playerName} left the conversation</p>
+            <p className="text-brown-700 text-center">{m.playerName} left the conversation.</p>
           </div>
         ),
-        time: ended,
+        // Always sort all "left" messages after the last message.
+        // TODO: We can remove this once we want to support more than two participants per conversation.
+        time: Math.max(lastMessageTs + 1, ended),
       });
     }
     return out;
