@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import { Doc, Id } from '../_generated/dataModel';
 import { MutationCtx, internalAction, internalMutation } from '../_generated/server';
-import { CONVERSATION_DISTANCE } from '../constants';
+import { CONVERSATION_DISTANCE, MIDPOINT_THRESHOLD } from '../constants';
 import { InputArgs, InputNames } from '../game/inputs';
 import { insertInput } from '../game/main';
 import { startTyping, writeMessage } from '../messages';
@@ -23,10 +23,12 @@ import {
 import { continueConversation, leaveConversation, startConversation } from './conversation';
 import { internal } from '../_generated/api';
 import { latestMemoryOfType, rememberConversation } from './memory';
+import { WaitingOn } from './scheduling';
+import { runAgent } from './scheduling';
 
 const selfInternal = internal.agent.main;
 
-class Agent {
+export class Agent {
   constructor(
     private ctx: MutationCtx,
     private now: number,
@@ -38,7 +40,11 @@ class Agent {
     private engine: Doc<'engines'>,
   ) {}
 
-  static async load(ctx: MutationCtx, agentId: Id<'agents'>, expectedGenerationNumber: number) {
+  public static async load(
+    ctx: MutationCtx,
+    agentId: Id<'agents'>,
+    expectedGenerationNumber: number,
+  ) {
     const now = Date.now();
     const agent = await ctx.db.get(agentId);
     if (!agent) {
@@ -48,6 +54,10 @@ class Agent {
       console.debug(
         `Expected generation number ${expectedGenerationNumber} but got ${agent.generationNumber}`,
       );
+      return null;
+    }
+    if (agent.state.kind === 'stopped') {
+      console.debug(`Agent ${agentId} is stopped`);
       return null;
     }
     const nextGenerationNumber = agent.generationNumber + 1;
@@ -95,7 +105,8 @@ class Agent {
     );
   }
 
-  async run(): Promise<number> {
+  async run(): Promise<WaitingOn[]> {
+    const waitingOn: WaitingOn[] = [];
     const toRemember = await this.conversationToRemember();
 
     // If we have a conversation to remember, do that first.
@@ -106,7 +117,11 @@ class Agent {
       if (!this.player.pathfinding) {
         const destination = this.wanderDestination();
         console.log(`Wandering to ${destination} to think`);
-        await this.insertInput('moveTo', { playerId: this.player._id, destination });
+        const inputId = await this.insertInput('moveTo', {
+          playerId: this.player._id,
+          destination,
+        });
+        waitingOn.push({ kind: 'movementCompleted', inputId });
       }
       await this.ctx.scheduler.runAfter(0, selfInternal.agentRememberConversation, {
         agentId: this.agent._id,
@@ -114,7 +129,8 @@ class Agent {
         playerId: this.player._id,
         conversationId: toRemember,
       });
-      return this.now + ACTION_TIMEOUT;
+      waitingOn.push({ kind: 'actionCompleted', timeoutDeadline: this.now + ACTION_TIMEOUT });
+      return waitingOn;
     }
 
     const playerConversation = await loadConversationState(this.ctx, {
@@ -123,13 +139,19 @@ class Agent {
 
     // If we're not in a conversation, wander around to somewhere to start one.
     if (!playerConversation) {
+      waitingOn.push({ kind: 'inConversation' });
+
+      let moveToInputId;
       if (!this.player.pathfinding) {
         const destination = this.wanderDestination();
         console.log(`Wandering to start a conversation`, destination);
-        await this.insertInput('moveTo', { playerId: this.player._id, destination });
+        moveToInputId = await this.insertInput('moveTo', {
+          playerId: this.player._id,
+          destination,
+        });
       }
+      waitingOn.push({ kind: 'movementCompleted', inputId: moveToInputId });
 
-      // If we're near another player, try to start a conversation.
       const otherPlayers = await this.loadOtherPlayers();
       const playerLastConversation = otherPlayers
         .flatMap((p) =>
@@ -139,8 +161,11 @@ class Agent {
 
       // Wait a cooldown after finish a conversation to start a new one.
       if (playerLastConversation && this.now < playerLastConversation + CONVERATION_COOLDOWN) {
-        console.log(`Not starting a new conversation, just finished one.`);
-        return this.now + INPUT_DELAY;
+        waitingOn.push({
+          kind: 'nextConversationAttempt',
+          nextAttempt: playerLastConversation + CONVERATION_COOLDOWN,
+        });
+        return waitingOn;
       }
 
       // Find players that aren't in a conversation and that we haven't talked to too recently.
@@ -157,21 +182,29 @@ class Agent {
           distance(a.position, this.player.position) - distance(b.position, this.player.position),
       );
 
-      // Send an invite to the closest one.
-      if (eligiblePlayers.length > 0) {
-        const nearestPlayer = eligiblePlayers[0];
-        console.log(`Inviting ${nearestPlayer.name} to a conversation`);
-        await this.insertInput('startConversation', {
-          playerId: this.player._id,
-          invitee: nearestPlayer._id,
+      // If there's no one eligible, wait a minute for someone to become eligible.
+      if (eligiblePlayers.length === 0) {
+        waitingOn.push({
+          kind: 'nextConversationAttempt',
+          nextAttempt: this.now + PLAYER_CONVERSATION_COOLDOWN,
         });
-        return this.now + INPUT_DELAY;
+        return waitingOn;
       }
 
-      return this.now + INPUT_DELAY;
+      // Send an invite to the closest one.
+      const nearestPlayer = eligiblePlayers[0];
+      console.log(`Inviting ${nearestPlayer.name} to a conversation`);
+      const inputId = await this.insertInput('startConversation', {
+        playerId: this.player._id,
+        invitee: nearestPlayer._id,
+      });
+      waitingOn.push({ kind: 'inputCompleted', inputId });
+      return waitingOn;
     }
 
     if (playerConversation) {
+      waitingOn.push({ kind: 'conversationLeft', conversationId: playerConversation._id });
+
       const otherPlayers = await this.loadOtherPlayers();
       const otherPlayer = otherPlayers.find(
         (p) => p.conversation && p.conversation._id === playerConversation._id,
@@ -182,20 +215,26 @@ class Agent {
       if (playerConversation.member.status.kind === 'invited') {
         // Accept a conversation with another agent with some probability and with
         // a human unconditionally.
+        let inputId;
         if (otherPlayer.human || Math.random() < INVITE_ACCEPT_PROBABILITY) {
           console.log(`Accepting conversation with ${otherPlayer.name}`);
-          await this.insertInput('acceptInvite', {
+          inputId = await this.insertInput('acceptInvite', {
             playerId: this.player._id,
             conversationId: playerConversation._id,
           });
         } else {
           console.log(`Rejecting conversation with ${otherPlayer.name}`);
-          await this.insertInput('rejectInvite', {
+          inputId = await this.insertInput('rejectInvite', {
             playerId: this.player._id,
             conversationId: playerConversation._id,
           });
         }
-        return this.now + INPUT_DELAY;
+        // Wait for our acceptance or rejection to be processed.
+        waitingOn.push({
+          kind: 'inputCompleted',
+          inputId,
+        });
+        return waitingOn;
       }
       if (playerConversation.member.status.kind === 'walkingOver') {
         // Leave a conversation if we've been waiting for too long.
@@ -205,21 +244,45 @@ class Agent {
             playerId: this.player._id,
             conversationId: playerConversation._id,
           });
-          return this.now + INPUT_DELAY;
+          return waitingOn;
         }
         // Don't keep moving around if we're near enough.
-        if (distance(this.player.position, otherPlayer.position) < CONVERSATION_DISTANCE) {
+        const playerDistance = distance(this.player.position, otherPlayer.position);
+        if (playerDistance < CONVERSATION_DISTANCE) {
           console.log(`Arrived at ${otherPlayer.name}, waiting for them to accept...`);
-          return this.now + INPUT_DELAY;
+          waitingOn.push({
+            kind: 'conversationParticipating',
+            conversationId: playerConversation._id,
+            deadline: playerConversation.member._creationTime + INVITE_TIMEOUT,
+          });
+          return waitingOn;
         }
         // Keep moving towards the other player.
-        const destination = {
-          x: Math.floor((this.player.position.x + otherPlayer.position.x) / 2),
-          y: Math.floor((this.player.position.y + otherPlayer.position.y) / 2),
-        };
+        // If we're close enough to the player, just walk to them directly.
+        let destination;
+        if (playerDistance < MIDPOINT_THRESHOLD) {
+          destination = {
+            x: Math.floor(otherPlayer.position.x),
+            y: Math.floor(otherPlayer.position.y),
+          };
+        } else {
+          destination = {
+            x: Math.floor((this.player.position.x + otherPlayer.position.x) / 2),
+            y: Math.floor((this.player.position.y + otherPlayer.position.y) / 2),
+          };
+        }
         console.log(`Walking towards ${otherPlayer.name}...`, destination);
-        await this.insertInput('moveTo', { playerId: this.player._id, destination });
-        return this.now + INPUT_DELAY;
+        const inputId = await this.insertInput('moveTo', {
+          playerId: this.player._id,
+          destination,
+        });
+        waitingOn.push({ kind: 'movementCompleted', inputId });
+        waitingOn.push({
+          kind: 'conversationParticipating',
+          conversationId: playerConversation._id,
+          deadline: playerConversation.member._creationTime + INVITE_TIMEOUT,
+        });
+        return waitingOn;
       }
       if (playerConversation.member.status.kind === 'participating') {
         const started = playerConversation.member.status.started;
@@ -232,9 +295,8 @@ class Agent {
           .first();
         if (indicator?.typing && indicator.typing.playerId !== this.player._id) {
           console.log(`Waiting for ${otherPlayer.name} to finish typing...`);
-          // Poll every second while someone else is typing.
-          // TODO: Make this more event driven for faster response times.
-          return this.now + 1000;
+          waitingOn.push({ kind: 'nobodyTyping', conversationId: playerConversation._id });
+          return waitingOn;
         }
 
         const messages = await this.ctx.db
@@ -261,10 +323,16 @@ class Agent {
                 otherPlayer.lastConversationWithPlayer?._id ?? null,
               ),
             );
-            return this.now + ACTION_TIMEOUT;
-          } else {
-            return this.now + INPUT_DELAY;
+            waitingOn.push({ kind: 'actionCompleted', timeoutDeadline: this.now + ACTION_TIMEOUT });
+            return waitingOn;
           }
+          // Wait for the other player to say something.
+          waitingOn.push({
+            kind: 'waitingForNewMessage',
+            conversationId: playerConversation._id,
+            until: awkwardDeadline,
+          });
+          return waitingOn;
         }
 
         // See if the conversation has been going on too long and decide to leave.
@@ -283,21 +351,38 @@ class Agent {
               otherPlayer.lastConversationWithPlayer?._id ?? null,
             ),
           );
-          return this.now + ACTION_TIMEOUT;
+          waitingOn.push({ kind: 'actionCompleted', timeoutDeadline: this.now + ACTION_TIMEOUT });
+          return waitingOn;
         }
+        waitingOn.push({
+          kind: 'conversationTooLong',
+          deadline: started + MAX_CONVERSATION_DURATION,
+        });
 
         // Wait for the awkward deadline if we sent the last message.
         if (lastMessage.author === this.player._id) {
           const awkwardDeadline = lastMessage._creationTime + AWKWARD_CONVERSATION_TIMEOUT;
           if (this.now < awkwardDeadline) {
             console.log(`Waiting for ${otherPlayer.name} to say something...`);
-            return this.now + INPUT_DELAY;
+            waitingOn.push({
+              kind: 'waitingForNewMessage',
+              until: awkwardDeadline,
+              conversationId: playerConversation._id,
+              lastMessageId: lastMessage._id,
+            });
+            return waitingOn;
           }
         }
 
         if (this.now < lastMessage._creationTime + MESSAGE_COOLDOWN) {
           console.log(`Waiting for message cooldown...`);
-          return lastMessage._creationTime + MESSAGE_COOLDOWN;
+          waitingOn.push({
+            kind: 'waitingForNewMessage',
+            until: lastMessage._creationTime + MESSAGE_COOLDOWN,
+            conversationId: playerConversation._id,
+            lastMessageId: lastMessage._id,
+          });
+          return waitingOn;
         }
 
         // Grab the lock and send a message!
@@ -311,13 +396,11 @@ class Agent {
             otherPlayer.lastConversationWithPlayer?._id ?? null,
           ),
         );
-        return this.now + ACTION_TIMEOUT;
+        waitingOn.push({ kind: 'actionCompleted', timeoutDeadline: this.now + ACTION_TIMEOUT });
+        return waitingOn;
       }
     }
-
-    // TODO: Make this more event driven.
-    console.log('Nothing to do, sleeping for 10s');
-    return this.now + 10 * 1000;
+    return waitingOn;
   }
 
   async startTyping(conversationId: Id<'conversations'>) {
@@ -460,16 +543,7 @@ export const agentRun = internalMutation({
     generationNumber: v.number(),
   },
   handler: async (ctx, args) => {
-    const agentClass = await Agent.load(ctx, args.agentId, args.generationNumber);
-    if (!agentClass) {
-      return;
-    }
-    const nextRun = await agentClass.run();
-    await scheduleNextRun(ctx, {
-      agentId: args.agentId,
-      expectedGenerationNumber: agentClass.agent.generationNumber,
-      nextRun,
-    });
+    await runAgent(ctx, selfInternal.agentRun, args.agentId, args.generationNumber);
   },
 });
 

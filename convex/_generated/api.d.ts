@@ -20,6 +20,7 @@ import type * as agent_embeddingsCache from "../agent/embeddingsCache";
 import type * as agent_init from "../agent/init";
 import type * as agent_main from "../agent/main";
 import type * as agent_memory from "../agent/memory";
+import type * as agent_scheduling from "../agent/scheduling";
 import type * as constants from "../constants";
 import type * as crons from "../crons";
 import type * as engine_constants from "../engine/constants";
@@ -64,6 +65,7 @@ declare const fullApi: ApiFromModules<{
   "agent/init": typeof agent_init;
   "agent/main": typeof agent_main;
   "agent/memory": typeof agent_memory;
+  "agent/scheduling": typeof agent_scheduling;
   constants: typeof constants;
   crons: typeof crons;
   "engine/constants": typeof engine_constants;
