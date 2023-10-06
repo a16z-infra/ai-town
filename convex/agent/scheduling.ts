@@ -4,8 +4,8 @@ import { MutationCtx } from '../_generated/server';
 import { assertNever } from '../util/assertNever';
 import { Agent } from './main';
 import { v, Infer } from 'convex/values';
-import { TYPING_TIMEOUT } from '../constants';
 import { conversationMember } from '../game/conversationMembers';
+import { getCurrentlyTyping } from '../messages';
 
 type RunReference = FunctionReference<
   'mutation',
@@ -38,9 +38,13 @@ export async function runAgent(
   agent.state = { kind: 'running', waitingOn: waitingOn };
   await ctx.db.replace(agent._id, agent);
 
+  // If we have a timing based wakeup (from the deadlines computed above),
+  // schedule ourselves to run in the future. We may run before then if
+  // something else wakes us up, like a completed action or a database
+  // write that overlaps with something in `waitingOn`.
   if (nextRun) {
     const deltaSeconds = (nextRun - Date.now()) / 1000;
-    console.debug(`Scheduling next run ${deltaSeconds.toFixed(2)} in the future.`);
+    console.debug(`Scheduling next run ${deltaSeconds.toFixed(2)}s in the future.`);
     await ctx.scheduler.runAt(nextRun, runReference, {
       agentId,
       generationNumber: agentClass.nextGenerationNumber,
@@ -112,11 +116,8 @@ export async function wakeupAgents(ctx: MutationCtx, runReference: RunReference)
           break;
         }
         case 'nobodyTyping': {
-          const indicator = await ctx.db
-            .query('typingIndicator')
-            .withIndex('conversationId', (q) => q.eq('conversationId', event.conversationId))
-            .first();
-          if (!indicator || !indicator.typing || indicator.typing.since + TYPING_TIMEOUT < now) {
+          const typing = await getCurrentlyTyping(ctx.db, event.conversationId);
+          if (typing) {
             wakeup = event.kind;
           }
           break;

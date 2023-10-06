@@ -36,12 +36,7 @@ const init = mutation({
     }
     // Send inputs to create players for all of the agents.
     if (await shouldCreateAgents(ctx.db, world)) {
-      let i = 0;
       for (const agent of Descriptions) {
-        if (i > 3) {
-          break;
-        }
-        i += 1;
         const inputId = await insertInput(ctx, world._id, 'join', {
           name: agent.name,
           description: agent.identity,
