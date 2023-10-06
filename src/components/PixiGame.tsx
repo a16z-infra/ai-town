@@ -11,6 +11,7 @@ import { useSendInput } from '../hooks/sendInput.ts';
 import { toastOnError } from '../toasts.ts';
 import { DebugPath } from './DebugPath.tsx';
 import { PositionIndicator } from './PositionIndicator.tsx';
+import { SHOW_DEBUG_UI } from './Game.tsx';
 
 export const PixiGame = (props: {
   worldId: Id<'worlds'>;
@@ -89,9 +90,13 @@ export const PixiGame = (props: {
         onpointerup={onMapPointerUp}
         onpointerdown={onMapPointerDown}
       />
-      {players.map((p) => (
-        <DebugPath key={`path-${p._id}`} player={p} tileDim={world.map.tileDim} />
-      ))}
+      {players.map(
+        (p) =>
+          // Only show the path for the human player in non-debug mode.
+          (SHOW_DEBUG_UI || p._id === humanPlayerId) && (
+            <DebugPath key={`path-${p._id}`} player={p} tileDim={world.map.tileDim} />
+          ),
+      )}
       {lastDestination && (
         <PositionIndicator destination={lastDestination} tileDim={world.map.tileDim} />
       )}
