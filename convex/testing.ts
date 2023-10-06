@@ -7,7 +7,7 @@ import schema from './schema';
 const DELETE_BATCH_SIZE = 64;
 
 // Clear all of the tables except for the embeddings cache.
-const excludedTables: Array<TableNames> = ['memoryEmbeddings'];
+const excludedTables: Array<TableNames> = ['embeddingsCache'];
 
 export const wipeAllTables = internalMutation({
   handler: async (ctx) => {
