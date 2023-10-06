@@ -21,14 +21,16 @@ export const initAgent = internalMutation({
     if (!description) {
       throw new Error(`No description found for character ${args.character}`);
     }
+    const now = Date.now();
     const agentId = await ctx.db.insert('agents', {
       worldId: args.worldId,
       playerId: args.playerId,
       identity: description.identity,
       plan: description.plan,
       generationNumber: 0,
+      state: { kind: 'running', waitingOn: [] },
     });
-    await ctx.scheduler.runAfter(0, internal.agent.main.agentRun, {
+    await ctx.scheduler.runAt(now, internal.agent.main.agentRun, {
       agentId,
       generationNumber: 0,
     });
@@ -45,8 +47,14 @@ export const kickAgents = internalMutation({
       .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
       .collect();
     for (const agent of agents) {
+      if (agent.state.kind === 'stopped') {
+        continue;
+      }
       const generationNumber = agent.generationNumber + 1;
-      await ctx.db.patch(agent._id, { generationNumber });
+      await ctx.db.patch(agent._id, {
+        generationNumber,
+        state: { kind: 'running', waitingOn: [] },
+      });
       await ctx.scheduler.runAfter(0, internal.agent.main.agentRun, {
         agentId: agent._id,
         generationNumber,
@@ -65,7 +73,36 @@ export const stopAgents = internalMutation({
       .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
       .collect();
     for (const agent of agents) {
-      await ctx.db.patch(agent._id, { generationNumber: agent.generationNumber + 1 });
+      await ctx.db.patch(agent._id, {
+        generationNumber: agent.generationNumber + 1,
+        state: { kind: 'stopped' },
+      });
+    }
+  },
+});
+
+export const resumeAgents = internalMutation({
+  args: {
+    worldId: v.id('worlds'),
+  },
+  handler: async (ctx, args) => {
+    const agents = await ctx.db
+      .query('agents')
+      .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
+      .collect();
+    for (const agent of agents) {
+      if (agent.state.kind !== 'stopped') {
+        continue;
+      }
+      const generationNumber = agent.generationNumber + 1;
+      await ctx.db.patch(agent._id, {
+        generationNumber,
+        state: { kind: 'running', waitingOn: [] },
+      });
+      await ctx.scheduler.runAfter(0, internal.agent.main.agentRun, {
+        agentId: agent._id,
+        generationNumber,
+      });
     }
   },
 });

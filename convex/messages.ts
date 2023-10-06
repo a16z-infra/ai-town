@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 import { internalMutation, mutation, query } from './_generated/server';
 import { TYPING_TIMEOUT } from './constants';
 import { internal } from './_generated/api';
+import { wakeupAgents } from './agent/scheduling';
 
 export const listMessages = query({
   args: {
@@ -129,6 +130,7 @@ export const writeMessage = mutation({
       author: args.playerId,
       text: args.text,
     });
+    await wakeupAgents(ctx, internal.agent.main.agentRun);
   },
 });
 
@@ -152,5 +154,6 @@ export const clearTyping = internalMutation({
       throw new Error(`No typing indicator to clear despite version number matching`);
     }
     await ctx.db.patch(indicator._id, { typing: undefined, versionNumber: args.versionNumber + 1 });
+    await wakeupAgents(ctx, internal.agent.main.agentRun);
   },
 });

@@ -10,7 +10,7 @@ import {
 import { Descriptions } from '../data/characters';
 import * as firstmap from '../data/firstmap';
 import { insertInput } from './game/main';
-import { initAgent, kickAgents, stopAgents } from './agent/init';
+import { initAgent, kickAgents, resumeAgents, stopAgents } from './agent/init';
 import { Doc, Id } from './_generated/dataModel';
 import { createEngine, kickEngine, startEngine, stopEngine } from './engine/game';
 
@@ -36,7 +36,12 @@ const init = mutation({
     }
     // Send inputs to create players for all of the agents.
     if (await shouldCreateAgents(ctx.db, world)) {
+      let i = 0;
       for (const agent of Descriptions) {
+        if (i > 3) {
+          break;
+        }
+        i += 1;
         const inputId = await insertInput(ctx, world._id, 'join', {
           name: agent.name,
           description: agent.identity,
@@ -91,7 +96,7 @@ export const resume = internalMutation({
     console.log(`Resuming engine ${engine._id} for world ${world._id} (state: ${world.status})...`);
     await ctx.db.patch(world._id, { status: 'running' });
     await startEngine(ctx, internal.game.main.runStep, engine._id);
-    await kickAgents(ctx, { worldId: world._id });
+    await resumeAgents(ctx, { worldId: world._id });
   },
 });
 

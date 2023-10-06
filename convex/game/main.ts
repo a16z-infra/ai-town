@@ -11,6 +11,7 @@ import { api, internal } from '../_generated/api';
 import { insertInput as gameInsertInput } from '../engine/game';
 import { InputArgs, InputNames } from './inputs';
 import { Id } from '../_generated/dataModel';
+import { wakeupAgents } from '../agent/scheduling';
 
 async function getWorldId(db: DatabaseReader, engineId: Id<'engines'>) {
   const world = await db
@@ -32,6 +33,7 @@ export const runStep = internalMutation({
     const worldId = await getWorldId(ctx.db, args.engineId);
     const game = await AiTown.load(ctx.db, worldId);
     await game.runStep(ctx, internal.game.main.runStep, args.generationNumber);
+    await wakeupAgents(ctx, internal.agent.main.agentRun);
   },
 });
 
