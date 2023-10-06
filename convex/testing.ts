@@ -1,59 +1,42 @@
 import { TableNames } from './_generated/dataModel';
 import { internal } from './_generated/api';
-import { DatabaseWriter, internalMutation } from './_generated/server';
+import { internalMutation } from './_generated/server';
 import { v } from 'convex/values';
+import schema from './schema';
 
 const DELETE_BATCH_SIZE = 64;
 
 // Clear all of the tables except for the embeddings cache.
-const tables: Array<TableNames> = [
-  'conversationMembers',
-  'conversations',
-  'inputs',
-  'players',
-  'engines',
-  'locations',
-  'worlds',
-  'agents',
-  'memories',
-  'memoryEmbeddings',
-  'messages',
-  'typingIndicator',
-];
+const excludedTables: Array<TableNames> = ['embeddingsCache'];
 
 export const wipeAllTables = internalMutation({
   handler: async (ctx) => {
-    await deletePage(ctx, { tableIndex: 0, cursor: null });
+    for (const tableName of Object.keys(schema.tables)) {
+      if (excludedTables.includes(tableName as TableNames)) {
+        continue;
+      }
+      await ctx.scheduler.runAfter(0, internal.testing.deletePage, { tableName, cursor: null });
+    }
   },
 });
 
 export const deletePage = internalMutation({
   args: {
-    tableIndex: v.number(),
+    tableName: v.string(),
     cursor: v.union(v.string(), v.null()),
   },
   handler: async (ctx, args) => {
-    if (args.tableIndex >= tables.length) {
-      return;
+    const results = await ctx.db
+      .query(args.tableName as TableNames)
+      .paginate({ cursor: args.cursor, numItems: DELETE_BATCH_SIZE });
+    for (const row of results.page) {
+      await ctx.db.delete(row._id);
     }
-    const table = tables[args.tableIndex];
-    const { isDone, cursor } = await deleteBatch(ctx.db, table, args.cursor);
-
-    const newArgs = isDone
-      ? { tableIndex: args.tableIndex + 1, cursor: null }
-      : { tableIndex: args.tableIndex, cursor };
-    await ctx.scheduler.runAfter(0, internal.testing.deletePage, newArgs);
+    if (!results.isDone) {
+      await ctx.scheduler.runAfter(0, internal.testing.deletePage, {
+        tableName: args.tableName,
+        cursor: results.continueCursor,
+      });
+    }
   },
 });
-
-async function deleteBatch<TableName extends TableNames>(
-  db: DatabaseWriter,
-  table: TableName,
-  cursor: null | string,
-) {
-  const results = await db.query(table).paginate({ cursor, numItems: DELETE_BATCH_SIZE });
-  for (const row of results.page) {
-    await db.delete(row._id);
-  }
-  return { isDone: results.isDone, cursor: results.continueCursor };
-}
