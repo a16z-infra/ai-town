@@ -1,8 +1,9 @@
 import { v } from 'convex/values';
-import { internalMutation, mutation, query } from './_generated/server';
+import { DatabaseReader, internalMutation, mutation, query } from './_generated/server';
 import { TYPING_TIMEOUT } from './constants';
 import { internal } from './_generated/api';
 import { wakeupAgents } from './agent/scheduling';
+import { Id } from './_generated/dataModel';
 
 export const listMessages = query({
   args: {
@@ -25,16 +26,28 @@ export const listMessages = query({
   },
 });
 
+export async function getCurrentlyTyping(db: DatabaseReader, conversationId: Id<'conversations'>) {
+  // We have at most one row per conversation in the `typingIndicator` table, so
+  // we can fetch a single row to determine if someone's typing.
+  const indicator = await db
+    .query('typingIndicator')
+    .withIndex('conversationId', (q) => q.eq('conversationId', conversationId))
+    .unique();
+  if (!indicator || !indicator.typing) {
+    return null;
+  }
+  if (indicator.typing.since + TYPING_TIMEOUT < Date.now()) {
+    return null;
+  }
+  return indicator.typing;
+}
+
 export const currentlyTyping = query({
   args: {
     conversationId: v.id('conversations'),
   },
   handler: async (ctx, args) => {
-    const indicator = await ctx.db
-      .query('typingIndicator')
-      .withIndex('conversationId', (q) => q.eq('conversationId', args.conversationId))
-      .unique();
-    const typing = indicator?.typing;
+    const typing = await getCurrentlyTyping(ctx.db, args.conversationId);
     if (!typing) {
       return null;
     }

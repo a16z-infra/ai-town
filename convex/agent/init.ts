@@ -21,7 +21,6 @@ export const initAgent = internalMutation({
     if (!description) {
       throw new Error(`No description found for character ${args.character}`);
     }
-    const now = Date.now();
     const agentId = await ctx.db.insert('agents', {
       worldId: args.worldId,
       playerId: args.playerId,
@@ -30,7 +29,7 @@ export const initAgent = internalMutation({
       generationNumber: 0,
       state: { kind: 'running', waitingOn: [] },
     });
-    await ctx.scheduler.runAt(now, internal.agent.main.agentRun, {
+    await ctx.scheduler.runAfter(0, internal.agent.main.agentRun, {
       agentId,
       generationNumber: 0,
     });
