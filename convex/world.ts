@@ -3,10 +3,11 @@ import { internalMutation, mutation, query } from './_generated/server';
 import { characters } from '../data/characters';
 import { sendInput } from './game/main';
 import { IDLE_WORLD_TIMEOUT } from './constants';
-import { kickAgents, stopAgents } from './agent/init';
+import { kickAgents, resumeAgents, stopAgents } from './agent/init';
 import { Doc, Id } from './_generated/dataModel';
 import { internal } from './_generated/api';
 import { startEngine, stopEngine } from './engine/game';
+import { conversationMember } from './game/conversationMembers';
 
 export const defaultWorld = query({
   handler: async (ctx) => {
@@ -51,7 +52,7 @@ export const heartbeatWorld = mutation({
       console.log(`Restarting inactive world ${world._id}...`);
       await ctx.db.patch(world._id, { status: 'running' });
       await startEngine(ctx, internal.game.main.runStep, engine._id);
-      await kickAgents(ctx, { worldId: world._id });
+      await resumeAgents(ctx, { worldId: world._id });
     }
   },
 });
@@ -237,12 +238,12 @@ export const activePlayers = query({
           .first();
         isSpeaking = !!indicator && indicator.typing?.playerId === player._id;
       }
-      const agent = await ctx.db
-        .query('agents')
+      const isThinkingDoc = await ctx.db
+        .query('agentIsThinking')
         .withIndex('playerId', (q) => q.eq('playerId', player._id))
         .first();
-      const isThinking = !!agent && agent.isThinking !== undefined;
-      out.push({ ...player, isSpeaking, isThinking, location });
+      const isThinking = !!isThinkingDoc;
+      out.push({ ...player, isSpeaking, isThinking });
     }
     return out;
   },
@@ -287,24 +288,7 @@ export const loadConversationState = query({
     if (!player) {
       throw new Error(`Invalid player ID: ${args.playerId}`);
     }
-    // TODO: We could combine these queries if we had `.neq()` in our index query API.
-    const invited = await ctx.db
-      .query('conversationMembers')
-      .withIndex('playerId', (q) => q.eq('playerId', player._id).eq('status.kind', 'invited'))
-      .unique();
-    const walkingOver = await ctx.db
-      .query('conversationMembers')
-      .withIndex('playerId', (q) => q.eq('playerId', player._id).eq('status.kind', 'walkingOver'))
-      .unique();
-    const participating = await ctx.db
-      .query('conversationMembers')
-      .withIndex('playerId', (q) => q.eq('playerId', player._id).eq('status.kind', 'participating'))
-      .unique();
-
-    if ([invited, walkingOver, participating].filter(Boolean).length > 1) {
-      throw new Error(`Player ${player._id} is in multiple conversations`);
-    }
-    const member = invited ?? walkingOver ?? participating;
+    const member = await conversationMember(ctx.db, player._id);
     if (!member) {
       return null;
     }

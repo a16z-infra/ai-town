@@ -7,7 +7,7 @@ import {
   query,
 } from '../_generated/server';
 import { AiTown } from './aiTown';
-import { api, internal } from '../_generated/api';
+import { internal } from '../_generated/api';
 import { insertInput as gameInsertInput } from '../engine/game';
 import { InputArgs, InputNames } from './inputs';
 import { Id } from '../_generated/dataModel';

@@ -1,7 +1,15 @@
 import { v } from 'convex/values';
-import { internalMutation, mutation, query } from './_generated/server';
+import {
+  DatabaseReader,
+  MutationCtx,
+  internalMutation,
+  mutation,
+  query,
+} from './_generated/server';
 import { TYPING_TIMEOUT } from './constants';
 import { internal } from './_generated/api';
+import { Id } from './_generated/dataModel';
+import { assertNever } from './util/assertNever';
 
 export const listMessages = query({
   args: {
@@ -24,16 +32,35 @@ export const listMessages = query({
   },
 });
 
+export async function getCurrentlyTyping(db: DatabaseReader, conversationId: Id<'conversations'>) {
+  const conversation = await db.get(conversationId);
+  if (!conversation) {
+    throw new Error(`Invalid conversation ID: ${conversationId}`);
+  }
+  if (conversation.finished) {
+    return null;
+  }
+  // We have at most one row per conversation in the `typingIndicator` table, so
+  // we can fetch a single row to determine if someone's typing.
+  const indicator = await db
+    .query('typingIndicator')
+    .withIndex('conversationId', (q) => q.eq('conversationId', conversationId))
+    .unique();
+  if (!indicator || !indicator.typing) {
+    return null;
+  }
+  if (indicator.typing.since + TYPING_TIMEOUT < Date.now()) {
+    return null;
+  }
+  return indicator.typing;
+}
+
 export const currentlyTyping = query({
   args: {
     conversationId: v.id('conversations'),
   },
   handler: async (ctx, args) => {
-    const indicator = await ctx.db
-      .query('typingIndicator')
-      .withIndex('conversationId', (q) => q.eq('conversationId', args.conversationId))
-      .unique();
-    const typing = indicator?.typing;
+    const typing = await getCurrentlyTyping(ctx.db, args.conversationId);
     if (!typing) {
       return null;
     }
@@ -45,50 +72,69 @@ export const currentlyTyping = query({
   },
 });
 
+export async function tryStartTyping(
+  ctx: MutationCtx,
+  conversationId: Id<'conversations'>,
+  playerId: Id<'players'>,
+): Promise<'ok' | 'notInConversation' | 'someoneElseTyping'> {
+  const member = await ctx.db
+    .query('conversationMembers')
+    .withIndex('conversationId', (q) =>
+      q.eq('conversationId', conversationId).eq('playerId', playerId),
+    )
+    .unique();
+  if (!member || member.status.kind !== 'participating') {
+    return 'notInConversation';
+  }
+  const indicator = await ctx.db
+    .query('typingIndicator')
+    .withIndex('conversationId', (q) => q.eq('conversationId', conversationId))
+    .unique();
+  if (!indicator) {
+    await ctx.db.insert('typingIndicator', {
+      conversationId,
+      typing: { playerId: playerId, since: Date.now() },
+      versionNumber: 0,
+    });
+    return 'ok';
+  }
+  if (indicator.typing) {
+    if (indicator.typing.playerId === playerId) {
+      return 'ok';
+    }
+    return 'someoneElseTyping';
+  }
+  const versionNumber = indicator.versionNumber + 1;
+  await ctx.db.patch(indicator._id, {
+    typing: { playerId, since: Date.now() },
+    versionNumber,
+  });
+  await ctx.scheduler.runAfter(TYPING_TIMEOUT, internal.messages.clearTyping, {
+    conversationId,
+    versionNumber,
+  });
+  return 'ok';
+}
+
 export const startTyping = mutation({
   args: {
     conversationId: v.id('conversations'),
     playerId: v.id('players'),
   },
   handler: async (ctx, args) => {
-    const member = await ctx.db
-      .query('conversationMembers')
-      .withIndex('conversationId', (q) =>
-        q.eq('conversationId', args.conversationId).eq('playerId', args.playerId),
-      )
-      .unique();
-    if (!member || member.status.kind !== 'participating') {
-      throw new Error(
-        `Player ${args.playerId} is not participating in conversation ${args.conversationId}`,
-      );
-    }
-    const indicator = await ctx.db
-      .query('typingIndicator')
-      .withIndex('conversationId', (q) => q.eq('conversationId', args.conversationId))
-      .unique();
-    if (!indicator) {
-      await ctx.db.insert('typingIndicator', {
-        conversationId: args.conversationId,
-        typing: { playerId: args.playerId, since: Date.now() },
-        versionNumber: 0,
-      });
-      return;
-    }
-    if (indicator.typing) {
-      if (indicator.typing.playerId === args.playerId) {
+    const result = await tryStartTyping(ctx, args.conversationId, args.playerId);
+    switch (result) {
+      case 'ok':
         return;
-      }
-      throw new Error(`${indicator.typing.playerId} is already typing`);
+      case 'notInConversation':
+        throw new Error(
+          `Player ${args.playerId} is not participating in conversation ${args.conversationId}`,
+        );
+      case 'someoneElseTyping':
+        throw new Error(`Someone else is already typing in conversation ${args.conversationId}`);
+      default:
+        assertNever(result);
     }
-    const versionNumber = indicator.versionNumber + 1;
-    await ctx.db.patch(indicator._id, {
-      typing: { playerId: args.playerId, since: Date.now() },
-      versionNumber,
-    });
-    await ctx.scheduler.runAfter(TYPING_TIMEOUT, internal.messages.clearTyping, {
-      conversationId: args.conversationId,
-      versionNumber,
-    });
   },
 });
 

@@ -27,11 +27,9 @@ export const initAgent = internalMutation({
       identity: description.identity,
       plan: description.plan,
       generationNumber: 0,
+      inProgressInputs: [],
     });
-    await ctx.scheduler.runAfter(0, internal.agent.main.agentRun, {
-      agentId,
-      generationNumber: 0,
-    });
+    ctx.scheduler.runAfter(0, internal.agent.main.runAgentLoop, { agentId, maxRuntime: 10000 });
   },
 });
 
@@ -44,14 +42,7 @@ export const kickAgents = internalMutation({
       .query('agents')
       .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
       .collect();
-    for (const agent of agents) {
-      const generationNumber = agent.generationNumber + 1;
-      await ctx.db.patch(agent._id, { generationNumber });
-      await ctx.scheduler.runAfter(0, internal.agent.main.agentRun, {
-        agentId: agent._id,
-        generationNumber,
-      });
-    }
+    throw new Error('Not implemented');
   },
 });
 
@@ -64,8 +55,19 @@ export const stopAgents = internalMutation({
       .query('agents')
       .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
       .collect();
-    for (const agent of agents) {
-      await ctx.db.patch(agent._id, { generationNumber: agent.generationNumber + 1 });
-    }
+    throw new Error('Not implemented');
+  },
+});
+
+export const resumeAgents = internalMutation({
+  args: {
+    worldId: v.id('worlds'),
+  },
+  handler: async (ctx, args) => {
+    const agents = await ctx.db
+      .query('agents')
+      .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
+      .collect();
+    throw new Error('Not implemented');
   },
 });

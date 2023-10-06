@@ -16,10 +16,13 @@ import type {
 } from "convex/server";
 import type * as agent_constants from "../agent/constants";
 import type * as agent_conversation from "../agent/conversation";
+import type * as agent_decisions from "../agent/decisions";
 import type * as agent_embeddingsCache from "../agent/embeddingsCache";
+import type * as agent_helpers from "../agent/helpers";
 import type * as agent_init from "../agent/init";
 import type * as agent_main from "../agent/main";
 import type * as agent_memory from "../agent/memory";
+import type * as agent_subscription from "../agent/subscription";
 import type * as constants from "../constants";
 import type * as crons from "../crons";
 import type * as engine_constants from "../engine/constants";
@@ -60,10 +63,13 @@ import type * as world from "../world";
 declare const fullApi: ApiFromModules<{
   "agent/constants": typeof agent_constants;
   "agent/conversation": typeof agent_conversation;
+  "agent/decisions": typeof agent_decisions;
   "agent/embeddingsCache": typeof agent_embeddingsCache;
+  "agent/helpers": typeof agent_helpers;
   "agent/init": typeof agent_init;
   "agent/main": typeof agent_main;
   "agent/memory": typeof agent_memory;
+  "agent/subscription": typeof agent_subscription;
   constants: typeof constants;
   crons: typeof crons;
   "engine/constants": typeof engine_constants;

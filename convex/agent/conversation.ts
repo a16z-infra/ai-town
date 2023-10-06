@@ -201,7 +201,7 @@ async function previousMessages(
   player: Doc<'players'>,
   otherPlayer: Doc<'players'>,
   conversationId: Id<'conversations'>,
-) {
+): Promise<LLMMessage[]> {
   const llmMessages: LLMMessage[] = [];
   const prevMessages = await ctx.runQuery(api.messages.listMessages, { conversationId });
   for (const message of prevMessages) {

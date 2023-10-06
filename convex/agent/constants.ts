@@ -1,5 +1,5 @@
 // Don't talk to anyone for 15s after having a conversation.
-export const CONVERATION_COOLDOWN = 15000;
+export const CONVERSATION_COOLDOWN = 15000;
 
 // Don't talk to a player within 60s of talking to them.
 export const PLAYER_CONVERSATION_COOLDOWN = 60000;
@@ -28,3 +28,5 @@ export const ACTION_TIMEOUT = 60 * 1000;
 
 // Wait for at least two seconds before sending another message.
 export const MESSAGE_COOLDOWN = 2000;
+
+export const INPUT_TIMEOUT = 60000;
