@@ -23,8 +23,7 @@ import {
 import { continueConversation, leaveConversation, startConversation } from './conversation';
 import { internal } from '../_generated/api';
 import { latestMemoryOfType, rememberConversation } from './memory';
-import { WaitingOn, wakeupAgent } from './scheduling';
-import { runAgent } from './scheduling';
+import { WaitingOn, eventDeadline, updateSubscriptions, wakeupAgent } from './scheduling';
 
 const selfInternal = internal.agent.main;
 
@@ -527,7 +526,7 @@ export const scheduleNextRun = internalMutation({
         `Expected generation number ${args.expectedGenerationNumber} but got ${agent.generationNumber}`,
       );
     }
-    await wakeupAgent(ctx, args.agentId, 'actionCompleted');
+    await wakeupAgent(ctx, internal.agent.main.agentRun, args.agentId, 'actionCompleted');
   },
 });
 
@@ -537,7 +536,45 @@ export const agentRun = internalMutation({
     generationNumber: v.number(),
   },
   handler: async (ctx, args) => {
-    await runAgent(ctx, args.agentId, args.generationNumber);
+    const agentClass = await Agent.load(ctx, args.agentId, args.generationNumber);
+    if (!agentClass) {
+      return;
+    }
+    const waitingOn = await agentClass.run();
+
+    let nextRun = undefined;
+    for (const event of waitingOn) {
+      const deadline = eventDeadline(event);
+      if (deadline !== null) {
+        nextRun = Math.min(deadline, nextRun ?? deadline);
+      }
+    }
+
+    const nextGenerationNumber = agentClass.nextGenerationNumber;
+
+    // If we have a timing based wakeup (from the deadlines computed above),
+    // schedule ourselves to run in the future. We may run before then if
+    // something else wakes us up, like a completed action or a database
+    // write that overlaps with something in `waitingOn`.
+    if (nextRun) {
+      const deltaSeconds = (nextRun - Date.now()) / 1000;
+      console.debug(`Scheduling next run ${deltaSeconds.toFixed(2)}s in the future.`);
+      await ctx.scheduler.runAt(nextRun, internal.agent.main.agentRun, {
+        agentId: args.agentId,
+        generationNumber: agentClass.nextGenerationNumber,
+      });
+    }
+
+    // Update our database subscriptions based on our new events to wait for.
+    const playerId = agentClass.agent.playerId;
+    await updateSubscriptions(ctx.db, args.agentId, playerId, waitingOn);
+
+    // Update our agent state.
+    const agent = agentClass.agent;
+    agent.generationNumber = nextGenerationNumber;
+    agent.state = { kind: 'waiting', timer: nextRun };
+    agent.waitingOn = waitingOn;
+    await ctx.db.replace(agent._id, agent);
   },
 });
 
