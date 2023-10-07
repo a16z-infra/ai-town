@@ -23,7 +23,7 @@ import {
 import { continueConversation, leaveConversation, startConversation } from './conversation';
 import { internal } from '../_generated/api';
 import { latestMemoryOfType, rememberConversation } from './memory';
-import { WaitingOn } from './scheduling';
+import { WaitingOn, wakeupAgent } from './scheduling';
 import { runAgent } from './scheduling';
 
 const selfInternal = internal.agent.main;
@@ -516,7 +516,6 @@ export const scheduleNextRun = internalMutation({
   args: {
     agentId: v.id('agents'),
     expectedGenerationNumber: v.number(),
-    nextRun: v.number(),
   },
   handler: async (ctx, args) => {
     const agent = await ctx.db.get(args.agentId);
@@ -528,12 +527,7 @@ export const scheduleNextRun = internalMutation({
         `Expected generation number ${args.expectedGenerationNumber} but got ${agent.generationNumber}`,
       );
     }
-    const generationNumber = agent.generationNumber + 1;
-    await ctx.db.patch(args.agentId, { generationNumber });
-    await ctx.scheduler.runAt(args.nextRun, selfInternal.agentRun, {
-      agentId: args.agentId,
-      generationNumber,
-    });
+    await wakeupAgent(ctx, args.agentId, 'actionCompleted');
   },
 });
 
@@ -543,7 +537,7 @@ export const agentRun = internalMutation({
     generationNumber: v.number(),
   },
   handler: async (ctx, args) => {
-    await runAgent(ctx, selfInternal.agentRun, args.agentId, args.generationNumber);
+    await runAgent(ctx, args.agentId, args.generationNumber);
   },
 });
 
@@ -566,7 +560,6 @@ export const agentRememberConversation = internalAction({
     await ctx.runMutation(selfInternal.scheduleNextRun, {
       agentId: args.agentId,
       expectedGenerationNumber: args.generationNumber,
-      nextRun: Date.now(),
     });
   },
 });
@@ -601,7 +594,6 @@ export const agentStartConversation = internalAction({
     await ctx.runMutation(selfInternal.scheduleNextRun, {
       agentId: args.agentId,
       expectedGenerationNumber: args.generationNumber,
-      nextRun: Date.now(),
     });
   },
 });
@@ -636,7 +628,6 @@ export const agentContinueConversation = internalAction({
     await ctx.runMutation(selfInternal.scheduleNextRun, {
       agentId: args.agentId,
       expectedGenerationNumber: args.generationNumber,
-      nextRun: Date.now(),
     });
   },
 });
@@ -671,7 +662,6 @@ export const agentLeaveConversation = internalAction({
     await ctx.runMutation(selfInternal.scheduleNextRun, {
       agentId: args.agentId,
       expectedGenerationNumber: args.generationNumber,
-      nextRun: Date.now(),
     });
   },
 });

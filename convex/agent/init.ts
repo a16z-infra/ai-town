@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 import { internalMutation } from '../_generated/server';
 import { Descriptions } from '../../data/characters';
 import { internal } from '../_generated/api';
+import { clearSubscriptions, wakeupAgent } from './scheduling';
 
 export const initAgent = internalMutation({
   args: {
@@ -27,7 +28,7 @@ export const initAgent = internalMutation({
       identity: description.identity,
       plan: description.plan,
       generationNumber: 0,
-      state: { kind: 'running', waitingOn: [] },
+      state: { kind: 'scheduled' },
     });
     await ctx.scheduler.runAfter(0, internal.agent.main.agentRun, {
       agentId,
@@ -46,18 +47,7 @@ export const kickAgents = internalMutation({
       .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
       .collect();
     for (const agent of agents) {
-      if (agent.state.kind === 'stopped') {
-        continue;
-      }
-      const generationNumber = agent.generationNumber + 1;
-      await ctx.db.patch(agent._id, {
-        generationNumber,
-        state: { kind: 'running', waitingOn: [] },
-      });
-      await ctx.scheduler.runAfter(0, internal.agent.main.agentRun, {
-        agentId: agent._id,
-        generationNumber,
-      });
+      await wakeupAgent(ctx, agent._id, 'kick');
     }
   },
 });
@@ -72,6 +62,7 @@ export const stopAgents = internalMutation({
       .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
       .collect();
     for (const agent of agents) {
+      await clearSubscriptions(ctx.db, agent._id);
       await ctx.db.patch(agent._id, {
         generationNumber: agent.generationNumber + 1,
         state: { kind: 'stopped' },
@@ -93,15 +84,8 @@ export const resumeAgents = internalMutation({
       if (agent.state.kind !== 'stopped') {
         continue;
       }
-      const generationNumber = agent.generationNumber + 1;
-      await ctx.db.patch(agent._id, {
-        generationNumber,
-        state: { kind: 'running', waitingOn: [] },
-      });
-      await ctx.scheduler.runAfter(0, internal.agent.main.agentRun, {
-        agentId: agent._id,
-        generationNumber,
-      });
+      const allowStopped = true;
+      await wakeupAgent(ctx, agent._id, 'resume', allowStopped);
     }
   },
 });

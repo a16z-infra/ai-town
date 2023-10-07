@@ -3,7 +3,7 @@ import { Doc, Id } from '../_generated/dataModel';
 import { InputArgs, InputReturnValue, Inputs } from './inputs';
 import { assertNever } from '../util/assertNever';
 import { Players } from './players';
-import { DatabaseWriter } from '../_generated/server';
+import { DatabaseWriter, MutationCtx } from '../_generated/server';
 import { Locations } from './locations';
 import { blocked, findRoute } from './movement';
 import { characters } from '../../data/characters';
@@ -11,6 +11,7 @@ import { EPSILON, distance, normalize, pathPosition, pointsEqual, vector } from 
 import { CONVERSATION_DISTANCE, PATHFINDING_BACKOFF, PATHFINDING_TIMEOUT } from '../constants';
 import { Conversations } from './conversations';
 import { ConversationMembers } from './conversationMembers';
+import * as agentScheduling from '../agent/scheduling';
 
 export class AiTown extends Game<Inputs> {
   tickDuration = 16;
@@ -426,7 +427,15 @@ export class AiTown extends Game<Inputs> {
     }
   }
 
-  async save(): Promise<void> {
+  async save(ctx: MutationCtx): Promise<void> {
+    for (const playerId of this.players.modified) {
+      const player = this.players.lookup(playerId);
+      agentScheduling.wakeupPlayer(ctx, player);
+    }
+    for (const memberId of this.conversationMembers.modified) {
+      const member = this.conversationMembers.lookup(memberId);
+      agentScheduling.wakeupConversationMember(ctx, member);
+    }
     await this.players.save();
     await this.locations.save();
     await this.conversations.save();

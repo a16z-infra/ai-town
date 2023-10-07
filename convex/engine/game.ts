@@ -3,6 +3,8 @@ import { Id } from '../_generated/dataModel';
 import { MutationCtx } from '../_generated/server';
 import { ENGINE_WAKEUP_THRESHOLD } from './constants';
 import { FunctionReference } from 'convex/server';
+import * as agentScheduling from '../agent/scheduling';
+import { internal } from '../_generated/api';
 
 export type InputHandler<Args extends any, ReturnValue extends any> = {
   args: Validator<Args, false, any>;
@@ -33,7 +35,7 @@ export abstract class Game<Handlers extends InputHandlers> {
   ): Promise<Infer<Handlers[typeof name]['returnValue']>>;
 
   abstract tick(now: number): void;
-  abstract save(): Promise<void>;
+  abstract save(ctx: MutationCtx): Promise<void>;
   idleUntil(now: number): null | number {
     return null;
   }
@@ -100,6 +102,7 @@ export abstract class Game<Handlers extends InputHandlers> {
           input.returnValue = { kind: 'error', message: e.message };
         }
         await ctx.db.replace(input._id, input);
+        await agentScheduling.wakeupInput(ctx, input);
       }
 
       // Simulate the game forward one tick.
@@ -137,7 +140,7 @@ export abstract class Game<Handlers extends InputHandlers> {
     nextRun = nextRun ?? now + this.stepDuration;
 
     // Commit the step by moving time forward, consuming our inputs, and saving the game's state.
-    await this.save();
+    await this.save(ctx);
     const nextGenerationNumber = generationNumber + 1;
     await ctx.db.patch(engine._id, {
       currentTime: currentTs,

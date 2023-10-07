@@ -1,157 +1,10 @@
-import { FunctionReference } from 'convex/server';
-import { Id } from '../_generated/dataModel';
-import { MutationCtx } from '../_generated/server';
+import { defineTable } from 'convex/server';
+import { Doc, Id } from '../_generated/dataModel';
+import { DatabaseWriter, MutationCtx } from '../_generated/server';
 import { assertNever } from '../util/assertNever';
 import { Agent } from './main';
 import { v, Infer } from 'convex/values';
-import { conversationMember } from '../game/conversationMembers';
-import { getCurrentlyTyping } from '../messages';
-
-type RunReference = FunctionReference<
-  'mutation',
-  'internal',
-  { agentId: Id<'agents'>; generationNumber: number }
->;
-
-export async function runAgent(
-  ctx: MutationCtx,
-  runReference: RunReference,
-  agentId: Id<'agents'>,
-  generationNumber: number,
-) {
-  const agentClass = await Agent.load(ctx, agentId, generationNumber);
-  if (!agentClass) {
-    return;
-  }
-  const waitingOn = await agentClass.run();
-
-  let nextRun = null;
-  for (const event of waitingOn) {
-    const eventDeadline = deadline(event);
-    if (eventDeadline !== null) {
-      nextRun = Math.min(eventDeadline, nextRun ?? eventDeadline);
-    }
-  }
-
-  const agent = agentClass.agent;
-  agent.generationNumber = agentClass.nextGenerationNumber;
-  agent.state = { kind: 'running', waitingOn: waitingOn };
-  await ctx.db.replace(agent._id, agent);
-
-  // If we have a timing based wakeup (from the deadlines computed above),
-  // schedule ourselves to run in the future. We may run before then if
-  // something else wakes us up, like a completed action or a database
-  // write that overlaps with something in `waitingOn`.
-  if (nextRun) {
-    const deltaSeconds = (nextRun - Date.now()) / 1000;
-    console.debug(`Scheduling next run ${deltaSeconds.toFixed(2)}s in the future.`);
-    await ctx.scheduler.runAt(nextRun, runReference, {
-      agentId,
-      generationNumber: agentClass.nextGenerationNumber,
-    });
-  }
-}
-
-export async function wakeupAgents(ctx: MutationCtx, runReference: RunReference) {
-  const agents = await ctx.db.query('agents').collect();
-  const now = Date.now();
-  for (const agent of agents) {
-    if (agent.state.kind === 'stopped') {
-      continue;
-    }
-    let wakeup: null | string = null;
-    const player = await ctx.db.get(agent.playerId);
-    if (!player) {
-      throw new Error(`Agent ${agent._id} has no player ${agent.playerId}`);
-    }
-    for (const event of agent.state.waitingOn) {
-      switch (event.kind) {
-        case 'idle':
-        case 'actionCompleted':
-        case 'conversationTooLong':
-        case 'nextConversationAttempt':
-          break;
-        case 'inputCompleted': {
-          const input = await ctx.db.get(event.inputId);
-          if (!input || input.returnValue) {
-            wakeup = event.kind;
-          }
-          break;
-        }
-        case 'movementCompleted': {
-          if (!player.pathfinding) {
-            wakeup = event.kind;
-          }
-          break;
-        }
-        case 'inConversation': {
-          const member = await conversationMember(ctx.db, agent.playerId);
-          if (member) {
-            wakeup = event.kind;
-          }
-          break;
-        }
-        case 'conversationParticipating': {
-          const member = await ctx.db
-            .query('conversationMembers')
-            .withIndex('conversationId', (q) =>
-              q.eq('conversationId', event.conversationId).eq('playerId', agent.playerId),
-            )
-            .first();
-          if (member && member.status.kind === 'participating') {
-            wakeup = event.kind;
-          }
-          break;
-        }
-        case 'conversationLeft': {
-          const member = await ctx.db
-            .query('conversationMembers')
-            .withIndex('conversationId', (q) =>
-              q.eq('conversationId', event.conversationId).eq('playerId', agent.playerId),
-            )
-            .first();
-          if (member && member.status.kind === 'left') {
-            wakeup = event.kind;
-          }
-          break;
-        }
-        case 'nobodyTyping': {
-          const typing = await getCurrentlyTyping(ctx.db, event.conversationId);
-          if (typing) {
-            wakeup = event.kind;
-          }
-          break;
-        }
-        case 'waitingForNewMessage': {
-          const lastMessage = await ctx.db
-            .query('messages')
-            .withIndex('conversationId', (q) => q.eq('conversationId', event.conversationId))
-            .order('desc')
-            .first();
-          const lastMessageId = lastMessage?._id ?? undefined;
-          if (event.lastMessageId !== lastMessageId) {
-            wakeup = event.kind;
-          }
-          break;
-        }
-        default: {
-          assertNever(event);
-        }
-      }
-      if (wakeup) {
-        break;
-      }
-    }
-    if (wakeup) {
-      console.log(`Waking up agent ${agent._id} for event ${wakeup}`);
-      const generationNumber = agent.generationNumber + 1;
-      agent.generationNumber = generationNumber;
-      agent.state = { kind: 'running', waitingOn: [] };
-      await ctx.db.replace(agent._id, agent);
-      await ctx.scheduler.runAfter(0, runReference, { agentId: agent._id, generationNumber });
-    }
-  }
-}
+import { internal } from '../_generated/api';
 
 export const agentWaitingOn = v.union(
   // The agent isn't waiting on anything and is scheduled to run.
@@ -217,6 +70,48 @@ export const agentWaitingOn = v.union(
 );
 export type WaitingOn = Infer<typeof agentWaitingOn>;
 
+export async function runAgent(ctx: MutationCtx, agentId: Id<'agents'>, generationNumber: number) {
+  const agentClass = await Agent.load(ctx, agentId, generationNumber);
+  if (!agentClass) {
+    return;
+  }
+  const waitingOn = await agentClass.run();
+
+  let nextRun = undefined;
+  for (const event of waitingOn) {
+    const eventDeadline = deadline(event);
+    if (eventDeadline !== null) {
+      nextRun = Math.min(eventDeadline, nextRun ?? eventDeadline);
+    }
+  }
+
+  const nextGenerationNumber = agentClass.nextGenerationNumber;
+
+  // If we have a timing based wakeup (from the deadlines computed above),
+  // schedule ourselves to run in the future. We may run before then if
+  // something else wakes us up, like a completed action or a database
+  // write that overlaps with something in `waitingOn`.
+  if (nextRun) {
+    const deltaSeconds = (nextRun - Date.now()) / 1000;
+    console.debug(`Scheduling next run ${deltaSeconds.toFixed(2)}s in the future.`);
+    await ctx.scheduler.runAt(nextRun, internal.agent.main.agentRun, {
+      agentId,
+      generationNumber: agentClass.nextGenerationNumber,
+    });
+  }
+
+  // Update our database subscriptions based on our new events to wait for.
+  const playerId = agentClass.agent.playerId;
+  await updateSubscriptions(ctx.db, agentId, playerId, waitingOn);
+
+  // Update our agent state.
+  const agent = agentClass.agent;
+  agent.generationNumber = nextGenerationNumber;
+  agent.state = { kind: 'waiting', timer: nextRun };
+  agent.waitingOn = waitingOn;
+  await ctx.db.replace(agent._id, agent);
+}
+
 function deadline(event: WaitingOn): number | null {
   switch (event.kind) {
     case 'idle': {
@@ -249,3 +144,284 @@ function deadline(event: WaitingOn): number | null {
     }
   }
 }
+
+async function updateSubscriptions(
+  db: DatabaseWriter,
+  agentId: Id<'agents'>,
+  playerId: Id<'players'>,
+  waitingOn: WaitingOn[],
+) {
+  // First clear all of the agent's current waits.
+  await clearSubscriptions(db, agentId);
+
+  for (const event of waitingOn) {
+    switch (event.kind) {
+      case 'idle':
+      case 'actionCompleted':
+      case 'conversationTooLong':
+      case 'nextConversationAttempt':
+        break;
+      case 'inputCompleted': {
+        await db.insert('waitingOnInput', {
+          agentId,
+          inputId: event.inputId,
+          waitingOn: 'inputCompleted',
+        });
+        break;
+      }
+      case 'movementCompleted': {
+        await db.insert('waitingOnPlayer', {
+          agentId,
+          playerId,
+          waitingOn: 'movementCompleted',
+        });
+        break;
+      }
+      case 'inConversation': {
+        await db.insert('waitingOnConversationMember', {
+          agentId,
+          playerId,
+          waitingOn: 'inConversation',
+        });
+        break;
+      }
+      case 'conversationParticipating': {
+        await db.insert('waitingOnConversationMember', {
+          agentId,
+          playerId,
+          conversationId: event.conversationId,
+          waitingOn: 'conversationParticipating',
+        });
+        break;
+      }
+      case 'conversationLeft': {
+        await db.insert('waitingOnConversationMember', {
+          agentId,
+          playerId,
+          conversationId: event.conversationId,
+          waitingOn: 'conversationLeft',
+        });
+        break;
+      }
+      case 'nobodyTyping': {
+        await db.insert('waitingOnTypingIndicator', {
+          agentId,
+          conversationId: event.conversationId,
+          waitingOn: 'nobodyTyping',
+        });
+        break;
+      }
+      case 'waitingForNewMessage': {
+        await db.insert('waitingOnMessages', {
+          agentId,
+          conversationId: event.conversationId,
+          lastMessageId: event.lastMessageId,
+          waitingOn: 'waitingForNewMessage',
+        });
+        break;
+      }
+      default: {
+        assertNever(event);
+      }
+    }
+  }
+}
+
+export async function clearSubscriptions(db: DatabaseWriter, agentId: Id<'agents'>) {
+  const tables = [
+    'waitingOnInput',
+    'waitingOnPlayer',
+    'waitingOnConversationMember',
+    'waitingOnTypingIndicator',
+    'waitingOnMessages',
+  ] as const;
+
+  for (const table of tables) {
+    const waits = await db
+      .query(table)
+      .withIndex('agentId', (q) => q.eq('agentId', agentId))
+      .collect();
+    for (const wait of waits) {
+      await db.delete(wait._id);
+    }
+  }
+}
+
+export async function wakeupAgent(
+  ctx: MutationCtx,
+  agentId: Id<'agents'>,
+  reason: string,
+  allowStopped?: boolean,
+) {
+  const agent = await ctx.db.get(agentId);
+  if (!agent) {
+    throw new Error(`Agent ${agentId} not found`);
+  }
+  if (agent.state.kind === 'stopped' && !allowStopped) {
+    console.warn(`Not waking up stopped agent ${agentId}`);
+    return;
+  }
+  console.log(`Waking up agent ${agentId} (${reason})`);
+  const generationNumber = agent.generationNumber + 1;
+  agent.generationNumber = generationNumber;
+  agent.state = { kind: 'scheduled' };
+  await ctx.db.replace(agent._id, agent);
+  await clearSubscriptions(ctx.db, agent._id);
+  await ctx.scheduler.runAfter(0, internal.agent.main.agentRun, {
+    agentId: agent._id,
+    generationNumber,
+  });
+}
+
+async function wakeupWaiters(
+  ctx: MutationCtx,
+  waiters: { agentId: Id<'agents'> }[],
+  reason: string,
+) {
+  for (const waiter of waiters) {
+    await wakeupAgent(ctx, waiter.agentId, reason);
+  }
+}
+
+export async function wakeupInput(ctx: MutationCtx, input: Doc<'inputs'>) {
+  // Wakeup all agents who are waiting on an input being completed.
+  if (!input.returnValue) {
+    return;
+  }
+  const waiters = await ctx.db
+    .query('waitingOnInput')
+    .withIndex('inputId', (q) => q.eq('inputId', input._id))
+    .collect();
+  await wakeupWaiters(ctx, waiters, 'inputCompleted');
+}
+
+export async function wakeupPlayer(ctx: MutationCtx, player: Doc<'players'>) {
+  // Wakeup all agents who are waiting on "movementCompleted" => !player.pathfinding
+  if (player.pathfinding) {
+    return;
+  }
+  const waiters = await ctx.db
+    .query('waitingOnPlayer')
+    .withIndex('playerId', (q) => q.eq('playerId', player._id))
+    .collect();
+  await wakeupWaiters(ctx, waiters, 'movementCompleted');
+}
+
+export async function wakeupConversationMember(
+  ctx: MutationCtx,
+  member: Doc<'conversationMembers'>,
+) {
+  // Wakeup all agents who are waiting on "inConversation" => member.status.kind != 'left'
+  if (member.status.kind !== 'left') {
+    const waiters = await ctx.db
+      .query('waitingOnConversationMember')
+      .withIndex('playerId', (q) =>
+        q.eq('playerId', member.playerId).eq('waitingOn', 'inConversation'),
+      )
+      .collect();
+    await wakeupWaiters(ctx, waiters, 'inConversation');
+  }
+
+  // Wakeup all agents who are waiting on "conversationParticipating" => member.status.kind === 'participating'
+  if (member.status.kind === 'participating') {
+    const waiters = await ctx.db
+      .query('waitingOnConversationMember')
+      .withIndex('playerId', (q) =>
+        q
+          .eq('playerId', member.playerId)
+          .eq('waitingOn', 'conversationParticipating')
+          .eq('conversationId', member.conversationId),
+      )
+      .collect();
+    await wakeupWaiters(ctx, waiters, 'conversationParticipating');
+  }
+
+  // Wakeup all agents who are waiting on "conversationLeft" => member.status.kind === 'left'
+  if (member.status.kind === 'left') {
+    const waiters = await ctx.db
+      .query('waitingOnConversationMember')
+      .withIndex('playerId', (q) =>
+        q
+          .eq('playerId', member.playerId)
+          .eq('waitingOn', 'conversationLeft')
+          .eq('conversationId', member.conversationId),
+      )
+      .collect();
+    await wakeupWaiters(ctx, waiters, 'conversationLeft');
+  }
+}
+
+export async function wakeupTypingIndicatorCleared(
+  ctx: MutationCtx,
+  conversationId: Id<'conversations'>,
+) {
+  // Wakeup all agents who are waiting on "nobodyTyping".
+  const waiters = await ctx.db
+    .query('waitingOnTypingIndicator')
+    .withIndex('conversationId', (q) => q.eq('conversationId', conversationId))
+    .collect();
+  await wakeupWaiters(ctx, waiters, 'nobodyTyping');
+}
+
+export async function wakeupNewMessage(ctx: MutationCtx, conversationId: Id<'conversations'>) {
+  // Wakeup all agents who are waiting on "waitingForNewMessage".
+  const waiters = await ctx.db
+    .query('waitingOnMessages')
+    .withIndex('conversationId', (q) => q.eq('conversationId', conversationId))
+    .collect();
+  await wakeupWaiters(ctx, waiters, 'waitingForNewMessage');
+}
+
+const waitingOnInput = {
+  agentId: v.id('agents'),
+  inputId: v.id('inputs'),
+  waitingOn: v.literal('inputCompleted'),
+};
+
+const waitingOnPlayer = {
+  agentId: v.id('agents'),
+  playerId: v.id('players'),
+  waitingOn: v.literal('movementCompleted'),
+};
+
+const waitingOnConversationMember = {
+  agentId: v.id('agents'),
+  playerId: v.id('players'),
+  conversationId: v.optional(v.id('conversations')),
+  waitingOn: v.union(
+    v.literal('inConversation'),
+    v.literal('conversationParticipating'),
+    v.literal('conversationLeft'),
+  ),
+};
+
+const waitingOnTypingIndicator = {
+  agentId: v.id('agents'),
+  conversationId: v.id('conversations'),
+  waitingOn: v.literal('nobodyTyping'),
+};
+
+const waitingOnMessages = {
+  agentId: v.id('agents'),
+  conversationId: v.id('conversations'),
+  lastMessageId: v.optional(v.id('messages')),
+  waitingOn: v.literal('waitingForNewMessage'),
+};
+
+export const schedulingTables = {
+  waitingOnInput: defineTable(waitingOnInput)
+    .index('agentId', ['agentId'])
+    .index('inputId', ['inputId']),
+  waitingOnPlayer: defineTable(waitingOnPlayer)
+    .index('agentId', ['agentId'])
+    .index('playerId', ['playerId']),
+  waitingOnConversationMember: defineTable(waitingOnConversationMember)
+    .index('agentId', ['agentId'])
+    .index('playerId', ['playerId', 'waitingOn', 'conversationId']),
+  waitingOnTypingIndicator: defineTable(waitingOnTypingIndicator)
+    .index('agentId', ['agentId'])
+    .index('conversationId', ['conversationId']),
+  waitingOnMessages: defineTable(waitingOnMessages)
+    .index('agentId', ['agentId'])
+    .index('conversationId', ['conversationId']),
+};
