@@ -251,7 +251,7 @@ async function calculateImportance(player: Doc<'players'>, description: string) 
         role: 'user',
         content: `On the scale of 0 to 9, where 0 is purely mundane (e.g., brushing teeth, making bed) and 9 is extremely poignant (e.g., a break up, college acceptance), rate the likely poignancy of the following piece of memory.
         Memory: ${description}
-        Rating: <fill in>`,
+        Answer on a scale of 0 to 9. Respond with number only, e.g. "5"`,
       },
     ],
     temperature: 0.0,
