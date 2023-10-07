@@ -429,6 +429,7 @@ export async function reflectOnMemories(
       const relatedMemoryIds = item.statementIds.map((idx: number) => memories[idx]._id);
       const importance = await calculateImportance(item.insight);
       const { embedding } = await fetchEmbedding(item.insight);
+      console.debug('adding reflection memory...', item.insight);
       return {
         description: item.insight,
         embedding,
@@ -436,7 +437,6 @@ export async function reflectOnMemories(
         relatedMemoryIds,
       };
     });
-    console.debug('adding reflection memory...', memoriesToSave);
 
     await ctx.runMutation(selfInternal.insertReflectionMemories, {
       agentId,
