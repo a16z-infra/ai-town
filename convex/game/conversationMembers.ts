@@ -12,11 +12,17 @@ export const conversationMembers = defineTable({
     v.object({ kind: v.literal('invited') }),
     v.object({ kind: v.literal('walkingOver') }),
     v.object({ kind: v.literal('participating'), started: v.number() }),
-    v.object({ kind: v.literal('left'), started: v.optional(v.number()), ended: v.number() }),
+    v.object({
+      kind: v.literal('left'),
+      started: v.optional(v.number()),
+      ended: v.number(),
+      with: v.id('players'),
+    }),
   ),
 })
   .index('conversationId', ['conversationId', 'playerId'])
-  .index('playerId', ['playerId', 'status.kind']);
+  .index('playerId', ['playerId', 'status.kind', 'status.ended'])
+  .index('left', ['playerId', 'status.kind', 'status.with', 'status.ended']);
 
 export class ConversationMembers extends GameTable<'conversationMembers'> {
   table = 'conversationMembers' as const;

@@ -36,7 +36,6 @@ export class Agent {
     public agent: Doc<'agents'>,
     public nextGenerationNumber: number,
     private player: Doc<'players'> & { position: Point },
-    private engine: Doc<'engines'>,
   ) {}
 
   public static async load(
@@ -92,16 +91,7 @@ export class Agent {
       throw new Error(`Invalid location ID: ${player.locationId}`);
     }
     const position = { x: location.x, y: location.y };
-    return new Agent(
-      ctx,
-      now,
-      world,
-      map,
-      agent,
-      nextGenerationNumber,
-      { ...player, position },
-      engine,
-    );
+    return new Agent(ctx, now, world, map, agent, nextGenerationNumber, { ...player, position });
   }
 
   async run(): Promise<WaitingOn[]> {
@@ -115,7 +105,7 @@ export class Agent {
       // conversations.)
       if (!this.player.pathfinding) {
         const destination = this.wanderDestination();
-        console.log(`Wandering to ${destination} to think`);
+        console.log(`Wandering to ${JSON.stringify(destination)} to think`);
         const inputId = await this.insertInput('moveTo', {
           playerId: this.player._id,
           destination,
@@ -151,14 +141,20 @@ export class Agent {
       }
       waitingOn.push({ kind: 'movementCompleted', inputId: moveToInputId });
 
-      const otherPlayers = await this.loadOtherPlayers();
-      const playerLastConversation = otherPlayers
-        .flatMap((p) =>
-          p.lastConversationWithPlayer ? [p.lastConversationWithPlayer.playerLeft] : [],
-        )
-        .reduce((a, b) => (a ? Math.max(a, b) : b), null as number | null);
+      const lastConversationMember = await this.ctx.db
+        .query('conversationMembers')
+        .withIndex('left', (q) => q.eq('playerId', this.player._id).eq('status.kind', 'left'))
+        .order('desc')
+        .first();
+      let playerLastConversation;
+      if (lastConversationMember) {
+        if (lastConversationMember.status.kind !== 'left') {
+          throw new Error(`Conversation ${lastConversationMember.conversationId} is not left`);
+        }
+        playerLastConversation = lastConversationMember.status.ended;
+      }
 
-      // Wait a cooldown after finish a conversation to start a new one.
+      // Wait a cooldown after finishing a conversation to start a new one.
       if (playerLastConversation && this.now < playerLastConversation + CONVERATION_COOLDOWN) {
         waitingOn.push({
           kind: 'nextConversationAttempt',
@@ -168,6 +164,7 @@ export class Agent {
       }
 
       // Find players that aren't in a conversation and that we haven't talked to too recently.
+      const otherPlayers = await this.loadOtherPlayers();
       const eligiblePlayers = otherPlayers
         .filter((p) => p.conversation === null)
         .filter(
@@ -468,27 +465,27 @@ export class Agent {
       });
 
       // Find the latest conversation we're both members of.
-      let lastConversationWithPlayer: (Doc<'conversations'> & { playerLeft: number }) | null = null;
-      const members = this.ctx.db
+      const lastMember = await this.ctx.db
         .query('conversationMembers')
-        .withIndex('playerId', (q) => q.eq('playerId', this.player._id).eq('status.kind', 'left'));
-      for await (const member of members) {
-        const playerMember = await this.ctx.db
-          .query('conversationMembers')
-          .withIndex('conversationId', (q) =>
-            q.eq('conversationId', member.conversationId).eq('playerId', this.player._id),
-          )
-          .first();
-        if (playerMember) {
-          const conversation = await this.ctx.db.get(playerMember.conversationId);
-          if (!conversation) {
-            throw new Error(`Invalid conversation ID: ${playerMember.conversationId}`);
-          }
-          if (playerMember.status.kind !== 'left') {
-            throw new Error(`Conversation ${conversation._id} is not left`);
-          }
-          lastConversationWithPlayer = { playerLeft: playerMember.status.ended, ...conversation };
+        .withIndex('left', (q) =>
+          q
+            .eq('playerId', this.player._id)
+            .eq('status.kind', 'left')
+            .eq('status.with', otherPlayer._id),
+        )
+        .order('desc')
+        .first();
+
+      let lastConversationWithPlayer: (Doc<'conversations'> & { playerLeft: number }) | null = null;
+      if (lastMember) {
+        if (lastMember.status.kind !== 'left') {
+          throw new Error(`Conversation ${lastMember.conversationId} is not left`);
         }
+        const conversation = await this.ctx.db.get(lastMember.conversationId);
+        if (!conversation) {
+          throw new Error(`Invalid conversation ID: ${lastMember.conversationId}`);
+        }
+        lastConversationWithPlayer = { playerLeft: lastMember.status.ended, ...conversation };
       }
       players.push({ position, conversation, lastConversationWithPlayer, ...otherPlayer });
     }
