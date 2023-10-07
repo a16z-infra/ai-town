@@ -227,10 +227,9 @@ export async function wakeupAgent(
     console.warn(`Not waking up stopped agent ${agentId}`);
     return;
   }
-  // TODO:
-  // if (agent.state.kind === "scheduled") {
-  //   return;
-  // }
+  if (agent.state.kind === 'scheduled') {
+    return;
+  }
   console.log(`Waking up agent ${agentId} (${reason})`);
   const generationNumber = agent.generationNumber + 1;
   agent.generationNumber = generationNumber;
