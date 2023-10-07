@@ -238,12 +238,37 @@ export const activePlayers = query({
           .first();
         isSpeaking = !!indicator && indicator.typing?.playerId === player._id;
       }
-      const agent = await ctx.db
-        .query('agents')
+      const isThinkingDoc = await ctx.db
+        .query('agentIsThinking')
         .withIndex('playerId', (q) => q.eq('playerId', player._id))
         .first();
-      const isThinking = !!agent && agent.isThinking !== undefined;
-      out.push({ ...player, isSpeaking, isThinking, location });
+      const isThinking = !!isThinkingDoc;
+      out.push({ ...player, isSpeaking, isThinking });
+    }
+    return out;
+  },
+});
+
+export const activePlayerLocations = query({
+  args: {
+    worldId: v.id('worlds'),
+  },
+  handler: async (ctx, args): Promise<Record<Id<'players'>, Doc<'locations'>>> => {
+    const world = await ctx.db.get(args.worldId);
+    if (!world) {
+      throw new Error(`Invalid world ID: ${args.worldId}`);
+    }
+    const out: Record<Id<'players'>, Doc<'locations'>> = {};
+    const players = await ctx.db
+      .query('players')
+      .withIndex('active', (q) => q.eq('worldId', world._id).eq('active', true))
+      .collect();
+    for (const player of players) {
+      const location = await ctx.db.get(player.locationId);
+      if (!location) {
+        throw new Error(`Invalid location ID: ${player.locationId}`);
+      }
+      out[player._id] = location;
     }
     return out;
   },

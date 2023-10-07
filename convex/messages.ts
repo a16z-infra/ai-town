@@ -27,6 +27,13 @@ export const listMessages = query({
 });
 
 export async function getCurrentlyTyping(db: DatabaseReader, conversationId: Id<'conversations'>) {
+  const conversation = await db.get(conversationId);
+  if (!conversation) {
+    throw new Error(`Invalid conversation ID: ${conversationId}`);
+  }
+  if (conversation.finished) {
+    return null;
+  }
   // We have at most one row per conversation in the `typingIndicator` table, so
   // we can fetch a single row to determine if someone's typing.
   const indicator = await db
