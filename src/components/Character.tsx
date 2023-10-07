@@ -1,6 +1,6 @@
 import { BaseTexture, ISpritesheetData, Spritesheet } from 'pixi.js';
-import { useState, useEffect, useRef } from 'react';
-import { AnimatedSprite, Container, Text } from '@pixi/react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { AnimatedSprite, Container, Graphics, Text } from '@pixi/react';
 import * as PIXI from 'pixi.js';
 
 export const Character = ({
@@ -12,6 +12,7 @@ export const Character = ({
   isMoving = false,
   isThinking = false,
   isSpeaking = false,
+  isViewer = false,
   speed = 0.1,
   onClick,
 }: {
@@ -28,6 +29,8 @@ export const Character = ({
   isThinking?: boolean;
   // Shows a speech bubble if true.
   isSpeaking?: boolean;
+  // Highlights the player.
+  isViewer?: boolean;
   // The speed of the animation. Can be tuned depending on the side and speed of the NPC.
   speed?: number;
   onClick: () => void;
@@ -48,8 +51,8 @@ export const Character = ({
   }, []);
 
   // The first "left" is "right" but reflected.
-  const roundedOrientation = Math.round(orientation / 90);
-  const direction = ['left', 'up', 'left', 'down'][roundedOrientation];
+  const roundedOrientation = Math.floor(orientation / 90);
+  const direction = ['right', 'down', 'left', 'up'][roundedOrientation];
 
   // Prevents the animation from stopping when the texture changes
   // (see https://github.com/pixijs/pixi-react/issues/359)
@@ -62,8 +65,24 @@ export const Character = ({
 
   if (!spriteSheet) return null;
 
+  let blockOffset = { x: 0, y: 0 };
+  switch (roundedOrientation) {
+    case 2:
+      blockOffset = { x: -20, y: 0 };
+      break;
+    case 0:
+      blockOffset = { x: 20, y: 0 };
+      break;
+    case 3:
+      blockOffset = { x: 0, y: -20 };
+      break;
+    case 1:
+      blockOffset = { x: 0, y: 20 };
+      break;
+  }
+
   return (
-    <Container x={x} y={y} interactive={true} pointerdown={onClick}>
+    <Container x={x} y={y} interactive={true} pointerdown={onClick} cursor="pointer">
       {isThinking && (
         // TODO: We'll eventually have separate assets for thinking and speech animations.
         <Text x={-20} y={-10} scale={{ x: -0.8, y: 0.8 }} text={'💭'} anchor={{ x: 0.5, y: 0.5 }} />
@@ -72,15 +91,25 @@ export const Character = ({
         // TODO: We'll eventually have separate assets for thinking and speech animations.
         <Text x={18} y={-10} scale={0.8} text={'💬'} anchor={{ x: 0.5, y: 0.5 }} />
       )}
+      {isViewer && <ViewerIndicator />}
       <AnimatedSprite
         ref={ref}
         isPlaying={isMoving}
         textures={spriteSheet.animations[direction]}
         animationSpeed={speed}
-        // If the orientation is 90 (facing right), we need to flip the sprite.
-        scale={roundedOrientation === 0 ? { x: -1, y: 1 } : { x: 1, y: 1 }}
         anchor={{ x: 0.5, y: 0.5 }}
       />
     </Container>
   );
 };
+
+function ViewerIndicator() {
+  const draw = useCallback((g: PIXI.Graphics) => {
+    g.clear();
+    g.beginFill(0xffff0b, 0.5);
+    g.drawRoundedRect(-10, 10, 20, 10, 100);
+    g.endFill();
+  }, []);
+
+  return <Graphics draw={draw} />;
+}

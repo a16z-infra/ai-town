@@ -1,16 +1,10 @@
-// --
-// Very simple static map pxi component
-//
-// --
-
 import { PixiComponent, applyDefaultProps } from '@pixi/react';
 import * as PIXI from 'pixi.js';
-import { Doc } from '../../convex/_generated/dataModel';
 
 export const PixiStaticMap = PixiComponent('StaticMap', {
-  create: ({ map }: { map: Doc<'maps'> }) => {
+  create: (props: any) => {
+    const map = props.map;
     const numytiles = map.tileSetDim / map.tileDim;
-
     const bt = PIXI.BaseTexture.from(map.tileSetUrl, {
       scaleMode: PIXI.SCALE_MODES.NEAREST,
     });
@@ -57,6 +51,15 @@ export const PixiStaticMap = PixiComponent('StaticMap', {
 
     container.x = 0;
     container.y = 0;
+
+    // Set the hit area manually to ensure `pointerdown` events are delivered to this container.
+    container.interactive = true;
+    container.hitArea = new PIXI.Rectangle(
+      0,
+      0,
+      screenxtiles * map.tileDim,
+      screenytiles * map.tileDim,
+    );
 
     return container;
   },
