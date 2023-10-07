@@ -297,9 +297,14 @@ export class AiTown extends Game<Inputs> {
   stopConversation(now: number, conversation: Doc<'conversations'>) {
     conversation.finished = now;
     const members = this.conversationMembers.filter((m) => m.conversationId === conversation._id);
-    for (const member of members) {
+    if (members.length !== 2) {
+      throw new Error(`Conversation ${conversation._id} has ${members.length} members`);
+    }
+    for (let i = 0; i < members.length; i++) {
+      const member = members[i];
+      const otherMember = members[(i + 1) % 2];
       const started = member.status.kind === 'participating' ? member.status.started : undefined;
-      member.status = { kind: 'left', started, ended: now };
+      member.status = { kind: 'left', started, ended: now, with: otherMember.playerId };
     }
   }
 
@@ -345,7 +350,7 @@ export class AiTown extends Game<Inputs> {
     if (pathfinding.state.kind === 'needsPath') {
       const route = findRoute(this, now, player, pathfinding.destination);
       if (route === null) {
-        console.log(`Failed to route to ${pathfinding.destination}`);
+        console.log(`Failed to route to ${JSON.stringify(pathfinding.destination)}`);
         delete player.pathfinding;
       } else {
         if (route.newDestination) {
