@@ -67,8 +67,11 @@ export async function rememberConversation(
 
   // Set the `isThinking` flag and schedule a function to clear it after 60s. We'll
   // also clear the flag in `insertMemory` below to stop thinking early on success.
-  await ctx.runMutation(selfInternal.startThinking, { agentId, now });
-  await ctx.scheduler.runAfter(ACTION_TIMEOUT, selfInternal.clearThinking, { agentId, since: now });
+  await ctx.runMutation(selfInternal.startThinking, { playerId, now });
+  await ctx.scheduler.runAfter(ACTION_TIMEOUT, selfInternal.clearThinking, {
+    playerId,
+    since: now,
+  });
 
   const llmMessages: LLMMessage[] = [
     {
@@ -270,33 +273,43 @@ async function calculateImportance(player: Doc<'players'>, description: string) 
 }
 
 const { embeddingId, ...memoryFieldsWithoutEmbeddingId } = memoryFields;
+
 export const startThinking = internalMutation({
   args: {
-    agentId: v.id('agents'),
+    playerId: v.id('players'),
     now: v.number(),
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.agentId, { isThinking: { since: args.now } });
+    const isThinking = await ctx.db
+      .query('agentIsThinking')
+      .withIndex('playerId', (q) => q.eq('playerId', args.playerId))
+      .first();
+    if (isThinking) {
+      await ctx.db.patch(isThinking._id, { since: args.now });
+      return;
+    }
+    await ctx.db.insert('agentIsThinking', { playerId: args.playerId, since: args.now });
   },
 });
 
 export const clearThinking = internalMutation({
   args: {
-    agentId: v.id('agents'),
+    playerId: v.id('players'),
     since: v.number(),
   },
   handler: async (ctx, args) => {
-    const agent = await ctx.db.get(args.agentId);
-    if (!agent) {
-      throw new Error(`Agent ${args.agentId} not found`);
-    }
-    if (!agent.isThinking) {
+    const isThinking = await ctx.db
+      .query('agentIsThinking')
+      .withIndex('playerId', (q) => q.eq('playerId', args.playerId))
+      .first();
+
+    if (!isThinking) {
       return;
     }
-    if (agent.isThinking.since !== args.since) {
+    if (isThinking.since !== args.since) {
       return;
     }
-    await ctx.db.patch(args.agentId, { isThinking: undefined });
+    await ctx.db.delete(isThinking._id);
   },
 });
 
@@ -314,12 +327,19 @@ export const insertMemory = internalMutation({
       throw new Error(`Agent ${agentId} not found`);
     }
     if (agent.generationNumber !== generationNumber) {
-      throw new Error(
+      console.debug(
         `Agent ${agentId} generation number ${agent.generationNumber} does not match ${generationNumber}`,
       );
+      return;
     }
     // Clear the `isThinking` flag atomically with inserting the memory.
-    await ctx.db.patch(agentId, { isThinking: undefined });
+    const isThinking = await ctx.db
+      .query('agentIsThinking')
+      .withIndex('playerId', (q) => q.eq('playerId', agent.playerId))
+      .first();
+    if (isThinking) {
+      await ctx.db.delete(isThinking._id);
+    }
     const embeddingId = await ctx.db.insert('memoryEmbeddings', {
       playerId: memory.playerId,
       embedding: embedding,

@@ -519,9 +519,10 @@ export const scheduleNextRun = internalMutation({
       throw new Error(`Invalid agent ID: ${args.agentId}`);
     }
     if (agent.generationNumber !== args.expectedGenerationNumber) {
-      throw new Error(
+      console.debug(
         `Expected generation number ${args.expectedGenerationNumber} but got ${agent.generationNumber}`,
       );
+      return;
     }
     await wakeupAgent(ctx, internal.agent.main.agentRun, args.agentId, 'actionCompleted');
   },
@@ -717,9 +718,10 @@ export const agentWriteMessage = internalMutation({
       throw new Error(`Invalid agent ID: ${args.agentId}`);
     }
     if (agent.generationNumber !== args.generationNumber) {
-      throw new Error(
+      console.debug(
         `Expected generation number ${args.generationNumber} but got ${agent.generationNumber}`,
       );
+      return;
     }
     await writeMessage(ctx, {
       conversationId: args.conversationId,

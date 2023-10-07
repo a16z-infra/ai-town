@@ -10,8 +10,6 @@ const agents = v.object({
   identity: v.string(),
   plan: v.string(),
 
-  isThinking: v.optional(v.object({ since: v.number() })),
-
   generationNumber: v.number(),
   state: v.union(
     v.object({
@@ -29,8 +27,16 @@ const agents = v.object({
   waitingOn: v.optional(v.array(agentWaitingOn)),
 });
 
+// Separate out this flag from `agents` since it changes a lot less
+// frequently.
+const agentIsThinking = v.object({
+  playerId: v.id('players'),
+  since: v.number(),
+});
+
 export const agentTables = {
   agents: defineTable(agents).index('playerId', ['playerId']).index('worldId', ['worldId']),
+  agentIsThinking: defineTable(agentIsThinking).index('playerId', ['playerId']),
   ...memoryTables,
   ...embeddingsCacheTables,
   ...schedulingTables,
