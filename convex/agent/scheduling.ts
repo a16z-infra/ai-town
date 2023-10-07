@@ -1,10 +1,14 @@
-import { defineTable } from 'convex/server';
+import { FunctionReference, defineTable } from 'convex/server';
 import { Doc, Id } from '../_generated/dataModel';
 import { DatabaseWriter, MutationCtx } from '../_generated/server';
 import { assertNever } from '../util/assertNever';
-import { Agent } from './main';
 import { v, Infer } from 'convex/values';
-import { internal } from '../_generated/api';
+
+export type AgentRunReference = FunctionReference<
+  'mutation',
+  'internal',
+  { agentId: Id<'agents'>; generationNumber: number }
+>;
 
 export const agentWaitingOn = v.union(
   // The agent isn't waiting on anything and is scheduled to run.
@@ -70,49 +74,7 @@ export const agentWaitingOn = v.union(
 );
 export type WaitingOn = Infer<typeof agentWaitingOn>;
 
-export async function runAgent(ctx: MutationCtx, agentId: Id<'agents'>, generationNumber: number) {
-  const agentClass = await Agent.load(ctx, agentId, generationNumber);
-  if (!agentClass) {
-    return;
-  }
-  const waitingOn = await agentClass.run();
-
-  let nextRun = undefined;
-  for (const event of waitingOn) {
-    const eventDeadline = deadline(event);
-    if (eventDeadline !== null) {
-      nextRun = Math.min(eventDeadline, nextRun ?? eventDeadline);
-    }
-  }
-
-  const nextGenerationNumber = agentClass.nextGenerationNumber;
-
-  // If we have a timing based wakeup (from the deadlines computed above),
-  // schedule ourselves to run in the future. We may run before then if
-  // something else wakes us up, like a completed action or a database
-  // write that overlaps with something in `waitingOn`.
-  if (nextRun) {
-    const deltaSeconds = (nextRun - Date.now()) / 1000;
-    console.debug(`Scheduling next run ${deltaSeconds.toFixed(2)}s in the future.`);
-    await ctx.scheduler.runAt(nextRun, internal.agent.main.agentRun, {
-      agentId,
-      generationNumber: agentClass.nextGenerationNumber,
-    });
-  }
-
-  // Update our database subscriptions based on our new events to wait for.
-  const playerId = agentClass.agent.playerId;
-  await updateSubscriptions(ctx.db, agentId, playerId, waitingOn);
-
-  // Update our agent state.
-  const agent = agentClass.agent;
-  agent.generationNumber = nextGenerationNumber;
-  agent.state = { kind: 'waiting', timer: nextRun };
-  agent.waitingOn = waitingOn;
-  await ctx.db.replace(agent._id, agent);
-}
-
-function deadline(event: WaitingOn): number | null {
+export function eventDeadline(event: WaitingOn): number | null {
   switch (event.kind) {
     case 'idle': {
       return event.nextRun;
@@ -145,7 +107,7 @@ function deadline(event: WaitingOn): number | null {
   }
 }
 
-async function updateSubscriptions(
+export async function updateSubscriptions(
   db: DatabaseWriter,
   agentId: Id<'agents'>,
   playerId: Id<'players'>,
@@ -247,8 +209,12 @@ export async function clearSubscriptions(db: DatabaseWriter, agentId: Id<'agents
   }
 }
 
+// NB: We have to pass in `runReference` throughout this file to prevent
+// an import cycle, where importing `internal` imports `AiTown`, which
+// then wants to be able to import us.
 export async function wakeupAgent(
   ctx: MutationCtx,
+  runReference: AgentRunReference,
   agentId: Id<'agents'>,
   reason: string,
   allowStopped?: boolean,
@@ -261,13 +227,17 @@ export async function wakeupAgent(
     console.warn(`Not waking up stopped agent ${agentId}`);
     return;
   }
+  // TODO:
+  // if (agent.state.kind === "scheduled") {
+  //   return;
+  // }
   console.log(`Waking up agent ${agentId} (${reason})`);
   const generationNumber = agent.generationNumber + 1;
   agent.generationNumber = generationNumber;
   agent.state = { kind: 'scheduled' };
   await ctx.db.replace(agent._id, agent);
   await clearSubscriptions(ctx.db, agent._id);
-  await ctx.scheduler.runAfter(0, internal.agent.main.agentRun, {
+  await ctx.scheduler.runAfter(0, runReference, {
     agentId: agent._id,
     generationNumber,
   });
@@ -275,15 +245,20 @@ export async function wakeupAgent(
 
 async function wakeupWaiters(
   ctx: MutationCtx,
+  runReference: AgentRunReference,
   waiters: { agentId: Id<'agents'> }[],
   reason: string,
 ) {
   for (const waiter of waiters) {
-    await wakeupAgent(ctx, waiter.agentId, reason);
+    await wakeupAgent(ctx, runReference, waiter.agentId, reason);
   }
 }
 
-export async function wakeupInput(ctx: MutationCtx, input: Doc<'inputs'>) {
+export async function wakeupInput(
+  ctx: MutationCtx,
+  runReference: AgentRunReference,
+  input: Doc<'inputs'>,
+) {
   // Wakeup all agents who are waiting on an input being completed.
   if (!input.returnValue) {
     return;
@@ -292,10 +267,14 @@ export async function wakeupInput(ctx: MutationCtx, input: Doc<'inputs'>) {
     .query('waitingOnInput')
     .withIndex('inputId', (q) => q.eq('inputId', input._id))
     .collect();
-  await wakeupWaiters(ctx, waiters, 'inputCompleted');
+  await wakeupWaiters(ctx, runReference, waiters, 'inputCompleted');
 }
 
-export async function wakeupPlayer(ctx: MutationCtx, player: Doc<'players'>) {
+export async function wakeupPlayer(
+  ctx: MutationCtx,
+  runReference: AgentRunReference,
+  player: Doc<'players'>,
+) {
   // Wakeup all agents who are waiting on "movementCompleted" => !player.pathfinding
   if (player.pathfinding) {
     return;
@@ -304,11 +283,12 @@ export async function wakeupPlayer(ctx: MutationCtx, player: Doc<'players'>) {
     .query('waitingOnPlayer')
     .withIndex('playerId', (q) => q.eq('playerId', player._id))
     .collect();
-  await wakeupWaiters(ctx, waiters, 'movementCompleted');
+  await wakeupWaiters(ctx, runReference, waiters, 'movementCompleted');
 }
 
 export async function wakeupConversationMember(
   ctx: MutationCtx,
+  runReference: AgentRunReference,
   member: Doc<'conversationMembers'>,
 ) {
   // Wakeup all agents who are waiting on "inConversation" => member.status.kind != 'left'
@@ -319,7 +299,7 @@ export async function wakeupConversationMember(
         q.eq('playerId', member.playerId).eq('waitingOn', 'inConversation'),
       )
       .collect();
-    await wakeupWaiters(ctx, waiters, 'inConversation');
+    await wakeupWaiters(ctx, runReference, waiters, 'inConversation');
   }
 
   // Wakeup all agents who are waiting on "conversationParticipating" => member.status.kind === 'participating'
@@ -333,7 +313,7 @@ export async function wakeupConversationMember(
           .eq('conversationId', member.conversationId),
       )
       .collect();
-    await wakeupWaiters(ctx, waiters, 'conversationParticipating');
+    await wakeupWaiters(ctx, runReference, waiters, 'conversationParticipating');
   }
 
   // Wakeup all agents who are waiting on "conversationLeft" => member.status.kind === 'left'
@@ -347,12 +327,13 @@ export async function wakeupConversationMember(
           .eq('conversationId', member.conversationId),
       )
       .collect();
-    await wakeupWaiters(ctx, waiters, 'conversationLeft');
+    await wakeupWaiters(ctx, runReference, waiters, 'conversationLeft');
   }
 }
 
 export async function wakeupTypingIndicatorCleared(
   ctx: MutationCtx,
+  runReference: AgentRunReference,
   conversationId: Id<'conversations'>,
 ) {
   // Wakeup all agents who are waiting on "nobodyTyping".
@@ -360,16 +341,20 @@ export async function wakeupTypingIndicatorCleared(
     .query('waitingOnTypingIndicator')
     .withIndex('conversationId', (q) => q.eq('conversationId', conversationId))
     .collect();
-  await wakeupWaiters(ctx, waiters, 'nobodyTyping');
+  await wakeupWaiters(ctx, runReference, waiters, 'nobodyTyping');
 }
 
-export async function wakeupNewMessage(ctx: MutationCtx, conversationId: Id<'conversations'>) {
+export async function wakeupNewMessage(
+  ctx: MutationCtx,
+  runReference: AgentRunReference,
+  conversationId: Id<'conversations'>,
+) {
   // Wakeup all agents who are waiting on "waitingForNewMessage".
   const waiters = await ctx.db
     .query('waitingOnMessages')
     .withIndex('conversationId', (q) => q.eq('conversationId', conversationId))
     .collect();
-  await wakeupWaiters(ctx, waiters, 'waitingForNewMessage');
+  await wakeupWaiters(ctx, runReference, waiters, 'waitingForNewMessage');
 }
 
 const waitingOnInput = {

@@ -47,7 +47,7 @@ export const kickAgents = internalMutation({
       .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
       .collect();
     for (const agent of agents) {
-      await wakeupAgent(ctx, agent._id, 'kick');
+      await wakeupAgent(ctx, internal.agent.main.agentRun, agent._id, 'kick');
     }
   },
 });
@@ -85,7 +85,7 @@ export const resumeAgents = internalMutation({
         continue;
       }
       const allowStopped = true;
-      await wakeupAgent(ctx, agent._id, 'resume', allowStopped);
+      await wakeupAgent(ctx, internal.agent.main.agentRun, agent._id, 'resume', allowStopped);
     }
   },
 });

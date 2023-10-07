@@ -7,7 +7,7 @@ import {
   query,
 } from '../_generated/server';
 import { AiTown } from './aiTown';
-import { api, internal } from '../_generated/api';
+import { internal } from '../_generated/api';
 import { insertInput as gameInsertInput } from '../engine/game';
 import { InputArgs, InputNames } from './inputs';
 import { Id } from '../_generated/dataModel';
@@ -30,7 +30,7 @@ export const runStep = internalMutation({
   },
   handler: async (ctx, args): Promise<void> => {
     const worldId = await getWorldId(ctx.db, args.engineId);
-    const game = await AiTown.load(ctx.db, worldId);
+    const game = await AiTown.load(ctx.db, worldId, internal.agent.main.agentRun);
     await game.runStep(ctx, internal.game.main.runStep, args.generationNumber);
   },
 });

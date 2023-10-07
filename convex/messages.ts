@@ -133,7 +133,11 @@ export const writeMessage = mutation({
       .withIndex('conversationId', (q) => q.eq('conversationId', args.conversationId))
       .unique();
     if (indicator?.typing?.playerId === args.playerId) {
-      await agentScheduling.wakeupTypingIndicatorCleared(ctx, args.conversationId);
+      await agentScheduling.wakeupTypingIndicatorCleared(
+        ctx,
+        internal.agent.main.agentRun,
+        args.conversationId,
+      );
       await ctx.db.patch(indicator._id, {
         typing: undefined,
         versionNumber: indicator.versionNumber + 1,
@@ -144,7 +148,7 @@ export const writeMessage = mutation({
       author: args.playerId,
       text: args.text,
     });
-    await agentScheduling.wakeupNewMessage(ctx, args.conversationId);
+    await agentScheduling.wakeupNewMessage(ctx, internal.agent.main.agentRun, args.conversationId);
   },
 });
 
@@ -168,6 +172,10 @@ export const clearTyping = internalMutation({
       throw new Error(`No typing indicator to clear despite version number matching`);
     }
     await ctx.db.patch(indicator._id, { typing: undefined, versionNumber: args.versionNumber + 1 });
-    await agentScheduling.wakeupTypingIndicatorCleared(ctx, args.conversationId);
+    await agentScheduling.wakeupTypingIndicatorCleared(
+      ctx,
+      internal.agent.main.agentRun,
+      args.conversationId,
+    );
   },
 });

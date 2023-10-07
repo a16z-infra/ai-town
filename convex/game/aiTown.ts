@@ -12,6 +12,7 @@ import { CONVERSATION_DISTANCE, PATHFINDING_BACKOFF, PATHFINDING_TIMEOUT } from 
 import { Conversations } from './conversations';
 import { ConversationMembers } from './conversationMembers';
 import * as agentScheduling from '../agent/scheduling';
+import { AgentRunReference } from '../agent/scheduling';
 
 export class AiTown extends Game<Inputs> {
   tickDuration = 16;
@@ -27,11 +28,16 @@ export class AiTown extends Game<Inputs> {
     public locations: Locations,
     public conversations: Conversations,
     public conversationMembers: ConversationMembers,
+    agentRunReference: AgentRunReference,
   ) {
-    super();
+    super(agentRunReference);
   }
 
-  static async load(db: DatabaseWriter, worldId: Id<'worlds'>) {
+  static async load(
+    db: DatabaseWriter,
+    worldId: Id<'worlds'>,
+    agentRunReference: AgentRunReference,
+  ) {
     const world = await db.get(worldId);
     if (!world) {
       throw new Error(`Invalid world ID: ${worldId}`);
@@ -45,7 +51,16 @@ export class AiTown extends Game<Inputs> {
     const locations = await Locations.load(db, engineId, players);
     const conversations = await Conversations.load(db, worldId);
     const conversationMembers = await ConversationMembers.load(db, engineId, conversations);
-    return new AiTown(engineId, world, map, players, locations, conversations, conversationMembers);
+    return new AiTown(
+      engineId,
+      world,
+      map,
+      players,
+      locations,
+      conversations,
+      conversationMembers,
+      agentRunReference,
+    );
   }
 
   async handleInput(
@@ -429,12 +444,12 @@ export class AiTown extends Game<Inputs> {
 
   async save(ctx: MutationCtx): Promise<void> {
     for (const playerId of this.players.modified) {
-      const player = this.players.lookup(playerId);
-      agentScheduling.wakeupPlayer(ctx, player);
+      const player = this.players.data.get(playerId)!;
+      await agentScheduling.wakeupPlayer(ctx, this.agentRunReference, player);
     }
     for (const memberId of this.conversationMembers.modified) {
-      const member = this.conversationMembers.lookup(memberId);
-      agentScheduling.wakeupConversationMember(ctx, member);
+      const member = this.conversationMembers.data.get(memberId)!;
+      await agentScheduling.wakeupConversationMember(ctx, this.agentRunReference, member);
     }
     await this.players.save();
     await this.locations.save();

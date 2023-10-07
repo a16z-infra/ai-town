@@ -4,7 +4,7 @@ import { MutationCtx } from '../_generated/server';
 import { ENGINE_WAKEUP_THRESHOLD } from './constants';
 import { FunctionReference } from 'convex/server';
 import * as agentScheduling from '../agent/scheduling';
-import { internal } from '../_generated/api';
+import { AgentRunReference } from '../agent/scheduling';
 
 export type InputHandler<Args extends any, ReturnValue extends any> = {
   args: Validator<Args, false, any>;
@@ -27,6 +27,8 @@ export abstract class Game<Handlers extends InputHandlers> {
   abstract stepDuration: number;
   abstract maxTicksPerStep: number;
   abstract maxInputsPerStep: number;
+
+  constructor(public agentRunReference: AgentRunReference) {}
 
   abstract handleInput(
     now: number,
@@ -102,7 +104,7 @@ export abstract class Game<Handlers extends InputHandlers> {
           input.returnValue = { kind: 'error', message: e.message };
         }
         await ctx.db.replace(input._id, input);
-        await agentScheduling.wakeupInput(ctx, input);
+        await agentScheduling.wakeupInput(ctx, this.agentRunReference, input);
       }
 
       // Simulate the game forward one tick.
