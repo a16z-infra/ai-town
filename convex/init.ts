@@ -1,17 +1,11 @@
 import { v } from 'convex/values';
-import { api, internal } from './_generated/api';
-import {
-  DatabaseReader,
-  DatabaseWriter,
-  MutationCtx,
-  internalMutation,
-  mutation,
-} from './_generated/server';
+import { internal } from './_generated/api';
+import { DatabaseReader, MutationCtx, internalMutation, mutation } from './_generated/server';
 import { Descriptions } from '../data/characters';
 import * as firstmap from '../data/firstmap';
 import { insertInput } from './game/main';
 import { initAgent, kickAgents, resumeAgents, stopAgents } from './agent/init';
-import { Doc, Id } from './_generated/dataModel';
+import { Doc } from './_generated/dataModel';
 import { createEngine, kickEngine, startEngine, stopEngine } from './engine/game';
 
 const init = mutation({
@@ -36,7 +30,12 @@ const init = mutation({
     }
     // Send inputs to create players for all of the agents.
     if (await shouldCreateAgents(ctx.db, world)) {
+      let i = 0;
       for (const agent of Descriptions) {
+        i += 1;
+        if (i > 2) {
+          break;
+        }
         const inputId = await insertInput(ctx, world._id, 'join', {
           name: agent.name,
           description: agent.identity,
