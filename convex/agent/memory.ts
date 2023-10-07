@@ -254,6 +254,7 @@ async function calculateImportance(player: Doc<'players'>, description: string) 
         Rating: <fill in>`,
       },
     ],
+    temperature: 0.0,
     max_tokens: 1,
   });
 
