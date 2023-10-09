@@ -274,31 +274,6 @@ export const activePlayerLocations = query({
   },
 });
 
-export const activePlayerLocations = query({
-  args: {
-    worldId: v.id('worlds'),
-  },
-  handler: async (ctx, args): Promise<Record<Id<'players'>, Doc<'locations'>>> => {
-    const world = await ctx.db.get(args.worldId);
-    if (!world) {
-      throw new Error(`Invalid world ID: ${args.worldId}`);
-    }
-    const out: Record<Id<'players'>, Doc<'locations'>> = {};
-    const players = await ctx.db
-      .query('players')
-      .withIndex('active', (q) => q.eq('worldId', world._id).eq('active', true))
-      .collect();
-    for (const player of players) {
-      const location = await ctx.db.get(player.locationId);
-      if (!location) {
-        throw new Error(`Invalid location ID: ${player.locationId}`);
-      }
-      out[player._id] = location;
-    }
-    return out;
-  },
-});
-
 export type ConversationState = Doc<'conversations'> & {
   member: Doc<'conversationMembers'>;
   otherPlayerId: Id<'players'>;
