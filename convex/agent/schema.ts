@@ -11,6 +11,12 @@ const agents = v.object({
   plan: v.string(),
 
   generationNumber: v.number(),
+
+  // Set of in-progress inputs for the agent. The inputs in this
+  // array last across runs of the agent, unlike the per-step
+  // waits managed by the scheduling system below.
+  inProgressInputs: v.array(v.id('inputs')),
+
   state: v.union(
     v.object({
       kind: v.literal('waiting'),

@@ -30,7 +30,6 @@ export const agentWaitingOn = v.union(
   // to complete.
   v.object({
     kind: v.literal('movementCompleted'),
-    inputId: v.optional(v.id('inputs')),
   }),
   // Wake up if the agent is in a conversation.
   v.object({

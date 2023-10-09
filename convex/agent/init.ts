@@ -28,6 +28,7 @@ export const initAgent = internalMutation({
       identity: description.identity,
       plan: description.plan,
       generationNumber: 0,
+      inProgressInputs: [],
       state: { kind: 'scheduled' },
     });
     await ctx.scheduler.runAfter(0, internal.agent.main.agentRun, {
