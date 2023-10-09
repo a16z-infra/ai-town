@@ -448,11 +448,11 @@ export class AiTown extends Game<Inputs> {
   }
 
   async save(ctx: MutationCtx): Promise<void> {
-    for (const playerId of this.players.modified) {
+    for (const playerId of this.players.modifiedOrInsertedIds()) {
       const player = this.players.data.get(playerId)!;
       await agentScheduling.wakeupPlayer(ctx, this.agentRunReference, player);
     }
-    for (const memberId of this.conversationMembers.modified) {
+    for (const memberId of this.conversationMembers.modifiedOrInsertedIds()) {
       const member = this.conversationMembers.data.get(memberId)!;
       await agentScheduling.wakeupConversationMember(ctx, this.agentRunReference, member);
     }

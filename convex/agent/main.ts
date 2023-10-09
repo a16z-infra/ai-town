@@ -11,7 +11,6 @@ import { loadConversationState } from '../world';
 import {
   AWKWARD_CONVERSATION_TIMEOUT,
   CONVERATION_COOLDOWN,
-  INPUT_DELAY,
   INVITE_ACCEPT_PROBABILITY,
   INVITE_TIMEOUT,
   MAX_CONVERSATION_DURATION,
@@ -135,6 +134,7 @@ export class Agent {
           destination,
         });
         this.agent.inProgressInputs.push(inputId);
+        waitingOn.push({ kind: 'inputCompleted', inputId });
         waitingOn.push({ kind: 'movementCompleted' });
       }
       await this.ctx.scheduler.runAfter(0, selfInternal.agentRememberConversation, {
@@ -163,6 +163,7 @@ export class Agent {
           destination,
         });
         this.agent.inProgressInputs.push(inputId);
+        waitingOn.push({ kind: 'inputCompleted', inputId });
       }
       waitingOn.push({ kind: 'movementCompleted' });
 
@@ -268,6 +269,7 @@ export class Agent {
             conversationId: playerConversation._id,
           });
           this.agent.inProgressInputs.push(inputId);
+          waitingOn.push({ kind: 'inputCompleted', inputId });
           return waitingOn;
         }
         // Don't keep moving around if we're near enough.
@@ -301,6 +303,7 @@ export class Agent {
           destination,
         });
         this.agent.inProgressInputs.push(inputId);
+        waitingOn.push({ kind: 'inputCompleted', inputId });
         waitingOn.push({ kind: 'movementCompleted' });
         waitingOn.push({
           kind: 'conversationParticipating',

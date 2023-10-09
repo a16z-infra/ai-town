@@ -9,7 +9,10 @@ import { Doc } from './_generated/dataModel';
 import { createEngine, kickEngine, startEngine, stopEngine } from './engine/game';
 
 const init = mutation({
-  handler: async (ctx) => {
+  args: {
+    numAgents: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
     if (!process.env.OPENAI_API_KEY) {
       const deploymentName = process.env.CONVEX_CLOUD_URL?.slice(8).replace('.convex.cloud', '');
       throw new Error(
@@ -30,7 +33,11 @@ const init = mutation({
     }
     // Send inputs to create players for all of the agents.
     if (await shouldCreateAgents(ctx.db, world)) {
+      let numCreated = 0;
       for (const agent of Descriptions) {
+        if (args.numAgents && numCreated >= args.numAgents) {
+          break;
+        }
         const inputId = await insertInput(ctx, world._id, 'join', {
           name: agent.name,
           description: agent.identity,
@@ -41,6 +48,7 @@ const init = mutation({
           joinInputId: inputId,
           character: agent.character,
         });
+        numCreated++;
       }
     }
   },
