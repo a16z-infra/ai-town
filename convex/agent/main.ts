@@ -98,6 +98,30 @@ export class Agent {
     const waitingOn: WaitingOn[] = [];
     const toRemember = await this.conversationToRemember();
 
+    // Wait on an in-progress input if we have one. This check helps
+    // prevent the agent from continuing to loop if the engine's
+    // dead.
+    if (this.agent.inProgressInputs.length > 0) {
+      const incomplete = [];
+      for (const inputId of this.agent.inProgressInputs) {
+        const input = await this.ctx.db.get(inputId);
+        if (!input) {
+          throw new Error(`Invalid input ID: ${inputId}`);
+        }
+        if (!input.returnValue) {
+          incomplete.push(inputId);
+        }
+      }
+      this.agent.inProgressInputs = incomplete;
+      if (incomplete.length > 0) {
+        console.log(`Waiting on inputs ${JSON.stringify(this.agent.inProgressInputs)}...`);
+        for (const inputId of incomplete) {
+          waitingOn.push({ kind: 'inputCompleted', inputId });
+        }
+        return waitingOn;
+      }
+    }
+
     // If we have a conversation to remember, do that first.
     if (toRemember) {
       // If we're not walking somewhere, start wondering to a random position. It's nice
@@ -110,7 +134,8 @@ export class Agent {
           playerId: this.player._id,
           destination,
         });
-        waitingOn.push({ kind: 'movementCompleted', inputId });
+        this.agent.inProgressInputs.push(inputId);
+        waitingOn.push({ kind: 'movementCompleted' });
       }
       await this.ctx.scheduler.runAfter(0, selfInternal.agentRememberConversation, {
         agentId: this.agent._id,
@@ -130,16 +155,16 @@ export class Agent {
     if (!playerConversation) {
       waitingOn.push({ kind: 'inConversation' });
 
-      let moveToInputId;
       if (!this.player.pathfinding) {
         const destination = this.wanderDestination();
         console.log(`Wandering to start a conversation`, destination);
-        moveToInputId = await this.insertInput('moveTo', {
+        const inputId = await this.insertInput('moveTo', {
           playerId: this.player._id,
           destination,
         });
+        this.agent.inProgressInputs.push(inputId);
       }
-      waitingOn.push({ kind: 'movementCompleted', inputId: moveToInputId });
+      waitingOn.push({ kind: 'movementCompleted' });
 
       const lastConversationMember = await this.ctx.db
         .query('conversationMembers')
@@ -194,6 +219,7 @@ export class Agent {
         playerId: this.player._id,
         invitee: nearestPlayer._id,
       });
+      this.agent.inProgressInputs.push(inputId);
       waitingOn.push({ kind: 'inputCompleted', inputId });
       return waitingOn;
     }
@@ -226,6 +252,7 @@ export class Agent {
           });
         }
         // Wait for our acceptance or rejection to be processed.
+        this.agent.inProgressInputs.push(inputId);
         waitingOn.push({
           kind: 'inputCompleted',
           inputId,
@@ -236,10 +263,11 @@ export class Agent {
         // Leave a conversation if we've been waiting for too long.
         if (playerConversation.member._creationTime + INVITE_TIMEOUT < this.now) {
           console.log(`Giving up on conversation with ${otherPlayer.name}`);
-          await this.insertInput('leaveConversation', {
+          const inputId = await this.insertInput('leaveConversation', {
             playerId: this.player._id,
             conversationId: playerConversation._id,
           });
+          this.agent.inProgressInputs.push(inputId);
           return waitingOn;
         }
         // Don't keep moving around if we're near enough.
@@ -272,7 +300,8 @@ export class Agent {
           playerId: this.player._id,
           destination,
         });
-        waitingOn.push({ kind: 'movementCompleted', inputId });
+        this.agent.inProgressInputs.push(inputId);
+        waitingOn.push({ kind: 'movementCompleted' });
         waitingOn.push({
           kind: 'conversationParticipating',
           conversationId: playerConversation._id,
