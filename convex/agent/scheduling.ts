@@ -3,11 +3,12 @@ import { Doc, Id } from '../_generated/dataModel';
 import { DatabaseWriter, MutationCtx } from '../_generated/server';
 import { assertNever } from '../util/assertNever';
 import { v, Infer } from 'convex/values';
+import { SCHEDULER_COOLDOWN } from './constants';
 
-export type AgentRunReference = FunctionReference<
-  'mutation',
+export type SchedulerRun = FunctionReference<
+  'action',
   'internal',
-  { agentId: Id<'agents'>; generationNumber: number }
+  { schedulerId: Id<'agentSchedulers'>; generationNumber: number }
 >;
 
 export const agentWaitingOn = v.union(
@@ -208,42 +209,79 @@ export async function clearSubscriptions(db: DatabaseWriter, agentId: Id<'agents
   }
 }
 
+export async function wakeupScheduler(
+  ctx: MutationCtx,
+  runReference: SchedulerRun,
+  worldId: Id<'worlds'>,
+  allowStopped?: boolean,
+) {
+  const scheduler = await ctx.db
+    .query('agentSchedulers')
+    .withIndex('worldId', (q) => q.eq('worldId', worldId))
+    .unique();
+  if (!scheduler) {
+    throw new Error(`Scheduler not found for world ${worldId}`);
+  }
+  if (scheduler.state.kind === 'stopped' && !allowStopped) {
+    console.warn(`Not waking up stopped scheduler ${scheduler._id}`);
+    return;
+  }
+  if (scheduler.state.kind === 'scheduled') {
+    console.log(`Scheduler ${scheduler._id} already scheduled, returning`);
+    return;
+  }
+  console.log(`Waking up ${scheduler._id}}`);
+  let runAt = Date.now();
+  // TODO
+  // if (scheduler.lastRun) {
+  //   runAt = Math.max(scheduler.lastRun + SCHEDULER_COOLDOWN, runAt);
+  // }
+  // Don't preempt if a timer is going to run before our desired time.
+  // if (
+  //   scheduler.state.kind === 'waiting' &&
+  //   scheduler.state.timer &&
+  //   scheduler.state.timer < runAt
+  // ) {
+  //   return;
+  // }
+
+  scheduler.generationNumber++;
+  scheduler.state = { kind: 'scheduled' };
+
+  await ctx.db.replace(scheduler._id, scheduler);
+  await ctx.scheduler.runAfter(0, runReference, {
+    schedulerId: scheduler._id,
+    generationNumber: scheduler.generationNumber,
+  });
+}
+
 // NB: We have to pass in `runReference` throughout this file to prevent
 // an import cycle, where importing `internal` imports `AiTown`, which
 // then wants to be able to import us.
 export async function wakeupAgent(
   ctx: MutationCtx,
-  runReference: AgentRunReference,
+  runReference: SchedulerRun,
   agentId: Id<'agents'>,
   reason: string,
-  allowStopped?: boolean,
+  opts?: { allowStopped?: boolean; kick?: boolean },
 ) {
   const agent = await ctx.db.get(agentId);
   if (!agent) {
     throw new Error(`Agent ${agentId} not found`);
   }
-  if (agent.state.kind === 'stopped' && !allowStopped) {
-    console.warn(`Not waking up stopped agent ${agentId}`);
-    return;
-  }
-  if (agent.state.kind === 'scheduled') {
+  if (agent.state.kind === 'scheduled' && !opts?.kick) {
     return;
   }
   console.log(`Waking up agent ${agentId} (${reason})`);
-  const generationNumber = agent.generationNumber + 1;
-  agent.generationNumber = generationNumber;
   agent.state = { kind: 'scheduled' };
   await ctx.db.replace(agent._id, agent);
   await clearSubscriptions(ctx.db, agent._id);
-  await ctx.scheduler.runAfter(0, runReference, {
-    agentId: agent._id,
-    generationNumber,
-  });
+  await wakeupScheduler(ctx, runReference, agent.worldId, opts?.allowStopped);
 }
 
 async function wakeupWaiters(
   ctx: MutationCtx,
-  runReference: AgentRunReference,
+  runReference: SchedulerRun,
   waiters: { agentId: Id<'agents'> }[],
   reason: string,
 ) {
@@ -254,7 +292,7 @@ async function wakeupWaiters(
 
 export async function wakeupInput(
   ctx: MutationCtx,
-  runReference: AgentRunReference,
+  runReference: SchedulerRun,
   input: Doc<'inputs'>,
 ) {
   // Wakeup all agents who are waiting on an input being completed.
@@ -270,7 +308,7 @@ export async function wakeupInput(
 
 export async function wakeupPlayer(
   ctx: MutationCtx,
-  runReference: AgentRunReference,
+  runReference: SchedulerRun,
   player: Doc<'players'>,
 ) {
   // Wakeup all agents who are waiting on "movementCompleted" => !player.pathfinding
@@ -286,7 +324,7 @@ export async function wakeupPlayer(
 
 export async function wakeupConversationMember(
   ctx: MutationCtx,
-  runReference: AgentRunReference,
+  runReference: SchedulerRun,
   member: Doc<'conversationMembers'>,
 ) {
   // Wakeup all agents who are waiting on "inConversation" => member.status.kind != 'left'
@@ -331,7 +369,7 @@ export async function wakeupConversationMember(
 
 export async function wakeupTypingIndicatorCleared(
   ctx: MutationCtx,
-  runReference: AgentRunReference,
+  runReference: SchedulerRun,
   conversationId: Id<'conversations'>,
 ) {
   // Wakeup all agents who are waiting on "nobodyTyping".
@@ -344,7 +382,7 @@ export async function wakeupTypingIndicatorCleared(
 
 export async function wakeupNewMessage(
   ctx: MutationCtx,
-  runReference: AgentRunReference,
+  runReference: SchedulerRun,
   conversationId: Id<'conversations'>,
 ) {
   // Wakeup all agents who are waiting on "waitingForNewMessage".

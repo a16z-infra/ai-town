@@ -142,7 +142,7 @@ export const writeMessage = mutation({
     if (indicator?.typing?.playerId === args.playerId) {
       await agentScheduling.wakeupTypingIndicatorCleared(
         ctx,
-        internal.agent.main.agentRun,
+        internal.agent.main.agentSchedulerRun,
         args.conversationId,
       );
       await ctx.db.patch(indicator._id, {
@@ -155,7 +155,11 @@ export const writeMessage = mutation({
       author: args.playerId,
       text: args.text,
     });
-    await agentScheduling.wakeupNewMessage(ctx, internal.agent.main.agentRun, args.conversationId);
+    await agentScheduling.wakeupNewMessage(
+      ctx,
+      internal.agent.main.agentSchedulerRun,
+      args.conversationId,
+    );
   },
 });
 
@@ -181,7 +185,7 @@ export const clearTyping = internalMutation({
     await ctx.db.patch(indicator._id, { typing: undefined, versionNumber: args.versionNumber + 1 });
     await agentScheduling.wakeupTypingIndicatorCleared(
       ctx,
-      internal.agent.main.agentRun,
+      internal.agent.main.agentSchedulerRun,
       args.conversationId,
     );
   },

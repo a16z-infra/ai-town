@@ -50,7 +50,7 @@ export type MemoryOfType<T extends MemoryType> = Omit<Memory, 'data'> & {
 export async function rememberConversation(
   ctx: ActionCtx,
   agentId: Id<'agents'>,
-  generationNumber: number,
+  agentGenerationNumber: number,
   playerId: Id<'players'>,
   conversationId: Id<'conversations'>,
 ) {
@@ -104,7 +104,7 @@ export async function rememberConversation(
   authors.delete(player._id);
   await ctx.runMutation(selfInternal.insertMemory, {
     agentId,
-    generationNumber,
+    agentGenerationNumber,
 
     playerId: player._id,
     description,
@@ -316,22 +316,24 @@ export const clearThinking = internalMutation({
 export const insertMemory = internalMutation({
   args: {
     agentId: v.id('agents'),
-    generationNumber: v.number(),
+    agentGenerationNumber: v.number(),
 
     embedding: v.array(v.float64()),
     ...memoryFieldsWithoutEmbeddingId,
   },
-  handler: async (ctx, { agentId, generationNumber, embedding, ...memory }) => {
+  handler: async (ctx, { agentId, agentGenerationNumber, embedding, ...memory }) => {
     const agent = await ctx.db.get(agentId);
     if (!agent) {
       throw new Error(`Agent ${agentId} not found`);
     }
-    if (agent.generationNumber !== generationNumber) {
+    if (agent.generationNumber !== agentGenerationNumber) {
       console.debug(
-        `Agent ${agentId} generation number ${agent.generationNumber} does not match ${generationNumber}`,
+        `Agent ${agentId} generation number ${agent.generationNumber} does not match ${agentGenerationNumber}`,
       );
       return;
     }
+    await ctx.db.replace(agentId, agent);
+
     // Clear the `isThinking` flag atomically with inserting the memory.
     const isThinking = await ctx.db
       .query('agentIsThinking')
@@ -348,6 +350,7 @@ export const insertMemory = internalMutation({
       ...memory,
       embeddingId,
     });
+    // TODO: reschedule agent here!
   },
 });
 

@@ -2,7 +2,7 @@ import { v } from 'convex/values';
 import { internalMutation } from '../_generated/server';
 import { Descriptions } from '../../data/characters';
 import { internal } from '../_generated/api';
-import { clearSubscriptions, wakeupAgent } from './scheduling';
+import { wakeupAgent, wakeupScheduler } from './scheduling';
 
 export const initAgent = internalMutation({
   args: {
@@ -11,6 +11,22 @@ export const initAgent = internalMutation({
     character: v.string(),
   },
   handler: async (ctx, args) => {
+    const scheduler = await ctx.db
+      .query('agentSchedulers')
+      .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
+      .unique();
+    if (!scheduler) {
+      const schedulerId = await ctx.db.insert('agentSchedulers', {
+        worldId: args.worldId,
+        generationNumber: 0,
+        state: { kind: 'scheduled' },
+      });
+      await ctx.scheduler.runAfter(0, internal.agent.main.agentSchedulerRun, {
+        schedulerId,
+        generationNumber: 0,
+      });
+    }
+
     const existingAgent = await ctx.db
       .query('agents')
       .withIndex('playerId', (q) => q.eq('playerId', args.playerId))
@@ -31,10 +47,7 @@ export const initAgent = internalMutation({
       inProgressInputs: [],
       state: { kind: 'scheduled' },
     });
-    await ctx.scheduler.runAfter(0, internal.agent.main.agentRun, {
-      agentId,
-      generationNumber: 0,
-    });
+    await wakeupAgent(ctx, internal.agent.main.agentSchedulerRun, agentId, 'init');
   },
 });
 
@@ -45,10 +58,12 @@ export const kickAgents = internalMutation({
   handler: async (ctx, args) => {
     const agents = await ctx.db
       .query('agents')
-      .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
+      .withIndex('worldIdStatus', (q) => q.eq('worldId', args.worldId))
       .collect();
     for (const agent of agents) {
-      await wakeupAgent(ctx, internal.agent.main.agentRun, agent._id, 'kick');
+      await wakeupAgent(ctx, internal.agent.main.agentSchedulerRun, agent._id, 'kick', {
+        kick: true,
+      });
     }
   },
 });
@@ -58,17 +73,16 @@ export const stopAgents = internalMutation({
     worldId: v.id('worlds'),
   },
   handler: async (ctx, args) => {
-    const agents = await ctx.db
-      .query('agents')
+    const scheduler = await ctx.db
+      .query('agentSchedulers')
       .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
-      .collect();
-    for (const agent of agents) {
-      await clearSubscriptions(ctx.db, agent._id);
-      await ctx.db.patch(agent._id, {
-        generationNumber: agent.generationNumber + 1,
-        state: { kind: 'stopped' },
-      });
+      .unique();
+    if (!scheduler) {
+      throw new Error(`No scheduler found for world ${args.worldId}`);
     }
+    scheduler.generationNumber++;
+    scheduler.state = { kind: 'stopped' };
+    await ctx.db.replace(scheduler._id, scheduler);
   },
 });
 
@@ -77,16 +91,6 @@ export const resumeAgents = internalMutation({
     worldId: v.id('worlds'),
   },
   handler: async (ctx, args) => {
-    const agents = await ctx.db
-      .query('agents')
-      .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
-      .collect();
-    for (const agent of agents) {
-      if (agent.state.kind !== 'stopped') {
-        continue;
-      }
-      const allowStopped = true;
-      await wakeupAgent(ctx, internal.agent.main.agentRun, agent._id, 'resume', allowStopped);
-    }
+    await wakeupScheduler(ctx, internal.agent.main.agentSchedulerRun, args.worldId, true);
   },
 });

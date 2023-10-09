@@ -28,3 +28,6 @@ export const ACTION_TIMEOUT = 60 * 1000;
 
 // Wait for at least two seconds before sending another message.
 export const MESSAGE_COOLDOWN = 2000;
+
+// Run the agent scheduler at most once every 500ms.
+export const SCHEDULER_COOLDOWN = 500;

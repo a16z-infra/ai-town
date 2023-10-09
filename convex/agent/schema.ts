@@ -4,19 +4,10 @@ import { v } from 'convex/values';
 import { embeddingsCacheTables } from './embeddingsCache';
 import { agentWaitingOn, schedulingTables } from './scheduling';
 
-const agents = v.object({
+const agentScheduler = v.object({
   worldId: v.id('worlds'),
-  playerId: v.id('players'),
-  identity: v.string(),
-  plan: v.string(),
-
   generationNumber: v.number(),
-
-  // Set of in-progress inputs for the agent. The inputs in this
-  // array last across runs of the agent, unlike the per-step
-  // waits managed by the scheduling system below.
-  inProgressInputs: v.array(v.id('inputs')),
-
+  lastRun: v.optional(v.number()),
   state: v.union(
     v.object({
       kind: v.literal('waiting'),
@@ -27,6 +18,37 @@ const agents = v.object({
     }),
     v.object({
       kind: v.literal('stopped'),
+    }),
+  ),
+});
+
+const agents = v.object({
+  worldId: v.id('worlds'),
+  playerId: v.id('players'),
+  identity: v.string(),
+  plan: v.string(),
+
+  // Set of in-progress inputs for the agent. The inputs in this
+  // array last across runs of the agent, unlike the per-step
+  // waits managed by the scheduling system below.
+  inProgressInputs: v.array(v.id('inputs')),
+  inProgressAction: v.optional(
+    v.object({
+      name: v.string(),
+      started: v.number(),
+    }),
+  ),
+  // We only use this generation number for "cancelling" inflight actions,
+  // not for actually preempting the agent, which is handled by the scheduler.
+  generationNumber: v.number(),
+
+  state: v.union(
+    v.object({
+      kind: v.literal('waiting'),
+      timer: v.optional(v.number()),
+    }),
+    v.object({
+      kind: v.literal('scheduled'),
     }),
   ),
   // Last set of events the agent was waiting on for debugging.
@@ -41,8 +63,13 @@ const agentIsThinking = v.object({
 });
 
 export const agentTables = {
-  agents: defineTable(agents).index('playerId', ['playerId']).index('worldId', ['worldId']),
+  agentSchedulers: defineTable(agentScheduler).index('worldId', ['worldId']),
+
+  agents: defineTable(agents)
+    .index('playerId', ['playerId'])
+    .index('worldIdStatus', ['worldId', 'state.kind', 'state.timer']),
   agentIsThinking: defineTable(agentIsThinking).index('playerId', ['playerId']),
+
   ...memoryTables,
   ...embeddingsCacheTables,
   ...schedulingTables,

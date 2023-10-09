@@ -30,7 +30,7 @@ export const runStep = internalMutation({
   },
   handler: async (ctx, args): Promise<void> => {
     const worldId = await getWorldId(ctx.db, args.engineId);
-    const game = await AiTown.load(ctx.db, worldId, internal.agent.main.agentRun);
+    const game = await AiTown.load(ctx.db, worldId, internal.agent.main.agentSchedulerRun);
     await game.runStep(ctx, internal.game.main.runStep, args.generationNumber);
   },
 });

@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import { Doc, Id } from '../_generated/dataModel';
-import { MutationCtx, internalAction, internalMutation } from '../_generated/server';
+import { MutationCtx, internalAction, internalMutation, internalQuery } from '../_generated/server';
 import { CONVERSATION_DISTANCE, MIDPOINT_THRESHOLD } from '../constants';
 import { InputArgs, InputNames } from '../game/inputs';
 import { insertInput } from '../game/main';
@@ -27,75 +27,32 @@ import { WaitingOn, eventDeadline, updateSubscriptions, wakeupAgent } from './sc
 const selfInternal = internal.agent.main;
 
 export class Agent {
+  player: Doc<'players'> & { position: Point };
+
   constructor(
     private ctx: MutationCtx,
     private now: number,
-    private world: Doc<'worlds'>,
-    private map: Doc<'maps'>,
+    private agentData: AgentData,
     public agent: Doc<'agents'>,
-    public nextGenerationNumber: number,
-    private player: Doc<'players'> & { position: Point },
-  ) {}
-
-  public static async load(
-    ctx: MutationCtx,
-    agentId: Id<'agents'>,
-    expectedGenerationNumber: number,
   ) {
+    const player = agentData.players.find((p) => p._id === agent.playerId);
+    if (!player) {
+      throw new Error(`Invalid player ID: ${agent.playerId}`);
+    }
+    this.player = player;
+  }
+
+  public static async load(ctx: MutationCtx, agentData: AgentData, agentId: Id<'agents'>) {
     const now = Date.now();
     const agent = await ctx.db.get(agentId);
     if (!agent) {
       throw new Error(`Invalid agent ID: ${agentId}`);
     }
-    if (agent.generationNumber !== expectedGenerationNumber) {
-      console.debug(
-        `Expected generation number ${expectedGenerationNumber} but got ${agent.generationNumber}`,
-      );
-      return null;
-    }
-    if (agent.state.kind === 'stopped') {
-      console.debug(`Agent ${agentId} is stopped`);
-      return null;
-    }
-    const nextGenerationNumber = agent.generationNumber + 1;
-    const world = await ctx.db.get(agent.worldId);
-    if (!world) {
-      throw new Error(`Invalid world ID: ${agent.worldId}`);
-    }
-    if (world.status !== 'running') {
-      console.debug(`World ${world._id} is not running`);
-      return null;
-    }
-    const map = await ctx.db.get(world.mapId);
-    if (!map) {
-      throw new Error(`Invalid map ID: ${world.mapId}`);
-    }
-    const player = await ctx.db.get(agent.playerId);
-    if (!player) {
-      throw new Error(`Invalid player ID: ${agent.playerId}`);
-    }
-    const engine = await ctx.db.get(world.engineId);
-    if (!engine) {
-      throw new Error(`Invalid engine ID: ${world.engineId}`);
-    }
-    // NB: We're just being defensive with this check, but any process (e.g. `stopInactiveWorlds`)
-    // that stops the engine should also stop the agents, bumping their generation number and
-    // causing us to hit the generation number check above first.
-    if (engine.state.kind !== 'running') {
-      console.debug(`Engine ${world.engineId} isn't running`);
-      return null;
-    }
-    const location = await ctx.db.get(player.locationId);
-    if (!location) {
-      throw new Error(`Invalid location ID: ${player.locationId}`);
-    }
-    const position = { x: location.x, y: location.y };
-    return new Agent(ctx, now, world, map, agent, nextGenerationNumber, { ...player, position });
+    return new Agent(ctx, now, agentData, agent);
   }
 
   async run(): Promise<WaitingOn[]> {
     const waitingOn: WaitingOn[] = [];
-    const toRemember = await this.conversationToRemember();
 
     // Wait on an in-progress input if we have one. This check helps
     // prevent the agent from continuing to loop if the engine's
@@ -121,6 +78,24 @@ export class Agent {
       }
     }
 
+    // Wait on an in-progress action, timing it out if needed.
+    if (this.agent.inProgressAction) {
+      const deadline = this.agent.inProgressAction.started + ACTION_TIMEOUT;
+      if (this.now < deadline) {
+        console.log(`Waiting on action ${this.agent.inProgressAction.name}...`);
+        waitingOn.push({
+          kind: 'actionCompleted',
+          timeoutDeadline: this.agent.inProgressAction.started + ACTION_TIMEOUT,
+        });
+        return waitingOn;
+      }
+      console.log(`Timing out action ${this.agent.inProgressAction.name}`);
+      this.agent.generationNumber++;
+      delete this.agent.inProgressAction;
+    }
+
+    const toRemember = await this.conversationToRemember();
+
     // If we have a conversation to remember, do that first.
     if (toRemember) {
       // If we're not walking somewhere, start wondering to a random position. It's nice
@@ -139,10 +114,11 @@ export class Agent {
       }
       await this.ctx.scheduler.runAfter(0, selfInternal.agentRememberConversation, {
         agentId: this.agent._id,
-        generationNumber: this.nextGenerationNumber,
+        agentGenerationNumber: this.agent.generationNumber,
         playerId: this.player._id,
         conversationId: toRemember,
       });
+      this.agent.inProgressAction = { name: 'rememberConversation', started: this.now };
       waitingOn.push({ kind: 'actionCompleted', timeoutDeadline: this.now + ACTION_TIMEOUT });
       return waitingOn;
     }
@@ -439,7 +415,7 @@ export class Agent {
   }
 
   async insertInput<Name extends InputNames>(name: Name, args: InputArgs<Name>) {
-    return await insertInput(this.ctx, this.world._id, name, args);
+    return await insertInput(this.ctx, this.agentData.world._id, name, args);
   }
 
   async conversationToRemember() {
@@ -473,25 +449,15 @@ export class Agent {
   wanderDestination() {
     // Wander someonewhere at least one tile away from the edge.
     return {
-      x: 1 + Math.floor(Math.random() * (this.map.width - 2)),
-      y: 1 + Math.floor(Math.random() * (this.map.height - 2)),
+      x: 1 + Math.floor(Math.random() * (this.agentData.map.width - 2)),
+      y: 1 + Math.floor(Math.random() * (this.agentData.map.height - 2)),
     };
   }
 
   async loadOtherPlayers() {
-    const otherPlayers = await this.ctx.db
-      .query('players')
-      .withIndex('active', (q) => q.eq('worldId', this.player.worldId).eq('active', true))
-      .filter((q) => q.neq(q.field('_id'), this.player._id))
-      .collect();
+    const otherPlayers = this.agentData.players.filter((p) => p._id !== this.player._id);
     const players = [];
     for (const otherPlayer of otherPlayers) {
-      const location = await this.ctx.db.get(otherPlayer.locationId);
-      if (!location) {
-        throw new Error(`Invalid location ID: ${otherPlayer.locationId}`);
-      }
-      const position = { x: location.x, y: location.y };
-
       const conversation = await loadConversationState(this.ctx, {
         playerId: otherPlayer._id,
       });
@@ -519,7 +485,7 @@ export class Agent {
         }
         lastConversationWithPlayer = { playerLeft: lastMember.status.ended, ...conversation };
       }
-      players.push({ position, conversation, lastConversationWithPlayer, ...otherPlayer });
+      players.push({ conversation, lastConversationWithPlayer, ...otherPlayer });
     }
     return players;
   }
@@ -531,7 +497,7 @@ export class Agent {
   ) {
     return {
       agentId: this.agent._id,
-      generationNumber: this.nextGenerationNumber,
+      agentGenerationNumber: this.agent.generationNumber,
       playerId: this.player._id,
       otherPlayerId: otherPlayer._id,
       conversationId: conversation._id,
@@ -540,79 +506,179 @@ export class Agent {
   }
 }
 
-export const scheduleNextRun = internalMutation({
+export const agentSchedulerRun = internalAction({
   args: {
-    agentId: v.id('agents'),
-    expectedGenerationNumber: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const agent = await ctx.db.get(args.agentId);
-    if (!agent) {
-      throw new Error(`Invalid agent ID: ${args.agentId}`);
-    }
-    if (agent.generationNumber !== args.expectedGenerationNumber) {
-      console.debug(
-        `Expected generation number ${args.expectedGenerationNumber} but got ${agent.generationNumber}`,
-      );
-      return;
-    }
-    await wakeupAgent(ctx, internal.agent.main.agentRun, args.agentId, 'actionCompleted');
-  },
-});
-
-export const agentRun = internalMutation({
-  args: {
-    agentId: v.id('agents'),
+    schedulerId: v.id('agentSchedulers'),
     generationNumber: v.number(),
   },
   handler: async (ctx, args) => {
-    const agentClass = await Agent.load(ctx, args.agentId, args.generationNumber);
-    if (!agentClass) {
+    const agentData = await ctx.runQuery(selfInternal.loadAgentData, {
+      schedulerId: args.schedulerId,
+    });
+    if (agentData === null) {
       return;
     }
-    const waitingOn = await agentClass.run();
+    await ctx.runMutation(selfInternal.runAgentBatch, {
+      schedulerId: args.schedulerId,
+      generationNumber: args.generationNumber,
+      agentData,
+    });
+  },
+});
 
-    let nextRun = undefined;
-    for (const event of waitingOn) {
-      const deadline = eventDeadline(event);
-      if (deadline !== null) {
-        nextRun = Math.min(deadline, nextRun ?? deadline);
+type AgentData = {
+  world: Doc<'worlds'>;
+  map: Doc<'maps'>;
+  players: Array<Doc<'players'> & { position: Point }>;
+};
+
+export const loadAgentData = internalQuery({
+  args: {
+    schedulerId: v.id('agentSchedulers'),
+  },
+  handler: async (ctx, args): Promise<AgentData | null> => {
+    const scheduler = await ctx.db.get(args.schedulerId);
+    if (!scheduler) {
+      throw new Error(`Invalid scheduler ID: ${args.schedulerId}`);
+    }
+    if (scheduler.state.kind === 'stopped') {
+      console.debug(`Scheduler ${args.schedulerId} is stopped`);
+      return null;
+    }
+    const world = await ctx.db.get(scheduler.worldId);
+    if (!world) {
+      throw new Error(`Invalid world ID: ${scheduler.worldId}`);
+    }
+    if (world.status !== 'running') {
+      console.debug(`World ${world._id} is not running`);
+      return null;
+    }
+    const map = await ctx.db.get(world.mapId);
+    if (!map) {
+      throw new Error(`Invalid map ID: ${world.mapId}`);
+    }
+    const engine = await ctx.db.get(world.engineId);
+    if (!engine) {
+      throw new Error(`Invalid engine ID: ${world.engineId}`);
+    }
+    // NB: We're just being defensive with this check, but any process (e.g. `stopInactiveWorlds`)
+    // that stops the engine should also stop the agents, bumping their generation number and
+    // causing us to hit the generation number check above first.
+    if (engine.state.kind !== 'running') {
+      console.debug(`Engine ${world.engineId} isn't running`);
+      return null;
+    }
+    const agents = await ctx.db
+      .query('agents')
+      .withIndex('worldIdStatus', (q) => q.eq('worldId', world._id))
+      .collect();
+
+    const playerDocuments = await ctx.db
+      .query('players')
+      .withIndex('active', (q) => q.eq('worldId', scheduler.worldId).eq('active', true))
+      .collect();
+    const players = [];
+    for (const player of playerDocuments) {
+      const location = await ctx.db.get(player.locationId);
+      if (!location) {
+        throw new Error(`Invalid location ID: ${player.locationId}`);
+      }
+      const position: Point = { x: location.x, y: location.y };
+      players.push({ position, ...player });
+    }
+    return {
+      world,
+      map,
+      players,
+    };
+  },
+});
+
+export const runAgentBatch = internalMutation({
+  args: {
+    schedulerId: v.id('agentSchedulers'),
+    generationNumber: v.number(),
+    agentData: v.any(),
+  },
+  handler: async (ctx, args) => {
+    const agentData: AgentData = args.agentData;
+    const scheduler = await ctx.db.get(args.schedulerId);
+    if (!scheduler) {
+      throw new Error(`Invalid scheduler ID: ${args.schedulerId}`);
+    }
+    if (scheduler.generationNumber !== args.generationNumber) {
+      console.debug(
+        `Expected generation number ${args.generationNumber} but got ${scheduler.generationNumber}`,
+      );
+      return;
+    }
+    if (scheduler.state.kind === 'stopped') {
+      console.debug(`Scheduler ${args.schedulerId} is stopped`);
+      return;
+    }
+    const now = Date.now();
+    const scheduledAgents = await ctx.db
+      .query('agents')
+      .withIndex('worldIdStatus', (q) =>
+        q.eq('worldId', scheduler.worldId).eq('state.kind', 'scheduled'),
+      )
+      .collect();
+    const timerAgents = await ctx.db
+      .query('agents')
+      .withIndex('worldIdStatus', (q) =>
+        q.eq('worldId', scheduler.worldId).eq('state.kind', 'waiting').lte('state.timer', now),
+      )
+      .collect();
+    const agents = [...scheduledAgents, ...timerAgents];
+
+    let schedulerNextRun = undefined;
+
+    for (const agent of agents) {
+      const agentClass = await Agent.load(ctx, agentData, agent._id);
+      if (!agentClass) {
+        continue;
+      }
+      const waitingOn = await agentClass.run();
+      let nextRun = undefined;
+      for (const event of waitingOn) {
+        const deadline = eventDeadline(event);
+        if (deadline !== null) {
+          nextRun = Math.min(deadline, nextRun ?? deadline);
+        }
+      }
+      // Update our database subscriptions based on our new events to wait for.
+      const playerId = agentClass.agent.playerId;
+      await updateSubscriptions(ctx.db, agent._id, playerId, waitingOn);
+
+      // Update our agent state.
+      agent.state = { kind: 'waiting', timer: nextRun };
+      agent.waitingOn = waitingOn;
+      await ctx.db.replace(agent._id, agent);
+
+      if (nextRun) {
+        schedulerNextRun = Math.min(nextRun, schedulerNextRun ?? nextRun);
       }
     }
 
-    const nextGenerationNumber = agentClass.nextGenerationNumber;
+    scheduler.generationNumber++;
+    scheduler.state = { kind: 'waiting', timer: schedulerNextRun };
+    await ctx.db.replace(scheduler._id, scheduler);
 
-    // If we have a timing based wakeup (from the deadlines computed above),
-    // schedule ourselves to run in the future. We may run before then if
-    // something else wakes us up, like a completed action or a database
-    // write that overlaps with something in `waitingOn`.
-    if (nextRun) {
-      const deltaSeconds = (nextRun - Date.now()) / 1000;
+    if (schedulerNextRun) {
+      const deltaSeconds = (schedulerNextRun - Date.now()) / 1000;
       console.debug(`Scheduling next run ${deltaSeconds.toFixed(2)}s in the future.`);
-      await ctx.scheduler.runAt(nextRun, internal.agent.main.agentRun, {
-        agentId: args.agentId,
-        generationNumber: agentClass.nextGenerationNumber,
+      await ctx.scheduler.runAt(schedulerNextRun, selfInternal.agentSchedulerRun, {
+        schedulerId: args.schedulerId,
+        generationNumber: scheduler.generationNumber,
       });
     }
-
-    // Update our database subscriptions based on our new events to wait for.
-    const playerId = agentClass.agent.playerId;
-    await updateSubscriptions(ctx.db, args.agentId, playerId, waitingOn);
-
-    // Update our agent state.
-    const agent = agentClass.agent;
-    agent.generationNumber = nextGenerationNumber;
-    agent.state = { kind: 'waiting', timer: nextRun };
-    agent.waitingOn = waitingOn;
-    await ctx.db.replace(agent._id, agent);
   },
 });
 
 export const agentRememberConversation = internalAction({
   args: {
     agentId: v.id('agents'),
-    generationNumber: v.number(),
-
+    agentGenerationNumber: v.number(),
     playerId: v.id('players'),
     conversationId: v.id('conversations'),
   },
@@ -620,13 +686,13 @@ export const agentRememberConversation = internalAction({
     await rememberConversation(
       ctx,
       args.agentId,
-      args.generationNumber,
+      args.agentGenerationNumber,
       args.playerId,
       args.conversationId,
     );
-    await ctx.runMutation(selfInternal.scheduleNextRun, {
+    await ctx.runMutation(selfInternal.agentCompleteAction, {
       agentId: args.agentId,
-      expectedGenerationNumber: args.generationNumber,
+      agentGenerationNumber: args.agentGenerationNumber,
     });
   },
 });
@@ -634,8 +700,7 @@ export const agentRememberConversation = internalAction({
 export const agentStartConversation = internalAction({
   args: {
     agentId: v.id('agents'),
-    generationNumber: v.number(),
-
+    agentGenerationNumber: v.number(),
     playerId: v.id('players'),
     otherPlayerId: v.id('players'),
     conversationId: v.id('conversations'),
@@ -652,15 +717,15 @@ export const agentStartConversation = internalAction({
     const text = await tokenStream.readAll();
     await ctx.runMutation(selfInternal.agentWriteMessage, {
       agentId: args.agentId,
-      generationNumber: args.generationNumber,
+      agentGenerationNumber: args.agentGenerationNumber,
       playerId: args.playerId,
       conversationId: args.conversationId,
       text,
       leaveConversation: false,
     });
-    await ctx.runMutation(selfInternal.scheduleNextRun, {
+    await ctx.runMutation(selfInternal.agentCompleteAction, {
       agentId: args.agentId,
-      expectedGenerationNumber: args.generationNumber,
+      agentGenerationNumber: args.agentGenerationNumber,
     });
   },
 });
@@ -668,8 +733,7 @@ export const agentStartConversation = internalAction({
 export const agentContinueConversation = internalAction({
   args: {
     agentId: v.id('agents'),
-    generationNumber: v.number(),
-
+    agentGenerationNumber: v.number(),
     playerId: v.id('players'),
     otherPlayerId: v.id('players'),
     conversationId: v.id('conversations'),
@@ -686,15 +750,15 @@ export const agentContinueConversation = internalAction({
     const text = await tokenStream.readAll();
     await ctx.runMutation(selfInternal.agentWriteMessage, {
       agentId: args.agentId,
-      generationNumber: args.generationNumber,
+      agentGenerationNumber: args.agentGenerationNumber,
       playerId: args.playerId,
       conversationId: args.conversationId,
       text,
       leaveConversation: false,
     });
-    await ctx.runMutation(selfInternal.scheduleNextRun, {
+    await ctx.runMutation(selfInternal.agentCompleteAction, {
       agentId: args.agentId,
-      expectedGenerationNumber: args.generationNumber,
+      agentGenerationNumber: args.agentGenerationNumber,
     });
   },
 });
@@ -702,8 +766,7 @@ export const agentContinueConversation = internalAction({
 export const agentLeaveConversation = internalAction({
   args: {
     agentId: v.id('agents'),
-    generationNumber: v.number(),
-
+    agentGenerationNumber: v.number(),
     playerId: v.id('players'),
     otherPlayerId: v.id('players'),
     conversationId: v.id('conversations'),
@@ -720,15 +783,15 @@ export const agentLeaveConversation = internalAction({
     const text = await tokenStream.readAll();
     await ctx.runMutation(selfInternal.agentWriteMessage, {
       agentId: args.agentId,
-      generationNumber: args.generationNumber,
+      agentGenerationNumber: args.agentGenerationNumber,
       playerId: args.playerId,
       conversationId: args.conversationId,
       text,
       leaveConversation: true,
     });
-    await ctx.runMutation(selfInternal.scheduleNextRun, {
+    await ctx.runMutation(selfInternal.agentCompleteAction, {
       agentId: args.agentId,
-      expectedGenerationNumber: args.generationNumber,
+      agentGenerationNumber: args.agentGenerationNumber,
     });
   },
 });
@@ -736,12 +799,10 @@ export const agentLeaveConversation = internalAction({
 export const agentWriteMessage = internalMutation({
   args: {
     agentId: v.id('agents'),
-    generationNumber: v.number(),
-
+    agentGenerationNumber: v.number(),
     playerId: v.id('players'),
     conversationId: v.id('conversations'),
     text: v.string(),
-
     leaveConversation: v.boolean(),
   },
   handler: async (ctx, args) => {
@@ -749,9 +810,9 @@ export const agentWriteMessage = internalMutation({
     if (!agent) {
       throw new Error(`Invalid agent ID: ${args.agentId}`);
     }
-    if (agent.generationNumber !== args.generationNumber) {
+    if (args.agentGenerationNumber !== agent.generationNumber) {
       console.debug(
-        `Expected generation number ${args.generationNumber} but got ${agent.generationNumber}`,
+        `Expected generation number ${args.agentGenerationNumber} but got ${agent.generationNumber}`,
       );
       return;
     }
@@ -765,10 +826,34 @@ export const agentWriteMessage = internalMutation({
       if (!player) {
         throw new Error(`Invalid player ID: ${args.playerId}`);
       }
-      return await insertInput(ctx, player.worldId, 'leaveConversation', {
+      const inputId = await insertInput(ctx, player.worldId, 'leaveConversation', {
         conversationId: args.conversationId,
         playerId: args.playerId,
       });
+      agent.inProgressInputs.push(inputId);
     }
+    await ctx.db.replace(agent._id, agent);
+  },
+});
+
+export const agentCompleteAction = internalMutation({
+  args: {
+    agentId: v.id('agents'),
+    agentGenerationNumber: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent) {
+      throw new Error(`Invalid agent ID: ${args.agentId}`);
+    }
+    if (agent.generationNumber !== args.agentGenerationNumber) {
+      console.debug(
+        `Expected generation number ${args.agentGenerationNumber} but got ${agent.generationNumber}`,
+      );
+      return;
+    }
+    delete agent.inProgressAction;
+    await ctx.db.replace(args.agentId, agent);
+    await wakeupAgent(ctx, selfInternal.agentSchedulerRun, args.agentId, 'actionCompleted');
   },
 });

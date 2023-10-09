@@ -12,7 +12,7 @@ import { CONVERSATION_DISTANCE, PATHFINDING_BACKOFF, PATHFINDING_TIMEOUT } from 
 import { Conversations } from './conversations';
 import { ConversationMembers } from './conversationMembers';
 import * as agentScheduling from '../agent/scheduling';
-import { AgentRunReference } from '../agent/scheduling';
+import { SchedulerRun } from '../agent/scheduling';
 
 export class AiTown extends Game<Inputs> {
   tickDuration = 16;
@@ -28,16 +28,12 @@ export class AiTown extends Game<Inputs> {
     public locations: Locations,
     public conversations: Conversations,
     public conversationMembers: ConversationMembers,
-    agentRunReference: AgentRunReference,
+    schedulerRun: SchedulerRun,
   ) {
-    super(agentRunReference);
+    super(schedulerRun);
   }
 
-  static async load(
-    db: DatabaseWriter,
-    worldId: Id<'worlds'>,
-    agentRunReference: AgentRunReference,
-  ) {
+  static async load(db: DatabaseWriter, worldId: Id<'worlds'>, schedulerRun: SchedulerRun) {
     const world = await db.get(worldId);
     if (!world) {
       throw new Error(`Invalid world ID: ${worldId}`);
@@ -59,7 +55,7 @@ export class AiTown extends Game<Inputs> {
       locations,
       conversations,
       conversationMembers,
-      agentRunReference,
+      schedulerRun,
     );
   }
 
@@ -450,11 +446,11 @@ export class AiTown extends Game<Inputs> {
   async save(ctx: MutationCtx): Promise<void> {
     for (const playerId of this.players.modifiedOrInsertedIds()) {
       const player = this.players.data.get(playerId)!;
-      await agentScheduling.wakeupPlayer(ctx, this.agentRunReference, player);
+      await agentScheduling.wakeupPlayer(ctx, this.schedulerRun, player);
     }
     for (const memberId of this.conversationMembers.modifiedOrInsertedIds()) {
       const member = this.conversationMembers.data.get(memberId)!;
-      await agentScheduling.wakeupConversationMember(ctx, this.agentRunReference, member);
+      await agentScheduling.wakeupConversationMember(ctx, this.schedulerRun, member);
     }
     await this.players.save();
     await this.locations.save();

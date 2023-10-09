@@ -6,7 +6,7 @@ export const TICK = 16;
 export const STEP_INTERVAL = 1000;
 
 export const PATHFINDING_TIMEOUT = 60 * 1000;
-export const PATHFINDING_BACKOFF = 1000;
+export const PATHFINDING_BACKOFF = 3000;
 export const CONVERSATION_DISTANCE = 1.3;
 export const MIDPOINT_THRESHOLD = 4;
 export const TYPING_TIMEOUT = 15 * 1000;
