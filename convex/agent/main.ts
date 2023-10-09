@@ -58,17 +58,6 @@ export class Agent {
     if (!player) {
       throw new Error(`Invalid player ID: ${agent.playerId}`);
     }
-    const engine = await ctx.db.get(world.engineId);
-    if (!engine) {
-      throw new Error(`Invalid engine ID: ${world.engineId}`);
-    }
-    // NB: We're just being defensive with this check, but any process (e.g. `stopInactiveWorlds`)
-    // that stops the engine should also stop the agents, bumping their generation number and
-    // causing us to hit the generation number check above first.
-    if (engine.state.kind !== 'running') {
-      console.debug(`Engine ${world.engineId} isn't running`);
-      return null;
-    }
     const location = await ctx.db.get(player.locationId);
     if (!location) {
       throw new Error(`Invalid location ID: ${player.locationId}`);
