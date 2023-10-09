@@ -6,7 +6,7 @@ import { v, Infer } from 'convex/values';
 import { SCHEDULER_COOLDOWN } from './constants';
 
 export type SchedulerRun = FunctionReference<
-  'action',
+  'mutation',
   'internal',
   { schedulerId: Id<'agentSchedulers'>; generationNumber: number }
 >;

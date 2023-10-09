@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import { Doc, Id } from '../_generated/dataModel';
-import { MutationCtx, internalAction, internalMutation, internalQuery } from '../_generated/server';
+import { MutationCtx, internalAction, internalMutation } from '../_generated/server';
 import { CONVERSATION_DISTANCE, MIDPOINT_THRESHOLD } from '../constants';
 import { InputArgs, InputNames } from '../game/inputs';
 import { insertInput } from '../game/main';
@@ -27,28 +27,54 @@ import { WaitingOn, eventDeadline, updateSubscriptions, wakeupAgent } from './sc
 const selfInternal = internal.agent.main;
 
 export class Agent {
-  player: Doc<'players'> & { position: Point };
-
   constructor(
     private ctx: MutationCtx,
     private now: number,
-    private agentData: AgentData,
+    private world: Doc<'worlds'>,
+    private map: Doc<'maps'>,
     public agent: Doc<'agents'>,
-  ) {
-    const player = agentData.players.find((p) => p._id === agent.playerId);
-    if (!player) {
-      throw new Error(`Invalid player ID: ${agent.playerId}`);
-    }
-    this.player = player;
-  }
+    private player: Doc<'players'> & { position: Point },
+  ) {}
 
-  public static async load(ctx: MutationCtx, agentData: AgentData, agentId: Id<'agents'>) {
+  public static async load(ctx: MutationCtx, agentId: Id<'agents'>) {
     const now = Date.now();
     const agent = await ctx.db.get(agentId);
     if (!agent) {
       throw new Error(`Invalid agent ID: ${agentId}`);
     }
-    return new Agent(ctx, now, agentData, agent);
+    const world = await ctx.db.get(agent.worldId);
+    if (!world) {
+      throw new Error(`Invalid world ID: ${agent.worldId}`);
+    }
+    if (world.status !== 'running') {
+      console.debug(`World ${world._id} is not running`);
+      return null;
+    }
+    const map = await ctx.db.get(world.mapId);
+    if (!map) {
+      throw new Error(`Invalid map ID: ${world.mapId}`);
+    }
+    const player = await ctx.db.get(agent.playerId);
+    if (!player) {
+      throw new Error(`Invalid player ID: ${agent.playerId}`);
+    }
+    const engine = await ctx.db.get(world.engineId);
+    if (!engine) {
+      throw new Error(`Invalid engine ID: ${world.engineId}`);
+    }
+    // NB: We're just being defensive with this check, but any process (e.g. `stopInactiveWorlds`)
+    // that stops the engine should also stop the agents, bumping their generation number and
+    // causing us to hit the generation number check above first.
+    if (engine.state.kind !== 'running') {
+      console.debug(`Engine ${world.engineId} isn't running`);
+      return null;
+    }
+    const location = await ctx.db.get(player.locationId);
+    if (!location) {
+      throw new Error(`Invalid location ID: ${player.locationId}`);
+    }
+    const position = { x: location.x, y: location.y };
+    return new Agent(ctx, now, world, map, agent, { ...player, position });
   }
 
   async run(): Promise<WaitingOn[]> {
@@ -415,7 +441,7 @@ export class Agent {
   }
 
   async insertInput<Name extends InputNames>(name: Name, args: InputArgs<Name>) {
-    return await insertInput(this.ctx, this.agentData.world._id, name, args);
+    return await insertInput(this.ctx, this.world._id, name, args);
   }
 
   async conversationToRemember() {
@@ -449,15 +475,25 @@ export class Agent {
   wanderDestination() {
     // Wander someonewhere at least one tile away from the edge.
     return {
-      x: 1 + Math.floor(Math.random() * (this.agentData.map.width - 2)),
-      y: 1 + Math.floor(Math.random() * (this.agentData.map.height - 2)),
+      x: 1 + Math.floor(Math.random() * (this.map.width - 2)),
+      y: 1 + Math.floor(Math.random() * (this.map.height - 2)),
     };
   }
 
   async loadOtherPlayers() {
-    const otherPlayers = this.agentData.players.filter((p) => p._id !== this.player._id);
+    const otherPlayers = await this.ctx.db
+      .query('players')
+      .withIndex('active', (q) => q.eq('worldId', this.player.worldId).eq('active', true))
+      .filter((q) => q.neq(q.field('_id'), this.player._id))
+      .collect();
     const players = [];
     for (const otherPlayer of otherPlayers) {
+      const location = await this.ctx.db.get(otherPlayer.locationId);
+      if (!location) {
+        throw new Error(`Invalid location ID: ${otherPlayer.locationId}`);
+      }
+      const position = { x: location.x, y: location.y };
+
       const conversation = await loadConversationState(this.ctx, {
         playerId: otherPlayer._id,
       });
@@ -485,7 +521,7 @@ export class Agent {
         }
         lastConversationWithPlayer = { playerLeft: lastMember.status.ended, ...conversation };
       }
-      players.push({ conversation, lastConversationWithPlayer, ...otherPlayer });
+      players.push({ position, conversation, lastConversationWithPlayer, ...otherPlayer });
     }
     return players;
   }
@@ -506,102 +542,12 @@ export class Agent {
   }
 }
 
-export const agentSchedulerRun = internalAction({
+export const agentSchedulerRun = internalMutation({
   args: {
     schedulerId: v.id('agentSchedulers'),
     generationNumber: v.number(),
   },
   handler: async (ctx, args) => {
-    const agentData = await ctx.runQuery(selfInternal.loadAgentData, {
-      schedulerId: args.schedulerId,
-    });
-    if (agentData === null) {
-      return;
-    }
-    await ctx.runMutation(selfInternal.runAgentBatch, {
-      schedulerId: args.schedulerId,
-      generationNumber: args.generationNumber,
-      agentData,
-    });
-  },
-});
-
-type AgentData = {
-  world: Doc<'worlds'>;
-  map: Doc<'maps'>;
-  players: Array<Doc<'players'> & { position: Point }>;
-};
-
-export const loadAgentData = internalQuery({
-  args: {
-    schedulerId: v.id('agentSchedulers'),
-  },
-  handler: async (ctx, args): Promise<AgentData | null> => {
-    const scheduler = await ctx.db.get(args.schedulerId);
-    if (!scheduler) {
-      throw new Error(`Invalid scheduler ID: ${args.schedulerId}`);
-    }
-    if (scheduler.state.kind === 'stopped') {
-      console.debug(`Scheduler ${args.schedulerId} is stopped`);
-      return null;
-    }
-    const world = await ctx.db.get(scheduler.worldId);
-    if (!world) {
-      throw new Error(`Invalid world ID: ${scheduler.worldId}`);
-    }
-    if (world.status !== 'running') {
-      console.debug(`World ${world._id} is not running`);
-      return null;
-    }
-    const map = await ctx.db.get(world.mapId);
-    if (!map) {
-      throw new Error(`Invalid map ID: ${world.mapId}`);
-    }
-    const engine = await ctx.db.get(world.engineId);
-    if (!engine) {
-      throw new Error(`Invalid engine ID: ${world.engineId}`);
-    }
-    // NB: We're just being defensive with this check, but any process (e.g. `stopInactiveWorlds`)
-    // that stops the engine should also stop the agents, bumping their generation number and
-    // causing us to hit the generation number check above first.
-    if (engine.state.kind !== 'running') {
-      console.debug(`Engine ${world.engineId} isn't running`);
-      return null;
-    }
-    const agents = await ctx.db
-      .query('agents')
-      .withIndex('worldIdStatus', (q) => q.eq('worldId', world._id))
-      .collect();
-
-    const playerDocuments = await ctx.db
-      .query('players')
-      .withIndex('active', (q) => q.eq('worldId', scheduler.worldId).eq('active', true))
-      .collect();
-    const players = [];
-    for (const player of playerDocuments) {
-      const location = await ctx.db.get(player.locationId);
-      if (!location) {
-        throw new Error(`Invalid location ID: ${player.locationId}`);
-      }
-      const position: Point = { x: location.x, y: location.y };
-      players.push({ position, ...player });
-    }
-    return {
-      world,
-      map,
-      players,
-    };
-  },
-});
-
-export const runAgentBatch = internalMutation({
-  args: {
-    schedulerId: v.id('agentSchedulers'),
-    generationNumber: v.number(),
-    agentData: v.any(),
-  },
-  handler: async (ctx, args) => {
-    const agentData: AgentData = args.agentData;
     const scheduler = await ctx.db.get(args.schedulerId);
     if (!scheduler) {
       throw new Error(`Invalid scheduler ID: ${args.schedulerId}`);
@@ -634,7 +580,7 @@ export const runAgentBatch = internalMutation({
     let schedulerNextRun = undefined;
 
     for (const agent of agents) {
-      const agentClass = await Agent.load(ctx, agentData, agent._id);
+      const agentClass = await Agent.load(ctx, agent._id);
       if (!agentClass) {
         continue;
       }
