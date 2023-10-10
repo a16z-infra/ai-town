@@ -242,7 +242,7 @@ export const activePlayers = query({
         .withIndex('playerId', (q) => q.eq('playerId', player._id))
         .first();
       const isThinking = !!agent && agent.isThinking !== undefined;
-      out.push({ ...player, isSpeaking, isThinking, location });
+      out.push({ ...player, isSpeaking, isThinking });
     }
     return out;
   },
