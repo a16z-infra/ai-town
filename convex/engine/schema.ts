@@ -59,7 +59,16 @@ const engines = v.object({
   generationNumber: v.number(),
 });
 
+const engineScheduledRuns = v.object({
+  engineId: v.id('engines'),
+  runTimestamp: v.number(),
+});
+
 export const engineTables = {
   inputs: defineTable(inputs).index('byInputNumber', ['engineId', 'number']),
   engines: defineTable(engines),
+  engineScheduledRuns: defineTable(engineScheduledRuns).index('engineId', [
+    'engineId',
+    'runTimestamp',
+  ]),
 };

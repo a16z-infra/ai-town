@@ -16,7 +16,7 @@ export type InputHandlers = Record<string, InputHandler<any, any>>;
 type StepReference = FunctionReference<
   'mutation',
   'internal',
-  { engineId: Id<'engines'>; generationNumber: number },
+  { engineId: Id<'engines'>; runId: Id<'engineScheduledRuns'> },
   null
 >;
 
@@ -42,7 +42,7 @@ export abstract class Game<Handlers extends InputHandlers> {
     return null;
   }
 
-  async runStep(ctx: MutationCtx, stepReference: StepReference, generationNumber: number) {
+  async runStep(ctx: MutationCtx, stepReference: StepReference, runId: Id<'engineScheduledRuns'>) {
     const now = Date.now();
     const engine = await ctx.db.get(this.engineId);
     if (!engine) {
@@ -52,14 +52,13 @@ export abstract class Game<Handlers extends InputHandlers> {
       console.debug(`Engine ${this.engineId} is not active, returning immediately.`);
       return;
     }
-    if (engine.generationNumber !== generationNumber) {
-      console.debug(
-        `Generation mismatch (${generationNumber} vs. ${engine.generationNumber}), returning`,
-      );
-      return;
-    }
     if (engine.currentTime && now < engine.currentTime) {
       throw new Error(`Server time moving backwards: ${now} < ${engine.currentTime}`);
+    }
+    const run = await ctx.db.get(runId);
+    if (!run) {
+      console.debug(`Scheduled run ${runId} not found, returning immediately.`);
+      return;
     }
 
     // Collect the inputs for our step, sorting them by receipt time.
@@ -128,33 +127,53 @@ export abstract class Game<Handlers extends InputHandlers> {
       currentTs = candidateTs;
     }
 
-    let nextRun = this.idleUntil(currentTs);
+    let stepNextRun = this.idleUntil(currentTs);
 
     // Force an immediate wakeup if we have more inputs to process or more time to simulate.
     if (inputs.length === this.maxInputsPerStep) {
       console.warn(`Received max inputs (${this.maxInputsPerStep}) for step`);
-      nextRun = null;
+      stepNextRun = null;
     }
     if (numTicks === this.maxTicksPerStep) {
       console.warn(`Only simulating ${currentTs - startTs}ms due to max ticks per step limit.`);
-      nextRun = null;
+      stepNextRun = null;
     }
-    nextRun = nextRun ?? now + this.stepDuration;
+    stepNextRun = stepNextRun ?? now + this.stepDuration;
 
     // Commit the step by moving time forward, consuming our inputs, and saving the game's state.
     await this.save(ctx);
-    const nextGenerationNumber = generationNumber + 1;
-    await ctx.db.patch(engine._id, {
+
+    await ctx.db.delete(runId);
+    const nextScheduledRun = await ctx.db
+      .query('engineScheduledRuns')
+      .withIndex('engineId', (q) => q.eq('engineId', this.engineId))
+      .order('asc')
+      .first();
+
+    let nextRun = nextScheduledRun?.runTimestamp;
+    let nextRunId;
+    if (!nextRun || stepNextRun < nextRun) {
+      nextRun = stepNextRun;
+      nextRunId = await ctx.db.insert('engineScheduledRuns', {
+        engineId: this.engineId,
+        runTimestamp: stepNextRun,
+      });
+    }
+    const state = { kind: 'running' as const, nextRun };
+    await ctx.db.replace(engine._id, {
       currentTime: currentTs,
       lastStepTs,
       processedInputNumber,
-      state: { kind: 'running', nextRun },
-      generationNumber: nextGenerationNumber,
+      state,
+      // Use the generation number to serialize all instances of `runStep`.
+      generationNumber: engine.generationNumber + 1,
     });
-    await ctx.scheduler.runAt(nextRun, stepReference, {
-      engineId: this.engineId,
-      generationNumber: nextGenerationNumber,
-    });
+    if (nextRunId) {
+      await ctx.scheduler.runAt(stepNextRun, stepReference, {
+        engineId: this.engineId,
+        runId: nextRunId,
+      });
+    }
     console.log(`Simulated from ${startTs} to ${currentTs} (${currentTs - startTs}ms)`);
   }
 }
@@ -189,22 +208,28 @@ export async function insertInput(
   });
   if (now + ENGINE_WAKEUP_THRESHOLD < engine.state.nextRun) {
     console.log(`Preempting engine ${engineId}`);
-    const generationNumber = engine.generationNumber + 1;
-    await ctx.db.patch(engineId, { state: { kind: 'running', nextRun: now }, generationNumber });
-    await ctx.scheduler.runAt(now, stepReference, { engineId, generationNumber });
+    const runId = await ctx.db.insert('engineScheduledRuns', {
+      engineId,
+      runTimestamp: now,
+    });
+    await ctx.db.patch(engineId, { state: { kind: 'running', nextRun: now } });
+    await ctx.scheduler.runAt(now, stepReference, { engineId, runId });
   }
   return inputId;
 }
 
 export async function createEngine(ctx: MutationCtx, stepReference: StepReference) {
   const now = Date.now();
-  const generationNumber = 0;
   const engineId = await ctx.db.insert('engines', {
     currentTime: now,
-    generationNumber,
+    generationNumber: 0,
     state: { kind: 'running', nextRun: now },
   });
-  await ctx.scheduler.runAt(now, stepReference, { engineId, generationNumber });
+  const runId = await ctx.db.insert('engineScheduledRuns', {
+    engineId,
+    runTimestamp: now,
+  });
+  await ctx.scheduler.runAt(now, stepReference, { engineId, runId });
   return engineId;
 }
 
@@ -221,7 +246,10 @@ export async function startEngine(
     throw new Error(`Engine ${engineId} isn't currently stopped`);
   }
   const now = Date.now();
-  const generationNumber = engine.generationNumber + 1;
+  const runId = await ctx.db.insert('engineScheduledRuns', {
+    engineId,
+    runTimestamp: now,
+  });
   await ctx.db.patch(engineId, {
     // Forcibly advance time to the present. This does mean we'll skip
     // simulating the time the engine was stopped, but we don't want
@@ -231,9 +259,8 @@ export async function startEngine(
     currentTime: now,
 
     state: { kind: 'running', nextRun: now },
-    generationNumber,
   });
-  await ctx.scheduler.runAt(now, stepReference, { engineId, generationNumber });
+  await ctx.scheduler.runAt(now, stepReference, { engineId, runId });
 }
 
 export async function kickEngine(
@@ -250,11 +277,15 @@ export async function kickEngine(
   }
   const now = Date.now();
   const generationNumber = engine.generationNumber + 1;
+  const runId = await ctx.db.insert('engineScheduledRuns', {
+    engineId,
+    runTimestamp: now,
+  });
   await ctx.db.patch(engineId, {
     state: { kind: 'running', nextRun: now },
     generationNumber,
   });
-  await ctx.scheduler.runAt(now, stepReference, { engineId, generationNumber });
+  await ctx.scheduler.runAt(now, stepReference, { engineId, runId });
 }
 
 export async function stopEngine(ctx: MutationCtx, engineId: Id<'engines'>) {
@@ -264,6 +295,13 @@ export async function stopEngine(ctx: MutationCtx, engineId: Id<'engines'>) {
   }
   if (engine.state.kind !== 'running') {
     throw new Error(`Engine ${engineId} isn't currently running`);
+  }
+  const scheduledRuns = await ctx.db
+    .query('engineScheduledRuns')
+    .withIndex('engineId', (q) => q.eq('engineId', engineId))
+    .collect();
+  for (const run of scheduledRuns) {
+    await ctx.db.delete(run._id);
   }
   await ctx.db.patch(engineId, { state: { kind: 'stopped' } });
 }
