@@ -35,7 +35,7 @@ const init = mutation({
     if (await shouldCreateAgents(ctx.db, world)) {
       let numCreated = 0;
       for (const agent of Descriptions) {
-        if (args.numAgents && numCreated >= args.numAgents) {
+        if (args.numAgents !== undefined && numCreated >= args.numAgents) {
           break;
         }
         const inputId = await insertInput(ctx, world._id, 'join', {

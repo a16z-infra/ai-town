@@ -16,6 +16,12 @@ const agents = v.object({
   // array last across runs of the agent, unlike the per-step
   // waits managed by the scheduling system below.
   inProgressInputs: v.array(v.id('inputs')),
+  inProgressAction: v.optional(
+    v.object({
+      name: v.string(),
+      started: v.number(),
+    }),
+  ),
 
   state: v.union(
     v.object({
