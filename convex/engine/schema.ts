@@ -41,15 +41,7 @@ const engines = v.object({
   // How far has the engine processed in the input queue?
   processedInputNumber: v.optional(v.number()),
 
-  state: v.union(
-    v.object({
-      kind: v.literal('running'),
-      nextRun: v.number(),
-    }),
-    v.object({
-      kind: v.literal('stopped'),
-    }),
-  ),
+  running: v.boolean(),
 
   // Monotonically increasing counter that allows inputs to restart the engine
   // when it's sleeping. In particular, every scheduled run of the engine

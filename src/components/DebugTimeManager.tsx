@@ -115,9 +115,9 @@ export function DebugTimeManager(props: {
   let statusNode: React.ReactNode | null = null;
   if (timeManager.latestEngineStatus) {
     const status = timeManager.latestEngineStatus;
-    let statusMsg = status.state.kind;
-    if (status.state.kind === 'running') {
-      statusMsg += ` in ${toSeconds(status.state.nextRun - Date.now())}s`;
+    let statusMsg = status.running ? 'Running' : 'Stopped';
+    if (status.nextRun) {
+      statusMsg += ` in ${toSeconds(status.nextRun - Date.now())}s`;
     }
     statusNode = (
       <div style={{ fontSize: '12px', paddingTop: '8px' }}>

@@ -86,7 +86,13 @@ export const engineStatus = query({
     if (!engine) {
       throw new Error(`Invalid engine ID: ${world.engineId}`);
     }
-    return engine;
+    const nextRunDoc = await ctx.db
+      .query('engineScheduledRuns')
+      .withIndex('engineId', (q) => q.eq('engineId', engine._id))
+      .order('asc')
+      .first();
+    const nextRun = nextRunDoc?.runTimestamp;
+    return { nextRun, ...engine };
   },
 });
 
