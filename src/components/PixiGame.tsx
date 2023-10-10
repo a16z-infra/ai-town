@@ -28,6 +28,8 @@ export const PixiGame = (props: {
 
   const humanPlayerId = useQuery(api.world.userStatus, { worldId: props.worldId }) ?? null;
   const players = useQuery(api.world.activePlayers, { worldId: props.worldId }) ?? [];
+  const playerLocations =
+    useQuery(api.world.activePlayerLocations, { worldId: props.worldId }) ?? {};
   const moveTo = useSendInput(props.worldId, 'moveTo');
 
   // Interaction for clicking on the world to navigate.
@@ -104,6 +106,7 @@ export const PixiGame = (props: {
         <Player
           key={`player-${p._id}`}
           player={p}
+          location={playerLocations[p._id]}
           isViewer={p._id === humanPlayerId}
           onClick={props.setSelectedElement}
           historicalTime={props.historicalTime}

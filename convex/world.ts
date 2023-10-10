@@ -61,7 +61,7 @@ export const stopInactiveWorlds = internalMutation({
     const cutoff = Date.now() - IDLE_WORLD_TIMEOUT;
     const worlds = await ctx.db.query('worlds').collect();
     for (const world of worlds) {
-      if (cutoff < world.lastViewed  || world.status !== "running") {
+      if (cutoff < world.lastViewed || world.status !== 'running') {
         continue;
       }
       console.log(`Stopping inactive world ${world._id}`);
@@ -204,7 +204,6 @@ export const sendWorldInput = mutation({
 });
 
 export type PlayerMetadata = Doc<'players'> & {
-  location: Doc<'locations'>;
   isSpeaking: boolean;
   isThinking: boolean;
 };
@@ -224,10 +223,6 @@ export const activePlayers = query({
       .withIndex('active', (q) => q.eq('worldId', world._id).eq('active', true))
       .collect();
     for (const player of players) {
-      const location = await ctx.db.get(player.locationId);
-      if (!location) {
-        throw new Error(`Invalid location ID: ${player.locationId}`);
-      }
       let isSpeaking = false;
       const member = await ctx.db
         .query('conversationMembers')
@@ -248,6 +243,31 @@ export const activePlayers = query({
         .first();
       const isThinking = !!agent && agent.isThinking !== undefined;
       out.push({ ...player, isSpeaking, isThinking, location });
+    }
+    return out;
+  },
+});
+
+export const activePlayerLocations = query({
+  args: {
+    worldId: v.id('worlds'),
+  },
+  handler: async (ctx, args): Promise<Record<Id<'players'>, Doc<'locations'>>> => {
+    const world = await ctx.db.get(args.worldId);
+    if (!world) {
+      throw new Error(`Invalid world ID: ${args.worldId}`);
+    }
+    const out: Record<Id<'players'>, Doc<'locations'>> = {};
+    const players = await ctx.db
+      .query('players')
+      .withIndex('active', (q) => q.eq('worldId', world._id).eq('active', true))
+      .collect();
+    for (const player of players) {
+      const location = await ctx.db.get(player.locationId);
+      if (!location) {
+        throw new Error(`Invalid location ID: ${player.locationId}`);
+      }
+      out[player._id] = location;
     }
     return out;
   },
