@@ -116,7 +116,7 @@ export function DebugTimeManager(props: {
   if (timeManager.latestEngineStatus) {
     const status = timeManager.latestEngineStatus;
     let statusMsg = status.running ? 'Running' : 'Stopped';
-    if (status.nextRun) {
+    if (status.running && status.nextRun) {
       statusMsg += ` in ${toSeconds(status.nextRun - Date.now())}s`;
     }
     statusNode = (

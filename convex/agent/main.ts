@@ -22,7 +22,8 @@ import {
 import { continueConversation, leaveConversation, startConversation } from './conversation';
 import { internal } from '../_generated/api';
 import { latestMemoryOfType, rememberConversation } from './memory';
-import { WaitingOn, eventDeadline, updateSubscriptions, wakeupAgent } from './scheduling';
+import { WaitingOn, eventDeadline, updateSubscriptions } from './scheduling';
+import { scheduleAgentRun } from './scheduling';
 
 const selfInternal = internal.agent.main;
 
@@ -33,31 +34,11 @@ export class Agent {
     private world: Doc<'worlds'>,
     private map: Doc<'maps'>,
     public agent: Doc<'agents'>,
-    public nextGenerationNumber: number,
     private player: Doc<'players'> & { position: Point },
   ) {}
 
-  public static async load(
-    ctx: MutationCtx,
-    agentId: Id<'agents'>,
-    expectedGenerationNumber: number,
-  ) {
+  public static async load(ctx: MutationCtx, agent: Doc<'agents'>) {
     const now = Date.now();
-    const agent = await ctx.db.get(agentId);
-    if (!agent) {
-      throw new Error(`Invalid agent ID: ${agentId}`);
-    }
-    if (agent.generationNumber !== expectedGenerationNumber) {
-      console.debug(
-        `Expected generation number ${expectedGenerationNumber} but got ${agent.generationNumber}`,
-      );
-      return null;
-    }
-    if (agent.state.kind === 'stopped') {
-      console.debug(`Agent ${agentId} is stopped`);
-      return null;
-    }
-    const nextGenerationNumber = agent.generationNumber + 1;
     const world = await ctx.db.get(agent.worldId);
     if (!world) {
       throw new Error(`Invalid world ID: ${agent.worldId}`);
@@ -79,7 +60,7 @@ export class Agent {
       throw new Error(`Invalid location ID: ${player.locationId}`);
     }
     const position = { x: location.x, y: location.y };
-    return new Agent(ctx, now, world, map, agent, nextGenerationNumber, { ...player, position });
+    return new Agent(ctx, now, world, map, agent, { ...player, position });
   }
 
   async run(): Promise<WaitingOn[]> {
@@ -110,6 +91,20 @@ export class Agent {
       }
     }
 
+    // Otherwise, check if we have an in-progress action, expire it if it's past its deadline,
+    // and wait on it otherwise.
+    if (this.agent.inProgressAction) {
+      if (this.now < this.agent.inProgressAction.started + ACTION_TIMEOUT) {
+        waitingOn.push({
+          kind: 'actionCompleted',
+          timeoutDeadline: this.agent.inProgressAction.started + ACTION_TIMEOUT,
+        });
+        return waitingOn;
+      }
+      console.log(`Expiring action ${JSON.stringify(this.agent.inProgressAction)}`);
+      delete this.agent.inProgressAction;
+    }
+
     // If we have a conversation to remember, do that first.
     if (toRemember) {
       // If we're not walking somewhere, start wondering to a random position. It's nice
@@ -126,9 +121,10 @@ export class Agent {
         waitingOn.push({ kind: 'inputCompleted', inputId });
         waitingOn.push({ kind: 'movementCompleted' });
       }
+      const actionUuid = this.startAction('rememberConversation');
       await this.ctx.scheduler.runAfter(0, selfInternal.agentRememberConversation, {
         agentId: this.agent._id,
-        generationNumber: this.nextGenerationNumber,
+        actionUuid,
         playerId: this.player._id,
         conversationId: toRemember,
       });
@@ -335,6 +331,7 @@ export class Agent {
               0,
               selfInternal.agentStartConversation,
               this.agentArgs(
+                'startConversation',
                 otherPlayer,
                 playerConversation,
                 otherPlayer.lastConversationWithPlayer?._id ?? null,
@@ -363,6 +360,7 @@ export class Agent {
             0,
             selfInternal.agentLeaveConversation,
             this.agentArgs(
+              'leaveConversation',
               otherPlayer,
               playerConversation,
               otherPlayer.lastConversationWithPlayer?._id ?? null,
@@ -408,6 +406,7 @@ export class Agent {
           0,
           selfInternal.agentContinueConversation,
           this.agentArgs(
+            'continueConversation',
             otherPlayer,
             playerConversation,
             otherPlayer.lastConversationWithPlayer?._id ?? null,
@@ -513,14 +512,29 @@ export class Agent {
     return players;
   }
 
+  startAction(name: string) {
+    if (this.agent.inProgressAction) {
+      throw new Error(`Action already in progress`);
+    }
+    const uuid = crypto.randomUUID();
+    this.agent.inProgressAction = {
+      name,
+      uuid,
+      started: this.now,
+    };
+    return uuid;
+  }
+
   agentArgs(
+    name: string,
     otherPlayer: Doc<'players'>,
     conversation: Doc<'conversations'>,
     lastConversationId: Id<'conversations'> | null,
   ) {
+    const actionUuid = this.startAction(name);
     return {
       agentId: this.agent._id,
-      generationNumber: this.nextGenerationNumber,
+      actionUuid,
       playerId: this.player._id,
       otherPlayerId: otherPlayer._id,
       conversationId: conversation._id,
@@ -529,38 +543,40 @@ export class Agent {
   }
 }
 
-export const scheduleNextRun = internalMutation({
+export const agentRun = internalMutation({
   args: {
     agentId: v.id('agents'),
-    expectedGenerationNumber: v.number(),
+    runId: v.id('agentScheduledRuns'),
   },
   handler: async (ctx, args) => {
     const agent = await ctx.db.get(args.agentId);
     if (!agent) {
       throw new Error(`Invalid agent ID: ${args.agentId}`);
     }
-    if (agent.generationNumber !== args.expectedGenerationNumber) {
-      console.debug(
-        `Expected generation number ${args.expectedGenerationNumber} but got ${agent.generationNumber}`,
-      );
+    if (!agent.running) {
+      console.debug(`Agent ${args.agentId} is stopped`);
       return;
     }
-    await wakeupAgent(ctx, internal.agent.main.agentRun, args.agentId, 'actionCompleted');
-  },
-});
+    const run = await ctx.db.get(args.runId);
+    if (!run) {
+      console.debug(`Invalid agent run ID: ${args.runId}`);
+      return;
+    }
+    await ctx.db.delete(run._id);
 
-export const agentRun = internalMutation({
-  args: {
-    agentId: v.id('agents'),
-    generationNumber: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const agentClass = await Agent.load(ctx, args.agentId, args.generationNumber);
+    const agentClass = await Agent.load(ctx, agent);
     if (!agentClass) {
       return;
     }
     const waitingOn = await agentClass.run();
 
+    // Update our agent state.
+    // Serialize all runs of the agent via the generation number.
+    agent.generationNumber++;
+    agent.waitingOn = waitingOn;
+    await ctx.db.replace(agent._id, agent);
+
+    // Compute and update the agent's scheduler state.
     let nextRun = undefined;
     for (const event of waitingOn) {
       const deadline = eventDeadline(event);
@@ -568,40 +584,19 @@ export const agentRun = internalMutation({
         nextRun = Math.min(deadline, nextRun ?? deadline);
       }
     }
+    await updateSubscriptions(ctx.db, agent._id, agent.playerId, waitingOn);
 
-    const nextGenerationNumber = agentClass.nextGenerationNumber;
-
-    // If we have a timing based wakeup (from the deadlines computed above),
-    // schedule ourselves to run in the future. We may run before then if
-    // something else wakes us up, like a completed action or a database
-    // write that overlaps with something in `waitingOn`.
+    // Schedule an agent run in the future, if needed.
     if (nextRun) {
-      const deltaSeconds = (nextRun - Date.now()) / 1000;
-      console.debug(`Scheduling next run ${deltaSeconds.toFixed(2)}s in the future.`);
-      await ctx.scheduler.runAt(nextRun, internal.agent.main.agentRun, {
-        agentId: args.agentId,
-        generationNumber: agentClass.nextGenerationNumber,
-      });
+      await scheduleAgentRun(ctx, selfInternal.agentRun, agent._id, nextRun, 'timer');
     }
-
-    // Update our database subscriptions based on our new events to wait for.
-    const playerId = agentClass.agent.playerId;
-    await updateSubscriptions(ctx.db, args.agentId, playerId, waitingOn);
-
-    // Update our agent state.
-    const agent = agentClass.agent;
-    agent.generationNumber = nextGenerationNumber;
-    agent.state = { kind: 'waiting', timer: nextRun };
-    agent.waitingOn = waitingOn;
-    await ctx.db.replace(agent._id, agent);
   },
 });
 
 export const agentRememberConversation = internalAction({
   args: {
     agentId: v.id('agents'),
-    generationNumber: v.number(),
-
+    actionUuid: v.string(),
     playerId: v.id('players'),
     conversationId: v.id('conversations'),
   },
@@ -609,21 +604,45 @@ export const agentRememberConversation = internalAction({
     await rememberConversation(
       ctx,
       args.agentId,
-      args.generationNumber,
+      args.actionUuid,
       args.playerId,
       args.conversationId,
     );
-    await ctx.runMutation(selfInternal.scheduleNextRun, {
+    await ctx.runMutation(selfInternal.agentFinishRememberConversation, {
       agentId: args.agentId,
-      expectedGenerationNumber: args.generationNumber,
+      actionUuid: args.actionUuid,
     });
+  },
+});
+
+export const agentFinishRememberConversation = internalMutation({
+  args: {
+    agentId: v.id('agents'),
+    actionUuid: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent) {
+      throw new Error(`Invalid agent ID: ${args.agentId}`);
+    }
+    if (!agent.inProgressAction || agent.inProgressAction.uuid !== args.actionUuid) {
+      console.debug(
+        `Current action cancelled: ${args.actionUuid} vs. ${JSON.stringify(
+          agent.inProgressAction,
+        )}`,
+      );
+      return;
+    }
+    delete agent.inProgressAction;
+    await ctx.db.replace(agent._id, agent);
+    await scheduleAgentRun(ctx, selfInternal.agentRun, agent._id, Date.now(), 'actionCompleted');
   },
 });
 
 export const agentStartConversation = internalAction({
   args: {
     agentId: v.id('agents'),
-    generationNumber: v.number(),
+    actionUuid: v.string(),
 
     playerId: v.id('players'),
     otherPlayerId: v.id('players'),
@@ -641,15 +660,11 @@ export const agentStartConversation = internalAction({
     const text = await tokenStream.readAll();
     await ctx.runMutation(selfInternal.agentWriteMessage, {
       agentId: args.agentId,
-      generationNumber: args.generationNumber,
+      actionUuid: args.actionUuid,
       playerId: args.playerId,
       conversationId: args.conversationId,
       text,
       leaveConversation: false,
-    });
-    await ctx.runMutation(selfInternal.scheduleNextRun, {
-      agentId: args.agentId,
-      expectedGenerationNumber: args.generationNumber,
     });
   },
 });
@@ -657,7 +672,7 @@ export const agentStartConversation = internalAction({
 export const agentContinueConversation = internalAction({
   args: {
     agentId: v.id('agents'),
-    generationNumber: v.number(),
+    actionUuid: v.string(),
 
     playerId: v.id('players'),
     otherPlayerId: v.id('players'),
@@ -675,15 +690,11 @@ export const agentContinueConversation = internalAction({
     const text = await tokenStream.readAll();
     await ctx.runMutation(selfInternal.agentWriteMessage, {
       agentId: args.agentId,
-      generationNumber: args.generationNumber,
+      actionUuid: args.actionUuid,
       playerId: args.playerId,
       conversationId: args.conversationId,
       text,
       leaveConversation: false,
-    });
-    await ctx.runMutation(selfInternal.scheduleNextRun, {
-      agentId: args.agentId,
-      expectedGenerationNumber: args.generationNumber,
     });
   },
 });
@@ -691,7 +702,7 @@ export const agentContinueConversation = internalAction({
 export const agentLeaveConversation = internalAction({
   args: {
     agentId: v.id('agents'),
-    generationNumber: v.number(),
+    actionUuid: v.string(),
 
     playerId: v.id('players'),
     otherPlayerId: v.id('players'),
@@ -709,15 +720,11 @@ export const agentLeaveConversation = internalAction({
     const text = await tokenStream.readAll();
     await ctx.runMutation(selfInternal.agentWriteMessage, {
       agentId: args.agentId,
-      generationNumber: args.generationNumber,
+      actionUuid: args.actionUuid,
       playerId: args.playerId,
       conversationId: args.conversationId,
       text,
       leaveConversation: true,
-    });
-    await ctx.runMutation(selfInternal.scheduleNextRun, {
-      agentId: args.agentId,
-      expectedGenerationNumber: args.generationNumber,
     });
   },
 });
@@ -725,7 +732,7 @@ export const agentLeaveConversation = internalAction({
 export const agentWriteMessage = internalMutation({
   args: {
     agentId: v.id('agents'),
-    generationNumber: v.number(),
+    actionUuid: v.string(),
 
     playerId: v.id('players'),
     conversationId: v.id('conversations'),
@@ -738,9 +745,11 @@ export const agentWriteMessage = internalMutation({
     if (!agent) {
       throw new Error(`Invalid agent ID: ${args.agentId}`);
     }
-    if (agent.generationNumber !== args.generationNumber) {
+    if (!agent.inProgressAction || agent.inProgressAction.uuid !== args.actionUuid) {
       console.debug(
-        `Expected generation number ${args.generationNumber} but got ${agent.generationNumber}`,
+        `Current action cancelled: ${args.actionUuid} vs. ${JSON.stringify(
+          agent.inProgressAction,
+        )}`,
       );
       return;
     }
@@ -754,10 +763,14 @@ export const agentWriteMessage = internalMutation({
       if (!player) {
         throw new Error(`Invalid player ID: ${args.playerId}`);
       }
-      return await insertInput(ctx, player.worldId, 'leaveConversation', {
+      const inputId = await insertInput(ctx, player.worldId, 'leaveConversation', {
         conversationId: args.conversationId,
         playerId: args.playerId,
       });
+      agent.inProgressInputs.push(inputId);
     }
+    delete agent.inProgressAction;
+    await ctx.db.replace(agent._id, agent);
+    await scheduleAgentRun(ctx, selfInternal.agentRun, agent._id, Date.now(), 'actionCompleted');
   },
 });

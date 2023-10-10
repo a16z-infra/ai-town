@@ -28,3 +28,6 @@ export const ACTION_TIMEOUT = 60 * 1000;
 
 // Wait for at least two seconds before sending another message.
 export const MESSAGE_COOLDOWN = 2000;
+
+// Don't run a turn of the agent more than once a second.
+export const AGENT_WAKEUP_THRESHOLD = 1000;

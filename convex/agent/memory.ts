@@ -50,7 +50,7 @@ export type MemoryOfType<T extends MemoryType> = Omit<Memory, 'data'> & {
 export async function rememberConversation(
   ctx: ActionCtx,
   agentId: Id<'agents'>,
-  generationNumber: number,
+  actionUuid: string,
   playerId: Id<'players'>,
   conversationId: Id<'conversations'>,
 ) {
@@ -104,7 +104,7 @@ export async function rememberConversation(
   authors.delete(player._id);
   await ctx.runMutation(selfInternal.insertMemory, {
     agentId,
-    generationNumber,
+    actionUuid,
 
     playerId: player._id,
     description,
@@ -316,19 +316,18 @@ export const clearThinking = internalMutation({
 export const insertMemory = internalMutation({
   args: {
     agentId: v.id('agents'),
-    generationNumber: v.number(),
-
+    actionUuid: v.string(),
     embedding: v.array(v.float64()),
     ...memoryFieldsWithoutEmbeddingId,
   },
-  handler: async (ctx, { agentId, generationNumber, embedding, ...memory }) => {
+  handler: async (ctx, { agentId, actionUuid, embedding, ...memory }) => {
     const agent = await ctx.db.get(agentId);
     if (!agent) {
       throw new Error(`Agent ${agentId} not found`);
     }
-    if (agent.generationNumber !== generationNumber) {
+    if (!agent.inProgressAction || agent.inProgressAction.uuid !== actionUuid) {
       console.debug(
-        `Agent ${agentId} generation number ${agent.generationNumber} does not match ${generationNumber}`,
+        `Current action cancelled: ${actionUuid} vs. ${JSON.stringify(agent.inProgressAction)}`,
       );
       return;
     }

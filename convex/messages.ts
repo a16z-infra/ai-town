@@ -131,9 +131,10 @@ export const writeMessage = mutation({
       )
       .unique();
     if (!member || member.status.kind !== 'participating') {
-      throw new Error(
+      console.debug(
         `Player ${args.playerId} is not participating in conversation ${args.conversationId}`,
       );
+      return;
     }
     const indicator = await ctx.db
       .query('typingIndicator')

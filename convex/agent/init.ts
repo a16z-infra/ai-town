@@ -2,7 +2,7 @@ import { v } from 'convex/values';
 import { internalMutation } from '../_generated/server';
 import { Descriptions } from '../../data/characters';
 import { internal } from '../_generated/api';
-import { clearSubscriptions, wakeupAgent } from './scheduling';
+import { clearSubscriptions, scheduleAgentRun } from './scheduling';
 
 export const initAgent = internalMutation({
   args: {
@@ -29,12 +29,9 @@ export const initAgent = internalMutation({
       plan: description.plan,
       generationNumber: 0,
       inProgressInputs: [],
-      state: { kind: 'scheduled' },
+      running: true,
     });
-    await ctx.scheduler.runAfter(0, internal.agent.main.agentRun, {
-      agentId,
-      generationNumber: 0,
-    });
+    await scheduleAgentRun(ctx, internal.agent.main.agentRun, agentId, Date.now(), 'init', true);
   },
 });
 
@@ -48,7 +45,14 @@ export const kickAgents = internalMutation({
       .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
       .collect();
     for (const agent of agents) {
-      await wakeupAgent(ctx, internal.agent.main.agentRun, agent._id, 'kick');
+      await scheduleAgentRun(
+        ctx,
+        internal.agent.main.agentRun,
+        agent._id,
+        Date.now(),
+        'kick',
+        true,
+      );
     }
   },
 });
@@ -64,10 +68,7 @@ export const stopAgents = internalMutation({
       .collect();
     for (const agent of agents) {
       await clearSubscriptions(ctx.db, agent._id);
-      await ctx.db.patch(agent._id, {
-        generationNumber: agent.generationNumber + 1,
-        state: { kind: 'stopped' },
-      });
+      await ctx.db.patch(agent._id, { running: false });
     }
   },
 });
@@ -82,11 +83,18 @@ export const resumeAgents = internalMutation({
       .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
       .collect();
     for (const agent of agents) {
-      if (agent.state.kind !== 'stopped') {
+      if (agent.running) {
         continue;
       }
-      const allowStopped = true;
-      await wakeupAgent(ctx, internal.agent.main.agentRun, agent._id, 'resume', allowStopped);
+      await ctx.db.patch(agent._id, { running: true });
+      await scheduleAgentRun(
+        ctx,
+        internal.agent.main.agentRun,
+        agent._id,
+        Date.now(),
+        'resume',
+        true,
+      );
     }
   },
 });

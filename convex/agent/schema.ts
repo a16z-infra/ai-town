@@ -19,24 +19,19 @@ const agents = v.object({
   inProgressAction: v.optional(
     v.object({
       name: v.string(),
+      uuid: v.string(),
       started: v.number(),
     }),
   ),
+  running: v.boolean(),
 
-  state: v.union(
-    v.object({
-      kind: v.literal('waiting'),
-      timer: v.optional(v.number()),
-    }),
-    v.object({
-      kind: v.literal('scheduled'),
-    }),
-    v.object({
-      kind: v.literal('stopped'),
-    }),
-  ),
   // Last set of events the agent was waiting on for debugging.
   waitingOn: v.optional(v.array(agentWaitingOn)),
+});
+
+const agentScheduledRuns = v.object({
+  agentId: v.id('agents'),
+  runTimestamp: v.number(),
 });
 
 // Separate out this flag from `agents` since it changes a lot less
@@ -48,6 +43,7 @@ const agentIsThinking = v.object({
 
 export const agentTables = {
   agents: defineTable(agents).index('playerId', ['playerId']).index('worldId', ['worldId']),
+  agentScheduledRuns: defineTable(agentScheduledRuns).index('agentId', ['agentId', 'runTimestamp']),
   agentIsThinking: defineTable(agentIsThinking).index('playerId', ['playerId']),
   ...memoryTables,
   ...embeddingsCacheTables,
