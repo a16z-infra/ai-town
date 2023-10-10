@@ -3,11 +3,12 @@ import { Doc, Id } from '../_generated/dataModel';
 import { DatabaseWriter, MutationCtx } from '../_generated/server';
 import { assertNever } from '../util/assertNever';
 import { v, Infer } from 'convex/values';
+import { AGENT_WAKEUP_THRESHOLD } from './constants';
 
 export type AgentRunReference = FunctionReference<
   'mutation',
   'internal',
-  { agentId: Id<'agents'>; generationNumber: number }
+  { agentId: Id<'agents'>; runId: Id<'agentScheduledRuns'> }
 >;
 
 export const agentWaitingOn = v.union(
@@ -211,34 +212,44 @@ export async function clearSubscriptions(db: DatabaseWriter, agentId: Id<'agents
 // NB: We have to pass in `runReference` throughout this file to prevent
 // an import cycle, where importing `internal` imports `AiTown`, which
 // then wants to be able to import us.
-export async function wakeupAgent(
+export async function scheduleAgentRun(
   ctx: MutationCtx,
   runReference: AgentRunReference,
   agentId: Id<'agents'>,
+  runTimestamp: number,
   reason: string,
-  allowStopped?: boolean,
+  force?: boolean,
 ) {
   const agent = await ctx.db.get(agentId);
   if (!agent) {
     throw new Error(`Agent ${agentId} not found`);
   }
-  if (agent.state.kind === 'stopped' && !allowStopped) {
-    console.warn(`Not waking up stopped agent ${agentId}`);
+  if (!agent.running && !force) {
+    console.debug(`Not waking up stopped agent ${agent._id}`);
     return;
   }
-  if (agent.state.kind === 'scheduled') {
-    return;
+  const nextScheduledRun = await ctx.db
+    .query('agentScheduledRuns')
+    .withIndex('agentId', (q) => q.eq('agentId', agent._id))
+    .order('asc')
+    .first();
+  let nextRun = nextScheduledRun?.runTimestamp;
+  if (!nextRun || runTimestamp + AGENT_WAKEUP_THRESHOLD < nextRun || force) {
+    const waitDuration = (runTimestamp - Date.now()) / 1000;
+    console.debug(`Waking up ${agentId} in ${waitDuration.toFixed(2)}s (reason: ${reason})`);
+    const runId = await ctx.db.insert('agentScheduledRuns', {
+      agentId,
+      runTimestamp,
+    });
+    await ctx.scheduler.runAt(runTimestamp, runReference, { agentId, runId });
+  } else {
+    const waitDuration = (nextRun - Date.now()) / 1000;
+    console.debug(
+      `Agent ${agentId} already scheduled to run in ${waitDuration.toFixed(
+        2,
+      )}s (reason: ${reason})`,
+    );
   }
-  console.log(`Waking up agent ${agentId} (${reason})`);
-  const generationNumber = agent.generationNumber + 1;
-  agent.generationNumber = generationNumber;
-  agent.state = { kind: 'scheduled' };
-  await ctx.db.replace(agent._id, agent);
-  await clearSubscriptions(ctx.db, agent._id);
-  await ctx.scheduler.runAfter(0, runReference, {
-    agentId: agent._id,
-    generationNumber,
-  });
 }
 
 async function wakeupWaiters(
@@ -248,7 +259,8 @@ async function wakeupWaiters(
   reason: string,
 ) {
   for (const waiter of waiters) {
-    await wakeupAgent(ctx, runReference, waiter.agentId, reason);
+    await clearSubscriptions(ctx.db, waiter.agentId);
+    await scheduleAgentRun(ctx, runReference, waiter.agentId, Date.now(), reason);
   }
 }
 

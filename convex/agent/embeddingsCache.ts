@@ -3,7 +3,6 @@ import { v } from 'convex/values';
 import { ActionCtx, internalMutation, internalQuery } from '../_generated/server';
 import { internal } from '../_generated/api';
 import * as openai from '../util/openai';
-import { Id } from '../_generated/dataModel';
 
 const selfInternal = internal.agent.embeddingsCache;
 
