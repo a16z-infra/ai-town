@@ -67,7 +67,7 @@ export const stop = internalMutation({
   handler: async (ctx) => {
     const { world, engine } = await getDefaultWorld(ctx.db);
     if (world.status === 'inactive' || world.status === 'stoppedByDeveloper') {
-      if (engine.state.kind !== 'stopped') {
+      if (engine.running) {
         throw new Error(`Engine ${engine._id} isn't stopped?`);
       }
       console.debug(`World ${world._id} is already inactive`);
@@ -84,7 +84,7 @@ export const resume = internalMutation({
   handler: async (ctx) => {
     const { world, engine } = await getDefaultWorld(ctx.db);
     if (world.status === 'running') {
-      if (engine.state.kind !== 'running') {
+      if (!engine.running) {
         throw new Error(`Engine ${engine._id} isn't running?`);
       }
       console.debug(`World ${world._id} is already running`);
@@ -100,7 +100,7 @@ export const resume = internalMutation({
 export const archive = internalMutation({
   handler: async (ctx) => {
     const { world, engine } = await getDefaultWorld(ctx.db);
-    if (engine.state.kind === 'running') {
+    if (engine.running) {
       throw new Error(`Engine ${engine._id} is still running!`);
     }
     console.log(`Archiving world ${world._id}...`);
