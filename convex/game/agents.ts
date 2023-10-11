@@ -107,20 +107,21 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
   const member = game.conversationMembers.find((m) => m.playerId === player._id);
 
   // Check to see if we have a conversation we need to remember.
-  const toRemember: null | Id<'conversations'> = null;
-  if (toRemember) {
-    // Pick a random destination.
+  if (agent.toRemember) {
+    // Pick a random destination. Otherwise, agents will stand still right after
+    // finishing a conversation, and it's nicer to think and walk.
     if (!player.pathfinding && !member) {
       movePlayer(game, now, player._id, wanderDestination(game));
     }
     // Fire off the action to remember the conversation.
-    console.log(`Agent ${player.name} remembering conversation ${toRemember}`);
+    console.log(`Agent ${player.name} remembering conversation ${agent.toRemember}`);
     startOperation(game, now, agent, selfInternal.agentRememberConversation, {
       worldId: agent.worldId,
       playerId: player._id,
       agentId: agent._id,
-      conversationId: toRemember,
+      conversationId: agent.toRemember,
     });
+    delete agent.toRemember;
     return;
   }
 
