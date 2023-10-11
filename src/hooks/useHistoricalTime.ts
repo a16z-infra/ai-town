@@ -32,9 +32,9 @@ export class HistoricalTimeManager {
   prevServerTs?: number;
   totalDuration: number = 0;
 
-  latestEngineStatus?: Doc<'engines'> & { nextRun?: number };
+  latestEngineStatus?: Doc<'engines'>;
 
-  receive(engineStatus: Doc<'engines'> & { nextRun?: number }) {
+  receive(engineStatus: Doc<'engines'>) {
     this.latestEngineStatus = engineStatus;
     if (!engineStatus.currentTime || !engineStatus.lastStepTs) {
       return;
