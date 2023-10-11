@@ -4,7 +4,6 @@ import { ActionCtx, DatabaseReader, internalMutation, internalQuery } from '../_
 import { Doc, Id } from '../_generated/dataModel';
 import { internal } from '../_generated/api';
 import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/openai';
-import { ACTION_TIMEOUT } from './constants';
 import { asyncMap } from '../util/asyncMap';
 
 // How long to wait before updating a memory's last access time.
@@ -50,7 +49,6 @@ export type MemoryOfType<T extends MemoryType> = Omit<Memory, 'data'> & {
 export async function rememberConversation(
   ctx: ActionCtx,
   agentId: Id<'agents'>,
-  actionUuid: string,
   playerId: Id<'players'>,
   conversationId: Id<'conversations'>,
 ) {
@@ -64,14 +62,6 @@ export async function rememberConversation(
     return;
   }
   const now = Date.now();
-
-  // Set the `isThinking` flag and schedule a function to clear it after 60s. We'll
-  // also clear the flag in `insertMemory` below to stop thinking early on success.
-  await ctx.runMutation(selfInternal.startThinking, { playerId, now });
-  await ctx.scheduler.runAfter(ACTION_TIMEOUT, selfInternal.clearThinking, {
-    playerId,
-    since: now,
-  });
 
   const llmMessages: LLMMessage[] = [
     {
@@ -104,8 +94,6 @@ export async function rememberConversation(
   authors.delete(player._id);
   await ctx.runMutation(selfInternal.insertMemory, {
     agentId,
-    actionUuid,
-
     playerId: player._id,
     description,
     importance,
@@ -125,7 +113,14 @@ export const loadConversation = internalQuery({
     playerId: v.id('players'),
     conversationId: v.id('conversations'),
   },
-  handler: async (ctx, args) => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
+    player: Doc<'players'>;
+    conversation: Doc<'conversations'>;
+    otherPlayer: Doc<'players'>;
+  }> => {
     const player = await ctx.db.get(args.playerId);
     if (!player) {
       throw new Error(`Player ${args.playerId} not found`);
@@ -230,7 +225,7 @@ export const loadMessages = internalQuery({
   args: {
     conversationId: v.id('conversations'),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Doc<'messages'>[]> => {
     const messages = await ctx.db
       .query('messages')
       .withIndex('conversationId', (q) => q.eq('conversationId', args.conversationId))
@@ -274,71 +269,13 @@ async function calculateImportance(player: Doc<'players'>, description: string) 
 
 const { embeddingId, ...memoryFieldsWithoutEmbeddingId } = memoryFields;
 
-export const startThinking = internalMutation({
-  args: {
-    playerId: v.id('players'),
-    now: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const isThinking = await ctx.db
-      .query('agentIsThinking')
-      .withIndex('playerId', (q) => q.eq('playerId', args.playerId))
-      .first();
-    if (isThinking) {
-      await ctx.db.patch(isThinking._id, { since: args.now });
-      return;
-    }
-    await ctx.db.insert('agentIsThinking', { playerId: args.playerId, since: args.now });
-  },
-});
-
-export const clearThinking = internalMutation({
-  args: {
-    playerId: v.id('players'),
-    since: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const isThinking = await ctx.db
-      .query('agentIsThinking')
-      .withIndex('playerId', (q) => q.eq('playerId', args.playerId))
-      .first();
-
-    if (!isThinking) {
-      return;
-    }
-    if (isThinking.since !== args.since) {
-      return;
-    }
-    await ctx.db.delete(isThinking._id);
-  },
-});
-
 export const insertMemory = internalMutation({
   args: {
     agentId: v.id('agents'),
-    actionUuid: v.string(),
     embedding: v.array(v.float64()),
     ...memoryFieldsWithoutEmbeddingId,
   },
-  handler: async (ctx, { agentId, actionUuid, embedding, ...memory }) => {
-    const agent = await ctx.db.get(agentId);
-    if (!agent) {
-      throw new Error(`Agent ${agentId} not found`);
-    }
-    if (!agent.inProgressAction || agent.inProgressAction.uuid !== actionUuid) {
-      console.debug(
-        `Current action cancelled: ${actionUuid} vs. ${JSON.stringify(agent.inProgressAction)}`,
-      );
-      return;
-    }
-    // Clear the `isThinking` flag atomically with inserting the memory.
-    const isThinking = await ctx.db
-      .query('agentIsThinking')
-      .withIndex('playerId', (q) => q.eq('playerId', agent.playerId))
-      .first();
-    if (isThinking) {
-      await ctx.db.delete(isThinking._id);
-    }
+  handler: async (ctx, { agentId, embedding, ...memory }): Promise<void> => {
     const embeddingId = await ctx.db.insert('memoryEmbeddings', {
       playerId: memory.playerId,
       embedding: embedding,

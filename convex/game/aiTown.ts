@@ -1,6 +1,6 @@
 import { Game } from '../engine/game';
 import { Doc, Id } from '../_generated/dataModel';
-import { InputArgs, InputReturnValue, Inputs } from './inputs';
+import { InputArgs, InputReturnValue, Inputs, handleInput } from './inputs';
 import { assertNever } from '../util/assertNever';
 import { Players } from './players';
 import { DatabaseWriter, MutationCtx } from '../_generated/server';
@@ -8,11 +8,15 @@ import { Locations } from './locations';
 import { blocked, findRoute } from './movement';
 import { characters } from '../../data/characters';
 import { EPSILON, distance, normalize, pathPosition, pointsEqual, vector } from '../util/geometry';
-import { CONVERSATION_DISTANCE, PATHFINDING_BACKOFF, PATHFINDING_TIMEOUT } from '../constants';
+import {
+  CONVERSATION_DISTANCE,
+  PATHFINDING_BACKOFF,
+  PATHFINDING_TIMEOUT,
+  TYPING_TIMEOUT,
+} from '../constants';
 import { Conversations } from './conversations';
 import { ConversationMembers } from './conversationMembers';
-import * as agentScheduling from '../agent/scheduling';
-import { AgentRunReference } from '../agent/scheduling';
+import { Agents, tickAgent } from './agents';
 
 export class AiTown extends Game<Inputs> {
   tickDuration = 16;
@@ -25,19 +29,15 @@ export class AiTown extends Game<Inputs> {
     public world: Doc<'worlds'>,
     public map: Doc<'maps'>,
     public players: Players,
+    public agents: Agents,
     public locations: Locations,
     public conversations: Conversations,
     public conversationMembers: ConversationMembers,
-    agentRunReference: AgentRunReference,
   ) {
-    super(agentRunReference);
+    super();
   }
 
-  static async load(
-    db: DatabaseWriter,
-    worldId: Id<'worlds'>,
-    agentRunReference: AgentRunReference,
-  ) {
+  static async load(db: DatabaseWriter, worldId: Id<'worlds'>) {
     const world = await db.get(worldId);
     if (!world) {
       throw new Error(`Invalid world ID: ${worldId}`);
@@ -48,6 +48,7 @@ export class AiTown extends Game<Inputs> {
     }
     const { engineId } = world;
     const players = await Players.load(db, worldId);
+    const agents = await Agents.load(db, players);
     const locations = await Locations.load(db, engineId, players);
     const conversations = await Conversations.load(db, worldId);
     const conversationMembers = await ConversationMembers.load(db, engineId, conversations);
@@ -56,10 +57,10 @@ export class AiTown extends Game<Inputs> {
       world,
       map,
       players,
+      agents,
       locations,
       conversations,
       conversationMembers,
-      agentRunReference,
     );
   }
 
@@ -68,244 +69,7 @@ export class AiTown extends Game<Inputs> {
     name: keyof Inputs,
     args: InputArgs<typeof name>,
   ): Promise<InputReturnValue<typeof name>> {
-    switch (name) {
-      case 'join':
-        return await this.handleJoin(now, args as any);
-      case 'leave':
-        return await this.handleLeave(now, args as any);
-      case 'moveTo':
-        return await this.handleMoveTo(now, args as any);
-      case 'startConversation':
-        return await this.handleStartConversation(now, args as any);
-      case 'acceptInvite':
-        return await this.handleAcceptInvite(now, args as any);
-      case 'rejectInvite':
-        return await this.handleRejectInvite(now, args as any);
-      case 'leaveConversation':
-        return await this.handleLeaveConversation(now, args as any);
-      default:
-        assertNever(name);
-    }
-  }
-
-  async handleJoin(
-    now: number,
-    { name, description, tokenIdentifier, character }: InputArgs<'join'>,
-  ): Promise<InputReturnValue<'join'>> {
-    const players = this.players.allDocuments();
-    let position;
-    for (let attempt = 0; attempt < 10; attempt++) {
-      const candidate = {
-        x: Math.floor(Math.random() * this.map.width),
-        y: Math.floor(Math.random() * this.map.height),
-      };
-      if (blocked(this, now, candidate)) {
-        continue;
-      }
-      position = candidate;
-      break;
-    }
-    if (!position) {
-      throw new Error(`Failed to find a free position!`);
-    }
-    const facingOptions = [
-      { dx: 1, dy: 0 },
-      { dx: -1, dy: 0 },
-      { dx: 0, dy: 1 },
-      { dx: 0, dy: -1 },
-    ];
-    const facing = facingOptions[Math.floor(Math.random() * facingOptions.length)];
-    if (!characters.find((c) => c.name === character)) {
-      throw new Error(`Invalid character: ${character}`);
-    }
-    const locationId = await this.locations.insert(now, {
-      x: position.x,
-      y: position.y,
-      dx: facing.dx,
-      dy: facing.dy,
-      velocity: 0,
-    });
-    const playerId = await this.players.insert({
-      worldId: this.world._id,
-      name,
-      description,
-      active: true,
-      human: tokenIdentifier,
-      character,
-      locationId,
-    });
-    return playerId;
-  }
-
-  async handleLeave(
-    now: number,
-    { playerId }: InputArgs<'leave'>,
-  ): Promise<InputReturnValue<'leave'>> {
-    const player = this.players.lookup(playerId);
-    // Stop our conversation if we're leaving the game.
-    const membership = this.conversationMembers.find((m) => m.playerId === playerId);
-    if (membership) {
-      const conversation = this.conversations.find((d) => d._id === membership.conversationId);
-      if (conversation === null) {
-        throw new Error(`Couldn't find conversation: ${membership.conversationId}`);
-      }
-      this.stopConversation(now, conversation);
-    }
-    player.active = false;
-    return null;
-  }
-
-  async handleMoveTo(
-    now: number,
-    { playerId, destination }: InputArgs<'moveTo'>,
-  ): Promise<InputReturnValue<'moveTo'>> {
-    const player = this.players.lookup(playerId);
-
-    if (destination === null) {
-      delete player.pathfinding;
-      return null;
-    }
-    if (
-      Math.floor(destination.x) !== destination.x ||
-      Math.floor(destination.y) !== destination.y
-    ) {
-      throw new Error(`Non-integral destination: ${JSON.stringify(destination)}`);
-    }
-    const { x, y } = this.locations.lookup(now, player.locationId);
-    const position = { x, y };
-    // Close enough to current position or destination => no-op.
-    if (pointsEqual(position, destination)) {
-      return null;
-    }
-    // Don't allow players in a conversation to move.
-    const member = this.conversationMembers.find(
-      (m) => m.playerId === playerId && m.status.kind === 'participating',
-    );
-    if (member) {
-      throw new Error(`Can't move when in a conversation. Leave the conversation first!`);
-    }
-    player.pathfinding = {
-      destination: destination,
-      started: now,
-      state: {
-        kind: 'needsPath',
-      },
-    };
-    return null;
-  }
-
-  async handleStartConversation(
-    now: number,
-    { playerId, invitee }: InputArgs<'startConversation'>,
-  ): Promise<InputReturnValue<'startConversation'>> {
-    console.log(`Starting ${playerId} ${invitee}...`);
-    if (playerId === invitee) {
-      throw new Error(`Can't invite yourself to a conversation`);
-    }
-    const player = this.players.lookup(playerId);
-    const inviteePlayer = this.players.lookup(invitee);
-    if (this.conversationMembers.find((m) => m.playerId === playerId)) {
-      throw new Error(`Player ${playerId} is already in a conversation`);
-    }
-    if (this.conversationMembers.find((m) => m.playerId === invitee)) {
-      throw new Error(`Invitee ${playerId} is already in a conversation`);
-    }
-    const conversationId = await this.conversations.insert({
-      creator: playerId,
-      worldId: this.world._id,
-    });
-    console.log(`Creating conversation ${conversationId}`);
-    await this.conversationMembers.insert({
-      conversationId,
-      playerId,
-      status: { kind: 'walkingOver' },
-    });
-    await this.conversationMembers.insert({
-      conversationId,
-      playerId: invitee,
-      status: { kind: 'invited' },
-    });
-    return conversationId;
-  }
-
-  async handleAcceptInvite(
-    now: number,
-    { playerId, conversationId }: InputArgs<'acceptInvite'>,
-  ): Promise<InputReturnValue<'acceptInvite'>> {
-    const player = this.players.lookup(playerId);
-    const membership = this.conversationMembers.find((m) => m.playerId === playerId);
-    if (!membership) {
-      throw new Error(`Couldn't find invite for ${playerId}:${conversationId}`);
-    }
-    if (membership.status.kind !== 'invited') {
-      throw new Error(
-        `Invalid membership status for ${playerId}:${conversationId}: ${JSON.stringify(
-          membership,
-        )}`,
-      );
-    }
-    membership.status = { kind: 'walkingOver' };
-    return null;
-  }
-
-  async handleRejectInvite(
-    now: number,
-    { playerId, conversationId }: InputArgs<'rejectInvite'>,
-  ): Promise<InputReturnValue<'rejectInvite'>> {
-    const player = this.players.lookup(playerId);
-    const conversation = this.conversations.find((d) => d._id === conversationId);
-    if (conversation === null) {
-      throw new Error(`Couldn't find conversation: ${conversationId}`);
-    }
-    const membership = this.conversationMembers.find(
-      (m) => m.conversationId == conversationId && m.playerId === playerId,
-    );
-    if (!membership) {
-      throw new Error(`Couldn't find membership for ${conversationId}:${playerId}`);
-    }
-    if (membership.status.kind !== 'invited') {
-      throw new Error(
-        `Rejecting invite in wrong membership state: ${conversationId}:${playerId}: ${JSON.stringify(
-          membership,
-        )}`,
-      );
-    }
-    this.stopConversation(now, conversation);
-    return null;
-  }
-
-  async handleLeaveConversation(
-    now: number,
-    { playerId, conversationId }: InputArgs<'leaveConversation'>,
-  ): Promise<InputReturnValue<'leaveConversation'>> {
-    const player = this.players.lookup(playerId);
-
-    const conversation = this.conversations.find((d) => d._id === conversationId);
-    if (conversation === null) {
-      throw new Error(`Couldn't find conversation: ${conversationId}`);
-    }
-    const membership = this.conversationMembers.find(
-      (m) => m.conversationId === conversationId && m.playerId === playerId,
-    );
-    if (!membership) {
-      throw new Error(`Couldn't find membership for ${conversationId}:${playerId}`);
-    }
-    this.stopConversation(now, conversation);
-    return null;
-  }
-
-  stopConversation(now: number, conversation: Doc<'conversations'>) {
-    conversation.finished = now;
-    const members = this.conversationMembers.filter((m) => m.conversationId === conversation._id);
-    if (members.length !== 2) {
-      throw new Error(`Conversation ${conversation._id} has ${members.length} members`);
-    }
-    for (let i = 0; i < members.length; i++) {
-      const member = members[i];
-      const otherMember = members[(i + 1) % 2];
-      const started = member.status.kind === 'participating' ? member.status.started : undefined;
-      member.status = { kind: 'left', started, ended: now, with: otherMember.playerId };
-    }
+    return await handleInput(this, now, name, args);
   }
 
   tick(now: number) {
@@ -317,6 +81,9 @@ export class AiTown extends Game<Inputs> {
     }
     for (const conversation of this.conversations.allDocuments()) {
       this.tickConversation(now, conversation);
+    }
+    for (const agent of this.agents.allDocuments()) {
+      tickAgent(this, now, agent);
     }
   }
 
@@ -400,6 +167,9 @@ export class AiTown extends Game<Inputs> {
   }
 
   tickConversation(now: number, conversation: Doc<'conversations'>) {
+    if (conversation.isTyping && conversation.isTyping.since + TYPING_TIMEOUT < now) {
+      delete conversation.isTyping;
+    }
     const members = this.conversationMembers.filter((m) => m.conversationId === conversation._id);
     if (members.length !== 2) {
       return;
@@ -447,28 +217,22 @@ export class AiTown extends Game<Inputs> {
     }
   }
 
-  async save(ctx: MutationCtx): Promise<void> {
-    for (const playerId of this.players.modifiedOrInsertedIds()) {
-      const player = this.players.data.get(playerId)!;
-      await agentScheduling.wakeupPlayer(ctx, this.agentRunReference, player);
-    }
-    for (const memberId of this.conversationMembers.modifiedOrInsertedIds()) {
-      const member = this.conversationMembers.data.get(memberId)!;
-      await agentScheduling.wakeupConversationMember(ctx, this.agentRunReference, member);
-    }
+  async save(): Promise<void> {
     await this.players.save();
+    await this.agents.save();
     await this.locations.save();
     await this.conversations.save();
     await this.conversationMembers.save();
   }
 
   idleUntil(now: number): number | null {
-    if (this.players.allDocuments().some((p) => !!p.pathfinding)) {
-      return null;
-    }
-    if (this.locations.historyLength() > 0) {
-      return null;
-    }
-    return now + 60 * 60 * 1000;
+    // if (this.players.allDocuments().some((p) => !!p.pathfinding)) {
+    //   return null;
+    // }
+    // if (this.locations.historyLength() > 0) {
+    //   return null;
+    // }
+    // return now + 60 * 60 * 1000;
+    return null;
   }
 }

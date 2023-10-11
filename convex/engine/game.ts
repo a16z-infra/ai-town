@@ -2,9 +2,7 @@ import { Infer, Validator } from 'convex/values';
 import { Id } from '../_generated/dataModel';
 import { MutationCtx } from '../_generated/server';
 import { ENGINE_WAKEUP_THRESHOLD } from './constants';
-import { FunctionReference } from 'convex/server';
-import * as agentScheduling from '../agent/scheduling';
-import { AgentRunReference } from '../agent/scheduling';
+import { FunctionReference, Scheduler } from 'convex/server';
 
 export type InputHandler<Args extends any, ReturnValue extends any> = {
   args: Validator<Args, false, any>;
@@ -28,7 +26,9 @@ export abstract class Game<Handlers extends InputHandlers> {
   abstract maxTicksPerStep: number;
   abstract maxInputsPerStep: number;
 
-  constructor(public agentRunReference: AgentRunReference) {}
+  private schedulerInvocations: Array<(scheduler: Scheduler) => Promise<void>> = [];
+
+  constructor() {}
 
   abstract handleInput(
     now: number,
@@ -37,9 +37,13 @@ export abstract class Game<Handlers extends InputHandlers> {
   ): Promise<Infer<Handlers[typeof name]['returnValue']>>;
 
   abstract tick(now: number): void;
-  abstract save(ctx: MutationCtx): Promise<void>;
+  abstract save(): Promise<void>;
   idleUntil(now: number): null | number {
     return null;
+  }
+
+  withScheduler(fn: (scheduler: Scheduler) => Promise<void>) {
+    this.schedulerInvocations.push(fn);
   }
 
   async runStep(ctx: MutationCtx, stepReference: StepReference, runId: Id<'engineScheduledRuns'>) {
@@ -104,7 +108,6 @@ export abstract class Game<Handlers extends InputHandlers> {
           input.returnValue = { kind: 'error', message: e.message };
         }
         await ctx.db.replace(input._id, input);
-        await agentScheduling.wakeupInput(ctx, this.agentRunReference, input);
       }
 
       // Simulate the game forward one tick.
@@ -142,7 +145,10 @@ export abstract class Game<Handlers extends InputHandlers> {
     stepNextRun = stepNextRun ?? now + this.stepDuration;
 
     // Commit the step by moving time forward, consuming our inputs, and saving the game's state.
-    await this.save(ctx);
+    for (const fn of this.schedulerInvocations) {
+      await fn(ctx.scheduler);
+    }
+    await this.save();
     await ctx.db.patch(engine._id, {
       currentTime: currentTs,
       lastStepTs,
@@ -209,7 +215,7 @@ export async function insertInput(
     args,
     received: now,
   });
-  await scheduleEngineRun(ctx, stepReference, engineId, now);
+  // await scheduleEngineRun(ctx, stepReference, engineId, now);
   return inputId;
 }
 

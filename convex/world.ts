@@ -3,7 +3,6 @@ import { internalMutation, mutation, query } from './_generated/server';
 import { characters } from '../data/characters';
 import { sendInput } from './game/main';
 import { IDLE_WORLD_TIMEOUT } from './constants';
-import { kickAgents, resumeAgents, stopAgents } from './agent/init';
 import { Doc, Id } from './_generated/dataModel';
 import { internal } from './_generated/api';
 import { startEngine, stopEngine } from './engine/game';
@@ -52,7 +51,7 @@ export const heartbeatWorld = mutation({
       console.log(`Restarting inactive world ${world._id}...`);
       await ctx.db.patch(world._id, { status: 'running' });
       await startEngine(ctx, internal.game.main.runStep, engine._id);
-      await resumeAgents(ctx, { worldId: world._id });
+      // await resumeAgents(ctx, { worldId: world._id });
     }
   },
 });
@@ -68,7 +67,7 @@ export const stopInactiveWorlds = internalMutation({
       console.log(`Stopping inactive world ${world._id}`);
       await ctx.db.patch(world._id, { status: 'inactive' });
       await stopEngine(ctx, world.engineId);
-      await stopAgents(ctx, { worldId: world._id });
+      // await stopAgents(ctx, { worldId: world._id });
     }
   },
 });
@@ -230,25 +229,9 @@ export const activePlayers = query({
       .withIndex('active', (q) => q.eq('worldId', world._id).eq('active', true))
       .collect();
     for (const player of players) {
-      let isSpeaking = false;
-      const member = await ctx.db
-        .query('conversationMembers')
-        .withIndex('playerId', (q) =>
-          q.eq('playerId', player._id).eq('status.kind', 'participating'),
-        )
-        .first();
-      if (member) {
-        const indicator = await ctx.db
-          .query('typingIndicator')
-          .withIndex('conversationId', (q) => q.eq('conversationId', member.conversationId))
-          .first();
-        isSpeaking = !!indicator && indicator.typing?.playerId === player._id;
-      }
-      const isThinkingDoc = await ctx.db
-        .query('agentIsThinking')
-        .withIndex('playerId', (q) => q.eq('playerId', player._id))
-        .first();
-      const isThinking = !!isThinkingDoc;
+      // TODO
+      const isSpeaking = false;
+      const isThinking = false;
       out.push({ ...player, isSpeaking, isThinking });
     }
     return out;

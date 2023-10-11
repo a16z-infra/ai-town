@@ -3,19 +3,21 @@ import { useMutation, useQuery } from 'convex/react';
 import { KeyboardEvent, useRef, useState } from 'react';
 import { api } from '../../convex/_generated/api';
 import { Doc, Id } from '../../convex/_generated/dataModel';
-import { toastOnError } from '../toasts';
+import { useSendInput } from '../hooks/sendInput';
 
 export function MessageInput({
+  worldId,
   humanPlayer,
   conversation,
 }: {
+  worldId: Id<'worlds'>;
   humanPlayer: Doc<'players'>;
   conversation: Doc<'conversations'>;
 }) {
   const inputRef = useRef<HTMLParagraphElement>(null);
   const [inflight, setInflight] = useState(0);
   const writeMessage = useMutation(api.messages.writeMessage);
-  const startTyping = useMutation(api.messages.startTyping);
+  const startTyping = useSendInput(worldId, 'startTyping');
   const currentlyTyping = useQuery(api.messages.currentlyTyping, {
     conversationId: conversation._id,
   });
@@ -31,6 +33,7 @@ export function MessageInput({
       const text = inputRef.current.innerText;
       inputRef.current.innerText = '';
       await writeMessage({
+        worldId,
         playerId: humanPlayer._id,
         conversationId: conversation._id,
         text,

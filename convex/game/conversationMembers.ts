@@ -3,7 +3,8 @@ import { v } from 'convex/values';
 import { GameTable } from '../engine/gameTable';
 import { DatabaseReader, DatabaseWriter } from '../_generated/server';
 import { Doc, Id } from '../_generated/dataModel';
-import { Conversations } from './conversations';
+import { Conversations, stopConversation } from './conversations';
+import { AiTown } from './aiTown';
 
 export const conversationMembers = defineTable({
   conversationId: v.id('conversations'),
@@ -76,4 +77,66 @@ export async function conversationMember(db: DatabaseReader, playerId: Id<'playe
     throw new Error(`Player ${playerId} is in multiple conversations`);
   }
   return invited ?? walkingOver ?? participating;
+}
+
+export function acceptInvite(
+  game: AiTown,
+  playerId: Id<'players'>,
+  conversationId: Id<'conversations'>,
+) {
+  const membership = game.conversationMembers.find((m) => m.playerId === playerId);
+  if (!membership) {
+    throw new Error(`Couldn't find invite for ${playerId}:${conversationId}`);
+  }
+  if (membership.status.kind !== 'invited') {
+    throw new Error(
+      `Invalid membership status for ${playerId}:${conversationId}: ${JSON.stringify(membership)}`,
+    );
+  }
+  membership.status = { kind: 'walkingOver' };
+}
+
+export function rejectInvite(
+  game: AiTown,
+  now: number,
+  playerId: Id<'players'>,
+  conversationId: Id<'conversations'>,
+) {
+  const conversation = game.conversations.find((d) => d._id === conversationId);
+  if (conversation === null) {
+    throw new Error(`Couldn't find conversation: ${conversationId}`);
+  }
+  const membership = game.conversationMembers.find(
+    (m) => m.conversationId == conversationId && m.playerId === playerId,
+  );
+  if (!membership) {
+    throw new Error(`Couldn't find membership for ${conversationId}:${playerId}`);
+  }
+  if (membership.status.kind !== 'invited') {
+    throw new Error(
+      `Rejecting invite in wrong membership state: ${conversationId}:${playerId}: ${JSON.stringify(
+        membership,
+      )}`,
+    );
+  }
+  stopConversation(game, now, conversation);
+}
+
+export function leaveConversation(
+  game: AiTown,
+  now: number,
+  playerId: Id<'players'>,
+  conversationId: Id<'conversations'>,
+) {
+  const conversation = game.conversations.find((d) => d._id === conversationId);
+  if (conversation === null) {
+    throw new Error(`Couldn't find conversation: ${conversationId}`);
+  }
+  const membership = game.conversationMembers.find(
+    (m) => m.conversationId === conversationId && m.playerId === playerId,
+  );
+  if (!membership) {
+    throw new Error(`Couldn't find membership for ${conversationId}:${playerId}`);
+  }
+  stopConversation(game, now, conversation);
 }

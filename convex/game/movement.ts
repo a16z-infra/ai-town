@@ -15,6 +15,44 @@ type PathCandidate = {
   prev?: PathCandidate;
 };
 
+export function movePlayer(
+  game: AiTown,
+  now: number,
+  playerId: Id<'players'>,
+  destination: Point | null,
+) {
+  const player = game.players.lookup(playerId);
+
+  if (destination === null) {
+    delete player.pathfinding;
+    return;
+  }
+  if (Math.floor(destination.x) !== destination.x || Math.floor(destination.y) !== destination.y) {
+    throw new Error(`Non-integral destination: ${JSON.stringify(destination)}`);
+  }
+  const { x, y } = game.locations.lookup(now, player.locationId);
+  const position = { x, y };
+  // Close enough to current position or destination => no-op.
+  if (pointsEqual(position, destination)) {
+    return;
+  }
+  // Don't allow players in a conversation to move.
+  const member = game.conversationMembers.find(
+    (m) => m.playerId === playerId && m.status.kind === 'participating',
+  );
+  if (member) {
+    throw new Error(`Can't move when in a conversation. Leave the conversation first!`);
+  }
+  player.pathfinding = {
+    destination: destination,
+    started: now,
+    state: {
+      kind: 'needsPath',
+    },
+  };
+  return;
+}
+
 export function findRoute(game: AiTown, now: number, player: Doc<'players'>, destination: Point) {
   const minDistances: PathCandidate[][] = [];
   const explore = (current: PathCandidate): Array<PathCandidate> => {
