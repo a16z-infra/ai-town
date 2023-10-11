@@ -224,15 +224,4 @@ export class AiTown extends Game<Inputs> {
     await this.conversations.save();
     await this.conversationMembers.save();
   }
-
-  idleUntil(now: number): number | null {
-    // if (this.players.allDocuments().some((p) => !!p.pathfinding)) {
-    //   return null;
-    // }
-    // if (this.locations.historyLength() > 0) {
-    //   return null;
-    // }
-    // return now + 60 * 60 * 1000;
-    return null;
-  }
 }

@@ -7,7 +7,6 @@ export abstract class GameTable<T extends TableNames> {
   abstract db: DatabaseWriter;
 
   data: Map<Id<T>, Doc<T>> = new Map();
-  inserted: Set<Id<T>> = new Set();
   modified: Set<Id<T>> = new Set();
   deleted: Set<Id<T>> = new Set();
 
@@ -26,7 +25,6 @@ export abstract class GameTable<T extends TableNames> {
       throw new Error(`Failed to db.get() inserted row`);
     }
     this.data.set(id, withSystemFields);
-    this.inserted.add(id);
     return id;
   }
 
@@ -118,10 +116,6 @@ export abstract class GameTable<T extends TableNames> {
     this.modified.add(id);
   }
 
-  modifiedOrInsertedIds(): Set<Id<T>> {
-    return new Set([...this.modified, ...this.inserted]);
-  }
-
   async save() {
     // NB: We insert new documents immediately, so we don't need to
     // insert them here.
@@ -137,7 +131,6 @@ export abstract class GameTable<T extends TableNames> {
       // generic `Doc<T>` unifies with `replace()`'s type.
       await this.db.replace(id, row as any);
     }
-    this.inserted.clear();
     this.modified.clear();
     this.deleted.clear();
   }

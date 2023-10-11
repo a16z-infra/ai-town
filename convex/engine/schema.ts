@@ -43,31 +43,13 @@ const engines = v.object({
 
   running: v.boolean(),
 
-  // Monotonically increasing counter that allows inputs to restart the engine
-  // when it's sleeping. In particular, every scheduled run of the engine
-  // is predicated on a generation number, and bumping that number will
-  // atomically cancel that future execution. This provides mutual exclusion
-  // for our core event loop.
+  // Monotonically increasing counter that serializes all engine runs. If we ever
+  // end up with two steps overlapping in time, this counter will force them to
+  // conflict.
   generationNumber: v.number(),
 });
-
-// Engine:
-// Delete its current run (logically at least)
-//
-// Schedule next run (from engine and input preemption) @ ts
-// See if there's another run in the future before ts
-// Insert one if not
-// Needs to work well with retention
-// const engineScheduledRuns = v.object({
-//   engineId: v.id('engines'),
-//   runTimestamp: v.number(),
-// });
 
 export const engineTables = {
   inputs: defineTable(inputs).index('byInputNumber', ['engineId', 'number']),
   engines: defineTable(engines),
-  // engineScheduledRuns: defineTable(engineScheduledRuns).index('engineId', [
-  //   'engineId',
-  //   'runTimestamp',
-  // ]),
 };

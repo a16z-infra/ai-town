@@ -191,7 +191,6 @@ export async function insertInput(
     args,
     received: now,
   });
-  // await scheduleEngineRun(ctx, stepReference, engineId, now);
   return inputId;
 }
 
