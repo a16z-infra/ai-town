@@ -240,16 +240,8 @@ export const loadMessages = internalQuery({
 });
 
 async function calculateImportance(description: string) {
-  // TODO: make a better prompt based on the user's memories
   const { content: importanceRaw } = await chatCompletion({
     messages: [
-      // {
-      //   role: 'user',
-      //   content: `You are ${player.name}. Here's a little about you:
-      //         ${player.description}
-
-      //         Now I'm going to give you a description of a memory to gauge the importance of.`,
-      // },
       {
         role: 'user',
         content: `On the scale of 0 to 9, where 0 is purely mundane (e.g., brushing teeth, making bed) and 9 is extremely poignant (e.g., a break up, college acceptance), rate the likely poignancy of the following piece of memory.
