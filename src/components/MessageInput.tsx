@@ -15,7 +15,7 @@ export function MessageInput({
   conversation: Doc<'conversations'>;
 }) {
   const inputRef = useRef<HTMLParagraphElement>(null);
-  const [inflight, setInflight] = useState(0);
+  const inflightUuid = useRef<string | undefined>();
   const writeMessage = useMutation(api.messages.writeMessage);
   const startTyping = useSendInput(worldId, 'startTyping');
   const currentlyTyping = useQuery(api.messages.currentlyTyping, {
@@ -24,38 +24,49 @@ export function MessageInput({
 
   const onKeyDown = async (e: KeyboardEvent) => {
     e.stopPropagation();
-    // Send the current message.
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (!inputRef.current) {
+
+    // Set the typing indicator if we're not submitting.
+    if (e.key !== 'Enter') {
+      console.log(inflightUuid.current);
+      if (currentlyTyping || inflightUuid.current !== undefined) {
         return;
       }
-      const text = inputRef.current.innerText;
-      inputRef.current.innerText = '';
-      await writeMessage({
-        worldId,
-        playerId: humanPlayer._id,
-        conversationId: conversation._id,
-        text,
-      });
-      return;
-    }
-    // Try to set a typing indicator.
-    else {
-      if (currentlyTyping || inflight > 0) {
-        return;
-      }
-      setInflight((i) => i + 1);
+      inflightUuid.current = crypto.randomUUID();
       try {
         // Don't show a toast on error.
-        startTyping({
+        await startTyping({
           playerId: humanPlayer._id,
           conversationId: conversation._id,
+          messageUuid: inflightUuid.current,
         });
       } finally {
-        setInflight((i) => i - 1);
+        inflightUuid.current = undefined;
       }
+      return;
     }
+
+    // Send the current message.
+    e.preventDefault();
+    if (!inputRef.current) {
+      return;
+    }
+    const text = inputRef.current.innerText;
+    inputRef.current.innerText = '';
+    if (!text) {
+      return;
+    }
+    let messageUuid = inflightUuid.current;
+    if (currentlyTyping && currentlyTyping.playerId === humanPlayer._id) {
+      messageUuid = currentlyTyping.messageUuid;
+    }
+    messageUuid = messageUuid || crypto.randomUUID();
+    await writeMessage({
+      worldId,
+      playerId: humanPlayer._id,
+      conversationId: conversation._id,
+      text,
+      messageUuid,
+    });
   };
   return (
     <div className="leading-tight mb-6">
