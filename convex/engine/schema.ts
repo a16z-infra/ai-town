@@ -51,16 +51,23 @@ const engines = v.object({
   generationNumber: v.number(),
 });
 
-const engineScheduledRuns = v.object({
-  engineId: v.id('engines'),
-  runTimestamp: v.number(),
-});
+// Engine:
+// Delete its current run (logically at least)
+//
+// Schedule next run (from engine and input preemption) @ ts
+// See if there's another run in the future before ts
+// Insert one if not
+// Needs to work well with retention
+// const engineScheduledRuns = v.object({
+//   engineId: v.id('engines'),
+//   runTimestamp: v.number(),
+// });
 
 export const engineTables = {
   inputs: defineTable(inputs).index('byInputNumber', ['engineId', 'number']),
   engines: defineTable(engines),
-  engineScheduledRuns: defineTable(engineScheduledRuns).index('engineId', [
-    'engineId',
-    'runTimestamp',
-  ]),
+  // engineScheduledRuns: defineTable(engineScheduledRuns).index('engineId', [
+  //   'engineId',
+  //   'runTimestamp',
+  // ]),
 };

@@ -26,12 +26,11 @@ async function getWorldId(db: DatabaseReader, engineId: Id<'engines'>) {
 export const runStep = internalMutation({
   args: {
     engineId: v.id('engines'),
-    runId: v.id('engineScheduledRuns'),
   },
   handler: async (ctx, args): Promise<void> => {
     const worldId = await getWorldId(ctx.db, args.engineId);
     const game = await AiTown.load(ctx.db, worldId);
-    await game.runStep(ctx, internal.game.main.runStep, args.runId);
+    await game.runStep(ctx, internal.game.main.runStep);
   },
 });
 

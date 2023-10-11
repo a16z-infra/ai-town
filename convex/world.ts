@@ -51,7 +51,6 @@ export const heartbeatWorld = mutation({
       console.log(`Restarting inactive world ${world._id}...`);
       await ctx.db.patch(world._id, { status: 'running' });
       await startEngine(ctx, internal.game.main.runStep, engine._id);
-      // await resumeAgents(ctx, { worldId: world._id });
     }
   },
 });
@@ -67,31 +66,7 @@ export const stopInactiveWorlds = internalMutation({
       console.log(`Stopping inactive world ${world._id}`);
       await ctx.db.patch(world._id, { status: 'inactive' });
       await stopEngine(ctx, world.engineId);
-      // await stopAgents(ctx, { worldId: world._id });
     }
-  },
-});
-
-export const engineStatus = query({
-  args: {
-    worldId: v.id('worlds'),
-  },
-  handler: async (ctx, args) => {
-    const world = await ctx.db.get(args.worldId);
-    if (!world) {
-      throw new Error(`Invalid world ID: ${args.worldId}`);
-    }
-    const engine = await ctx.db.get(world.engineId);
-    if (!engine) {
-      throw new Error(`Invalid engine ID: ${world.engineId}`);
-    }
-    const nextRunDoc = await ctx.db
-      .query('engineScheduledRuns')
-      .withIndex('engineId', (q) => q.eq('engineId', engine._id))
-      .order('asc')
-      .first();
-    const nextRun = nextRunDoc?.runTimestamp;
-    return { nextRun, ...engine };
   },
 });
 
@@ -212,54 +187,50 @@ export const sendWorldInput = mutation({
 export type PlayerMetadata = Doc<'players'> & {
   isSpeaking: boolean;
   isThinking: boolean;
+  location: Doc<'locations'>;
 };
 
-export const activePlayers = query({
+export const gameState = query({
   args: {
     worldId: v.id('worlds'),
   },
-  handler: async (ctx, args): Promise<PlayerMetadata[]> => {
+  handler: async (ctx, args) => {
     const world = await ctx.db.get(args.worldId);
     if (!world) {
       throw new Error(`Invalid world ID: ${args.worldId}`);
     }
-    const out = [];
-    const players = await ctx.db
+    const engine = await ctx.db.get(world.engineId);
+    if (!engine) {
+      throw new Error(`Invalid engine ID: ${world.engineId}`);
+    }
+    const players = [] as PlayerMetadata[];
+    const playerDocs = await ctx.db
       .query('players')
       .withIndex('active', (q) => q.eq('worldId', world._id).eq('active', true))
       .collect();
-    for (const player of players) {
-      // TODO
-      const isSpeaking = false;
-      const isThinking = false;
-      out.push({ ...player, isSpeaking, isThinking });
-    }
-    return out;
-  },
-});
+    for (const player of playerDocs) {
+      let isSpeaking = false;
+      const member = await conversationMember(ctx.db, player._id);
+      if (member && member.status.kind === 'participating') {
+        const conversation = await ctx.db.get(member.conversationId);
+        if (!conversation) {
+          throw new Error(`Invalid conversation ID: ${member.conversationId}`);
+        }
+        isSpeaking = !!conversation.isTyping && conversation.isTyping.playerId == player._id;
+      }
+      const agent = await ctx.db
+        .query('agents')
+        .withIndex('playerId', (q) => q.eq('playerId', player._id))
+        .first();
+      let isThinking = !isSpeaking && !!agent && !!agent.inProgressOperation;
 
-export const activePlayerLocations = query({
-  args: {
-    worldId: v.id('worlds'),
-  },
-  handler: async (ctx, args): Promise<Record<Id<'players'>, Doc<'locations'>>> => {
-    const world = await ctx.db.get(args.worldId);
-    if (!world) {
-      throw new Error(`Invalid world ID: ${args.worldId}`);
-    }
-    const out: Record<Id<'players'>, Doc<'locations'>> = {};
-    const players = await ctx.db
-      .query('players')
-      .withIndex('active', (q) => q.eq('worldId', world._id).eq('active', true))
-      .collect();
-    for (const player of players) {
       const location = await ctx.db.get(player.locationId);
       if (!location) {
         throw new Error(`Invalid location ID: ${player.locationId}`);
       }
-      out[player._id] = location;
+      players.push({ ...player, location, isSpeaking, isThinking });
     }
-    return out;
+    return { engine, players };
   },
 });
 

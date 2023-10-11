@@ -18,7 +18,8 @@ export default function PlayerDetails({
   setSelectedElement: SelectElement;
 }) {
   const humanPlayerId = useQuery(api.world.userStatus, { worldId });
-  const players = useQuery(api.world.activePlayers, { worldId }) ?? [];
+  const gameState = useQuery(api.world.gameState, { worldId });
+  const players = gameState?.players ?? [];
 
   const humanConversation = useQuery(
     api.world.loadConversationState,

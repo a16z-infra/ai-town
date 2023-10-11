@@ -32,7 +32,19 @@ export async function getCurrentlyTyping(db: DatabaseReader, conversationId: Id<
   if (conversation.finished) {
     return null;
   }
-  return conversation.isTyping ?? null;
+  if (!conversation.isTyping) {
+    return null;
+  }
+  const messageReceived = await db
+    .query('messages')
+    .withIndex('messageUuid', (q) =>
+      q.eq('conversationId', conversationId).eq('messageUuid', conversation.isTyping!.messageUuid),
+    )
+    .first();
+  if (messageReceived) {
+    return null;
+  }
+  return conversation.isTyping;
 }
 
 export const currentlyTyping = query({
@@ -56,6 +68,7 @@ export const writeMessage = mutation({
   args: {
     worldId: v.id('worlds'),
     conversationId: v.id('conversations'),
+    messageUuid: v.string(),
     playerId: v.id('players'),
     text: v.string(),
   },
@@ -67,6 +80,7 @@ export const writeMessage = mutation({
     await ctx.db.insert('messages', {
       conversationId: args.conversationId,
       author: args.playerId,
+      messageUuid: args.messageUuid,
       text: args.text,
     });
     await insertInput(ctx, args.worldId, 'finishSendingMessage', {

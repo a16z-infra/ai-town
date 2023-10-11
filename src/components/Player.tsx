@@ -15,19 +15,17 @@ const logged = new Set<string>();
 export const Player = ({
   isViewer,
   player,
-  location,
   onClick,
   historicalTime,
 }: {
   isViewer: boolean;
   player: PlayerMetadata;
-  location: Doc<'locations'>;
   onClick: SelectElement;
   historicalTime?: number;
 }) => {
   const world = useQuery(api.world.defaultWorld);
   const character = characters.find((c) => c.name === player.character);
-  const historicalLocation = useHistoricalValue<'locations'>(historicalTime, location);
+  const historicalLocation = useHistoricalValue<'locations'>(historicalTime, player.location);
   if (!character) {
     if (!logged.has(player.character)) {
       logged.add(player.character);

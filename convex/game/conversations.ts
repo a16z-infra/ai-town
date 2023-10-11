@@ -11,6 +11,7 @@ export const conversations = defineTable({
   isTyping: v.optional(
     v.object({
       playerId: v.id('players'),
+      messageUuid: v.string(),
       since: v.number(),
     }),
   ),
@@ -53,6 +54,7 @@ export function setIsTyping(
   now: number,
   conversationId: Id<'conversations'>,
   playerId: Id<'players'>,
+  messageUuid: string,
 ) {
   const conversation = game.conversations.lookup(conversationId);
   if (!conversation) {
@@ -69,7 +71,7 @@ export function setIsTyping(
     }
     return;
   }
-  conversation.isTyping = { playerId, since: now };
+  conversation.isTyping = { playerId, messageUuid, since: now };
 }
 
 export async function startConversation(
@@ -109,6 +111,7 @@ export async function startConversation(
 
 export function stopConversation(game: AiTown, now: number, conversation: Doc<'conversations'>) {
   conversation.finished = now;
+  delete conversation.isTyping;
   const members = game.conversationMembers.filter((m) => m.conversationId === conversation._id);
   if (members.length !== 2) {
     throw new Error(`Conversation ${conversation._id} has ${members.length} members`);

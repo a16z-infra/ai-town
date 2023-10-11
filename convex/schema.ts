@@ -32,9 +32,12 @@ export default defineSchema({
 
   messages: defineTable({
     conversationId: v.id('conversations'),
+    messageUuid: v.string(),
     author: v.id('players'),
     text: v.string(),
-  }).index('conversationId', ['conversationId']),
+  })
+    .index('conversationId', ['conversationId'])
+    .index('messageUuid', ['conversationId', 'messageUuid']),
 
   ...gameTables,
   ...agentTables,

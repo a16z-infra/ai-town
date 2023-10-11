@@ -32,7 +32,10 @@ const init = mutation({
     }
     const shouldCreate = await shouldCreateAgents(ctx.db, world);
     if (shouldCreate) {
-      const toCreate = Math.min(args.numAgents ?? Descriptions.length, Descriptions.length);
+      const toCreate =
+        args.numAgents !== undefined
+          ? Math.min(args.numAgents, Descriptions.length)
+          : Descriptions.length;
       for (let i = 0; i < toCreate; i++) {
         await insertInput(ctx, world._id, 'createAgent', {
           descriptionIndex: i,

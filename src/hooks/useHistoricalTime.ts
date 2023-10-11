@@ -1,10 +1,7 @@
-import { Doc, Id } from '../../convex/_generated/dataModel';
-import { useQuery } from 'convex/react';
-import { api } from '../../convex/_generated/api';
+import { Doc } from '../../convex/_generated/dataModel';
 import { useEffect, useRef, useState } from 'react';
 
-export function useHistoricalTime(worldId?: Id<'worlds'>) {
-  const engineStatus = useQuery(api.world.engineStatus, worldId ? { worldId } : 'skip');
+export function useHistoricalTime(engineStatus?: Doc<'engines'>) {
   const timeManager = useRef(new HistoricalTimeManager());
   const rafRef = useRef<number>();
   const [historicalTime, setHistoricalTime] = useState<number | undefined>(undefined);

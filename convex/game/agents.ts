@@ -37,11 +37,9 @@ import {
 } from '../agent/conversation';
 import { assertNever } from '../util/assertNever';
 
-// TODO: repathfind when in conversation
-// TODO: typing indicator after message has been sent.
-// TODO: stop isTyping indicator when conversation is done.
-// TODO: 500ms for run step
-// TODO: preemption gets confused when we kick (and scheduled jobs diverges from scheduler table)
+// Input status for typing indicator is a lot.
+// TODO: redo preemption.
+// rename uuid to operationuuid
 
 const selfInternal = internal.game.agents;
 
@@ -243,8 +241,8 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
         let destination;
         if (playerDistance < MIDPOINT_THRESHOLD) {
           destination = {
-            x: Math.floor(position.x),
-            y: Math.floor(position.y),
+            x: Math.floor(otherPosition.x),
+            y: Math.floor(otherPosition.y),
           };
         } else {
           destination = {
@@ -261,8 +259,7 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
       const started = member.status.started;
 
       if (conversation.isTyping && conversation.isTyping.playerId !== player._id) {
-        // TODO: If we sleep naively, scheduling order matters here. If we wakeup the
-        // conversation system second, we'll miss observing this?
+        // Wait for the other player to finish typing.
         return;
       }
 
@@ -272,11 +269,14 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
         // Send the first message if we're the initiator or if we've been waiting for too long.
         if (isInitiator || awkwardDeadline < now) {
           // Grab the lock on the conversation and send a "start" message.
-          setIsTyping(game, now, conversation._id, player._id);
+          console.log(`${player.name} initiating conversation with ${otherPlayer.name}.`);
+          const messageUuid = crypto.randomUUID();
+          setIsTyping(game, now, conversation._id, player._id, messageUuid);
           startOperation(game, now, agent, selfInternal.agentGenerateMessage, {
             worldId: agent.worldId,
             agentId: agent._id,
             playerId: player._id,
+            messageUuid,
             otherPlayerId: otherPlayer._id,
             conversationId: conversation._id,
             type: 'start',
@@ -293,11 +293,13 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
       const tooLongDeadline = started + MAX_CONVERSATION_DURATION;
       if (tooLongDeadline < now || conversation.numMessages > MAX_CONVERSATION_MESSAGES) {
         console.log(`${player.name} leaving conversation with ${otherPlayer.name}.`);
-        setIsTyping(game, now, conversation._id, player._id);
+        const messageUuid = crypto.randomUUID();
+        setIsTyping(game, now, conversation._id, player._id, messageUuid);
         startOperation(game, now, agent, selfInternal.agentGenerateMessage, {
           worldId: agent.worldId,
           agentId: agent._id,
           playerId: player._id,
+          messageUuid,
           otherPlayerId: otherPlayer._id,
           conversationId: conversation._id,
           type: 'leave',
@@ -323,11 +325,14 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
       }
 
       // Grab the lock and send a message!
-      setIsTyping(game, now, conversation._id, player._id);
+      console.log(`${player.name} continuing conversation with ${otherPlayer.name}.`);
+      const messageUuid = crypto.randomUUID();
+      setIsTyping(game, now, conversation._id, player._id, messageUuid);
       startOperation(game, now, agent, selfInternal.agentGenerateMessage, {
         worldId: agent.worldId,
         agentId: agent._id,
         playerId: player._id,
+        messageUuid,
         otherPlayerId: otherPlayer._id,
         conversationId: conversation._id,
         type: 'continue',
@@ -350,6 +355,7 @@ function startOperation<F extends FunctionReference<any, any, any>>(
     );
   }
   const uuid = crypto.randomUUID();
+  console.log(`Agent ${agent._id} starting operation ${getFunctionName(ref)} (${uuid})`);
   game.withScheduler((scheduler) => scheduler.runAfter(0, ref, { uuid, ...args } as any));
   agent.inProgressOperation = {
     name: getFunctionName(ref),
@@ -485,6 +491,7 @@ export const agentGenerateMessage = internalAction({
     otherPlayerId: v.id('players'),
 
     type: v.union(v.literal('start'), v.literal('continue'), v.literal('leave')),
+    messageUuid: v.string(),
     uuid: v.string(),
   },
   handler: async (ctx, args) => {
@@ -513,34 +520,9 @@ export const agentGenerateMessage = internalAction({
       worldId: args.worldId,
       conversationId: args.conversationId,
       agentId: args.agentId,
+      messageUuid: args.messageUuid,
       text,
-      uuid: args.uuid,
-    });
-  },
-});
-
-export const agentLeaveConversation = internalAction({
-  args: {
-    worldId: v.id('worlds'),
-    conversationId: v.id('conversations'),
-    agentId: v.id('agents'),
-    playerId: v.id('players'),
-    otherPlayerId: v.id('players'),
-    uuid: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const completion = await leaveConversationMessage(
-      ctx,
-      args.conversationId,
-      args.playerId,
-      args.otherPlayerId,
-    );
-    const text = await completion.readAll();
-    await ctx.runMutation(selfInternal.agentSendMessage, {
-      worldId: args.worldId,
-      conversationId: args.conversationId,
-      agentId: args.agentId,
-      text,
+      leaveConversation: args.type === 'leave',
       uuid: args.uuid,
     });
   },
@@ -552,6 +534,8 @@ export const agentSendMessage = internalMutation({
     conversationId: v.id('conversations'),
     agentId: v.id('agents'),
     text: v.string(),
+    messageUuid: v.string(),
+    leaveConversation: v.boolean(),
     uuid: v.string(),
   },
   handler: async (ctx, args) => {
@@ -563,11 +547,13 @@ export const agentSendMessage = internalMutation({
       conversationId: args.conversationId,
       author: agent.playerId,
       text: args.text,
+      messageUuid: args.messageUuid,
     });
     await insertInput(ctx, args.worldId, 'agentFinishSendingMessage', {
       conversationId: args.conversationId,
       agentId: args.agentId,
       timestamp: Date.now(),
+      leaveConversation: args.leaveConversation,
       uuid: args.uuid,
     });
   },

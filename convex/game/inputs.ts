@@ -77,6 +77,7 @@ export const inputs = {
     args: v.object({
       playerId: v.id('players'),
       conversationId: v.id('conversations'),
+      messageUuid: v.string(),
     }),
     returnValue: v.null(),
   },
@@ -125,6 +126,7 @@ export const inputs = {
       conversationId: v.id('conversations'),
       timestamp: v.number(),
       uuid: v.string(),
+      leaveConversation: v.boolean(),
     }),
     returnValue: v.null(),
   },
@@ -292,7 +294,7 @@ async function handleLeaveConversation(
 async function handleStartTyping(
   game: AiTown,
   now: number,
-  { playerId, conversationId }: InputArgs<'startTyping'>,
+  { playerId, conversationId, messageUuid }: InputArgs<'startTyping'>,
 ): Promise<InputReturnValue<'startTyping'>> {
   const conversation = game.conversations.lookup(conversationId);
   if (!conversation) {
@@ -303,7 +305,7 @@ async function handleStartTyping(
       `Player ${conversation.isTyping.playerId} is already typing in ${conversationId}`,
     );
   }
-  conversation.isTyping = { playerId, since: now };
+  conversation.isTyping = { playerId, messageUuid, since: now };
   return null;
 }
 
@@ -400,16 +402,27 @@ async function handleAgentStartConversation(
 async function handleAgentFinishSendingMessage(
   game: AiTown,
   now: number,
-  { agentId, conversationId, timestamp, uuid }: InputArgs<'agentFinishSendingMessage'>,
-) {
+  {
+    agentId,
+    conversationId,
+    timestamp,
+    leaveConversation: shouldLeave,
+    uuid,
+  }: InputArgs<'agentFinishSendingMessage'>,
+): Promise<InputReturnValue<'agentFinishSendingMessage'>> {
   const agent = game.agents.lookup(agentId);
   if (!agent.inProgressOperation || agent.inProgressOperation.uuid !== uuid) {
     console.debug(`Agent ${agentId} wasn't sending a message ${uuid}`);
     return null;
   }
-  return handleFinishSendingMessage(game, now, {
+  delete agent.inProgressOperation;
+  handleFinishSendingMessage(game, now, {
     playerId: agent.playerId,
     conversationId,
     timestamp,
   });
+  if (shouldLeave) {
+    leaveConversation(game, now, agent.playerId, conversationId);
+  }
+  return null;
 }

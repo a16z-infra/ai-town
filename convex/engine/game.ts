@@ -11,12 +11,7 @@ export type InputHandler<Args extends any, ReturnValue extends any> = {
 
 export type InputHandlers = Record<string, InputHandler<any, any>>;
 
-type StepReference = FunctionReference<
-  'mutation',
-  'internal',
-  { engineId: Id<'engines'>; runId: Id<'engineScheduledRuns'> },
-  null
->;
+type StepReference = FunctionReference<'mutation', 'internal', { engineId: Id<'engines'> }, null>;
 
 export abstract class Game<Handlers extends InputHandlers> {
   abstract engineId: Id<'engines'>;
@@ -46,7 +41,7 @@ export abstract class Game<Handlers extends InputHandlers> {
     this.schedulerInvocations.push(fn);
   }
 
-  async runStep(ctx: MutationCtx, stepReference: StepReference, runId: Id<'engineScheduledRuns'>) {
+  async runStep(ctx: MutationCtx, stepReference: StepReference) {
     const now = Date.now();
     const engine = await ctx.db.get(this.engineId);
     if (!engine) {
@@ -59,12 +54,12 @@ export abstract class Game<Handlers extends InputHandlers> {
     if (engine.currentTime && now < engine.currentTime) {
       throw new Error(`Server time moving backwards: ${now} < ${engine.currentTime}`);
     }
-    const run = await ctx.db.get(runId);
-    if (!run) {
-      console.debug(`Scheduled run ${runId} not found, returning immediately.`);
-      return;
-    }
-    await ctx.db.delete(runId);
+    // const run = await ctx.db.get(runId);
+    // if (!run) {
+    //   console.debug(`Scheduled run ${runId} not found, returning immediately.`);
+    //   return;
+    // }
+    // await ctx.db.delete(runId);
 
     // Collect the inputs for our step, sorting them by receipt time.
     const inputs = await ctx.db
@@ -170,21 +165,27 @@ async function scheduleEngineRun(
   runTimestamp: number,
   force?: boolean,
 ) {
-  const nextScheduledRun = await ctx.db
-    .query('engineScheduledRuns')
-    .withIndex('engineId', (q) => q.eq('engineId', engineId))
-    .order('asc')
-    .first();
-  let nextRun = nextScheduledRun?.runTimestamp;
-  if (!nextRun || runTimestamp + ENGINE_WAKEUP_THRESHOLD < nextRun || force) {
-    const waitDuration = (runTimestamp - Date.now()) / 1000;
-    console.log(`Waking up ${engineId} in ${waitDuration.toFixed(2)}s`);
-    const runId = await ctx.db.insert('engineScheduledRuns', {
-      engineId,
-      runTimestamp,
-    });
-    await ctx.scheduler.runAt(runTimestamp, stepReference, { engineId, runId });
-  }
+  // const nextScheduledRun = await ctx.db
+  //   .query('engineScheduledRuns')
+  //   .withIndex('engineId', (q) => q.eq('engineId', engineId))
+  //   .order('asc')
+  //   .first();
+  // let nextRun = nextScheduledRun?.runTimestamp;
+  // if (!nextRun || runTimestamp + ENGINE_WAKEUP_THRESHOLD < nextRun || force) {
+  const waitDuration = (runTimestamp - Date.now()) / 1000;
+  console.log(`Waking up ${engineId} in ${waitDuration.toFixed(2)}s`);
+  // const runId = await ctx.db.insert('engineScheduledRuns', {
+  //   engineId,
+  //   runTimestamp,
+  // });
+  await ctx.scheduler.runAt(runTimestamp, stepReference, { engineId });
+  // } else {
+  //   console.debug(
+  //     `Engine ${engineId} already scheduled to run in ${((nextRun - Date.now()) / 1000).toFixed(
+  //       2,
+  //     )}s`,
+  //   );
+  // }
 }
 
 export async function insertInput(
