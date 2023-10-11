@@ -268,41 +268,6 @@ export const queryPromptData = internalQuery({
   },
 });
 
-// export const previousConversation = internalQuery({
-//   args: {
-//     conversationId: v.id('conversations'),
-//     playerId: v.id('players'),
-//     otherPlayerId: v.id('players'),
-//   },
-//   handler: async (ctx, args): Promise<Doc<'conversations'> | null> => {
-//     const previousConversations = await ctx.db
-//       .query('conversationMembers')
-//       .withIndex('playerId', (q) => q.eq('playerId', args.playerId))
-//       .filter((q) => q.neq(q.field('conversationId'), args.conversationId))
-//       .collect();
-//     const conversations = [];
-//     for (const member of previousConversations) {
-//       const otherMember = await ctx.db
-//         .query('conversationMembers')
-//         .withIndex('conversationId', (q) =>
-//           q.eq('conversationId', member.conversationId).eq('playerId', args.otherPlayerId),
-//         )
-//         .first();
-//       if (otherMember) {
-//         const conversation = await ctx.db.get(member.conversationId);
-//         if (!conversation) {
-//           throw new Error(`Conversation ${member.conversationId} not found`);
-//         }
-//         if (conversation.finished) {
-//           conversations.push(conversation);
-//         }
-//       }
-//     }
-//     conversations.sort((a, b) => b._creationTime - a._creationTime);
-//     return conversations.length > 0 ? conversations[0] : null;
-//   },
-// });
-
 function stopWords(otherPlayer: Doc<'players'>, player: Doc<'players'>) {
   // These are the words we ask the LLM to stop on. OpenAI only supports 4.
   const variants = [otherPlayer.name, `${otherPlayer.name} to ${player.name}`];

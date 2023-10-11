@@ -37,10 +37,6 @@ import {
 } from '../agent/conversation';
 import { assertNever } from '../util/assertNever';
 
-// Input status for typing indicator is a lot.
-// TODO: redo preemption.
-// rename uuid to operationuuid
-
 const selfInternal = internal.game.agents;
 
 export const agents = defineTable({
@@ -62,11 +58,6 @@ export const agents = defineTable({
       started: v.number(),
     }),
   ),
-  nextConversationAttempt: v.optional(v.number()),
-  givingUpOnInvite: v.optional(v.number()),
-  conversationTooLong: v.optional(v.number()),
-  waitingForMessage: v.optional(v.number()),
-  messageCooldown: v.optional(v.number()),
 }).index('playerId', ['playerId']);
 
 export class Agents extends GameTable<'agents'> {
@@ -104,15 +95,9 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
   const location = game.locations.lookup(now, player.locationId);
   const position = { x: location.x, y: location.y };
 
-  // Reset all of our timers: We'll set them again if we need them.
-  delete agent.conversationTooLong;
-  delete agent.waitingForMessage;
-  delete agent.nextConversationAttempt;
-  delete agent.givingUpOnInvite;
-  delete agent.messageCooldown;
-
   if (agent.inProgressOperation) {
     if (now < agent.inProgressOperation.started + ACTION_TIMEOUT) {
+      // Wait on the operation to finish.
       return;
     }
     console.log(`Timing out ${JSON.stringify(agent.inProgressOperation)}`);
@@ -147,13 +132,11 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
 
     // Don't try to start a new conversation if we were just in one.
     if (agent.lastConversation && now < agent.lastConversation + CONVERSATION_COOLDOWN) {
-      agent.nextConversationAttempt = agent.lastConversation + CONVERSATION_COOLDOWN;
       return;
     }
 
     // Don't try again if we recently tried to find someone to invite.
     if (agent.lastInviteAttempt && now < agent.lastInviteAttempt + CONVERSATION_COOLDOWN) {
-      agent.nextConversationAttempt = agent.lastInviteAttempt + CONVERSATION_COOLDOWN;
       return;
     }
 
@@ -227,7 +210,6 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
         leaveConversation(game, now, player._id, conversation._id);
         return;
       }
-      agent.givingUpOnInvite = member._creationTime + INVITE_TIMEOUT;
 
       // Don't keep moving around if we're near enough.
       const playerDistance = distance(position, otherPosition);
@@ -284,7 +266,6 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
           return;
         } else {
           // Wait on the other player to say something up to the awkward deadline.
-          agent.waitingForMessage = awkwardDeadline;
           return;
         }
       }
@@ -306,13 +287,11 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
         });
         return;
       }
-      agent.conversationTooLong = tooLongDeadline;
 
       // Wait for the awkward deadline if we sent the last message.
       if (conversation.lastMessage.author === player._id) {
         const awkwardDeadline = conversation.lastMessage.timestamp + AWKWARD_CONVERSATION_TIMEOUT;
         if (now < awkwardDeadline) {
-          agent.waitingForMessage = awkwardDeadline;
           return;
         }
       }
@@ -320,7 +299,6 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
       // Wait for a cooldown after the last message to simulate "reading" the message.
       const messageCooldown = conversation.lastMessage.timestamp + MESSAGE_COOLDOWN;
       if (now < messageCooldown) {
-        agent.messageCooldown = messageCooldown;
         return;
       }
 
