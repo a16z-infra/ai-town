@@ -22,7 +22,7 @@ import {
 } from './constants';
 import { continueConversation, leaveConversation, startConversation } from './conversation';
 import { internal } from '../_generated/api';
-import { latestMemoryOfType, reflectOnMemories, rememberConversation } from './memory';
+import { latestMemoryOfType, rememberConversation } from './memory';
 
 const selfInternal = internal.agent.main;
 
@@ -489,7 +489,6 @@ export const agentRememberConversation = internalAction({
       args.playerId,
       args.conversationId,
     );
-    await reflectOnMemories(ctx, args.agentId, args.generationNumber, args.playerId);
     await ctx.runMutation(selfInternal.scheduleNextRun, {
       agentId: args.agentId,
       expectedGenerationNumber: args.generationNumber,

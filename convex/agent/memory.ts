@@ -68,7 +68,8 @@ export async function rememberConversation(
   // Set the `isThinking` flag and schedule a function to clear it after 60s. We'll
   // also clear the flag in `insertMemory` below to stop thinking early on success.
   await ctx.runMutation(selfInternal.startThinking, { agentId, now });
-  await ctx.scheduler.runAfter(ACTION_TIMEOUT, selfInternal.clearThinking, { agentId, since: now });
+  const since = now;
+  await ctx.scheduler.runAfter(ACTION_TIMEOUT, selfInternal.clearThinking, { agentId, since });
 
   const llmMessages: LLMMessage[] = [
     {
@@ -114,6 +115,8 @@ export async function rememberConversation(
     },
     embedding,
   });
+  await reflectOnMemories(ctx, agentId, generationNumber, playerId);
+  await ctx.runMutation(selfInternal.clearThinking, { agentId, since });
   return description;
 }
 
@@ -318,8 +321,6 @@ export const insertMemory = internalMutation({
         `Agent ${agentId} generation number ${agent.generationNumber} does not match ${generationNumber}`,
       );
     }
-    // Clear the `isThinking` flag atomically with inserting the memory.
-    await ctx.db.patch(agentId, { isThinking: undefined });
     const embeddingId = await ctx.db.insert('memoryEmbeddings', {
       playerId: memory.playerId,
       embedding: embedding,
@@ -355,8 +356,6 @@ export const insertReflectionMemories = internalMutation({
         `Agent ${agentId} generation number ${agent.generationNumber} does not match ${generationNumber}`,
       );
     }
-    // Clear the `isThinking` flag atomically with inserting the memory.
-    await ctx.db.patch(agentId, { isThinking: undefined });
     const lastAccess = Date.now();
     for (const { embedding, relatedMemoryIds, ...rest } of reflections) {
       const embeddingId = await ctx.db.insert('memoryEmbeddings', {
@@ -377,7 +376,7 @@ export const insertReflectionMemories = internalMutation({
   },
 });
 
-export async function reflectOnMemories(
+async function reflectOnMemories(
   ctx: ActionCtx,
   agentId: Id<'agents'>,
   generationNumber: number,
@@ -444,7 +443,7 @@ export async function reflectOnMemories(
       reflections: memoriesToSave,
     });
   } catch (e) {
-    console.error('error saving or parseing reflection', e);
+    console.error('error saving or parsing reflection', e);
     console.debug('reflection', reflection);
     return false;
   }
