@@ -1,18 +1,12 @@
 import { v } from 'convex/values';
-import { api, internal } from './_generated/api';
-import {
-  DatabaseReader,
-  DatabaseWriter,
-  MutationCtx,
-  internalMutation,
-  mutation,
-} from './_generated/server';
+import { internal } from './_generated/api';
+import { DatabaseReader, MutationCtx, internalMutation, mutation } from './_generated/server';
 import { Descriptions } from '../data/characters';
 import * as firstmap from '../data/firstmap';
 import { insertInput } from './game/main';
-import { initAgent, kickAgents, stopAgents } from './agent/init';
-import { Doc, Id } from './_generated/dataModel';
-import { createEngine, kickEngine, startEngine, stopEngine } from './engine/game';
+import { initAgent } from './agent/init';
+import { Doc } from './_generated/dataModel';
+import { createEngine } from './engine/game';
 
 const DEFAULT_NUM_AGENTS = 4;
 
@@ -35,7 +29,7 @@ const init = mutation({
     const { world, engine } = await getOrCreateDefaultWorld(ctx);
     if (world.status !== 'running') {
       console.warn(
-        `Engine ${engine._id} is not active! Run "npx convex run init:resume" to restart it.`,
+        `Engine ${engine._id} is not active! Run "npx convex run testing:resume" to restart it.`,
       );
       return;
     }
@@ -63,74 +57,6 @@ const init = mutation({
   },
 });
 export default init;
-
-export const kick = internalMutation({
-  handler: async (ctx) => {
-    const { world, engine } = await getDefaultWorld(ctx.db);
-    await kickEngine(ctx, internal.game.main.runStep, engine._id);
-    await kickAgents(ctx, { worldId: world._id });
-  },
-});
-
-export const stop = internalMutation({
-  handler: async (ctx) => {
-    const { world, engine } = await getDefaultWorld(ctx.db);
-    if (world.status === 'inactive' || world.status === 'stoppedByDeveloper') {
-      if (engine.state.kind !== 'stopped') {
-        throw new Error(`Engine ${engine._id} isn't stopped?`);
-      }
-      console.debug(`World ${world._id} is already inactive`);
-      return;
-    }
-    console.log(`Stopping engine ${engine._id}...`);
-    await ctx.db.patch(world._id, { status: 'stoppedByDeveloper' });
-    await stopEngine(ctx, engine._id);
-    await stopAgents(ctx, { worldId: world._id });
-  },
-});
-
-export const resume = internalMutation({
-  handler: async (ctx) => {
-    const { world, engine } = await getDefaultWorld(ctx.db);
-    if (world.status === 'running') {
-      if (engine.state.kind !== 'running') {
-        throw new Error(`Engine ${engine._id} isn't running?`);
-      }
-      console.debug(`World ${world._id} is already running`);
-      return;
-    }
-    console.log(`Resuming engine ${engine._id} for world ${world._id} (state: ${world.status})...`);
-    await ctx.db.patch(world._id, { status: 'running' });
-    await startEngine(ctx, internal.game.main.runStep, engine._id);
-    await kickAgents(ctx, { worldId: world._id });
-  },
-});
-
-export const archive = internalMutation({
-  handler: async (ctx) => {
-    const { world, engine } = await getDefaultWorld(ctx.db);
-    if (engine.state.kind === 'running') {
-      throw new Error(`Engine ${engine._id} is still running!`);
-    }
-    console.log(`Archiving world ${world._id}...`);
-    await ctx.db.patch(world._id, { isDefault: false });
-  },
-});
-
-async function getDefaultWorld(db: DatabaseReader) {
-  const world = await db
-    .query('worlds')
-    .filter((q) => q.eq(q.field('isDefault'), true))
-    .first();
-  if (!world) {
-    throw new Error('No default world found');
-  }
-  const engine = await db.get(world.engineId);
-  if (!engine) {
-    throw new Error(`Engine ${world.engineId} not found`);
-  }
-  return { world, engine };
-}
 
 async function getOrCreateDefaultWorld(ctx: MutationCtx) {
   const now = Date.now();
