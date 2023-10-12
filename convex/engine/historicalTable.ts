@@ -181,7 +181,7 @@ export abstract class HistoricalTable<T extends TableNames> {
       await this.db.replace(id, row as any);
     }
     if (buffersPacked > 0) {
-      console.log(
+      console.debug(
         `Packed ${buffersPacked} buffers for ${this.table}, total size: ${(
           totalSize / 1024
         ).toFixed(2)}KiB`,

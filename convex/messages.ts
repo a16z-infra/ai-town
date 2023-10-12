@@ -111,7 +111,7 @@ export const writeMessage = mutation({
       .unique();
     if (!member || member.status.kind !== 'participating') {
       throw new Error(
-        `Player ${args.playerId} is not participating in conversation ${args.conversationId}`,
+        `Player ${args.playerId} is not participating in conversation ${args.conversationId}: ${member?.status.kind}`,
       );
     }
     const indicator = await ctx.db
