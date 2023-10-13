@@ -46,14 +46,34 @@ export const deletePage = internalMutation({
   },
 });
 
-async function deleteBatch<TableName extends TableNames>(
-  db: DatabaseWriter,
-  table: TableName,
-  cursor: null | string,
-) {
-  const results = await db.query(table).paginate({ cursor, numItems: DELETE_BATCH_SIZE });
-  for (const row of results.page) {
-    await db.delete(row._id);
+export const runAgentLoop = internalAction({
+  args: {
+    numberOfLoops: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    console.log('Looping', args.numberOfLoops || 100);
+    const { players, world } = await ctx.runQuery(internal.testing.getDebugPlayers);
+    const playerIds = players.map((p) => p.id);
+
+    let index = args.numberOfLoops || 100;
+    const randomX: number[] = [];
+    const displacement = 25;
+    for (let i = 0; i < playerIds.length; i++) {
+      randomX.push(displacement * i);
+    }
+
+    while (index-- != 0) {
+      await ctx.runMutation(internal.testing.setThinking, { playerIds });
+      await ctx.runAction(internal.agent.runAgentBatch, { playerIds, noSchedule: true });
+    }
+  },
+});
+
+export const replicate = internalAction({
+  args: {},
+  handler: async (cts, args) => {
+    const result = await enqueueBackgroundMusicGeneration(cts, args);
+    console.log(result)
   }
   return { isDone: results.isDone, cursor: results.continueCursor };
 }

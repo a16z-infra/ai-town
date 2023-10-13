@@ -8,14 +8,14 @@ export async function chatCompletion(
   checkForAPIKey();
 
   body.model = body.model ?? 'gpt-3.5-turbo-16k';
-  body.stream = true;
-  const stopWords = body.stop ? (typeof body.stop === 'string' ? [body.stop] : body.stop) : [];
+  const openaiApiBase = process.env.OPENAI_API_BASE || 'https://api.openai.com';
   const {
     result: resultStream,
     retries,
     ms,
   } = await retryWithBackoff(async () => {
-    const result = await fetch('https://api.openai.com/v1/chat/completions', {
+    const apiUrl = openaiApiBase + '/v1/chat/completions';
+    const result = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -42,13 +42,21 @@ export async function chatCompletion(
 }
 
 export async function fetchEmbeddingBatch(texts: string[]) {
-  checkForAPIKey();
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error(
+      'Missing OPENAI_API_KEY in environment variables.\n' +
+        'Set it in the project settings in the Convex dashboard:\n' +
+        '    npx convex dashboard\n or https://dashboard.convex.dev',
+    );
+  }
+  const openaiApiBase = process.env.OPENAI_API_BASE || 'https://api.openai.com';
   const {
     result: json,
     retries,
     ms,
   } = await retryWithBackoff(async () => {
-    const result = await fetch('https://api.openai.com/v1/embeddings', {
+    const apiUrl = openaiApiBase + '/v1/embeddings';
+    const result = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -73,7 +81,7 @@ export async function fetchEmbeddingBatch(texts: string[]) {
     throw new Error('Unexpected number of embeddings');
   }
   const allembeddings = json.data;
-  allembeddings.sort((a, b) => b.index - a.index);
+  allembeddings.sort((a, b) => a.index - b.index);
   return {
     embeddings: allembeddings.map(({ embedding }) => embedding),
     usage: json.usage.total_tokens,

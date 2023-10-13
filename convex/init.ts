@@ -62,64 +62,19 @@ export const kick = internalMutation({
   },
 });
 
-export const stop = internalMutation({
-  handler: async (ctx) => {
-    const { world, engine } = await getDefaultWorld(ctx.db);
-    if (world.status === 'inactive' || world.status === 'stoppedByDeveloper') {
-      if (engine.state.kind !== 'stopped') {
-        throw new Error(`Engine ${engine._id} isn't stopped?`);
-      }
-      console.debug(`World ${world._id} is already inactive`);
-      return;
-    }
-    console.log(`Stopping engine ${engine._id}...`);
-    await ctx.db.patch(world._id, { status: 'stoppedByDeveloper' });
-    await stopEngine(ctx, engine._id);
-    await stopAgents(ctx, { worldId: world._id });
-  },
-});
-
-export const resume = internalMutation({
-  handler: async (ctx) => {
-    const { world, engine } = await getDefaultWorld(ctx.db);
-    if (world.status === 'running') {
-      if (engine.state.kind !== 'running') {
-        throw new Error(`Engine ${engine._id} isn't running?`);
-      }
-      console.debug(`World ${world._id} is already running`);
-      return;
-    }
-    console.log(`Resuming engine ${engine._id} for world ${world._id} (state: ${world.status})...`);
-    await ctx.db.patch(world._id, { status: 'running' });
-    await startEngine(ctx, internal.game.main.runStep, engine._id);
-    await kickAgents(ctx, { worldId: world._id });
-  },
-});
-
-export const archive = internalMutation({
-  handler: async (ctx) => {
-    const { world, engine } = await getDefaultWorld(ctx.db);
-    if (engine.state.kind === 'running') {
-      throw new Error(`Engine ${engine._id} is still running!`);
-    }
-    console.log(`Archiving world ${world._id}...`);
-    await ctx.db.patch(world._id, { isDefault: false });
-  },
-});
-
-async function getDefaultWorld(db: DatabaseReader) {
-  const world = await db
-    .query('worlds')
-    .filter((q) => q.eq(q.field('isDefault'), true))
-    .first();
-  if (!world) {
-    throw new Error('No default world found');
-  }
-  const engine = await db.get(world.engineId);
-  if (!engine) {
-    throw new Error(`Engine ${world.engineId} not found`);
-  }
-  return { world, engine };
+async function makeWorld(db: DatabaseWriter, frozen: boolean) {
+  const mapId = await db.insert('maps', {
+    tileSetUrl: tilesetpath,
+    tileSetDim: tilefiledim,
+    tileDim: tiledim,
+    bgTiles: bgtiles,
+    objectTiles: objmap,
+  });
+  const worldId = await db.insert('worlds', {
+    mapId,
+    frozen,
+  });
+  return worldId;
 }
 
 async function getOrCreateDefaultWorld(ctx: MutationCtx) {
