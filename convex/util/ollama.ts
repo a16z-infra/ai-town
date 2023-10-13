@@ -3,8 +3,6 @@ import { Ollama } from 'langchain/llms/ollama';
 const ollamaModel = process.env.OLLAMA_MODEL || 'llama2';
 
 export async function ollamaChatCompletion(body: any) {
-  checkForAPIKey();
-
   body.model = body.model ?? 'llama2';
   const {
     result: content,
