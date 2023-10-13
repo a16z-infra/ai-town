@@ -10,9 +10,8 @@ export abstract class SubscriptionLoop<Args extends DefaultFunctionArgs, Value> 
   now: number;
 
   subscription?: () => void;
-  currentValue?: Value;
+  nextValue?: Value;
   waiter?: () => void;
-  version: number = 0;
 
   constructor(
     public client: ConvexClient,
@@ -43,20 +42,21 @@ export abstract class SubscriptionLoop<Args extends DefaultFunctionArgs, Value> 
           continue;
         }
         // Wait until the value's ready if it's still loading.
-        if (!this.currentValue) {
-          await Promise.race([this.waitForValue(), sleep(this.deadline - Date.now())]);
+        if (!this.nextValue) {
+          await Promise.race([this.waitForNextValue(), sleep(this.deadline - Date.now())]);
           continue;
         }
-        // Process the value.
-        const handledVersion = this.version;
-        const handlerReturn = await this.handleValue(this.currentValue);
-        if (typeof handlerReturn === 'undefined') {
+        // Consume the next value.
+        const value = this.nextValue;
+        delete this.nextValue;
+        const handlerReturn = await this.handleValue(value);
+        if (handlerReturn === undefined) {
           continue;
         }
         if (handlerReturn.kind === 'exit') {
           return;
         }
-        await this.waitForTimeout(handlerReturn.when, handledVersion);
+        await this.waitForTimeout(handlerReturn.when);
       }
     } finally {
       if (this.subscription) {
@@ -66,31 +66,19 @@ export abstract class SubscriptionLoop<Args extends DefaultFunctionArgs, Value> 
     }
   }
 
-  private async waitForTimeout(timeoutExpired: number, expectedVersion: number) {
+  private async waitForTimeout(timeoutExpired: number) {
     const now = Date.now();
-    const valueChanged = this.waitForValue(expectedVersion);
+    const valueChanged = this.waitForNextValue();
     const sleepUntil = Math.min(this.deadline, timeoutExpired);
 
-    let hitTimeout = false;
-    if (now < sleepUntil) {
-      const sleepFor = sleepUntil - now;
-      console.log(`Sleeping for ${sleepFor}ms`);
-      const why = await Promise.race([
-        valueChanged.then(() => Promise.resolve('valueChanged')),
-        sleep(sleepFor).then(() => Promise.resolve('sleep')),
-      ]);
-      if (why == 'sleep') {
-        hitTimeout = true;
-      }
-    } else {
-      hitTimeout = true;
-    }
+    const why = await Promise.race([
+      valueChanged.then(() => Promise.resolve('valueChanged')),
+      sleep(sleepUntil - now).then(() => Promise.resolve('sleep')),
+    ]);
     // Reset the subscription if we hit a timeout so we advance time.
-    if (hitTimeout) {
-      if (this.subscription) {
-        this.subscription();
-        delete this.subscription;
-      }
+    if (why == 'sleep' && this.subscription) {
+      this.subscription();
+      delete this.subscription;
     }
   }
 
@@ -99,21 +87,17 @@ export abstract class SubscriptionLoop<Args extends DefaultFunctionArgs, Value> 
       this.waiter();
       delete this.waiter;
     }
-    this.currentValue = value;
-    this.version += 1;
+    this.nextValue = value;
   }
 
-  private async waitForValue(expectedVersion?: number): Promise<void> {
+  private async waitForNextValue(): Promise<void> {
     return new Promise<void>((resolve) => {
-      if (expectedVersion !== undefined && expectedVersion !== this.version) {
-        resolve();
-        return;
-      }
-      if (this.currentValue) {
+      if (this.nextValue !== undefined) {
         resolve();
         return;
       }
       this.waiter = resolve;
+      return;
     });
   }
 }

@@ -22,7 +22,7 @@ import type * as agent_helpers from "../agent/helpers";
 import type * as agent_init from "../agent/init";
 import type * as agent_main from "../agent/main";
 import type * as agent_memory from "../agent/memory";
-import type * as agent_subscription from "../agent/subscription";
+import type * as agent_subscriptionLoop from "../agent/subscriptionLoop";
 import type * as constants from "../constants";
 import type * as crons from "../crons";
 import type * as engine_constants from "../engine/constants";
@@ -69,7 +69,7 @@ declare const fullApi: ApiFromModules<{
   "agent/init": typeof agent_init;
   "agent/main": typeof agent_main;
   "agent/memory": typeof agent_memory;
-  "agent/subscription": typeof agent_subscription;
+  "agent/subscriptionLoop": typeof agent_subscriptionLoop;
   constants: typeof constants;
   crons: typeof crons;
   "engine/constants": typeof engine_constants;

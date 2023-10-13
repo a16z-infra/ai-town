@@ -11,7 +11,7 @@ import { ConversationDecision } from './decisions';
 import { rememberConversation } from './memory';
 import { Id } from '../_generated/dataModel';
 import { continueConversation, leaveConversation, startConversation } from './conversation';
-import { HandlerReturn, SubscriptionLoop } from './subscription';
+import { HandlerReturn, SubscriptionLoop } from './subscriptionLoop';
 
 class AgentLoop extends SubscriptionLoop<{ agentId: Id<'agents'> }, AgentDecision> {
   constructor(
