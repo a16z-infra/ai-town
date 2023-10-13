@@ -14,6 +14,7 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as agent_batchedDecisions from "../agent/batchedDecisions";
 import type * as agent_constants from "../agent/constants";
 import type * as agent_conversation from "../agent/conversation";
 import type * as agent_decisions from "../agent/decisions";
@@ -61,6 +62,7 @@ import type * as world from "../world";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  "agent/batchedDecisions": typeof agent_batchedDecisions;
   "agent/constants": typeof agent_constants;
   "agent/conversation": typeof agent_conversation;
   "agent/decisions": typeof agent_decisions;

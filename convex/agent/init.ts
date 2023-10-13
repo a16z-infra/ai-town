@@ -29,7 +29,7 @@ export const initAgent = internalMutation({
       generationNumber: 0,
       inProgressInputs: [],
     });
-    ctx.scheduler.runAfter(0, internal.agent.main.runAgentLoop, { agentId, maxRuntime: 10000 });
+    // ctx.scheduler.runAfter(0, internal.agent.main.runAgentLoop, { agentId, maxRuntime: 10000 });
   },
 });
 
