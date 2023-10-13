@@ -424,6 +424,10 @@ export class AiTown extends Game<Inputs> {
         location1.velocity = 0;
         location2.velocity = 0;
 
+        // Stop doing whatever they were doing.
+        delete player1.activity;
+        delete player2.activity;
+
         // Orient the players towards each other.
         if (playerDistance > EPSILON) {
           const v = normalize(vector(location1, location2));
