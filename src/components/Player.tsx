@@ -49,7 +49,11 @@ export const Player = ({
         isMoving={historicalLocation.velocity > 0}
         isThinking={player.isThinking}
         isSpeaking={player.isSpeaking}
-        emoji={player.activity?.emoji}
+        emoji={
+          player.activity && player.activity.until > (historicalTime ?? Date.now())
+            ? player.activity?.emoji
+            : undefined
+        }
         isViewer={isViewer}
         textureUrl={character.textureUrl}
         spritesheetData={character.spritesheetData}
