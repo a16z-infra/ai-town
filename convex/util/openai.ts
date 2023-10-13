@@ -1,5 +1,21 @@
 // That's right! No imports and no dependencies 🤯
 
+// Overload for non-streaming
+export async function chatCompletion(
+  body: Omit<CreateChatCompletionRequest, 'model'> & {
+    model?: CreateChatCompletionRequest['model'];
+  } & {
+    stream?: false | null | undefined;
+  },
+): Promise<{ content: string; retries: number; ms: number }>;
+// Overload for streaming
+export async function chatCompletion(
+  body: Omit<CreateChatCompletionRequest, 'model'> & {
+    model?: CreateChatCompletionRequest['model'];
+  } & {
+    stream?: true;
+  },
+): Promise<{ content: ChatCompletionContent; retries: number; ms: number }>;
 export async function chatCompletion(
   body: Omit<CreateChatCompletionRequest, 'model'> & {
     model?: CreateChatCompletionRequest['model'];
@@ -9,8 +25,9 @@ export async function chatCompletion(
 
   body.model = body.model ?? 'gpt-3.5-turbo-16k';
   const openaiApiBase = process.env.OPENAI_API_BASE || 'https://api.openai.com';
+  const stopWords = body.stop ? (typeof body.stop === 'string' ? [body.stop] : body.stop) : [];
   const {
-    result: resultStream,
+    result: content,
     retries,
     ms,
   } = await retryWithBackoff(async () => {
@@ -32,29 +49,33 @@ export async function chatCompletion(
         ),
       };
     }
-    return result.body!;
+    if (body.stream) {
+      return new ChatCompletionContent(result.body!, stopWords);
+    } else {
+      const json = (await result.json()) as CreateChatCompletionResponse;
+      const content = json.choices[0].message?.content;
+      if (content === undefined) {
+        throw new Error('Unexpected result from OpenAI: ' + JSON.stringify(json));
+      }
+      return content;
+    }
   });
+
   return {
-    content: new ChatCompletionContent(resultStream, stopWords),
+    content,
     retries,
     ms,
   };
 }
 
 export async function fetchEmbeddingBatch(texts: string[]) {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error(
-      'Missing OPENAI_API_KEY in environment variables.\n' +
-        'Set it in the project settings in the Convex dashboard:\n' +
-        '    npx convex dashboard\n or https://dashboard.convex.dev',
-    );
-  }
-  const openaiApiBase = process.env.OPENAI_API_BASE || 'https://api.openai.com';
+  checkForAPIKey();
   const {
     result: json,
     retries,
     ms,
   } = await retryWithBackoff(async () => {
+    const openaiApiBase = process.env.OPENAI_API_BASE || 'https://api.openai.com';
     const apiUrl = openaiApiBase + '/v1/embeddings';
     const result = await fetch(apiUrl, {
       method: 'POST',
@@ -201,6 +222,29 @@ export interface LLMMessage {
      * Validate the arguments in your code before calling your function.
      */
     arguments: string;
+  };
+}
+
+// Non-streaming chat completion response
+interface CreateChatCompletionResponse {
+  id: string;
+  object: string;
+  created: number;
+  model: string;
+  choices: {
+    index?: number;
+    message?: {
+      role: 'system' | 'user' | 'assistant';
+      content: string;
+    };
+    finish_reason?: string;
+  }[];
+  usage?: {
+    completion_tokens: number;
+
+    prompt_tokens: number;
+
+    total_tokens: number;
   };
 }
 

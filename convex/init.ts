@@ -1,22 +1,21 @@
 import { v } from 'convex/values';
-import { api, internal } from './_generated/api';
-import {
-  DatabaseReader,
-  DatabaseWriter,
-  MutationCtx,
-  internalMutation,
-  mutation,
-} from './_generated/server';
+import { internal } from './_generated/api';
+import { DatabaseReader, MutationCtx, internalMutation, mutation } from './_generated/server';
 import { Descriptions } from '../data/characters';
 //import * as firstmap from '../data/firstmap';
 import * as firstmap from '../data/mage';
 import { insertInput } from './game/main';
-import { initAgent, kickAgents, stopAgents } from './agent/init';
-import { Doc, Id } from './_generated/dataModel';
-import { createEngine, kickEngine, startEngine, stopEngine } from './engine/game';
+import { initAgent } from './agent/init';
+import { Doc } from './_generated/dataModel';
+import { createEngine } from './engine/game';
+
+const DEFAULT_NUM_AGENTS = 4;
 
 const init = mutation({
-  handler: async (ctx) => {
+  args: {
+    numAgents: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
     if (!process.env.OPENAI_API_KEY) {
       const deploymentName = process.env.CONVEX_CLOUD_URL?.slice(8).replace('.convex.cloud', '');
       throw new Error(
@@ -31,13 +30,18 @@ const init = mutation({
     const { world, engine } = await getOrCreateDefaultWorld(ctx);
     if (world.status !== 'running') {
       console.warn(
-        `Engine ${engine._id} is not active! Run "npx convex run init:resume" to restart it.`,
+        `Engine ${engine._id} is not active! Run "npx convex run testing:resume" to restart it.`,
       );
       return;
     }
     // Send inputs to create players for all of the agents.
     if (await shouldCreateAgents(ctx.db, world)) {
+      const numAgents = Math.min(args.numAgents ?? DEFAULT_NUM_AGENTS, Descriptions.length);
+      let numCreated = 0;
       for (const agent of Descriptions) {
+        if (numCreated >= numAgents) {
+          break;
+        }
         const inputId = await insertInput(ctx, world._id, 'join', {
           name: agent.name,
           description: agent.identity,
@@ -48,34 +52,12 @@ const init = mutation({
           joinInputId: inputId,
           character: agent.character,
         });
+        numCreated++;
       }
     }
   },
 });
 export default init;
-
-export const kick = internalMutation({
-  handler: async (ctx) => {
-    const { world, engine } = await getDefaultWorld(ctx.db);
-    await kickEngine(ctx, internal.game.main.runStep, engine._id);
-    await kickAgents(ctx, { worldId: world._id });
-  },
-});
-
-async function makeWorld(db: DatabaseWriter, frozen: boolean) {
-  const mapId = await db.insert('maps', {
-    tileSetUrl: tilesetpath,
-    tileSetDim: tilefiledim,
-    tileDim: tiledim,
-    bgTiles: bgtiles,
-    objectTiles: objmap,
-  });
-  const worldId = await db.insert('worlds', {
-    mapId,
-    frozen,
-  });
-  return worldId;
-}
 
 async function getOrCreateDefaultWorld(ctx: MutationCtx) {
   const now = Date.now();

@@ -8,7 +8,6 @@ export function useHistoricalTime(worldId?: Id<'worlds'>) {
   const timeManager = useRef(new HistoricalTimeManager());
   const rafRef = useRef<number>();
   const [historicalTime, setHistoricalTime] = useState<number | undefined>(undefined);
-  const [bufferHealth, setBufferHealth] = useState(0);
   if (engineStatus) {
     timeManager.current.receive(engineStatus);
   }
@@ -16,7 +15,6 @@ export function useHistoricalTime(worldId?: Id<'worlds'>) {
     // We don't need sub-millisecond precision for interpolation, so just use `Date.now()`.
     const now = Date.now();
     setHistoricalTime(timeManager.current.historicalServerTime(now));
-    setBufferHealth(timeManager.current.bufferHealth());
     rafRef.current = requestAnimationFrame(updateTime);
   };
   useEffect(() => {
@@ -143,6 +141,6 @@ export class HistoricalTimeManager {
   }
 }
 
-const MAX_SERVER_BUFFER_AGE = 1250;
-const SOFT_MAX_SERVER_BUFFER_AGE = 1000;
-const SOFT_MIN_SERVER_BUFFER_AGE = 100;
+const MAX_SERVER_BUFFER_AGE = 1500;
+const SOFT_MAX_SERVER_BUFFER_AGE = 1250;
+const SOFT_MIN_SERVER_BUFFER_AGE = 250;

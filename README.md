@@ -22,8 +22,7 @@ a simple project to play around with to a scalable, multi-player game. A seconda
 
 ## Stack
 
-- Game engine & Database: [Convex](https://convex.dev/)
-- VectorDB: Convex or [Pinecone](https://www.pinecone.io/)
+- Game engine, database, and vector search: [Convex](https://convex.dev/)
 - Auth: [Clerk](https://clerk.com/)
 - Text model: [OpenAI](https://platform.openai.com/docs/models)
 - Deployment: [Vercel](https://vercel.com/)
@@ -66,26 +65,13 @@ b. **OpenAI API key**
 Visit https://platform.openai.com/account/api-keys to get your OpenAI API key and set the
 `OPENAI_API_KEY` environment variable in your Convex deployment (see below).
 
-You can use the default `https://api.openai.com` or a third-party website. (such as: Azure, proxy website, etc.)
-
-To use a custom provider, make sure that the third-party website supports and enables the corresponding model (for example: `gpt-3.5-turbo-16k`, `text-embedding-ada-002`)
-In addition to the `OPENAI_API_KEY` environment variable (see below), add `OPENAI_API_BASE=<your-base-url>`
-
-c. **Pinecone API keys (Optional)**
-
-By default it will use the Convex vector storage.
-If you plan to store more than 100k vectors, you can use Pinecone.
-It will use Pinecone if you set the associated Pinecone environment variables.
-
-d. **Add environment variables to the Convex backend**
-
-d. **Replicate API key (Optional)**
+c. **Replicate API key (Optional)**
 For Daily background music generation, create a
 [Replicate](https://replicate.com/) account and create a token in your Profile's
 [API Token page](https://replicate.com/account/api-tokens).
 Add the token as `REPLICATE_API_TOKEN` in your Convex environment variables.
 
-e. **Add environment variables to the Convex backend**
+d. **Add environment variables to the Convex backend**
 
 Environment variables for a Convex backend is configured through the dashboard:
 
@@ -97,11 +83,7 @@ Go to "settings" and add the following environment variables. `CLERK_ISSUER_URL`
 
 ```bash
 OPENAI_API_KEY  sk-*******
-OPENAI_API_BASE  sk-******* # optional
 CLERK_ISSUER_URL  https://****
-PINECONE_API_KEY  ******** # optional
-PINECONE_ENVIRONMENT us**** # optional
-PINECONE_INDEX_NAME  ******** # optional
 REPLICATE_API_TOKEN **** #optional
 ```
 
@@ -126,7 +108,9 @@ npm run dev:backend
 See package.json for details, but dev:backend runs `npx convex dev`
 
 **Note**: The simulation will pause after 5 minutes if the window is idle.
-Loading the page will unpause it. If you want to run the world without the
+Loading the page will unpause it.
+You can also manually freeze & unfreeze the world with a button in the UI.
+If you want to run the world without the
 browser, you can comment-out the "stop inactive worlds" cron in `convex/crons.ts`.
 
 ### Various commands to run / test / debug
@@ -142,19 +126,19 @@ This will stop running the engine and agents. You can still run queries and
 run functions to debug.
 
 ```bash
-npx convex run --no-push init:stop
+npx convex run --no-push testing:stop
 ```
 
 **To restart the back end after stopping it**
 
 ```bash
-npx convex run init:resume
+npx convex run testing:resume
 ```
 
 **To kick the engine in case the game engine or agents aren't running**
 
 ```bash
-npx convex run init:kick
+npx convex run testing:kick
 ```
 
 **To archive the world**
@@ -162,7 +146,7 @@ npx convex run init:kick
 If you'd like to reset the world and start from scratch, you can archive the current world:
 
 ```bash
-npx convex run init:archive
+npx convex run testing:archive
 ```
 
 Then, you can still look at the world's data in the dashboard, but the engine and agents will
@@ -193,40 +177,13 @@ there are gentler ways of stopping above. Once you
 
 #### Deploy to Vercel
 
-- Register an account on fly.io and then [install flyctl](https://fly.io/docs/hands-on/install-flyctl/)
-- **If you are using Github Codespaces**: You will need to [install flyctl](https://fly.io/docs/hands-on/install-flyctl/) and authenticate from your codespaces cli by running `fly auth login`.
-
-- Run `npx convex deploy` to deploy your dev environment to prod environment. Make sure you copy over all secrets to Convex's prod environment
-- Run `fly launch` under project root. This will generate a `fly.toml` that includes all the configurations you will need
-- Modify generated `fly.toml` to include `NEXT_PUBLIC_*` during build time for NextJS to access client side.
-```
-[build]
-  [build.args]
-    NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in"
-    NEXT_PUBLIC_CLERK_SIGN_UP_URL="/sign-up"
-    NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL="/"
-    NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL="/"
-    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_*****"
-    NEXT_PUBLIC_CONVEX_URL="https://*******.convex.cloud"
-```
-- Modify fly.io's generated `Dockerfile` to include new ENV variables right above `RUN npm run build`
-```
-ARG NEXT_PUBLIC_CLERK_SIGN_IN_URL
-ARG NEXT_PUBLIC_CLERK_SIGN_UP_URL
-ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL
-ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL
-ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-ARG NEXT_PUBLIC_CONVEX_URL
-
-# Build application
-RUN npm run build
-```
-- Run `fly deploy --ha=false` to deploy the app. The --ha flag makes sure fly only spins up one instance, which is included in the free plan.
-- Run `fly scale memory 512` to scale up the fly vm memory for this app.
-- Create a new file `.env.prod` locally and fill in all the production-environment secrets. Remember to update `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` by copying secrets from Clerk's production instance -`cat .env.prod | fly secrets import` to upload secrets. Also remember to update `CONVEX_DEPLOYMENT` and `NEXT_PUBLIC_CONVEX_URL` -- both of them should now point to Convex's prod environment.
+- Register an account on Vercel and then [install the Vercel CLI](https://vercel.com/docs/cli).
+- **If you are using Github Codespaces**: You will need to [install the Vercel CLI](https://vercel.com/docs/cli) and authenticate from your codespaces cli by running `vercel login`.
+- Deploy the app to Vercel with `vercel --prod`.
 
 #### Deploy Convex functions to prod environment
-Before you can run the app, you will need to make sure the convex functions are deployed to its production environment.
+
+Before you can run the app, you will need to make sure the Convex functions are deployed to its production environment.
 
 1. Run `npx convex deploy` to deploy the convex functions to production
 2. Run `npx convex run init --prod --no-push`
@@ -234,16 +191,6 @@ Before you can run the app, you will need to make sure the convex functions are 
 If you have existing data you want to clear, you can run `npx convex run testing:debugClearAll --prod --no-push`
 
 ## Customize your own simulation
-
-NOTE: every time you change character data, you should re-run
-`npx convex run testing:debugClearAll` and then
-`npm run dev` to re-upload everything to Convex.
-This is because character data is sent to Convex on the initial load.
-However, beware that `npx convex run testing:debugClearAll --no-push` WILL wipe
-all of your data, including your vector store.
-To edit character data on the fly, you can edit it from the convex Dashboard in
-the "memories" table.
-Try filtering for "identity" or "relationship" as the type.
 
 NOTE: every time you change character data, you should re-run
 `npx convex run testing:debugClearAll` and then
@@ -274,6 +221,7 @@ You should find a sprite sheet for your character, and define sprite motion / as
 5. Change how often to generate new music at `convex/crons.ts` by modifying the `generate new background music` job
 
 ## Credits
+
 - All interactions, background music and rendering on the <Game/> component in the project are powered by [PixiJS](https://pixijs.com/).
 - Tilesheet:
   - https://opengameart.org/content/16x16-game-assets by George Bailey

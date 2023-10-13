@@ -7,7 +7,6 @@ import { useHistoricalValue } from '../hooks/useHistoricalValue.ts';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { PlayerMetadata } from '../../convex/world.ts';
-import { DebugPath } from './DebugPath.tsx';
 
 export type SelectElement = (element?: { kind: 'player'; id: Id<'players'> }) => void;
 
@@ -16,17 +15,19 @@ const logged = new Set<string>();
 export const Player = ({
   isViewer,
   player,
+  location,
   onClick,
   historicalTime,
 }: {
   isViewer: boolean;
   player: PlayerMetadata;
+  location: Doc<'locations'>;
   onClick: SelectElement;
   historicalTime?: number;
 }) => {
   const world = useQuery(api.world.defaultWorld);
   const character = characters.find((c) => c.name === player.character);
-  const location = useHistoricalValue<'locations'>(historicalTime, player.location);
+  const historicalLocation = useHistoricalValue<'locations'>(historicalTime, location);
   if (!character) {
     if (!logged.has(player.character)) {
       logged.add(player.character);
@@ -37,17 +38,17 @@ export const Player = ({
   if (!world) {
     return;
   }
-  if (!location) {
+  if (!historicalLocation) {
     return;
   }
   const tileDim = world.map.tileDim;
   return (
     <>
       <Character
-        x={location.x * tileDim + tileDim / 2}
-        y={location.y * tileDim + tileDim / 2}
-        orientation={orientationDegrees({ dx: location.dx, dy: location.dy })}
-        isMoving={location.velocity > 0}
+        x={historicalLocation.x * tileDim + tileDim / 2}
+        y={historicalLocation.y * tileDim + tileDim / 2}
+        orientation={orientationDegrees({ dx: historicalLocation.dx, dy: historicalLocation.dy })}
+        isMoving={historicalLocation.velocity > 0}
         isThinking={player.isThinking}
         isSpeaking={player.isSpeaking}
         isViewer={isViewer}

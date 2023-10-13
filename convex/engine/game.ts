@@ -150,7 +150,7 @@ export abstract class Game<Handlers extends InputHandlers> {
       engineId: this.engineId,
       generationNumber: nextGenerationNumber,
     });
-    console.log(`Simulated from ${startTs} to ${currentTs} (${currentTs - startTs}ms)`);
+    console.debug(`Simulated from ${startTs} to ${currentTs} (${currentTs - startTs}ms)`);
   }
 }
 

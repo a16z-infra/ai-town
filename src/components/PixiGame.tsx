@@ -11,6 +11,7 @@ import { useSendInput } from '../hooks/sendInput.ts';
 import { toastOnError } from '../toasts.ts';
 import { DebugPath } from './DebugPath.tsx';
 import { PositionIndicator } from './PositionIndicator.tsx';
+import { SHOW_DEBUG_UI } from './Game.tsx';
 
 export const PixiGame = (props: {
   worldId: Id<'worlds'>;
@@ -27,6 +28,8 @@ export const PixiGame = (props: {
 
   const humanPlayerId = useQuery(api.world.userStatus, { worldId: props.worldId }) ?? null;
   const players = useQuery(api.world.activePlayers, { worldId: props.worldId }) ?? [];
+  const playerLocations =
+    useQuery(api.world.activePlayerLocations, { worldId: props.worldId }) ?? {};
   const moveTo = useSendInput(props.worldId, 'moveTo');
 
   // Interaction for clicking on the world to navigate.
@@ -89,9 +92,13 @@ export const PixiGame = (props: {
         onpointerup={onMapPointerUp}
         onpointerdown={onMapPointerDown}
       />
-      {players.map((p) => (
-        <DebugPath key={`path-${p._id}`} player={p} tileDim={world.map.tileDim} />
-      ))}
+      {players.map(
+        (p) =>
+          // Only show the path for the human player in non-debug mode.
+          (SHOW_DEBUG_UI || p._id === humanPlayerId) && (
+            <DebugPath key={`path-${p._id}`} player={p} tileDim={world.map.tileDim} />
+          ),
+      )}
       {lastDestination && (
         <PositionIndicator destination={lastDestination} tileDim={world.map.tileDim} />
       )}
@@ -99,6 +106,7 @@ export const PixiGame = (props: {
         <Player
           key={`player-${p._id}`}
           player={p}
+          location={playerLocations[p._id]}
           isViewer={p._id === humanPlayerId}
           onClick={props.setSelectedElement}
           historicalTime={props.historicalTime}

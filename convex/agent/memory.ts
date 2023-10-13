@@ -68,7 +68,8 @@ export async function rememberConversation(
   // Set the `isThinking` flag and schedule a function to clear it after 60s. We'll
   // also clear the flag in `insertMemory` below to stop thinking early on success.
   await ctx.runMutation(selfInternal.startThinking, { agentId, now });
-  await ctx.scheduler.runAfter(ACTION_TIMEOUT, selfInternal.clearThinking, { agentId, since: now });
+  const since = now;
+  await ctx.scheduler.runAfter(ACTION_TIMEOUT, selfInternal.clearThinking, { agentId, since });
 
   const llmMessages: LLMMessage[] = [
     {
@@ -95,8 +96,8 @@ export async function rememberConversation(
   });
   const description = `Conversation with ${otherPlayer.name} at ${new Date(
     data.conversation._creationTime,
-  ).toLocaleString()}: ${await content.readAll()}`;
-  const importance = await calculateImportance(player, description);
+  ).toLocaleString()}: ${content}`;
+  const importance = await calculateImportance(description);
   const { embedding } = await fetchEmbedding(description);
   authors.delete(player._id);
   await ctx.runMutation(selfInternal.insertMemory, {
@@ -114,6 +115,8 @@ export async function rememberConversation(
     },
     embedding,
   });
+  await reflectOnMemories(ctx, agentId, generationNumber, playerId);
+  await ctx.runMutation(selfInternal.clearThinking, { agentId, since });
   return description;
 }
 
@@ -236,27 +239,19 @@ export const loadMessages = internalQuery({
   },
 });
 
-async function calculateImportance(player: Doc<'players'>, description: string) {
-  // TODO: make a better prompt based on the user's memories
-  const { content } = await chatCompletion({
+async function calculateImportance(description: string) {
+  const { content: importanceRaw } = await chatCompletion({
     messages: [
-      // {
-      //   role: 'user',
-      //   content: `You are ${player.name}. Here's a little about you:
-      //         ${player.description}
-
-      //         Now I'm going to give you a description of a memory to gauge the importance of.`,
-      // },
       {
         role: 'user',
         content: `On the scale of 0 to 9, where 0 is purely mundane (e.g., brushing teeth, making bed) and 9 is extremely poignant (e.g., a break up, college acceptance), rate the likely poignancy of the following piece of memory.
         Memory: ${description}
-        Rating: <fill in>`,
+        Answer on a scale of 0 to 9. Respond with number only, e.g. "5"`,
       },
     ],
+    temperature: 0.0,
     max_tokens: 1,
   });
-  const importanceRaw = await content.readAll();
 
   let importance = parseFloat(importanceRaw);
   if (isNaN(importance)) {
@@ -318,8 +313,6 @@ export const insertMemory = internalMutation({
         `Agent ${agentId} generation number ${agent.generationNumber} does not match ${generationNumber}`,
       );
     }
-    // Clear the `isThinking` flag atomically with inserting the memory.
-    await ctx.db.patch(agentId, { isThinking: undefined });
     const embeddingId = await ctx.db.insert('memoryEmbeddings', {
       playerId: memory.playerId,
       embedding: embedding,
@@ -328,6 +321,153 @@ export const insertMemory = internalMutation({
       ...memory,
       embeddingId,
     });
+  },
+});
+
+export const insertReflectionMemories = internalMutation({
+  args: {
+    agentId: v.id('agents'),
+    generationNumber: v.number(),
+
+    reflections: v.array(
+      v.object({
+        description: v.string(),
+        relatedMemoryIds: v.array(v.id('memories')),
+        importance: v.number(),
+        embedding: v.array(v.float64()),
+      }),
+    ),
+  },
+  handler: async (ctx, { agentId, generationNumber, reflections }) => {
+    const agent = await ctx.db.get(agentId);
+    if (!agent) {
+      throw new Error(`Agent ${agentId} not found`);
+    }
+    if (agent.generationNumber !== generationNumber) {
+      throw new Error(
+        `Agent ${agentId} generation number ${agent.generationNumber} does not match ${generationNumber}`,
+      );
+    }
+    const lastAccess = Date.now();
+    for (const { embedding, relatedMemoryIds, ...rest } of reflections) {
+      const embeddingId = await ctx.db.insert('memoryEmbeddings', {
+        playerId: agent.playerId,
+        embedding: embedding,
+      });
+      await ctx.db.insert('memories', {
+        playerId: agent.playerId,
+        embeddingId,
+        lastAccess,
+        ...rest,
+        data: {
+          type: 'reflection',
+          relatedMemoryIds,
+        },
+      });
+    }
+  },
+});
+
+async function reflectOnMemories(
+  ctx: ActionCtx,
+  agentId: Id<'agents'>,
+  generationNumber: number,
+  playerId: Id<'players'>,
+) {
+  const { memories, lastReflectionTs, name } = await ctx.runQuery(
+    internal.agent.memory.getReflectionMemories,
+    {
+      playerId,
+      numberOfItems: 100,
+    },
+  );
+
+  // should only reflect if lastest 100 items have importance score of >500
+  const sumOfImportanceScore = memories
+    .filter((m) => m._creationTime > (lastReflectionTs ?? 0))
+    .reduce((acc, curr) => acc + curr.importance, 0);
+  const shouldReflect = sumOfImportanceScore > 500;
+
+  if (!shouldReflect) {
+    return false;
+  }
+  console.debug('sum of importance score = ', sumOfImportanceScore);
+  console.debug('Reflecting...');
+  const prompt = ['[no prose]', '[Output only JSON]', `You are ${name}, statements about you:`];
+  memories.forEach((m, idx) => {
+    prompt.push(`Statement ${idx}: ${m.description}`);
+  });
+  prompt.push('What 3 high-level insights can you infer from the above statements?');
+  prompt.push(
+    'Return in JSON format, where the key is a list of input statements that contributed to your insights and value is your insight. Make the response parseable by Typescript JSON.parse() function. DO NOT escape characters or include "\n" or white space in response.',
+  );
+  prompt.push(
+    'Example: [{insight: "...", statementIds: [1,2]}, {insight: "...", statementIds: [1]}, ...]',
+  );
+
+  const { content: reflection } = await chatCompletion({
+    messages: [
+      {
+        role: 'user',
+        content: prompt.join('\n'),
+      },
+    ],
+  });
+
+  try {
+    const insights: { insight: string; statementIds: number[] }[] = JSON.parse(reflection);
+    const memoriesToSave = await asyncMap(insights, async (item) => {
+      const relatedMemoryIds = item.statementIds.map((idx: number) => memories[idx]._id);
+      const importance = await calculateImportance(item.insight);
+      const { embedding } = await fetchEmbedding(item.insight);
+      console.debug('adding reflection memory...', item.insight);
+      return {
+        description: item.insight,
+        embedding,
+        importance,
+        relatedMemoryIds,
+      };
+    });
+
+    await ctx.runMutation(selfInternal.insertReflectionMemories, {
+      agentId,
+      generationNumber,
+      reflections: memoriesToSave,
+    });
+  } catch (e) {
+    console.error('error saving or parsing reflection', e);
+    console.debug('reflection', reflection);
+    return false;
+  }
+  return true;
+}
+export const getReflectionMemories = internalQuery({
+  args: { playerId: v.id('players'), numberOfItems: v.number() },
+  handler: async (
+    ctx,
+    { playerId, numberOfItems },
+  ): Promise<{ memories: Doc<'memories'>[]; lastReflectionTs?: number; name: string }> => {
+    const player = await ctx.db.get(playerId);
+    if (!player) {
+      throw new Error(`Player ${playerId} not found`);
+    }
+    const memories = await ctx.db
+      .query('memories')
+      .withIndex('playerId', (q) => q.eq('playerId', playerId))
+      .order('desc')
+      .take(numberOfItems);
+
+    const lastReflection = await ctx.db
+      .query('memories')
+      .withIndex('playerId_type', (q) => q.eq('playerId', playerId).eq('data.type', 'reflection'))
+      .order('desc')
+      .first();
+
+    return {
+      name: player.name,
+      memories,
+      lastReflectionTs: lastReflection?._creationTime,
+    };
   },
 });
 
