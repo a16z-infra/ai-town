@@ -44,6 +44,7 @@ import type * as util_asyncMap from "../util/asyncMap";
 import type * as util_geometry from "../util/geometry";
 import type * as util_isSimpleObject from "../util/isSimpleObject";
 import type * as util_minheap from "../util/minheap";
+import type * as util_ollama from "../util/ollama";
 import type * as util_openai from "../util/openai";
 import type * as util_sleep from "../util/sleep";
 import type * as util_types from "../util/types";
@@ -88,6 +89,7 @@ declare const fullApi: ApiFromModules<{
   "util/geometry": typeof util_geometry;
   "util/isSimpleObject": typeof util_isSimpleObject;
   "util/minheap": typeof util_minheap;
+  "util/ollama": typeof util_ollama;
   "util/openai": typeof util_openai;
   "util/sleep": typeof util_sleep;
   "util/types": typeof util_types;

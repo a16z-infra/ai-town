@@ -1,12 +1,13 @@
 import { v } from 'convex/values';
 import { Doc, Id } from '../_generated/dataModel';
 import { ActionCtx, internalQuery } from '../_generated/server';
-import { LLMMessage, chatCompletion } from '../util/openai';
+import { LLMMessage, ollamaChatCompletion } from '../util/ollama';
 import * as memory from './memory';
 import { api, internal } from '../_generated/api';
 import * as embeddingsCache from './embeddingsCache';
 
 const selfInternal = internal.agent.conversation;
+const useOllama = true;
 
 export async function startConversation(
   ctx: ActionCtx,
@@ -28,7 +29,14 @@ export async function startConversation(
     ctx,
     `What do you think about ${otherPlayer.name}?`,
   );
-  const memories = await memory.searchMemories(ctx, player, embedding, 3);
+
+  let memories;
+  if (useOllama) {
+    memories = await memory.searchMemories(ctx, player, embedding, 1);
+  } else {
+    memories = await memory.searchMemories(ctx, player, embedding, 3);
+  }
+
   const memoryWithOtherPlayer = memories.find(
     (m) => m.data.type === 'conversation' && m.data.playerIds.includes(otherPlayerId),
   );
@@ -37,6 +45,8 @@ export async function startConversation(
   ];
   prompt.push(...agentPrompts(otherPlayer, agent, otherAgent));
   prompt.push(...previousConversationPrompt(otherPlayer, lastConversation));
+
+  //TODO - when using ollama, summarize this to be within 1k characters
   prompt.push(...relatedMemoriesPrompt(otherPlayer, memories));
   if (memoryWithOtherPlayer) {
     prompt.push(
@@ -44,17 +54,11 @@ export async function startConversation(
     );
   }
   prompt.push(`${player.name}:`);
+  console.log('####conversation prompt\n');
+  prompt.forEach((line) => console.log(line));
 
-  const { content } = await chatCompletion({
-    messages: [
-      {
-        role: 'user',
-        content: prompt.join('\n'),
-      },
-    ],
-    max_tokens: 300,
-    stream: true,
-    stop: stopWords(otherPlayer, player),
+  const { content } = await ollamaChatCompletion({
+    prompt: prompt.join('\n'),
   });
   return content;
 }
@@ -101,10 +105,10 @@ export async function continueConversation(
     ...(await previousMessages(ctx, player, otherPlayer, conversation._id)),
   ];
   llmMessages.push({ role: 'user', content: `${player.name}:` });
-  const { content } = await chatCompletion({
+  const { content } = await ollamaChatCompletion({
     messages: llmMessages,
+    prompt: prompt.join('\n'),
     max_tokens: 300,
-    stream: true,
     stop: stopWords(otherPlayer, player),
   });
   return content;
@@ -143,10 +147,10 @@ export async function leaveConversation(
     ...(await previousMessages(ctx, player, otherPlayer, conversation._id)),
   ];
   llmMessages.push({ role: 'user', content: `${player.name}:` });
-  const { content } = await chatCompletion({
+  const { content } = await ollamaChatCompletion({
     messages: llmMessages,
     max_tokens: 300,
-    stream: true,
+    prompt: prompt.join('\n'),
     stop: stopWords(otherPlayer, player),
   });
   return content;

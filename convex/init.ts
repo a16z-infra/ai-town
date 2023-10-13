@@ -14,7 +14,7 @@ import { initAgent, kickAgents, stopAgents } from './agent/init';
 import { Doc, Id } from './_generated/dataModel';
 import { createEngine, kickEngine, startEngine, stopEngine } from './engine/game';
 
-const DEFAULT_NUM_AGENTS = 4;
+const DEFAULT_NUM_AGENTS = 8;
 
 const init = mutation({
   args: {

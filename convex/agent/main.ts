@@ -515,7 +515,7 @@ export const agentStartConversation = internalAction({
       args.otherPlayerId,
       args.lastConversationId,
     );
-    const text = await tokenStream.readAll();
+    const text = await tokenStream;
     await ctx.runMutation(selfInternal.agentWriteMessage, {
       agentId: args.agentId,
       generationNumber: args.generationNumber,
@@ -550,7 +550,7 @@ export const agentContinueConversation = internalAction({
       args.otherPlayerId,
       args.lastConversationId,
     );
-    const text = await tokenStream.readAll();
+    const text = await tokenStream;
     await ctx.runMutation(selfInternal.agentWriteMessage, {
       agentId: args.agentId,
       generationNumber: args.generationNumber,
@@ -585,7 +585,7 @@ export const agentLeaveConversation = internalAction({
       args.otherPlayerId,
       args.lastConversationId,
     );
-    const text = await tokenStream.readAll();
+    const text = await tokenStream;
     await ctx.runMutation(selfInternal.agentWriteMessage, {
       agentId: args.agentId,
       generationNumber: args.generationNumber,
