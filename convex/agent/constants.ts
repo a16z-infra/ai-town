@@ -1,6 +1,10 @@
 // Don't talk to anyone for 15s after having a conversation.
 export const CONVERATION_COOLDOWN = 15000;
 
+// Don't do anything for 15s after doing something.
+// TODO: use LLM to decide what /whether to do things.
+export const ACTIVITY_COOLDOWN = 15000;
+
 // Don't talk to a player within 60s of talking to them.
 export const PLAYER_CONVERSATION_COOLDOWN = 60000;
 

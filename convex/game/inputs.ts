@@ -1,5 +1,6 @@
 import { Infer, v } from 'convex/values';
 import { point } from '../util/types';
+import { activity } from './players';
 
 export const inputs = {
   // Join, creating a new player...
@@ -25,6 +26,14 @@ export const inputs = {
     args: v.object({
       playerId: v.id('players'),
       destination: v.union(point, v.null()),
+    }),
+    returnValue: v.null(),
+  },
+
+  startAcitivity: {
+    args: v.object({
+      playerId: v.id('players'),
+      activity,
     }),
     returnValue: v.null(),
   },

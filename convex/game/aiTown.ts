@@ -59,6 +59,8 @@ export class AiTown extends Game<Inputs> {
         return await this.handleLeave(now, args as any);
       case 'moveTo':
         return await this.handleMoveTo(now, args as any);
+      case 'startAcitivity':
+        return await this.handleStartActivity(now, args as any);
       case 'startConversation':
         return await this.handleStartConversation(now, args as any);
       case 'acceptInvite':
@@ -175,6 +177,20 @@ export class AiTown extends Game<Inputs> {
         kind: 'needsPath',
       },
     };
+    return null;
+  }
+
+  async handleStartActivity(
+    now: number,
+    { playerId, activity }: InputArgs<'startAcitivity'>,
+  ): Promise<InputReturnValue<'startAcitivity'>> {
+    const player = this.players.lookup(playerId);
+    if (player.activity && player.activity.until > now) {
+      throw new Error(
+        `Player ${playerId} is already doing something: ${player.activity.description}`,
+      );
+    }
+    player.activity = activity;
     return null;
   }
 

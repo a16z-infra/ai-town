@@ -1,6 +1,11 @@
 import { v } from 'convex/values';
 import { Doc, Id } from '../_generated/dataModel';
-import { MutationCtx, internalAction, internalMutation } from '../_generated/server';
+import {
+  DatabaseReader,
+  MutationCtx,
+  internalAction,
+  internalMutation,
+} from '../_generated/server';
 import { CONVERSATION_DISTANCE } from '../constants';
 import { InputArgs, InputNames } from '../game/inputs';
 import { insertInput } from '../game/main';
@@ -19,10 +24,12 @@ import {
   PLAYER_CONVERSATION_COOLDOWN,
   MESSAGE_COOLDOWN,
   MAX_CONVERSATION_MESSAGES,
+  ACTIVITY_COOLDOWN,
 } from './constants';
 import { continueConversation, leaveConversation, startConversation } from './conversation';
 import { internal } from '../_generated/api';
 import { latestMemoryOfType, rememberConversation } from './memory';
+import { Activity, activity } from '../game/players';
 
 const selfInternal = internal.agent.main;
 
@@ -121,14 +128,12 @@ class Agent {
       playerId: this.player._id,
     });
 
-    // If we're not in a conversation, wander around to somewhere to start one.
+    // If we're not in a conversation, do something.
     if (!playerConversation) {
-      if (!this.player.pathfinding) {
-        const destination = this.wanderDestination();
-        console.log(`Wandering to start a conversation`, destination);
-        await this.insertInput('moveTo', { playerId: this.player._id, destination });
+      // We're already doing something
+      if (this.player.activity && this.player.activity.until > this.now) {
+        return this.now + INPUT_DELAY;
       }
-
       // If we're near another player, try to start a conversation.
       const otherPlayers = await this.loadOtherPlayers();
       const playerLastConversation = otherPlayers
@@ -137,8 +142,29 @@ class Agent {
         )
         .reduce((a, b) => (a ? Math.max(a, b) : b), null as number | null);
 
+      const recentlyHadConversation =
+        playerLastConversation && this.now < playerLastConversation + CONVERATION_COOLDOWN;
+
+      if (!this.player.pathfinding) {
+        if (
+          !recentlyHadConversation &&
+          (!this.player.activity || this.player.activity.until + ACTIVITY_COOLDOWN < this.now)
+        ) {
+          console.log('Starting an activity');
+          await this.ctx.scheduler.runAfter(0, selfInternal.agentPickActivity, {
+            agentId: this.agent._id,
+            generationNumber: this.nextGenerationNumber,
+            lastActivity: this.player.activity,
+          });
+          return this.now + ACTION_TIMEOUT;
+        }
+        const destination = this.wanderDestination();
+        console.log(`Wandering to start a conversation`, destination);
+        await this.insertInput('moveTo', { playerId: this.player._id, destination });
+      }
+
       // Wait a cooldown after finish a conversation to start a new one.
-      if (playerLastConversation && this.now < playerLastConversation + CONVERATION_COOLDOWN) {
+      if (recentlyHadConversation) {
         console.log(`Not starting a new conversation, just finished one.`);
         return this.now + INPUT_DELAY;
       }
@@ -499,6 +525,40 @@ export const agentRememberConversation = internalAction({
   },
 });
 
+const ACTIVITIES = [
+  { description: 'reading a book', emoji: '📖', duration: 60_000 },
+  { description: 'daydreaming', emoji: '🤔', duration: 60_000 },
+  { description: 'gardening', emoji: '🥕', duration: 60_000 },
+];
+
+export const agentPickActivity = internalAction({
+  args: {
+    agentId: v.id('agents'),
+    generationNumber: v.number(),
+
+    lastActivity: v.optional(activity),
+  },
+  handler: async (ctx, args) => {
+    // TODO: have LLM choose the activity & emoji
+    const activity = ACTIVITIES[Math.floor(Math.random() * ACTIVITIES.length)];
+
+    await ctx.runMutation(selfInternal.agentStartActivity, {
+      agentId: args.agentId,
+      generationNumber: args.generationNumber,
+      activity: {
+        description: activity.description,
+        emoji: activity.emoji,
+        until: Date.now() + activity.duration,
+      },
+    });
+    await ctx.runMutation(selfInternal.scheduleNextRun, {
+      agentId: args.agentId,
+      expectedGenerationNumber: args.generationNumber,
+      nextRun: Date.now(),
+    });
+  },
+});
+
 export const agentStartConversation = internalAction({
   args: {
     agentId: v.id('agents'),
@@ -604,6 +664,43 @@ export const agentLeaveConversation = internalAction({
   },
 });
 
+async function validateGeneration(
+  db: DatabaseReader,
+  agentId: Id<'agents'>,
+  generationNumber: number,
+) {
+  const agent = await db.get(agentId);
+  if (!agent) {
+    throw new Error(`Invalid agent ID: ${agentId}`);
+  }
+  if (agent.generationNumber !== generationNumber) {
+    throw new Error(
+      `Expected generation number ${generationNumber} but got ${agent.generationNumber}`,
+    );
+  }
+  return agent;
+}
+
+export const agentStartActivity = internalMutation({
+  args: {
+    agentId: v.id('agents'),
+    generationNumber: v.number(),
+
+    activity: activity,
+  },
+  handler: async (ctx, args) => {
+    const agent = await validateGeneration(ctx.db, args.agentId, args.generationNumber);
+    const player = await ctx.db.get(agent.playerId);
+    if (!player) {
+      throw new Error(`Invalid player ID: ${agent.playerId}`);
+    }
+    return await insertInput(ctx, player.worldId, 'startAcitivity', {
+      activity: args.activity,
+      playerId: player._id,
+    });
+  },
+});
+
 export const agentWriteMessage = internalMutation({
   args: {
     agentId: v.id('agents'),
@@ -616,15 +713,7 @@ export const agentWriteMessage = internalMutation({
     leaveConversation: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const agent = await ctx.db.get(args.agentId);
-    if (!agent) {
-      throw new Error(`Invalid agent ID: ${args.agentId}`);
-    }
-    if (agent.generationNumber !== args.generationNumber) {
-      throw new Error(
-        `Expected generation number ${args.generationNumber} but got ${agent.generationNumber}`,
-      );
-    }
+    await validateGeneration(ctx.db, args.agentId, args.generationNumber);
     await writeMessage(ctx, {
       conversationId: args.conversationId,
       playerId: args.playerId,
