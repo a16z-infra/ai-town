@@ -5,9 +5,10 @@ import { LLMMessage, ollamaChatCompletion } from '../util/ollama';
 import * as memory from './memory';
 import { api, internal } from '../_generated/api';
 import * as embeddingsCache from './embeddingsCache';
+import { ChatCompletionContent, chatCompletion } from '../util/openai';
 
 const selfInternal = internal.agent.conversation;
-const useOllama = true;
+const useOllama = process.env.OLLAMA_URL !== undefined;
 
 export async function startConversation(
   ctx: ActionCtx,
@@ -16,6 +17,7 @@ export async function startConversation(
   otherPlayerId: Id<'players'>,
   lastConversationId: Id<'conversations'> | null,
 ) {
+  console.info('### Using Ollama: ', useOllama);
   const { player, otherPlayer, agent, otherAgent, lastConversation } = await ctx.runQuery(
     selfInternal.queryPromptData,
     {
@@ -57,10 +59,29 @@ export async function startConversation(
   console.log('####conversation prompt\n');
   prompt.forEach((line) => console.log(line));
 
-  const { content } = await ollamaChatCompletion({
-    prompt: prompt.join('\n'),
-  });
-  return content;
+  let result: string | ChatCompletionContent;
+  if (useOllama) {
+    let { content } = await ollamaChatCompletion({
+      prompt: prompt.join('\n'),
+      stop: stopWords(otherPlayer, player),
+    });
+    result = content;
+  } else {
+    let { content } = await chatCompletion({
+      messages: [
+        {
+          role: 'user',
+          content: prompt.join('\n'),
+        },
+      ],
+      max_tokens: 300,
+      stream: true,
+      stop: stopWords(otherPlayer, player),
+    });
+    result = content;
+  }
+
+  return result;
 }
 
 export async function continueConversation(
@@ -105,13 +126,27 @@ export async function continueConversation(
     ...(await previousMessages(ctx, player, otherPlayer, conversation._id)),
   ];
   llmMessages.push({ role: 'user', content: `${player.name}:` });
-  const { content } = await ollamaChatCompletion({
-    messages: llmMessages,
-    prompt: prompt.join('\n'),
-    max_tokens: 300,
-    stop: stopWords(otherPlayer, player),
-  });
-  return content;
+
+  let result: string | ChatCompletionContent;
+  if (useOllama) {
+    let { content } = await ollamaChatCompletion({
+      messages: llmMessages,
+      prompt: prompt.join('\n'),
+      max_tokens: 300,
+      stop: stopWords(otherPlayer, player),
+    });
+    result = content;
+  } else {
+    let { content } = await chatCompletion({
+      messages: llmMessages,
+      max_tokens: 300,
+      stream: true,
+      stop: stopWords(otherPlayer, player),
+    });
+    result = content;
+  }
+
+  return result;
 }
 
 export async function leaveConversation(
@@ -147,13 +182,27 @@ export async function leaveConversation(
     ...(await previousMessages(ctx, player, otherPlayer, conversation._id)),
   ];
   llmMessages.push({ role: 'user', content: `${player.name}:` });
-  const { content } = await ollamaChatCompletion({
-    messages: llmMessages,
-    max_tokens: 300,
-    prompt: prompt.join('\n'),
-    stop: stopWords(otherPlayer, player),
-  });
-  return content;
+
+  let result: string | ChatCompletionContent;
+  if (useOllama) {
+    let { content } = await ollamaChatCompletion({
+      messages: llmMessages,
+      max_tokens: 300,
+      prompt: prompt.join('\n'),
+      stop: stopWords(otherPlayer, player),
+    });
+    result = content;
+  } else {
+    let { content } = await chatCompletion({
+      messages: llmMessages,
+      max_tokens: 300,
+      stream: true,
+      stop: stopWords(otherPlayer, player),
+    });
+    result = content;
+  }
+
+  return result;
 }
 
 function agentPrompts(

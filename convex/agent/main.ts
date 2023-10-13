@@ -23,6 +23,7 @@ import {
 import { continueConversation, leaveConversation, startConversation } from './conversation';
 import { internal } from '../_generated/api';
 import { latestMemoryOfType, rememberConversation } from './memory';
+import { ChatCompletionContent } from '../util/openai';
 
 const selfInternal = internal.agent.main;
 
@@ -515,7 +516,13 @@ export const agentStartConversation = internalAction({
       args.otherPlayerId,
       args.lastConversationId,
     );
-    const text = await tokenStream;
+    let text: string;
+    if (typeof tokenStream === 'string') {
+      text = tokenStream;
+    } else {
+      text = await tokenStream.readAll();
+    }
+
     await ctx.runMutation(selfInternal.agentWriteMessage, {
       agentId: args.agentId,
       generationNumber: args.generationNumber,
@@ -524,6 +531,7 @@ export const agentStartConversation = internalAction({
       text,
       leaveConversation: false,
     });
+
     await ctx.runMutation(selfInternal.scheduleNextRun, {
       agentId: args.agentId,
       expectedGenerationNumber: args.generationNumber,
@@ -550,7 +558,13 @@ export const agentContinueConversation = internalAction({
       args.otherPlayerId,
       args.lastConversationId,
     );
-    const text = await tokenStream;
+    let text: string;
+    if (typeof tokenStream === 'string') {
+      text = tokenStream;
+    } else {
+      text = await tokenStream.readAll();
+    }
+
     await ctx.runMutation(selfInternal.agentWriteMessage, {
       agentId: args.agentId,
       generationNumber: args.generationNumber,
@@ -585,7 +599,13 @@ export const agentLeaveConversation = internalAction({
       args.otherPlayerId,
       args.lastConversationId,
     );
-    const text = await tokenStream;
+    let text: string;
+    if (typeof tokenStream === 'string') {
+      text = tokenStream;
+    } else {
+      text = await tokenStream.readAll();
+    }
+
     await ctx.runMutation(selfInternal.agentWriteMessage, {
       agentId: args.agentId,
       generationNumber: args.generationNumber,

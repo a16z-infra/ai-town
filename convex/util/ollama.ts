@@ -1,52 +1,33 @@
 import { Ollama } from 'langchain/llms/ollama';
-// Overload for non-streaming
+
+const ollamaModel = process.env.OLLAMA_MODEL || 'llama2';
+
 export async function ollamaChatCompletion(body: any) {
   checkForAPIKey();
 
   body.model = body.model ?? 'llama2';
-  // TODO - hardcoded
-  const modelApiBase = 'https://f6cb-12-13-250-34.ngrok-free.app/api/generate';
-  const stopWords = body.stop ? (typeof body.stop === 'string' ? [body.stop] : body.stop) : [];
   const {
     result: content,
     retries,
     ms,
   } = await retryWithBackoff(async () => {
-    console.log('#### Ollama api ####');
+    console.log('#### Ollama api ####, using ', ollamaModel);
     console.log('body', body);
-    // const apiUrl = modelApiBase;
-    // const result = await fetch(apiUrl, {
-    //   method: 'POST',
-    //   body: JSON.stringify(body),
-    // });
 
-    // if (!result.ok) {
-    //   throw {
-    //     retry: result.status === 429 || result.status >= 500,
-    //     error: new Error(
-    //       `Chat completion failed with code ${result.status}: ${await result.text()}`,
-    //     ),
-    //   };
-    // }
-    if (body.stream) {
-      const ollamaResult = new ChatCompletionContent(new ReadableStream(), stopWords);
-      console.log('ollamaResult', ollamaResult.readAll());
-      return ollamaResult;
-    } else {
-      const ollama = new Ollama({
-        model: 'llama2',
-        baseUrl: 'https://f6cb-12-13-250-34.ngrok-free.app',
-      });
-      console.log('body.prompt', body.prompt);
-      const stream = await ollama.stream(body.prompt);
-      let ollamaResult = '';
-      for await (const chunk of stream) {
-        ollamaResult += chunk;
-      }
-      console.log('#### ollama result = ');
-      console.log(ollamaResult);
-      return ollamaResult as any;
+    const ollama = new Ollama({
+      model: ollamaModel,
+      baseUrl: process.env.OLLAMA_URL,
+      stop: body.stop,
+    });
+    console.log('body.prompt', body.prompt);
+    const stream = await ollama.stream(body.prompt);
+    let ollamaResult = '';
+    for await (const chunk of stream) {
+      ollamaResult += chunk;
     }
+    console.log('#### ollama result = ');
+    console.log(ollamaResult);
+    return ollamaResult as any;
   });
 
   return {
