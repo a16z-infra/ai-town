@@ -389,12 +389,13 @@ class Agent {
       let lastConversationWithPlayer: (Doc<'conversations'> & { playerLeft: number }) | null = null;
       const members = this.ctx.db
         .query('conversationMembers')
-        .withIndex('playerId', (q) => q.eq('playerId', this.player._id).eq('status.kind', 'left'));
+        .withIndex('playerId', (q) => q.eq('playerId', this.player._id).eq('status.kind', 'left'))
+        .order('desc');
       for await (const member of members) {
         const playerMember = await this.ctx.db
           .query('conversationMembers')
           .withIndex('conversationId', (q) =>
-            q.eq('conversationId', member.conversationId).eq('playerId', this.player._id),
+            q.eq('conversationId', member.conversationId).eq('playerId', otherPlayer._id),
           )
           .first();
         if (playerMember) {
@@ -406,6 +407,7 @@ class Agent {
             throw new Error(`Conversation ${conversation._id} is not left`);
           }
           lastConversationWithPlayer = { playerLeft: playerMember.status.ended, ...conversation };
+          break;
         }
       }
       players.push({ position, conversation, lastConversationWithPlayer, ...otherPlayer });
