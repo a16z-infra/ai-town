@@ -29,4 +29,12 @@ export const ACTION_TIMEOUT = 60 * 1000;
 // Wait for at least two seconds before sending another message.
 export const MESSAGE_COOLDOWN = 2000;
 
+// Above this distance, agents will walk towards their conversation
+// partner by choosing the midpoint between them. Under this distance,
+// they'll go directly to their partner. This slightly helps with
+// agents going directly to each other over long distances and choosing
+// different paths.
+export const MIDPOINT_THRESHOLD = 4;
+
+// How long should an agent wait on an input before giving up?
 export const INPUT_TIMEOUT = 60000;

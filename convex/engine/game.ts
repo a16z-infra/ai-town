@@ -1,7 +1,6 @@
 import { Infer, Validator } from 'convex/values';
 import { Id } from '../_generated/dataModel';
 import { MutationCtx } from '../_generated/server';
-import { ENGINE_WAKEUP_THRESHOLD } from './constants';
 import { FunctionReference } from 'convex/server';
 
 export type InputHandler<Args extends any, ReturnValue extends any> = {
@@ -34,9 +33,6 @@ export abstract class Game<Handlers extends InputHandlers> {
 
   abstract tick(now: number): void;
   abstract save(): Promise<void>;
-  idleUntil(now: number): null | number {
-    return null;
-  }
 
   async runStep(ctx: MutationCtx, stepReference: StepReference, generationNumber: number) {
     const now = Date.now();
@@ -44,7 +40,7 @@ export abstract class Game<Handlers extends InputHandlers> {
     if (!engine) {
       throw new Error(`Invalid engine ID: ${this.engineId}`);
     }
-    if (engine.state.kind !== 'running') {
+    if (!engine.running) {
       console.debug(`Engine ${this.engineId} is not active, returning immediately.`);
       return;
     }
@@ -107,34 +103,13 @@ export abstract class Game<Handlers extends InputHandlers> {
 
       // Decide how to advance time.
       let candidateTs = currentTs + this.tickDuration;
-      let idleUntil = this.idleUntil(currentTs);
-      if (idleUntil) {
-        if (inputIndex < inputs.length) {
-          idleUntil = Math.min(idleUntil, inputs[inputIndex].received);
-        }
-        // Clamp the idle time to between the next tick and now.
-        idleUntil = Math.max(candidateTs, Math.min(idleUntil, now));
-        console.log(`Engine idle, advancing time to ${idleUntil}`);
-        candidateTs = idleUntil;
-      }
       if (now < candidateTs) {
         break;
       }
       currentTs = candidateTs;
     }
 
-    let nextRun = this.idleUntil(currentTs);
-
-    // Force an immediate wakeup if we have more inputs to process or more time to simulate.
-    if (inputs.length === this.maxInputsPerStep) {
-      console.warn(`Received max inputs (${this.maxInputsPerStep}) for step`);
-      nextRun = null;
-    }
-    if (numTicks === this.maxTicksPerStep) {
-      console.warn(`Only simulating ${currentTs - startTs}ms due to max ticks per step limit.`);
-      nextRun = null;
-    }
-    nextRun = nextRun ?? now + this.stepDuration;
+    const nextRun = now + this.stepDuration;
 
     // Commit the step by moving time forward, consuming our inputs, and saving the game's state.
     await this.save();
@@ -143,7 +118,7 @@ export abstract class Game<Handlers extends InputHandlers> {
       currentTime: currentTs,
       lastStepTs,
       processedInputNumber,
-      state: { kind: 'running', nextRun },
+      running: true,
       generationNumber: nextGenerationNumber,
     });
     await ctx.scheduler.runAt(nextRun, stepReference, {
@@ -184,7 +159,7 @@ export async function createEngine(ctx: MutationCtx, stepReference: StepReferenc
   const engineId = await ctx.db.insert('engines', {
     currentTime: now,
     generationNumber,
-    state: { kind: 'running', nextRun: now },
+    running: true,
   });
   await ctx.scheduler.runAt(now, stepReference, { engineId, generationNumber });
   return engineId;
@@ -199,7 +174,7 @@ export async function startEngine(
   if (!engine) {
     throw new Error(`Invalid engine ID: ${engineId}`);
   }
-  if (engine.state.kind !== 'stopped') {
+  if (engine.running) {
     throw new Error(`Engine ${engineId} isn't currently stopped`);
   }
   const now = Date.now();
@@ -212,7 +187,7 @@ export async function startEngine(
     lastStepTs: engine.currentTime,
     currentTime: now,
 
-    state: { kind: 'running', nextRun: now },
+    running: true,
     generationNumber,
   });
   await ctx.scheduler.runAt(now, stepReference, { engineId, generationNumber });
@@ -227,13 +202,13 @@ export async function kickEngine(
   if (!engine) {
     throw new Error(`Invalid engine ID: ${engineId}`);
   }
-  if (engine.state.kind !== 'running') {
+  if (!engine.running) {
     throw new Error(`Engine ${engineId} isn't currently running`);
   }
   const now = Date.now();
   const generationNumber = engine.generationNumber + 1;
   await ctx.db.patch(engineId, {
-    state: { kind: 'running', nextRun: now },
+    running: true,
     generationNumber,
   });
   await ctx.scheduler.runAt(now, stepReference, { engineId, generationNumber });
@@ -244,8 +219,8 @@ export async function stopEngine(ctx: MutationCtx, engineId: Id<'engines'>) {
   if (!engine) {
     throw new Error(`Invalid engine ID: ${engineId}`);
   }
-  if (engine.state.kind !== 'running') {
+  if (!engine.running) {
     throw new Error(`Engine ${engineId} isn't currently running`);
   }
-  await ctx.db.patch(engineId, { state: { kind: 'stopped' } });
+  await ctx.db.patch(engineId, { running: false });
 }
