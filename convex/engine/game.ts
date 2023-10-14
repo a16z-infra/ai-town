@@ -162,13 +162,6 @@ export async function insertInput(
   args: any,
 ): Promise<Id<'inputs'>> {
   const now = Date.now();
-  const engine = await ctx.db.get(engineId);
-  if (!engine) {
-    throw new Error(`Invalid engine ID: ${engineId}`);
-  }
-  if (engine.state.kind !== 'running') {
-    throw new Error(`engine ${engineId} is not active.`);
-  }
   const prevInput = await ctx.db
     .query('inputs')
     .withIndex('byInputNumber', (q) => q.eq('engineId', engineId))
@@ -182,12 +175,6 @@ export async function insertInput(
     args,
     received: now,
   });
-  if (now + ENGINE_WAKEUP_THRESHOLD < engine.state.nextRun) {
-    console.log(`Preempting engine ${engineId}`);
-    const generationNumber = engine.generationNumber + 1;
-    await ctx.db.patch(engineId, { state: { kind: 'running', nextRun: now }, generationNumber });
-    await ctx.scheduler.runAt(now, stepReference, { engineId, generationNumber });
-  }
   return inputId;
 }
 

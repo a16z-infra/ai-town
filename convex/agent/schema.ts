@@ -3,13 +3,17 @@ import { defineTable } from 'convex/server';
 import { v } from 'convex/values';
 import { embeddingsCacheTables } from './embeddingsCache';
 
+const agentSchedulers = v.object({
+  worldId: v.id('worlds'),
+  generationNumber: v.number(),
+  running: v.boolean(),
+});
+
 const agents = v.object({
   worldId: v.id('worlds'),
   playerId: v.id('players'),
   identity: v.string(),
   plan: v.string(),
-
-  generationNumber: v.number(),
 
   // Set of in-progress inputs for the agent. The inputs in this
   // array last across runs of the agent, unlike the per-step
@@ -25,6 +29,7 @@ const agentIsThinking = v.object({
 });
 
 export const agentTables = {
+  agentSchedulers: defineTable(agentSchedulers).index('worldId', ['worldId']),
   agents: defineTable(agents).index('playerId', ['playerId']).index('worldId', ['worldId']),
   agentIsThinking: defineTable(agentIsThinking).index('playerId', ['playerId']),
   ...memoryTables,

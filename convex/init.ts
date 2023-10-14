@@ -4,7 +4,14 @@ import { DatabaseReader, MutationCtx, internalMutation, mutation } from './_gene
 import { Descriptions } from '../data/characters';
 import * as firstmap from '../data/firstmap';
 import { insertInput } from './game/main';
-import { initAgent, kickAgents, resumeAgents, stopAgents } from './agent/init';
+import {
+  initAgent,
+  initScheduler,
+  kickScheduler,
+  loadScheduler,
+  resumeScheduler,
+  stopScheduler,
+} from './agent/init';
 import { Doc } from './_generated/dataModel';
 import { createEngine, kickEngine, startEngine, stopEngine } from './engine/game';
 
@@ -33,6 +40,7 @@ const init = mutation({
     }
     // Send inputs to create players for all of the agents.
     if (await shouldCreateAgents(ctx.db, world)) {
+      await initScheduler(ctx, { worldId: world._id });
       let numCreated = 0;
       for (const agent of Descriptions) {
         if (args.numAgents !== undefined && numCreated >= args.numAgents) {
@@ -59,7 +67,7 @@ export const kick = internalMutation({
   handler: async (ctx) => {
     const { world, engine } = await getDefaultWorld(ctx.db);
     await kickEngine(ctx, internal.game.main.runStep, engine._id);
-    await kickAgents(ctx, { worldId: world._id });
+    await kickScheduler(ctx, { worldId: world._id });
   },
 });
 
@@ -76,7 +84,7 @@ export const stop = internalMutation({
     console.log(`Stopping engine ${engine._id}...`);
     await ctx.db.patch(world._id, { status: 'stoppedByDeveloper' });
     await stopEngine(ctx, engine._id);
-    await stopAgents(ctx, { worldId: world._id });
+    await stopScheduler(ctx, { worldId: world._id });
   },
 });
 
@@ -93,7 +101,7 @@ export const resume = internalMutation({
     console.log(`Resuming engine ${engine._id} for world ${world._id} (state: ${world.status})...`);
     await ctx.db.patch(world._id, { status: 'running' });
     await startEngine(ctx, internal.game.main.runStep, engine._id);
-    await resumeAgents(ctx, { worldId: world._id });
+    await resumeScheduler(ctx, { worldId: world._id });
   },
 });
 
@@ -102,6 +110,10 @@ export const archive = internalMutation({
     const { world, engine } = await getDefaultWorld(ctx.db);
     if (engine.state.kind === 'running') {
       throw new Error(`Engine ${engine._id} is still running!`);
+    }
+    const scheduler = await loadScheduler(ctx, world._id);
+    if (scheduler.running) {
+      throw new Error(`Scheduler ${scheduler._id} is still running!`);
     }
     console.log(`Archiving world ${world._id}...`);
     await ctx.db.patch(world._id, { isDefault: false });

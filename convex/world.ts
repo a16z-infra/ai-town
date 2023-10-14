@@ -3,11 +3,11 @@ import { internalMutation, mutation, query } from './_generated/server';
 import { characters } from '../data/characters';
 import { sendInput } from './game/main';
 import { IDLE_WORLD_TIMEOUT } from './constants';
-import { kickAgents, resumeAgents, stopAgents } from './agent/init';
 import { Doc, Id } from './_generated/dataModel';
 import { internal } from './_generated/api';
 import { startEngine, stopEngine } from './engine/game';
 import { conversationMember } from './game/conversationMembers';
+import { resumeScheduler, stopScheduler } from './agent/init';
 
 export const defaultWorld = query({
   handler: async (ctx) => {
@@ -52,7 +52,7 @@ export const heartbeatWorld = mutation({
       console.log(`Restarting inactive world ${world._id}...`);
       await ctx.db.patch(world._id, { status: 'running' });
       await startEngine(ctx, internal.game.main.runStep, engine._id);
-      await resumeAgents(ctx, { worldId: world._id });
+      await resumeScheduler(ctx, { worldId: world._id });
     }
   },
 });
@@ -68,7 +68,7 @@ export const stopInactiveWorlds = internalMutation({
       console.log(`Stopping inactive world ${world._id}`);
       await ctx.db.patch(world._id, { status: 'inactive' });
       await stopEngine(ctx, world.engineId);
-      await stopAgents(ctx, { worldId: world._id });
+      await stopScheduler(ctx, { worldId: world._id });
     }
   },
 });
