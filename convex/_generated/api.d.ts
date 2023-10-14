@@ -24,7 +24,6 @@ import type * as agent_init from "../agent/init";
 import type * as agent_main from "../agent/main";
 import type * as agent_memory from "../agent/memory";
 import type * as agent_runDecision from "../agent/runDecision";
-import type * as agent_subscriptionLoop from "../agent/subscriptionLoop";
 import type * as constants from "../constants";
 import type * as crons from "../crons";
 import type * as engine_game from "../engine/game";
@@ -73,7 +72,6 @@ declare const fullApi: ApiFromModules<{
   "agent/main": typeof agent_main;
   "agent/memory": typeof agent_memory;
   "agent/runDecision": typeof agent_runDecision;
-  "agent/subscriptionLoop": typeof agent_subscriptionLoop;
   constants: typeof constants;
   crons: typeof crons;
   "engine/game": typeof engine_game;
