@@ -22,8 +22,8 @@ export default defineSchema({
     tileSetDimY: v.number(),
     // Tile size in pixels (assume square)
     tileDim: v.number(),
-    bgTiles: v.array(v.array(v.array(v.number()))),
-    objectTiles: v.array(v.array(v.number())),
+    bgTiles:     v.array(v.array(v.array(v.number()))),
+    objectTiles: v.array(v.array(v.array(v.number()))),
   }),
 
   music: defineTable({
