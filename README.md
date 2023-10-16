@@ -108,7 +108,9 @@ npm run dev:backend
 See package.json for details, but dev:backend runs `npx convex dev`
 
 **Note**: The simulation will pause after 5 minutes if the window is idle.
-Loading the page will unpause it. If you want to run the world without the
+Loading the page will unpause it.
+You can also manually freeze & unfreeze the world with a button in the UI.
+If you want to run the world without the
 browser, you can comment-out the "stop inactive worlds" cron in `convex/crons.ts`.
 
 ### Various commands to run / test / debug
@@ -124,19 +126,19 @@ This will stop running the engine and agents. You can still run queries and
 run functions to debug.
 
 ```bash
-npx convex run --no-push init:stop
+npx convex run --no-push testing:stop
 ```
 
 **To restart the back end after stopping it**
 
 ```bash
-npx convex run init:resume
+npx convex run testing:resume
 ```
 
 **To kick the engine in case the game engine or agents aren't running**
 
 ```bash
-npx convex run init:kick
+npx convex run testing:kick
 ```
 
 **To archive the world**
@@ -144,7 +146,7 @@ npx convex run init:kick
 If you'd like to reset the world and start from scratch, you can archive the current world:
 
 ```bash
-npx convex run init:archive
+npx convex run testing:archive
 ```
 
 Then, you can still look at the world's data in the dashboard, but the engine and agents will

@@ -1,8 +1,9 @@
 import { TableNames } from './_generated/dataModel';
 import { internal } from './_generated/api';
-import { internalMutation } from './_generated/server';
+import { DatabaseReader, internalMutation, mutation, query } from './_generated/server';
 import { v } from 'convex/values';
 import schema from './schema';
+import { kickEngine, startEngine, stopEngine } from './engine/game';
 
 const DELETE_BATCH_SIZE = 64;
 
@@ -40,3 +41,75 @@ export const deletePage = internalMutation({
     }
   },
 });
+
+export const kick = internalMutation({
+  handler: async (ctx) => {
+    const { world, engine } = await getDefaultWorld(ctx.db);
+    await kickEngine(ctx, internal.game.main.runStep, engine._id);
+  },
+});
+
+export const stopAllowed = query({
+  handler: async () => {
+    return !process.env.STOP_NOT_ALLOWED;
+  },
+});
+
+export const stop = mutation({
+  handler: async (ctx) => {
+    if (process.env.STOP_NOT_ALLOWED) throw new Error('Stop not allowed');
+    const { world, engine } = await getDefaultWorld(ctx.db);
+    if (world.status === 'inactive' || world.status === 'stoppedByDeveloper') {
+      if (engine.running) {
+        throw new Error(`Engine ${engine._id} isn't stopped?`);
+      }
+      console.debug(`World ${world._id} is already inactive`);
+      return;
+    }
+    console.log(`Stopping engine ${engine._id}...`);
+    await ctx.db.patch(world._id, { status: 'stoppedByDeveloper' });
+    await stopEngine(ctx, engine._id);
+  },
+});
+
+export const resume = mutation({
+  handler: async (ctx) => {
+    const { world, engine } = await getDefaultWorld(ctx.db);
+    if (world.status === 'running') {
+      if (!engine.running) {
+        throw new Error(`Engine ${engine._id} isn't running?`);
+      }
+      console.debug(`World ${world._id} is already running`);
+      return;
+    }
+    console.log(`Resuming engine ${engine._id} for world ${world._id} (state: ${world.status})...`);
+    await ctx.db.patch(world._id, { status: 'running' });
+    await startEngine(ctx, internal.game.main.runStep, engine._id);
+  },
+});
+
+export const archive = internalMutation({
+  handler: async (ctx) => {
+    const { world, engine } = await getDefaultWorld(ctx.db);
+    if (engine.running) {
+      throw new Error(`Engine ${engine._id} is still running!`);
+    }
+    console.log(`Archiving world ${world._id}...`);
+    await ctx.db.patch(world._id, { isDefault: false });
+  },
+});
+
+async function getDefaultWorld(db: DatabaseReader) {
+  const world = await db
+    .query('worlds')
+    .filter((q) => q.eq(q.field('isDefault'), true))
+    .first();
+  if (!world) {
+    throw new Error('No default world found');
+  }
+  const engine = await db.get(world.engineId);
+  if (!engine) {
+    throw new Error(`Engine ${world.engineId} not found`);
+  }
+  return { world, engine };
+}
