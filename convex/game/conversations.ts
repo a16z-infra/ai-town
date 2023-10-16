@@ -85,10 +85,14 @@ export async function startConversation(
   const player = game.players.lookup(playerId);
   const inviteePlayer = game.players.lookup(invitee);
   if (game.conversationMembers.find((m) => m.playerId === playerId)) {
-    throw new Error(`Player ${playerId} is already in a conversation`);
+    const reason = `Player ${playerId} is already in a conversation`;
+    console.log(reason);
+    return { error: reason };
   }
   if (game.conversationMembers.find((m) => m.playerId === invitee)) {
-    throw new Error(`Invitee ${playerId} is already in a conversation`);
+    const reason = `Player ${playerId} is already in a conversation`;
+    console.log(reason);
+    return { error: reason };
   }
   const conversationId = await game.conversations.insert({
     creator: playerId,
@@ -106,7 +110,7 @@ export async function startConversation(
     playerId: invitee,
     status: { kind: 'invited' },
   });
-  return conversationId;
+  return { conversationId };
 }
 
 export function stopConversation(game: AiTown, now: number, conversation: Doc<'conversations'>) {

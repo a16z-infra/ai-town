@@ -15,6 +15,9 @@ export const COLLISION_THRESHOLD = 0.75;
 // Don't talk to anyone for 15s after having a conversation.
 export const CONVERSATION_COOLDOWN = 15000;
 
+// Don't do another activity for 10s after doing one.
+export const ACTIVITY_COOLDOWN = 10_000;
+
 // Don't talk to a player within 60s of talking to them.
 export const PLAYER_CONVERSATION_COOLDOWN = 60000;
 

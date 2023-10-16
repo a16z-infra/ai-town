@@ -6,6 +6,7 @@ import { Descriptions, characters } from '../../data/characters';
 import { blocked, movePlayer } from './movement';
 import { acceptInvite, leaveConversation, rejectInvite } from './conversationMembers';
 import { startConversation, stopConversation } from './conversations';
+import { activity } from './players';
 
 export const inputs = {
   // Join, creating a new player...
@@ -104,19 +105,13 @@ export const inputs = {
     }),
     returnValue: v.null(),
   },
-  finishFindConversation: {
+  finishDoSomething: {
     args: v.object({
       uuid: v.string(),
       agentId: v.id('agents'),
-      candidate: v.union(v.id('players'), v.null()),
-    }),
-    returnValue: v.null(),
-  },
-  agentStartConversation: {
-    args: v.object({
-      agentId: v.id('agents'),
-      invitee: v.id('players'),
-      uuid: v.string(),
+      destination: v.optional(point),
+      invitee: v.optional(v.id('players')),
+      activity: v.optional(activity),
     }),
     returnValue: v.null(),
   },
@@ -165,10 +160,8 @@ export async function handleInput(
       return await handleCreateAgent(game, now, args as any);
     case 'finishRememberConversation':
       return await handleFinishRememberConversation(game, now, args as any);
-    case 'finishFindConversation':
-      return await handleFinishFindConversation(game, now, args as any);
-    case 'agentStartConversation':
-      return await handleAgentStartConversation(game, now, args as any);
+    case 'finishDoSomething':
+      return await handleFinishDoSomething(game, now, args as any);
     case 'agentFinishSendingMessage':
       return await handleAgentFinishSendingMessage(game, now, args as any);
     default:
@@ -260,7 +253,11 @@ async function handleStartConversation(
   { playerId, invitee }: InputArgs<'startConversation'>,
 ): Promise<InputReturnValue<'startConversation'>> {
   console.log(`Starting ${playerId} ${invitee}...`);
-  const conversationId = await startConversation(game, playerId, invitee);
+  const { conversationId, error } = await startConversation(game, playerId, invitee);
+  if (!conversationId) {
+    // TODO: pass it back to the client for them to show an error.
+    throw new Error(error);
+  }
   return conversationId;
 }
 
@@ -367,35 +364,34 @@ async function handleFinishRememberConversation(
   return null;
 }
 
-async function handleFinishFindConversation(
+async function handleFinishDoSomething(
   game: AiTown,
   now: number,
-  { uuid, agentId, candidate }: InputArgs<'finishFindConversation'>,
-): Promise<InputReturnValue<'finishFindConversation'>> {
+  { uuid, agentId, activity, destination, invitee }: InputArgs<'finishDoSomething'>,
+): Promise<InputReturnValue<'finishDoSomething'>> {
   const agent = game.agents.lookup(agentId);
   if (!agent.inProgressOperation || agent.inProgressOperation.uuid !== uuid) {
     console.debug(`Agent ${agentId} wasn't looking for a conversation ${uuid}`);
   } else {
     delete agent.inProgressOperation;
-    if (candidate) {
-      agent.conversationCandidate = candidate;
+    const player = game.players.lookup(agent.playerId);
+    if (invitee) {
+      await startConversation(game, agent.playerId, invitee);
+    }
+    if (destination) {
+      movePlayer(game, now, agent.playerId, destination);
+    }
+    if (activity) {
+      player.activity = activity;
+    }
+    // TODO: remove once we're going to destinations intentionally
+    if (!invitee && !activity) {
+      movePlayer(game, now, player._id, {
+        x: 1 + Math.floor(Math.random() * (game.map.width - 2)),
+        y: 1 + Math.floor(Math.random() * (game.map.height - 2)),
+      });
     }
   }
-  return null;
-}
-
-async function handleAgentStartConversation(
-  game: AiTown,
-  now: number,
-  { uuid, agentId, invitee }: InputArgs<'agentStartConversation'>,
-): Promise<InputReturnValue<'agentStartConversation'>> {
-  const agent = game.agents.lookup(agentId);
-  if (!agent.inProgressOperation || agent.inProgressOperation.uuid !== uuid) {
-    console.debug(`Agent ${agentId} wasn't looking for a conversation ${uuid}`);
-    return null;
-  }
-  delete agent.inProgressOperation;
-  await startConversation(game, agent.playerId, invitee);
   return null;
 }
 
