@@ -71,11 +71,12 @@ export const userStatus = query({
     worldId: v.id('worlds'),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return null;
-    }
-    return identity.tokenIdentifier;
+    // const identity = await ctx.auth.getUserIdentity();
+    // if (!identity) {
+    //   return null;
+    // }
+    // return identity.tokenIdentifier;
+    return 'Testing';
   },
 });
 
@@ -84,26 +85,28 @@ export const joinWorld = mutation({
     worldId: v.id('worlds'),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError(`Not logged in`);
-    }
-    const name =
-      identity.givenName || identity.nickname || (identity.email && identity.email.split('@')[0]);
+    // const identity = await ctx.auth.getUserIdentity();
+    // if (!identity) {
+    //   throw new ConvexError(`Not logged in`);
+    // }
+    // const name =
+    //   identity.givenName || identity.nickname || (identity.email && identity.email.split('@')[0]);
+    const name = 'Testing';
 
-    if (!name) {
-      throw new ConvexError(`Missing name on ${JSON.stringify(identity)}`);
-    }
+    // if (!name) {
+    //   throw new ConvexError(`Missing name on ${JSON.stringify(identity)}`);
+    // }
     const world = await ctx.db.get(args.worldId);
     if (!world) {
       throw new ConvexError(`Invalid world ID: ${args.worldId}`);
     }
-    const { tokenIdentifier } = identity;
+    // const { tokenIdentifier } = identity;
     return await insertInput(ctx, world._id, 'join', {
       name,
       character: characters[Math.floor(Math.random() * characters.length)].name,
-      description: `${identity.givenName} is a human player`,
-      tokenIdentifier,
+      description: `Testing is a human player`,
+      // description: `${identity.givenName} is a human player`,
+      tokenIdentifier: 'Testing',
     });
   },
 });
@@ -113,16 +116,17 @@ export const leaveWorld = mutation({
     worldId: v.id('worlds'),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error(`Not logged in`);
-    }
-    const { tokenIdentifier } = identity;
+    // const identity = await ctx.auth.getUserIdentity();
+    // if (!identity) {
+    //   throw new Error(`Not logged in`);
+    // }
+    // const { tokenIdentifier } = identity;
     const world = await ctx.db.get(args.worldId);
     if (!world) {
       throw new Error(`Invalid world ID: ${args.worldId}`);
     }
-    const existingPlayer = world.players.find((p) => p.human === tokenIdentifier);
+    // const existingPlayer = world.players.find((p) => p.human === tokenIdentifier);
+    const existingPlayer = world.players.find((p) => p.human === 'Testing');
     if (!existingPlayer) {
       return;
     }
