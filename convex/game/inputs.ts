@@ -100,14 +100,14 @@ export const inputs = {
   },
   finishRememberConversation: {
     args: v.object({
-      uuid: v.string(),
+      operationId: v.string(),
       agentId: v.id('agents'),
     }),
     returnValue: v.null(),
   },
   finishDoSomething: {
     args: v.object({
-      uuid: v.string(),
+      operationId: v.string(),
       agentId: v.id('agents'),
       destination: v.optional(point),
       invitee: v.optional(v.id('players')),
@@ -120,7 +120,7 @@ export const inputs = {
       agentId: v.id('agents'),
       conversationId: v.id('conversations'),
       timestamp: v.number(),
-      uuid: v.string(),
+      operationId: v.string(),
       leaveConversation: v.boolean(),
     }),
     returnValue: v.null(),
@@ -352,11 +352,11 @@ async function handleCreateAgent(
 async function handleFinishRememberConversation(
   game: AiTown,
   now: number,
-  { uuid, agentId }: InputArgs<'finishRememberConversation'>,
+  { operationId, agentId }: InputArgs<'finishRememberConversation'>,
 ): Promise<InputReturnValue<'finishRememberConversation'>> {
   const agent = game.agents.lookup(agentId);
-  if (!agent.inProgressOperation || agent.inProgressOperation.uuid !== uuid) {
-    console.debug(`Agent ${agentId} isn't remembering ${uuid}`);
+  if (!agent.inProgressOperation || agent.inProgressOperation.operationId !== operationId) {
+    console.debug(`Agent ${agentId} isn't remembering ${operationId}`);
   } else {
     delete agent.inProgressOperation;
     delete agent.toRemember;
@@ -367,11 +367,11 @@ async function handleFinishRememberConversation(
 async function handleFinishDoSomething(
   game: AiTown,
   now: number,
-  { uuid, agentId, activity, destination, invitee }: InputArgs<'finishDoSomething'>,
+  { operationId, agentId, activity, destination, invitee }: InputArgs<'finishDoSomething'>,
 ): Promise<InputReturnValue<'finishDoSomething'>> {
   const agent = game.agents.lookup(agentId);
-  if (!agent.inProgressOperation || agent.inProgressOperation.uuid !== uuid) {
-    console.debug(`Agent ${agentId} wasn't looking for a conversation ${uuid}`);
+  if (!agent.inProgressOperation || agent.inProgressOperation.operationId !== operationId) {
+    console.debug(`Agent ${agentId} wasn't looking for a conversation ${operationId}`);
   } else {
     delete agent.inProgressOperation;
     const player = game.players.lookup(agent.playerId);
@@ -404,12 +404,12 @@ async function handleAgentFinishSendingMessage(
     conversationId,
     timestamp,
     leaveConversation: shouldLeave,
-    uuid,
+    operationId,
   }: InputArgs<'agentFinishSendingMessage'>,
 ): Promise<InputReturnValue<'agentFinishSendingMessage'>> {
   const agent = game.agents.lookup(agentId);
-  if (!agent.inProgressOperation || agent.inProgressOperation.uuid !== uuid) {
-    console.debug(`Agent ${agentId} wasn't sending a message ${uuid}`);
+  if (!agent.inProgressOperation || agent.inProgressOperation.operationId !== operationId) {
+    console.debug(`Agent ${agentId} wasn't sending a message ${operationId}`);
     return null;
   }
   delete agent.inProgressOperation;

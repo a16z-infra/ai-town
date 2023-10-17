@@ -60,7 +60,7 @@ export const agents = defineTable({
   inProgressOperation: v.optional(
     v.object({
       name: v.string(),
-      uuid: v.string(),
+      operationId: v.string(),
       started: v.number(),
     }),
   ),
@@ -302,19 +302,19 @@ function startOperation<F extends FunctionReference<any, any, any>>(
   now: number,
   agent: Doc<'agents'>,
   ref: F,
-  args: Omit<FunctionArgs<F>, 'uuid'>,
+  args: Omit<FunctionArgs<F>, 'operationId'>,
 ) {
   if (agent.inProgressOperation) {
     throw new Error(
       `Agent ${agent._id} already has an operation: ${JSON.stringify(agent.inProgressOperation)}`,
     );
   }
-  const uuid = crypto.randomUUID();
-  console.log(`Agent ${agent._id} starting operation ${getFunctionName(ref)} (${uuid})`);
-  game.withScheduler((scheduler) => scheduler.runAfter(0, ref, { uuid, ...args } as any));
+  const operationId = crypto.randomUUID();
+  console.log(`Agent ${agent._id} starting operation ${getFunctionName(ref)} (${operationId})`);
+  game.withScheduler((scheduler) => scheduler.runAfter(0, ref, { operationId, ...args } as any));
   agent.inProgressOperation = {
     name: getFunctionName(ref),
-    uuid,
+    operationId,
     started: now,
   };
 }
@@ -325,7 +325,7 @@ export const agentRememberConversation = internalAction({
     playerId: v.id('players'),
     agentId: v.id('agents'),
     conversationId: v.id('conversations'),
-    uuid: v.string(),
+    operationId: v.string(),
   },
   handler: async (ctx, args) => {
     await rememberConversation(ctx, args.agentId, args.playerId, args.conversationId);
@@ -334,7 +334,7 @@ export const agentRememberConversation = internalAction({
       name: 'finishRememberConversation',
       args: {
         agentId: args.agentId,
-        uuid: args.uuid,
+        operationId: args.operationId,
       },
     });
   },
@@ -363,7 +363,7 @@ export const agentDoSomething = internalAction({
     worldId: v.id('worlds'),
     playerId: v.id('players'),
     agentId: v.id('agents'),
-    uuid: v.string(),
+    operationId: v.string(),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -386,7 +386,7 @@ export const agentDoSomething = internalAction({
       if (recentActivity || justLeftConversation) {
         // TODO: decide where to go
         // await insertInput(ctx, args.worldId, 'finishDoSomething', {
-        //   uuid: args.uuid,
+        //   operationId: args.operationId,
         //   agentId: args.agentId,
         //   destination:
         // });
@@ -397,7 +397,7 @@ export const agentDoSomething = internalAction({
           worldId: args.worldId,
           name: 'finishDoSomething',
           args: {
-            uuid: args.uuid,
+            operationId: args.operationId,
             agentId: args.agentId,
             activity: {
               description: activity.description,
@@ -424,7 +424,7 @@ export const agentDoSomething = internalAction({
       worldId: args.worldId,
       name: 'finishDoSomething',
       args: {
-        uuid: args.uuid,
+        operationId: args.operationId,
         agentId: args.agentId,
         invitee,
       },
@@ -442,7 +442,7 @@ export const agentGenerateMessage = internalAction({
 
     type: v.union(v.literal('start'), v.literal('continue'), v.literal('leave')),
     messageUuid: v.string(),
-    uuid: v.string(),
+    operationId: v.string(),
   },
   handler: async (ctx, args) => {
     let completionFn;
@@ -473,7 +473,7 @@ export const agentGenerateMessage = internalAction({
       messageUuid: args.messageUuid,
       text,
       leaveConversation: args.type === 'leave',
-      uuid: args.uuid,
+      operationId: args.operationId,
     });
   },
 });
@@ -486,7 +486,7 @@ export const agentSendMessage = internalMutation({
     text: v.string(),
     messageUuid: v.string(),
     leaveConversation: v.boolean(),
-    uuid: v.string(),
+    operationId: v.string(),
   },
   handler: async (ctx, args) => {
     const agent = await ctx.db.get(args.agentId);
@@ -504,7 +504,7 @@ export const agentSendMessage = internalMutation({
       agentId: args.agentId,
       timestamp: Date.now(),
       leaveConversation: args.leaveConversation,
-      uuid: args.uuid,
+      operationId: args.operationId,
     });
   },
 });
