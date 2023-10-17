@@ -49,6 +49,7 @@ export const Player = ({
         isMoving={historicalLocation.velocity > 0}
         isThinking={player.isThinking}
         isSpeaking={player.isSpeaking}
+        emoji={player.activity?.emoji}
         isViewer={isViewer}
         textureUrl={character.textureUrl}
         spritesheetData={character.spritesheetData}
