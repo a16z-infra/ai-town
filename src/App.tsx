@@ -5,7 +5,7 @@ import a16zImg from '../assets/a16z.png';
 import convexImg from '../assets/convex.svg';
 import starImg from '../assets/star.svg';
 import helpImg from '../assets/help.svg';
-import { SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
+// import { SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
 import LoginButton from './components/buttons/LoginButton.tsx';
 import { useState } from 'react';
 import ReactModal from 'react-modal';
@@ -61,7 +61,7 @@ export default function Home() {
           </p>
         </div>
       </ReactModal>
-      <div className="p-6 absolute top-0 right-0 z-10 text-2xl">
+      {/* <div className="p-6 absolute top-0 right-0 z-10 text-2xl">
         <SignedIn>
           <UserButton afterSignOutUrl="/ai-town" />
         </SignedIn>
@@ -69,7 +69,7 @@ export default function Home() {
         <SignedOut>
           <LoginButton />
         </SignedOut>
-      </div>
+      </div> */}
 
       <div className="w-full min-h-screen relative isolate overflow-hidden p-6 lg:p-8 shadow-2xl flex flex-col justify-center">
         <h1 className="mx-auto text-center text-6xl sm:text-8xl lg:text-9xl font-bold font-display leading-none tracking-wide game-title">
