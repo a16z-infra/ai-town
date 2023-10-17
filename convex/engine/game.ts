@@ -147,7 +147,7 @@ export abstract class Game<Handlers extends InputHandlers> {
 
     await scheduleEngineRun(ctx, stepReference, this.engineId, stepNextRun);
 
-    console.log(`Simulated from ${startTs} to ${currentTs} (${currentTs - startTs}ms)`);
+    console.debug(`Simulated from ${startTs} to ${currentTs} (${currentTs - startTs}ms)`);
   }
 }
 
