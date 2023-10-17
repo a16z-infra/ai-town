@@ -17,9 +17,9 @@ export const conversationMembers = defineTable({
       kind: v.literal('left'),
       started: v.optional(v.number()),
       ended: v.number(),
-      // TODO: remove this, and stop doig a targeted lookup of the last convo
+      // TODO: remove this, and stop doing a targeted lookup of the last convo
       // with another player - we're only using it to prompt when our last
-      // conversation with a player ended,
+      // conversation with a player ended.
       with: v.id('players'),
     }),
   ),
