@@ -3,8 +3,8 @@ import { characters } from '../../data/characters';
 import { agentInputs } from './agents';
 import { ObjectType, PropertyValidators, v } from 'convex/values';
 import { movePlayer } from './movement';
-import { conversationMembersInputs } from './conversationMembers';
-import { conversationInputs, stopConversation } from './conversations';
+import { stopConversation } from './conversations';
+import { conversationInputs } from './conversations';
 import { point } from '../util/types';
 import { AiTown } from './aiTown';
 
@@ -107,7 +107,6 @@ export const inputs = {
   moveTo,
   // Inputs for the messaging layer.
   ...conversationInputs,
-  ...conversationMembersInputs,
   // Inputs for the agent layer.
   ...agentInputs,
 };
