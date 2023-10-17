@@ -105,8 +105,7 @@ export async function rememberConversation(
     },
     embedding,
   });
-  await reflectOnMemories(ctx, agentId, generationNumber, playerId);
-  await ctx.runMutation(selfInternal.clearThinking, { agentId, since });
+  await reflectOnMemories(ctx, agentId, playerId);
   return description;
 }
 
@@ -284,7 +283,6 @@ export const insertMemory = internalMutation({
 export const insertReflectionMemories = internalMutation({
   args: {
     agentId: v.id('agents'),
-    generationNumber: v.number(),
 
     reflections: v.array(
       v.object({
@@ -295,15 +293,10 @@ export const insertReflectionMemories = internalMutation({
       }),
     ),
   },
-  handler: async (ctx, { agentId, generationNumber, reflections }) => {
+  handler: async (ctx, { agentId, reflections }) => {
     const agent = await ctx.db.get(agentId);
     if (!agent) {
       throw new Error(`Agent ${agentId} not found`);
-    }
-    if (agent.generationNumber !== generationNumber) {
-      throw new Error(
-        `Agent ${agentId} generation number ${agent.generationNumber} does not match ${generationNumber}`,
-      );
     }
     const lastAccess = Date.now();
     for (const { embedding, relatedMemoryIds, ...rest } of reflections) {
@@ -325,12 +318,7 @@ export const insertReflectionMemories = internalMutation({
   },
 });
 
-async function reflectOnMemories(
-  ctx: ActionCtx,
-  agentId: Id<'agents'>,
-  generationNumber: number,
-  playerId: Id<'players'>,
-) {
+async function reflectOnMemories(ctx: ActionCtx, agentId: Id<'agents'>, playerId: Id<'players'>) {
   const { memories, lastReflectionTs, name } = await ctx.runQuery(
     internal.agent.memory.getReflectionMemories,
     {
@@ -388,7 +376,6 @@ async function reflectOnMemories(
 
     await ctx.runMutation(selfInternal.insertReflectionMemories, {
       agentId,
-      generationNumber,
       reflections: memoriesToSave,
     });
   } catch (e) {

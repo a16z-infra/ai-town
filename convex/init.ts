@@ -40,7 +40,6 @@ const init = mutation({
         await insertInput(ctx, world._id, 'createAgent', {
           descriptionIndex: i,
         });
-        numCreated++;
       }
     }
   },

@@ -31,13 +31,13 @@ export const Player = ({
       logged.add(player.character);
       toast.error(`Unknown character ${player.character}`);
     }
-    return;
+    return null;
   }
   if (!world) {
-    return;
+    return null;
   }
   if (!historicalLocation) {
-    return;
+    return null;
   }
   const tileDim = world.map.tileDim;
   return (
