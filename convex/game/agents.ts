@@ -146,6 +146,9 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
     delete agent.toRemember;
     return;
   }
+  if (member && doingActivity) {
+    delete player.activity;
+  }
   if (member) {
     const conversation = game.conversations.find((d) => d._id === member.conversationId);
     if (conversation === null) {
