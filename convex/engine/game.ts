@@ -165,19 +165,11 @@ async function scheduleEngineRun(
 
 export async function insertInput(
   ctx: MutationCtx,
-  stepReference: StepReference,
   engineId: Id<'engines'>,
   name: string,
   args: any,
 ): Promise<Id<'inputs'>> {
   const now = Date.now();
-  const engine = await ctx.db.get(engineId);
-  if (!engine) {
-    throw new Error(`Invalid engine ID: ${engineId}`);
-  }
-  if (!engine.running) {
-    throw new Error(`engine ${engineId} is not active.`);
-  }
   const prevInput = await ctx.db
     .query('inputs')
     .withIndex('byInputNumber', (q) => q.eq('engineId', engineId))
