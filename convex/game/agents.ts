@@ -6,6 +6,7 @@ import {
   DatabaseWriter,
   internalAction,
   internalMutation,
+  internalQuery,
 } from '../_generated/server';
 import { Doc, Id } from '../_generated/dataModel';
 import { Players } from './players';
@@ -117,15 +118,14 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
 
   const member = game.conversationMembers.find((m) => m.playerId === player._id);
 
-  const recentlyAttempted =
-    agent.lastInviteAttempt && agent.lastInviteAttempt + ACTIVITY_COOLDOWN > now;
+  const recentlyAttemptedInvite =
+    agent.lastInviteAttempt && now < agent.lastInviteAttempt + CONVERSATION_COOLDOWN;
   const doingActivity = player.activity && player.activity.until > now;
   // If we're not in a conversation, do something.
   // If we aren't doing an activity or moving, do something.
   // If we have been wandering but haven't thought about something to do for
   // a while, do something.
-  if (!member && !doingActivity && (!player.pathfinding || !recentlyAttempted)) {
-    agent.lastInviteAttempt = now;
+  if (!member && !doingActivity && (!player.pathfinding || !recentlyAttemptedInvite)) {
     startOperation(game, now, agent, selfInternal.agentDoSomething, {
       worldId: agent.worldId,
       playerId: player._id,
@@ -325,7 +325,6 @@ export const agentRememberConversation = internalAction({
     uuid: v.string(),
   },
   handler: async (ctx, args) => {
-    // TODO: decide whether to do an activity or walk
     await rememberConversation(ctx, args.agentId, args.playerId, args.conversationId);
     await ctx.runMutation(api.game.main.sendInput, {
       worldId: args.worldId,
@@ -338,15 +337,12 @@ export const agentRememberConversation = internalAction({
   },
 });
 
-export const agentDoSomething = internalMutation({
+export const fetchAgent = internalQuery({
   args: {
-    worldId: v.id('worlds'),
     playerId: v.id('players'),
     agentId: v.id('agents'),
-    uuid: v.string(),
   },
   handler: async (ctx, args) => {
-    const now = Date.now();
     const player = await ctx.db.get(args.playerId);
     if (!player) {
       throw new Error(`Couldn't find player: ${args.playerId}`);
@@ -355,12 +351,29 @@ export const agentDoSomething = internalMutation({
     if (!agent) {
       throw new Error(`Couldn't find agent: ${args.agentId}`);
     }
+    return { player, agent };
+  },
+});
+
+export const agentDoSomething = internalAction({
+  args: {
+    worldId: v.id('worlds'),
+    playerId: v.id('players'),
+    agentId: v.id('agents'),
+    uuid: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const { player, agent } = await ctx.runQuery(selfInternal.fetchAgent, {
+      playerId: args.playerId,
+      agentId: args.agentId,
+    });
     // Don't try to start a new conversation if we were just in one.
     const justLeftConversation =
       agent.lastConversation && now < agent.lastConversation + CONVERSATION_COOLDOWN;
 
     // Don't try again if we recently tried to find someone to invite.
-    const recentlyAttempted =
+    const recentlyAttemptedInvite =
       agent.lastInviteAttempt && now < agent.lastInviteAttempt + CONVERSATION_COOLDOWN;
 
     const recentActivity = player.activity && now < player.activity.until + ACTIVITY_COOLDOWN;
@@ -377,27 +390,41 @@ export const agentDoSomething = internalMutation({
       } else {
         // TODO: have LLM choose the activity & emoji
         const activity = ACTIVITIES[Math.floor(Math.random() * ACTIVITIES.length)];
-        await insertInput(ctx, args.worldId, 'finishDoSomething', {
-          uuid: args.uuid,
-          agentId: args.agentId,
-          activity: {
-            description: activity.description,
-            emoji: activity.emoji,
-            until: Date.now() + activity.duration,
+        await ctx.runMutation(api.game.main.sendInput, {
+          worldId: args.worldId,
+          name: 'finishDoSomething',
+          args: {
+            uuid: args.uuid,
+            agentId: args.agentId,
+            activity: {
+              description: activity.description,
+              emoji: activity.emoji,
+              until: Date.now() + activity.duration,
+            },
           },
         });
+        return;
       }
     }
 
     const invitee =
-      justLeftConversation || recentlyAttempted
+      justLeftConversation || recentlyAttemptedInvite
         ? undefined
-        : await findConversationCandidate(ctx.db, player, args.worldId, now);
+        : await ctx.runQuery(selfInternal.findConversationCandidate, {
+            playerId: player._id,
+            locationId: player.locationId,
+            worldId: args.worldId,
+            now,
+          });
 
-    await insertInput(ctx, args.worldId, 'finishDoSomething', {
-      uuid: args.uuid,
-      agentId: args.agentId,
-      invitee,
+    await ctx.runMutation(api.game.main.sendInput, {
+      worldId: args.worldId,
+      name: 'finishDoSomething',
+      args: {
+        uuid: args.uuid,
+        agentId: args.agentId,
+        invitee,
+      },
     });
   },
 });
@@ -479,60 +506,63 @@ export const agentSendMessage = internalMutation({
   },
 });
 
-async function findConversationCandidate(
-  db: DatabaseReader,
-  player: Doc<'players'>,
-  worldId: Id<'worlds'>,
-  now: number,
-) {
-  const location = await db.get(player.locationId);
-  if (!location) {
-    throw new Error(`Couldn't find location: ${player.locationId}`);
-  }
-  const position = { x: location.x, y: location.y };
-  const otherPlayers = await db
-    .query('players')
-    .withIndex('active', (q) => q.eq('worldId', worldId).eq('active', true))
-    .filter((q) => q.neq(q.field('_id'), player._id))
-    .collect();
-
-  const candidates = [];
-
-  for (const otherPlayer of otherPlayers) {
-    // Skip players that are currently in a conversation.
-    const member = await conversationMember(db, otherPlayer._id);
-    if (member) {
-      continue;
-    }
-    // Find the latest conversation we're both members of.
-    const lastMember = await db
-      .query('conversationMembers')
-      .withIndex('playerId', (q) =>
-        q
-          .eq('playerId', player._id)
-          .eq('status.kind', 'left')
-          .gt('status.ended', now - PLAYER_CONVERSATION_COOLDOWN),
-      )
-      .order('desc')
-      .first();
-
-    if (lastMember) {
-      if (lastMember.status.kind !== 'left') {
-        throw new Error(`Unexpected status: ${lastMember.status.kind}`);
-      }
-      if (now < lastMember.status.ended + PLAYER_CONVERSATION_COOLDOWN) {
-        continue;
-      }
-    }
-    const location = await db.get(otherPlayer.locationId);
+export const findConversationCandidate = internalQuery({
+  args: {
+    playerId: v.id('players'),
+    locationId: v.id('locations'),
+    worldId: v.id('worlds'),
+    now: v.number(),
+  },
+  handler: async (ctx, { playerId, locationId, now, worldId }) => {
+    const location = await ctx.db.get(locationId);
     if (!location) {
-      throw new Error(`Couldn't find location: ${otherPlayer.locationId}`);
+      throw new Error(`Couldn't find location: ${locationId}`);
     }
     const position = { x: location.x, y: location.y };
-    candidates.push({ _id: otherPlayer._id, position });
-  }
+    const otherPlayers = await ctx.db
+      .query('players')
+      .withIndex('active', (q) => q.eq('worldId', worldId).eq('active', true))
+      .filter((q) => q.neq(q.field('_id'), playerId))
+      .collect();
 
-  // Sort by distance and take the nearest candidate.
-  candidates.sort((a, b) => distance(a.position, position) - distance(b.position, position));
-  return candidates[0]?._id;
-}
+    const candidates = [];
+
+    for (const otherPlayer of otherPlayers) {
+      // Skip players that are currently in a conversation.
+      const member = await conversationMember(ctx.db, otherPlayer._id);
+      if (member) {
+        continue;
+      }
+      // Find the latest conversation we're both members of.
+      const lastMember = await ctx.db
+        .query('conversationMembers')
+        .withIndex('playerId', (q) =>
+          q
+            .eq('playerId', playerId)
+            .eq('status.kind', 'left')
+            .gt('status.ended', now - PLAYER_CONVERSATION_COOLDOWN),
+        )
+        .order('desc')
+        .first();
+
+      if (lastMember) {
+        if (lastMember.status.kind !== 'left') {
+          throw new Error(`Unexpected status: ${lastMember.status.kind}`);
+        }
+        if (now < lastMember.status.ended + PLAYER_CONVERSATION_COOLDOWN) {
+          continue;
+        }
+      }
+      const location = await ctx.db.get(otherPlayer.locationId);
+      if (!location) {
+        throw new Error(`Couldn't find location: ${otherPlayer.locationId}`);
+      }
+      const position = { x: location.x, y: location.y };
+      candidates.push({ _id: otherPlayer._id, position });
+    }
+
+    // Sort by distance and take the nearest candidate.
+    candidates.sort((a, b) => distance(a.position, position) - distance(b.position, position));
+    return candidates[0]?._id;
+  },
+});

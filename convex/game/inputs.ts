@@ -376,6 +376,7 @@ async function handleFinishDoSomething(
     delete agent.inProgressOperation;
     const player = game.players.lookup(agent.playerId);
     if (invitee) {
+      agent.lastInviteAttempt = now;
       await startConversation(game, agent.playerId, invitee);
     }
     if (destination) {
