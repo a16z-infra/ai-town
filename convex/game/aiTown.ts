@@ -1,12 +1,9 @@
 import { Game } from '../engine/game';
 import { Doc, Id } from '../_generated/dataModel';
-import { InputArgs, InputReturnValue, Inputs, handleInput } from './inputs';
-import { assertNever } from '../util/assertNever';
 import { Players } from './players';
-import { DatabaseWriter, MutationCtx } from '../_generated/server';
+import { DatabaseWriter } from '../_generated/server';
 import { Locations } from './locations';
 import { blocked, findRoute } from './movement';
-import { characters } from '../../data/characters';
 import { EPSILON, distance, normalize, pathPosition, pointsEqual, vector } from '../util/geometry';
 import {
   CONVERSATION_DISTANCE,
@@ -17,8 +14,9 @@ import {
 import { Conversations } from './conversations';
 import { ConversationMembers } from './conversationMembers';
 import { Agents, tickAgent } from './agents';
+import { InputNames, InputArgs, inputs } from './inputs';
 
-export class AiTown extends Game<Inputs> {
+export class AiTown extends Game {
   tickDuration = 16;
   stepDuration = 1000;
   maxTicksPerStep = 600;
@@ -64,12 +62,13 @@ export class AiTown extends Game<Inputs> {
     );
   }
 
-  async handleInput(
-    now: number,
-    name: keyof Inputs,
-    args: InputArgs<typeof name>,
-  ): Promise<InputReturnValue<typeof name>> {
-    return await handleInput(this, now, name, args);
+  async handleInput<Name extends InputNames>(now: number, name: Name, args: InputArgs<Name>) {
+    // TODO: figure out how to type this properly.
+    const handler = inputs[name]?.handler;
+    if (!handler) {
+      throw new Error(`Invalid input: ${name}`);
+    }
+    return await handler(this, now, args as any);
   }
 
   tick(now: number) {

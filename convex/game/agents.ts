@@ -2,15 +2,16 @@ import { FunctionArgs, FunctionReference, defineTable, getFunctionName } from 'c
 import { v } from 'convex/values';
 import { GameTable } from '../engine/gameTable';
 import {
-  DatabaseReader,
   DatabaseWriter,
   internalAction,
   internalMutation,
   internalQuery,
 } from '../_generated/server';
-import { Doc, Id } from '../_generated/dataModel';
-import { Players } from './players';
+import { Doc } from '../_generated/dataModel';
+import { Players, activity } from './players';
 import { AiTown } from './aiTown';
+import { inputHandler, join } from './inputs';
+import { finishSendingMessage } from './conversations';
 import { distance } from '../util/geometry';
 import {
   ACTION_TIMEOUT,
@@ -33,7 +34,7 @@ import {
   leaveConversation,
   rejectInvite,
 } from './conversationMembers';
-import { setIsTyping } from './conversations';
+import { setIsTyping, startConversation } from './conversations';
 import { api, internal } from '../_generated/api';
 import { rememberConversation } from '../agent/memory';
 import { insertInput } from './main';
@@ -43,6 +44,8 @@ import {
   startConversationMessage,
 } from '../agent/conversation';
 import { assertNever } from '../util/assertNever';
+import { Descriptions } from '../../data/characters';
+import { point } from '../util/types';
 
 const selfInternal = internal.game.agents;
 
@@ -101,6 +104,30 @@ export class Agents extends GameTable<'agents'> {
     return true;
   }
 }
+
+export const createAgent = inputHandler({
+  args: {
+    descriptionIndex: v.number(),
+  },
+  handler: async (game, now, args) => {
+    const description = Descriptions[args.descriptionIndex];
+    if (!description) {
+      throw new Error(`Invalid description index: ${args.descriptionIndex}`);
+    }
+    const playerId = await join.handler(game, now, {
+      name: description.name,
+      description: description.identity,
+      character: description.character,
+    });
+    await game.agents.insert({
+      worldId: game.world._id,
+      playerId,
+      identity: description.identity,
+      plan: description.plan,
+    });
+    return null;
+  },
+});
 
 export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
   const player = game.players.lookup(agent.playerId);
@@ -340,6 +367,23 @@ export const agentRememberConversation = internalAction({
   },
 });
 
+export const finishRememberConversation = inputHandler({
+  args: {
+    operationId: v.string(),
+    agentId: v.id('agents'),
+  },
+  handler: async (game, now, { operationId, agentId }) => {
+    const agent = game.agents.lookup(agentId);
+    if (!agent.inProgressOperation || agent.inProgressOperation.operationId !== operationId) {
+      console.debug(`Agent ${agentId} isn't remembering ${operationId}`);
+    } else {
+      delete agent.inProgressOperation;
+      delete agent.toRemember;
+    }
+    return null;
+  },
+});
+
 export const fetchAgent = internalQuery({
   args: {
     playerId: v.id('players'),
@@ -432,6 +476,43 @@ export const agentDoSomething = internalAction({
   },
 });
 
+export const finishDoSomething = inputHandler({
+  args: {
+    operationId: v.string(),
+    agentId: v.id('agents'),
+    destination: v.optional(point),
+    invitee: v.optional(v.id('players')),
+    activity: v.optional(activity),
+  },
+  handler: async (game, now, { operationId, agentId, destination, invitee, activity }) => {
+    const agent = game.agents.lookup(agentId);
+    if (!agent.inProgressOperation || agent.inProgressOperation.operationId !== operationId) {
+      console.debug(`Agent ${agentId} wasn't looking for a conversation ${operationId}`);
+    } else {
+      delete agent.inProgressOperation;
+      const player = game.players.lookup(agent.playerId);
+      if (invitee) {
+        agent.lastInviteAttempt = now;
+        await startConversation(game, agent.playerId, invitee);
+      }
+      if (destination) {
+        movePlayer(game, now, agent.playerId, destination);
+      }
+      if (activity) {
+        player.activity = activity;
+      }
+      // TODO: remove once we're going to destinations intentionally
+      if (!invitee && !activity) {
+        movePlayer(game, now, player._id, {
+          x: 1 + Math.floor(Math.random() * (game.map.width - 2)),
+          y: 1 + Math.floor(Math.random() * (game.map.height - 2)),
+        });
+      }
+    }
+    return null;
+  },
+});
+
 export const agentGenerateMessage = internalAction({
   args: {
     worldId: v.id('worlds'),
@@ -509,6 +590,37 @@ export const agentSendMessage = internalMutation({
   },
 });
 
+export const agentFinishSendingMessage = inputHandler({
+  args: {
+    agentId: v.id('agents'),
+    conversationId: v.id('conversations'),
+    timestamp: v.number(),
+    operationId: v.string(),
+    leaveConversation: v.boolean(),
+  },
+  handler: async (
+    game: AiTown,
+    now: number,
+    { agentId, conversationId, timestamp, leaveConversation: shouldLeave, operationId },
+  ) => {
+    const agent = game.agents.lookup(agentId);
+    if (!agent.inProgressOperation || agent.inProgressOperation.operationId !== operationId) {
+      console.debug(`Agent ${agentId} wasn't sending a message ${operationId}`);
+      return null;
+    }
+    delete agent.inProgressOperation;
+    finishSendingMessage.handler(game, now, {
+      playerId: agent.playerId,
+      conversationId,
+      timestamp,
+    });
+    if (shouldLeave) {
+      leaveConversation(game, now, agent.playerId, conversationId);
+    }
+    return null;
+  },
+});
+
 export const findConversationCandidate = internalQuery({
   args: {
     playerId: v.id('players'),
@@ -569,3 +681,10 @@ export const findConversationCandidate = internalQuery({
     return candidates[0]?._id;
   },
 });
+
+export const agentInputs = {
+  createAgent,
+  finishRememberConversation,
+  finishDoSomething,
+  agentFinishSendingMessage,
+};
