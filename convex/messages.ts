@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
-import { internalMutation, mutation, query } from './_generated/server';
-import { TYPING_TIMEOUT } from './constants';
-import { internal } from './_generated/api';
+import { DatabaseReader, mutation, query } from './_generated/server';
+import { Id } from './_generated/dataModel';
+import { insertInput } from './game/main';
 
 export const listMessages = query({
   args: {
@@ -24,16 +24,35 @@ export const listMessages = query({
   },
 });
 
+export async function getCurrentlyTyping(db: DatabaseReader, conversationId: Id<'conversations'>) {
+  const conversation = await db.get(conversationId);
+  if (!conversation) {
+    throw new Error(`Invalid conversation ID: ${conversationId}`);
+  }
+  if (conversation.finished) {
+    return null;
+  }
+  if (!conversation.isTyping) {
+    return null;
+  }
+  const messageReceived = await db
+    .query('messages')
+    .withIndex('messageUuid', (q) =>
+      q.eq('conversationId', conversationId).eq('messageUuid', conversation.isTyping!.messageUuid),
+    )
+    .first();
+  if (messageReceived) {
+    return null;
+  }
+  return conversation.isTyping;
+}
+
 export const currentlyTyping = query({
   args: {
     conversationId: v.id('conversations'),
   },
   handler: async (ctx, args) => {
-    const indicator = await ctx.db
-      .query('typingIndicator')
-      .withIndex('conversationId', (q) => q.eq('conversationId', args.conversationId))
-      .unique();
-    const typing = indicator?.typing;
+    const typing = await getCurrentlyTyping(ctx.db, args.conversationId);
     if (!typing) {
       return null;
     }
@@ -45,56 +64,11 @@ export const currentlyTyping = query({
   },
 });
 
-export const startTyping = mutation({
-  args: {
-    conversationId: v.id('conversations'),
-    playerId: v.id('players'),
-  },
-  handler: async (ctx, args) => {
-    const member = await ctx.db
-      .query('conversationMembers')
-      .withIndex('conversationId', (q) =>
-        q.eq('conversationId', args.conversationId).eq('playerId', args.playerId),
-      )
-      .unique();
-    if (!member || member.status.kind !== 'participating') {
-      throw new Error(
-        `Player ${args.playerId} is not participating in conversation ${args.conversationId}`,
-      );
-    }
-    const indicator = await ctx.db
-      .query('typingIndicator')
-      .withIndex('conversationId', (q) => q.eq('conversationId', args.conversationId))
-      .unique();
-    if (!indicator) {
-      await ctx.db.insert('typingIndicator', {
-        conversationId: args.conversationId,
-        typing: { playerId: args.playerId, since: Date.now() },
-        versionNumber: 0,
-      });
-      return;
-    }
-    if (indicator.typing) {
-      if (indicator.typing.playerId === args.playerId) {
-        return;
-      }
-      throw new Error(`${indicator.typing.playerId} is already typing`);
-    }
-    const versionNumber = indicator.versionNumber + 1;
-    await ctx.db.patch(indicator._id, {
-      typing: { playerId: args.playerId, since: Date.now() },
-      versionNumber,
-    });
-    await ctx.scheduler.runAfter(TYPING_TIMEOUT, internal.messages.clearTyping, {
-      conversationId: args.conversationId,
-      versionNumber,
-    });
-  },
-});
-
 export const writeMessage = mutation({
   args: {
+    worldId: v.id('worlds'),
     conversationId: v.id('conversations'),
+    messageUuid: v.string(),
     playerId: v.id('players'),
     text: v.string(),
   },
@@ -103,54 +77,16 @@ export const writeMessage = mutation({
     if (!conversation) {
       throw new Error(`Invalid conversation ID: ${args.conversationId}`);
     }
-    const member = await ctx.db
-      .query('conversationMembers')
-      .withIndex('conversationId', (q) =>
-        q.eq('conversationId', args.conversationId).eq('playerId', args.playerId),
-      )
-      .unique();
-    if (!member || member.status.kind !== 'participating') {
-      throw new Error(
-        `Player ${args.playerId} is not participating in conversation ${args.conversationId}: ${member?.status.kind}`,
-      );
-    }
-    const indicator = await ctx.db
-      .query('typingIndicator')
-      .withIndex('conversationId', (q) => q.eq('conversationId', args.conversationId))
-      .unique();
-    if (indicator?.typing?.playerId === args.playerId) {
-      await ctx.db.patch(indicator._id, {
-        typing: undefined,
-        versionNumber: indicator.versionNumber + 1,
-      });
-    }
     await ctx.db.insert('messages', {
       conversationId: args.conversationId,
       author: args.playerId,
+      messageUuid: args.messageUuid,
       text: args.text,
     });
-  },
-});
-
-export const clearTyping = internalMutation({
-  args: {
-    conversationId: v.id('conversations'),
-    versionNumber: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const indicator = await ctx.db
-      .query('typingIndicator')
-      .withIndex('conversationId', (q) => q.eq('conversationId', args.conversationId))
-      .unique();
-    if (!indicator) {
-      return;
-    }
-    if (indicator.versionNumber !== args.versionNumber) {
-      return;
-    }
-    if (!indicator.typing) {
-      throw new Error(`No typing indicator to clear despite version number matching`);
-    }
-    await ctx.db.patch(indicator._id, { typing: undefined, versionNumber: args.versionNumber + 1 });
+    await insertInput(ctx, args.worldId, 'finishSendingMessage', {
+      conversationId: args.conversationId,
+      playerId: args.playerId,
+      timestamp: Date.now(),
+    });
   },
 });

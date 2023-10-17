@@ -14,10 +14,10 @@ export default function FreezeButton() {
   const flipSwitch = async () => {
     if (frozen) {
       console.log('Unfreezing');
-      await unfreeze(); // use the mutation function here
+      await unfreeze();
     } else {
       console.log('Freezing');
-      await freeze(); // use the mutation function here
+      await freeze(); 
     }
   };
 

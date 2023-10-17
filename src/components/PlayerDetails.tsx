@@ -18,7 +18,8 @@ export default function PlayerDetails({
   setSelectedElement: SelectElement;
 }) {
   const humanPlayerId = useQuery(api.world.userStatus, { worldId });
-  const players = useQuery(api.world.activePlayers, { worldId }) ?? [];
+  const gameState = useQuery(api.world.gameState, { worldId });
+  const players = gameState?.players ?? [];
 
   const humanConversation = useQuery(
     api.world.loadConversationState,
@@ -209,6 +210,13 @@ export default function PlayerDetails({
           </>
         )}
       </SignedIn>
+      {(!playerConversation || playerConversation.member.status.kind === 'left') &&
+        player.activity &&
+        player.activity.until > Date.now() && (
+          <div className="box flex-grow mt-6">
+            <h2 className="bg-brown-700 text-lg text-center">{player.activity.description}</h2>
+          </div>
+        )}
       <div className="desc my-6">
         <p className="leading-tight -m-4 bg-brown-700 text-lg">
           {!isMe && player.description}

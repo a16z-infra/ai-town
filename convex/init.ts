@@ -4,11 +4,8 @@ import { DatabaseReader, MutationCtx, internalMutation, mutation } from './_gene
 import { Descriptions } from '../data/characters';
 import * as firstmap from '../data/firstmap';
 import { insertInput } from './game/main';
-import { initAgent } from './agent/init';
 import { Doc } from './_generated/dataModel';
-import { createEngine } from './engine/game';
-
-const DEFAULT_NUM_AGENTS = 4;
+import { createEngine, kickEngine, startEngine, stopEngine } from './engine/game';
 
 const init = mutation({
   args: {
@@ -33,23 +30,15 @@ const init = mutation({
       );
       return;
     }
-    // Send inputs to create players for all of the agents.
-    if (await shouldCreateAgents(ctx.db, world)) {
-      const numAgents = Math.min(args.numAgents ?? DEFAULT_NUM_AGENTS, Descriptions.length);
-      let numCreated = 0;
-      for (const agent of Descriptions) {
-        if (numCreated >= numAgents) {
-          break;
-        }
-        const inputId = await insertInput(ctx, world._id, 'join', {
-          name: agent.name,
-          description: agent.identity,
-          character: agent.character,
-        });
-        await ctx.scheduler.runAfter(1000, internal.init.completeAgentCreation, {
-          worldId: world._id,
-          joinInputId: inputId,
-          character: agent.character,
+    const shouldCreate = await shouldCreateAgents(ctx.db, world);
+    if (shouldCreate) {
+      const toCreate =
+        args.numAgents !== undefined
+          ? Math.min(args.numAgents, Descriptions.length)
+          : Descriptions.length;
+      for (let i = 0; i < toCreate; i++) {
+        await insertInput(ctx, world._id, 'createAgent', {
+          descriptionIndex: i,
         });
         numCreated++;
       }
@@ -109,7 +98,7 @@ async function shouldCreateAgents(db: DatabaseReader, world: Doc<'worlds'>) {
     .query('inputs')
     .withIndex('byInputNumber', (q) => q.eq('engineId', world.engineId))
     .order('asc')
-    .filter((q) => q.eq(q.field('name'), 'join'))
+    .filter((q) => q.eq(q.field('name'), 'createAgent'))
     .filter((q) => q.eq(q.field('returnValue'), undefined))
     .collect();
   if (unactionedJoinInputs.length > 0) {
@@ -117,35 +106,3 @@ async function shouldCreateAgents(db: DatabaseReader, world: Doc<'worlds'>) {
   }
   return true;
 }
-
-export const completeAgentCreation = internalMutation({
-  args: {
-    worldId: v.id('worlds'),
-    joinInputId: v.id('inputs'),
-    character: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const input = await ctx.db.get(args.joinInputId);
-    if (!input || input.name !== 'join') {
-      throw new Error(`Invalid input ID ${args.joinInputId}`);
-    }
-    const { returnValue } = input;
-    if (!returnValue) {
-      console.warn(`Input ${input._id} not ready, waiting...`);
-      ctx.scheduler.runAfter(5000, internal.init.completeAgentCreation, args);
-      return;
-    }
-    if (returnValue.kind === 'error') {
-      throw new Error(`Error creating agent: ${returnValue.message}`);
-    }
-    const playerId = returnValue.value;
-    const existingAgent = await ctx.db
-      .query('agents')
-      .withIndex('playerId', (q) => q.eq('playerId', playerId))
-      .first();
-    if (existingAgent) {
-      throw new Error(`Agent for player ${playerId} already exists`);
-    }
-    await initAgent(ctx, { worldId: args.worldId, playerId, character: args.character });
-  },
-});

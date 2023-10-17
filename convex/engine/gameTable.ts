@@ -117,6 +117,8 @@ export abstract class GameTable<T extends TableNames> {
   }
 
   async save() {
+    // NB: We insert new documents immediately, so we don't need to
+    // insert them here.
     for (const id of this.deleted) {
       await this.db.delete(id);
     }

@@ -30,16 +30,14 @@ export default defineSchema({
     type: v.union(v.literal('background'), v.literal('player')),
   }),
 
-  typingIndicator: defineTable({
-    conversationId: v.id('conversations'),
-    typing: v.optional(v.object({ playerId: v.id('players'), since: v.number() })),
-    versionNumber: v.number(),
-  }).index('conversationId', ['conversationId']),
   messages: defineTable({
     conversationId: v.id('conversations'),
+    messageUuid: v.string(),
     author: v.id('players'),
     text: v.string(),
-  }).index('conversationId', ['conversationId']),
+  })
+    .index('conversationId', ['conversationId'])
+    .index('messageUuid', ['conversationId', 'messageUuid']),
 
   ...gameTables,
   ...agentTables,

@@ -24,7 +24,9 @@ export default function Game() {
   // Send a periodic heartbeat to our world to keep it alive.
   useWorldHeartbeat(worldId);
 
-  const { historicalTime, timeManager } = useHistoricalTime(worldId);
+  const gameState = useQuery(api.world.gameState, worldId ? { worldId } : 'skip');
+
+  const { historicalTime, timeManager } = useHistoricalTime(gameState?.engine);
 
   if (!worldId) {
     return null;

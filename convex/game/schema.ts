@@ -3,11 +3,13 @@ import { players } from './players';
 import { locations } from './locations';
 import { conversations } from './conversations';
 import { conversationMembers } from './conversationMembers';
+import { agents } from './agents';
 
 export const gameTables = {
-  players: players,
-  locations: locations,
-  conversations: conversations,
-  conversationMembers: conversationMembers,
+  players,
+  locations,
+  conversations,
+  conversationMembers,
+  agents,
   ...engineTables,
 };

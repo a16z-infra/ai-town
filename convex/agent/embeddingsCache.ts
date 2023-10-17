@@ -61,7 +61,10 @@ async function hashText(text: string) {
 
 export const getEmbeddingsByText = internalQuery({
   args: { textHashes: v.array(v.bytes()) },
-  handler: async (ctx, args) => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ index: number; embeddingId: Id<'embeddingsCache'>; embedding: number[] }[]> => {
     const out = [];
     for (let i = 0; i < args.textHashes.length; i++) {
       const textHash = args.textHashes[i];
@@ -90,7 +93,7 @@ export const writeEmbeddings = internalMutation({
       }),
     ),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Id<'embeddingsCache'>[]> => {
     const ids = [];
     for (const embedding of args.embeddings) {
       ids.push(await ctx.db.insert('embeddingsCache', embedding));
