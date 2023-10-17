@@ -121,6 +121,9 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
   const recentlyAttemptedInvite =
     agent.lastInviteAttempt && now < agent.lastInviteAttempt + CONVERSATION_COOLDOWN;
   const doingActivity = player.activity && player.activity.until > now;
+  if (doingActivity && (member || player.pathfinding)) {
+    player.activity!.until = now;
+  }
   // If we're not in a conversation, do something.
   // If we aren't doing an activity or moving, do something.
   // If we have been wandering but haven't thought about something to do for
@@ -132,9 +135,6 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
       agentId: agent._id,
     });
     return;
-  }
-  if (doingActivity && (member || player.pathfinding)) {
-    delete player.activity;
   }
   // Check to see if we have a conversation we need to remember.
   if (agent.toRemember) {
