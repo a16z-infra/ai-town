@@ -26,6 +26,7 @@ import { latestMemoryOfType, rememberConversation } from './memory';
 import { ChatCompletionContent } from '../util/openai';
 
 const selfInternal = internal.agent.main;
+const useOllama = process.env.OLLAMA_URL !== undefined;
 
 class Agent {
   constructor(

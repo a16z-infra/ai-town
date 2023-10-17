@@ -1,4 +1,4 @@
-import { memoryTables } from './memory';
+import { memoryTables } from './memoryTables';
 import { defineTable } from 'convex/server';
 import { v } from 'convex/values';
 import { embeddingsCacheTables } from './embeddingsCache';
