@@ -10,7 +10,8 @@ import {
 import { Doc } from '../_generated/dataModel';
 import { Players, activity } from './players';
 import { AiTown } from './aiTown';
-import { finishSendingMessage, inputHandler, join } from './inputs';
+import { inputHandler, join } from './inputs';
+import { finishSendingMessage } from './conversations';
 import { distance } from '../util/geometry';
 import {
   ACTION_TIMEOUT,

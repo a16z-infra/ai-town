@@ -2,19 +2,6 @@ import { Id } from '../_generated/dataModel';
 import { MutationCtx } from '../_generated/server';
 import { FunctionReference, Scheduler } from 'convex/server';
 
-// TODO: If it's useful, we can try to make this type-safe.
-// For now, the only caller of it is typed specifically for the game.
-// export type InputHandler<
-//   Args extends PropertyValidators,
-//   ReturnValue extends any,
-//   G extends any,
-// > = {
-//   args: Args;
-//   handler: (game: G, now: number, args: ObjectType<Args>) => Promise<ReturnValue>;
-// };
-
-// export type InputHandlers = Record<string, InputHandler<any, any, any>>;
-
 type StepReference = FunctionReference<'mutation', 'internal', { engineId: Id<'engines'> }, null>;
 
 export abstract class Game {
@@ -29,13 +16,7 @@ export abstract class Game {
 
   constructor() {}
 
-  abstract handleInput /*<Handlers extends InputHandlers, Name extends keyof Handlers>*/(
-    now: number,
-    // name: Name,
-    name: string,
-    // args: ObjectType<Handlers[Name]['args']>,
-    args: object, //): Promise<ReturnType<Handlers[Name]['handler']> extends Promise<infer T> ? T : never>;
-  ): Promise<any>;
+  abstract handleInput(now: number, name: string, args: object): Promise<any>;
   abstract tick(now: number): void;
   abstract save(): Promise<void>;
   idleUntil(now: number): null | number {
