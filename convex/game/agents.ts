@@ -1,13 +1,21 @@
 import { FunctionArgs, FunctionReference, defineTable, getFunctionName } from 'convex/server';
 import { v } from 'convex/values';
 import { GameTable } from '../engine/gameTable';
-import { DatabaseWriter, internalAction, internalMutation } from '../_generated/server';
-import { Doc, Id } from '../_generated/dataModel';
-import { Players } from './players';
+import {
+  DatabaseWriter,
+  internalAction,
+  internalMutation,
+  internalQuery,
+} from '../_generated/server';
+import { Doc } from '../_generated/dataModel';
+import { Players, activity } from './players';
 import { AiTown } from './aiTown';
+import { inputHandler, join } from './inputs';
+import { finishSendingMessage } from './conversations';
 import { distance } from '../util/geometry';
 import {
   ACTION_TIMEOUT,
+  ACTIVITY_COOLDOWN,
   AWKWARD_CONVERSATION_TIMEOUT,
   CONVERSATION_COOLDOWN,
   CONVERSATION_DISTANCE,
@@ -26,7 +34,7 @@ import {
   leaveConversation,
   rejectInvite,
 } from './conversationMembers';
-import { setIsTyping } from './conversations';
+import { setIsTyping, startConversation } from './conversations';
 import { api, internal } from '../_generated/api';
 import { rememberConversation } from '../agent/memory';
 import { insertInput } from './main';
@@ -36,6 +44,8 @@ import {
   startConversationMessage,
 } from '../agent/conversation';
 import { assertNever } from '../util/assertNever';
+import { Descriptions } from '../../data/characters';
+import { point } from '../util/types';
 
 const selfInternal = internal.game.agents;
 
@@ -49,16 +59,21 @@ export const agents = defineTable({
   toRemember: v.optional(v.id('conversations')),
   lastConversation: v.optional(v.number()),
   lastInviteAttempt: v.optional(v.number()),
-  conversationCandidate: v.optional(v.id('players')),
 
   inProgressOperation: v.optional(
     v.object({
       name: v.string(),
-      uuid: v.string(),
+      operationId: v.string(),
       started: v.number(),
     }),
   ),
 }).index('playerId', ['playerId']);
+
+const ACTIVITIES = [
+  { description: 'reading a book', emoji: '📖', duration: 60_000 },
+  { description: 'daydreaming', emoji: '🤔', duration: 60_000 },
+  { description: 'gardening', emoji: '🥕', duration: 60_000 },
+];
 
 export class Agents extends GameTable<'agents'> {
   table = 'agents' as const;
@@ -90,6 +105,30 @@ export class Agents extends GameTable<'agents'> {
   }
 }
 
+export const createAgent = inputHandler({
+  args: {
+    descriptionIndex: v.number(),
+  },
+  handler: async (game, now, args) => {
+    const description = Descriptions[args.descriptionIndex];
+    if (!description) {
+      throw new Error(`Invalid description index: ${args.descriptionIndex}`);
+    }
+    const playerId = await join.handler(game, now, {
+      name: description.name,
+      description: description.identity,
+      character: description.character,
+    });
+    await game.agents.insert({
+      worldId: game.world._id,
+      playerId,
+      identity: description.identity,
+      plan: description.plan,
+    });
+    return null;
+  },
+});
+
 export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
   const player = game.players.lookup(agent.playerId);
   const location = game.locations.lookup(now, player.locationId);
@@ -106,13 +145,26 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
 
   const member = game.conversationMembers.find((m) => m.playerId === player._id);
 
+  const recentlyAttemptedInvite =
+    agent.lastInviteAttempt && now < agent.lastInviteAttempt + CONVERSATION_COOLDOWN;
+  const doingActivity = player.activity && player.activity.until > now;
+  if (doingActivity && (member || player.pathfinding)) {
+    player.activity!.until = now;
+  }
+  // If we're not in a conversation, do something.
+  // If we aren't doing an activity or moving, do something.
+  // If we have been wandering but haven't thought about something to do for
+  // a while, do something.
+  if (!member && !doingActivity && (!player.pathfinding || !recentlyAttemptedInvite)) {
+    startOperation(game, now, agent, selfInternal.agentDoSomething, {
+      worldId: agent.worldId,
+      playerId: player._id,
+      agentId: agent._id,
+    });
+    return;
+  }
   // Check to see if we have a conversation we need to remember.
   if (agent.toRemember) {
-    // Pick a random destination. Otherwise, agents will stand still right after
-    // finishing a conversation, and it's nicer to think and walk.
-    if (!player.pathfinding && !member) {
-      movePlayer(game, now, player._id, wanderDestination(game));
-    }
     // Fire off the action to remember the conversation.
     console.log(`Agent ${player.name} remembering conversation ${agent.toRemember}`);
     startOperation(game, now, agent, selfInternal.agentRememberConversation, {
@@ -122,55 +174,6 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
       conversationId: agent.toRemember,
     });
     delete agent.toRemember;
-    return;
-  }
-
-  // If we're not in a conversation, wander around to somewhere to start one.
-  if (!member) {
-    if (!player.pathfinding) {
-      movePlayer(game, now, player._id, wanderDestination(game));
-    }
-
-    // Don't try to start a new conversation if we were just in one.
-    if (agent.lastConversation && now < agent.lastConversation + CONVERSATION_COOLDOWN) {
-      return;
-    }
-
-    // Don't try again if we recently tried to find someone to invite.
-    if (agent.lastInviteAttempt && now < agent.lastInviteAttempt + CONVERSATION_COOLDOWN) {
-      return;
-    }
-
-    // Validate our conversation candidate if we have one saved.
-    if (agent.conversationCandidate) {
-      const otherMember = game.conversationMembers.find(
-        (m) => m.playerId === agent.conversationCandidate,
-      );
-      if (otherMember) {
-        delete agent.conversationCandidate;
-      }
-    }
-    // If we don't have a conversation candidate, fire off an action to find one.
-    if (!agent.conversationCandidate) {
-      agent.lastInviteAttempt = now;
-      startOperation(game, now, agent, selfInternal.agentFindConversation, {
-        worldId: agent.worldId,
-        playerId: player._id,
-        agentId: agent._id,
-      });
-      return;
-    }
-
-    const invitee = agent.conversationCandidate;
-
-    delete agent.conversationCandidate;
-    agent.lastInviteAttempt = now;
-
-    startOperation(game, now, agent, selfInternal.agentSendInvite, {
-      worldId: agent.worldId,
-      agentId: agent._id,
-      invitee,
-    });
     return;
   }
   if (member) {
@@ -326,28 +329,20 @@ function startOperation<F extends FunctionReference<any, any, any>>(
   now: number,
   agent: Doc<'agents'>,
   ref: F,
-  args: Omit<FunctionArgs<F>, 'uuid'>,
+  args: Omit<FunctionArgs<F>, 'operationId'>,
 ) {
   if (agent.inProgressOperation) {
     throw new Error(
       `Agent ${agent._id} already has an operation: ${JSON.stringify(agent.inProgressOperation)}`,
     );
   }
-  const uuid = crypto.randomUUID();
-  console.log(`Agent ${agent._id} starting operation ${getFunctionName(ref)} (${uuid})`);
-  game.withScheduler((scheduler) => scheduler.runAfter(0, ref, { uuid, ...args } as any));
+  const operationId = crypto.randomUUID();
+  console.log(`Agent ${agent._id} starting operation ${getFunctionName(ref)} (${operationId})`);
+  game.withScheduler((scheduler) => scheduler.runAfter(0, ref, { operationId, ...args } as any));
   agent.inProgressOperation = {
     name: getFunctionName(ref),
-    uuid,
+    operationId,
     started: now,
-  };
-}
-
-function wanderDestination(game: AiTown) {
-  // Wander someonewhere at least one tile away from the edge.
-  return {
-    x: 1 + Math.floor(Math.random() * (game.map.width - 2)),
-    y: 1 + Math.floor(Math.random() * (game.map.height - 2)),
   };
 }
 
@@ -357,7 +352,7 @@ export const agentRememberConversation = internalAction({
     playerId: v.id('players'),
     agentId: v.id('agents'),
     conversationId: v.id('conversations'),
-    uuid: v.string(),
+    operationId: v.string(),
   },
   handler: async (ctx, args) => {
     await rememberConversation(ctx, args.agentId, args.playerId, args.conversationId);
@@ -366,98 +361,155 @@ export const agentRememberConversation = internalAction({
       name: 'finishRememberConversation',
       args: {
         agentId: args.agentId,
-        uuid: args.uuid,
+        operationId: args.operationId,
       },
     });
   },
 });
 
-export const agentFindConversation = internalMutation({
+export const finishRememberConversation = inputHandler({
   args: {
-    worldId: v.id('worlds'),
+    operationId: v.string(),
+    agentId: v.id('agents'),
+  },
+  handler: async (game, now, { operationId, agentId }) => {
+    const agent = game.agents.lookup(agentId);
+    if (!agent.inProgressOperation || agent.inProgressOperation.operationId !== operationId) {
+      console.debug(`Agent ${agentId} isn't remembering ${operationId}`);
+    } else {
+      delete agent.inProgressOperation;
+      delete agent.toRemember;
+    }
+    return null;
+  },
+});
+
+export const fetchAgent = internalQuery({
+  args: {
     playerId: v.id('players'),
     agentId: v.id('agents'),
-    uuid: v.string(),
   },
   handler: async (ctx, args) => {
-    const now = Date.now();
     const player = await ctx.db.get(args.playerId);
     if (!player) {
       throw new Error(`Couldn't find player: ${args.playerId}`);
     }
-    const location = await ctx.db.get(player.locationId);
-    if (!location) {
-      throw new Error(`Couldn't find location: ${player.locationId}`);
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent) {
+      throw new Error(`Couldn't find agent: ${args.agentId}`);
     }
-    const position = { x: location.x, y: location.y };
+    return { player, agent };
+  },
+});
 
-    const otherPlayers = await ctx.db
-      .query('players')
-      .withIndex('active', (q) => q.eq('worldId', args.worldId).eq('active', true))
-      .filter((q) => q.neq(q.field('_id'), args.playerId))
-      .collect();
-
-    const candidates = [];
-
-    for (const otherPlayer of otherPlayers) {
-      // Skip players that are currently in a conversation.
-      const member = await conversationMember(ctx.db, otherPlayer._id);
-      if (member) {
-        continue;
-      }
-      // Find the latest conversation we're both members of.
-      const lastMember = await ctx.db
-        .query('conversationMembers')
-        .withIndex('left', (q) =>
-          q
-            .eq('playerId', args.playerId)
-            .eq('status.kind', 'left')
-            .eq('status.with', otherPlayer._id),
-        )
-        .order('desc')
-        .first();
-
-      if (lastMember) {
-        if (lastMember.status.kind !== 'left') {
-          throw new Error(`Unexpected status: ${lastMember.status.kind}`);
-        }
-        if (now < lastMember.status.ended + PLAYER_CONVERSATION_COOLDOWN) {
-          continue;
-        }
-      }
-      const location = await ctx.db.get(otherPlayer.locationId);
-      if (!location) {
-        throw new Error(`Couldn't find location: ${otherPlayer.locationId}`);
-      }
-      const position = { x: location.x, y: location.y };
-      candidates.push({ _id: otherPlayer._id, position });
-    }
-
-    // Sort by distance and take the nearest candidate.
-    candidates.sort((a, b) => distance(a.position, position) - distance(b.position, position));
-    const candidate = candidates.length > 0 ? candidates[0]._id : null;
-
-    await insertInput(ctx, args.worldId, 'finishFindConversation', {
-      uuid: args.uuid,
+export const agentDoSomething = internalAction({
+  args: {
+    worldId: v.id('worlds'),
+    playerId: v.id('players'),
+    agentId: v.id('agents'),
+    operationId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const { player, agent } = await ctx.runQuery(selfInternal.fetchAgent, {
+      playerId: args.playerId,
       agentId: args.agentId,
-      candidate: candidate,
+    });
+    // Don't try to start a new conversation if we were just in one.
+    const justLeftConversation =
+      agent.lastConversation && now < agent.lastConversation + CONVERSATION_COOLDOWN;
+
+    // Don't try again if we recently tried to find someone to invite.
+    const recentlyAttemptedInvite =
+      agent.lastInviteAttempt && now < agent.lastInviteAttempt + CONVERSATION_COOLDOWN;
+
+    const recentActivity = player.activity && now < player.activity.until + ACTIVITY_COOLDOWN;
+
+    // Decide whether to do an activity or
+    if (!player.pathfinding) {
+      if (recentActivity || justLeftConversation) {
+        // TODO: decide where to go
+        // await insertInput(ctx, args.worldId, 'finishDoSomething', {
+        //   operationId: args.operationId,
+        //   agentId: args.agentId,
+        //   destination:
+        // });
+      } else {
+        // TODO: have LLM choose the activity & emoji
+        const activity = ACTIVITIES[Math.floor(Math.random() * ACTIVITIES.length)];
+        await ctx.runMutation(api.game.main.sendInput, {
+          worldId: args.worldId,
+          name: 'finishDoSomething',
+          args: {
+            operationId: args.operationId,
+            agentId: args.agentId,
+            activity: {
+              description: activity.description,
+              emoji: activity.emoji,
+              until: Date.now() + activity.duration,
+            },
+          },
+        });
+        return;
+      }
+    }
+
+    const invitee =
+      justLeftConversation || recentlyAttemptedInvite
+        ? undefined
+        : await ctx.runQuery(selfInternal.findConversationCandidate, {
+            playerId: player._id,
+            locationId: player.locationId,
+            worldId: args.worldId,
+            now,
+          });
+
+    await ctx.runMutation(api.game.main.sendInput, {
+      worldId: args.worldId,
+      name: 'finishDoSomething',
+      args: {
+        operationId: args.operationId,
+        agentId: args.agentId,
+        invitee,
+      },
     });
   },
 });
 
-export const agentSendInvite = internalMutation({
+export const finishDoSomething = inputHandler({
   args: {
-    worldId: v.id('worlds'),
+    operationId: v.string(),
     agentId: v.id('agents'),
-    invitee: v.id('players'),
-    uuid: v.string(),
+    destination: v.optional(point),
+    invitee: v.optional(v.id('players')),
+    activity: v.optional(activity),
   },
-  handler: async (ctx, args) => {
-    await insertInput(ctx, args.worldId, 'agentStartConversation', {
-      agentId: args.agentId,
-      invitee: args.invitee,
-      uuid: args.uuid,
-    });
+  handler: async (game, now, { operationId, agentId, destination, invitee, activity }) => {
+    const agent = game.agents.lookup(agentId);
+    if (!agent.inProgressOperation || agent.inProgressOperation.operationId !== operationId) {
+      console.debug(`Agent ${agentId} wasn't looking for a conversation ${operationId}`);
+    } else {
+      delete agent.inProgressOperation;
+      const player = game.players.lookup(agent.playerId);
+      if (invitee) {
+        agent.lastInviteAttempt = now;
+        await startConversation(game, agent.playerId, invitee);
+      }
+      if (destination) {
+        movePlayer(game, now, agent.playerId, destination);
+      }
+      if (activity) {
+        player.activity = activity;
+      }
+      // TODO: remove once we're going to destinations intentionally
+      if (!invitee && !activity) {
+        movePlayer(game, now, player._id, {
+          x: 1 + Math.floor(Math.random() * (game.map.width - 2)),
+          y: 1 + Math.floor(Math.random() * (game.map.height - 2)),
+        });
+      }
+    }
+    return null;
   },
 });
 
@@ -471,7 +523,7 @@ export const agentGenerateMessage = internalAction({
 
     type: v.union(v.literal('start'), v.literal('continue'), v.literal('leave')),
     messageUuid: v.string(),
-    uuid: v.string(),
+    operationId: v.string(),
   },
   handler: async (ctx, args) => {
     let completionFn;
@@ -502,7 +554,7 @@ export const agentGenerateMessage = internalAction({
       messageUuid: args.messageUuid,
       text,
       leaveConversation: args.type === 'leave',
-      uuid: args.uuid,
+      operationId: args.operationId,
     });
   },
 });
@@ -515,7 +567,7 @@ export const agentSendMessage = internalMutation({
     text: v.string(),
     messageUuid: v.string(),
     leaveConversation: v.boolean(),
-    uuid: v.string(),
+    operationId: v.string(),
   },
   handler: async (ctx, args) => {
     const agent = await ctx.db.get(args.agentId);
@@ -533,7 +585,106 @@ export const agentSendMessage = internalMutation({
       agentId: args.agentId,
       timestamp: Date.now(),
       leaveConversation: args.leaveConversation,
-      uuid: args.uuid,
+      operationId: args.operationId,
     });
   },
 });
+
+export const agentFinishSendingMessage = inputHandler({
+  args: {
+    agentId: v.id('agents'),
+    conversationId: v.id('conversations'),
+    timestamp: v.number(),
+    operationId: v.string(),
+    leaveConversation: v.boolean(),
+  },
+  handler: async (
+    game: AiTown,
+    now: number,
+    { agentId, conversationId, timestamp, leaveConversation: shouldLeave, operationId },
+  ) => {
+    const agent = game.agents.lookup(agentId);
+    if (!agent.inProgressOperation || agent.inProgressOperation.operationId !== operationId) {
+      console.debug(`Agent ${agentId} wasn't sending a message ${operationId}`);
+      return null;
+    }
+    delete agent.inProgressOperation;
+    finishSendingMessage.handler(game, now, {
+      playerId: agent.playerId,
+      conversationId,
+      timestamp,
+    });
+    if (shouldLeave) {
+      leaveConversation(game, now, agent.playerId, conversationId);
+    }
+    return null;
+  },
+});
+
+export const findConversationCandidate = internalQuery({
+  args: {
+    playerId: v.id('players'),
+    locationId: v.id('locations'),
+    worldId: v.id('worlds'),
+    now: v.number(),
+  },
+  handler: async (ctx, { playerId, locationId, now, worldId }) => {
+    const location = await ctx.db.get(locationId);
+    if (!location) {
+      throw new Error(`Couldn't find location: ${locationId}`);
+    }
+    const position = { x: location.x, y: location.y };
+    const otherPlayers = await ctx.db
+      .query('players')
+      .withIndex('active', (q) => q.eq('worldId', worldId).eq('active', true))
+      .filter((q) => q.neq(q.field('_id'), playerId))
+      .collect();
+
+    const candidates = [];
+
+    for (const otherPlayer of otherPlayers) {
+      // Skip players that are currently in a conversation.
+      const member = await conversationMember(ctx.db, otherPlayer._id);
+      if (member) {
+        continue;
+      }
+      // Find the latest conversation we're both members of.
+      const lastMember = await ctx.db
+        .query('conversationMembers')
+        .withIndex('playerId', (q) =>
+          q
+            .eq('playerId', playerId)
+            .eq('status.kind', 'left')
+            .gt('status.ended', now - PLAYER_CONVERSATION_COOLDOWN),
+        )
+        .order('desc')
+        .first();
+
+      if (lastMember) {
+        if (lastMember.status.kind !== 'left') {
+          throw new Error(`Unexpected status: ${lastMember.status.kind}`);
+        }
+        if (now < lastMember.status.ended + PLAYER_CONVERSATION_COOLDOWN) {
+          continue;
+        }
+      }
+      const location = await ctx.db.get(otherPlayer.locationId);
+      if (!location) {
+        throw new Error(`Couldn't find location: ${otherPlayer.locationId}`);
+      }
+      const position = { x: location.x, y: location.y };
+      candidates.push({ _id: otherPlayer._id, position });
+    }
+
+    // Sort by distance and take the nearest candidate.
+    candidates.sort((a, b) => distance(a.position, position) - distance(b.position, position));
+    return candidates[0]?._id;
+  },
+});
+
+export const agentInputs = {
+  createAgent,
+  finishRememberConversation,
+  finishDoSomething,
+  agentFinishSendingMessage,
+};

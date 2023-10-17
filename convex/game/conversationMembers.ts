@@ -5,6 +5,7 @@ import { DatabaseReader, DatabaseWriter } from '../_generated/server';
 import { Doc, Id } from '../_generated/dataModel';
 import { Conversations, stopConversation } from './conversations';
 import { AiTown } from './aiTown';
+import { inputHandler } from './inputs';
 
 export const conversationMembers = defineTable({
   conversationId: v.id('conversations'),
@@ -17,6 +18,9 @@ export const conversationMembers = defineTable({
       kind: v.literal('left'),
       started: v.optional(v.number()),
       ended: v.number(),
+      // TODO: remove this, and stop doing a targeted lookup of the last convo
+      // with another player - we're only using it to prompt when our last
+      // conversation with a player ended.
       with: v.id('players'),
     }),
   ),
@@ -140,3 +144,42 @@ export function leaveConversation(
   }
   stopConversation(game, now, conversation);
 }
+
+export const conversationMembersInputs = {
+  // Accept an invite to a conversation, which puts the
+  // player in the "walkingOver" state until they're close
+  // enough to the other participant.
+  acceptInvite: inputHandler({
+    args: {
+      playerId: v.id('players'),
+      conversationId: v.id('conversations'),
+    },
+    handler: async (game: AiTown, now: number, { playerId, conversationId }): Promise<null> => {
+      acceptInvite(game, playerId, conversationId);
+      return null;
+    },
+  }),
+  // Reject the invite. Eventually we might add a message
+  // that explains why!
+  rejectInvite: inputHandler({
+    args: {
+      playerId: v.id('players'),
+      conversationId: v.id('conversations'),
+    },
+    handler: async (game: AiTown, now: number, { playerId, conversationId }): Promise<null> => {
+      rejectInvite(game, now, playerId, conversationId);
+      return null;
+    },
+  }),
+  // Leave a conversation.
+  leaveConversation: inputHandler({
+    args: {
+      playerId: v.id('players'),
+      conversationId: v.id('conversations'),
+    },
+    handler: async (game: AiTown, now: number, { playerId, conversationId }): Promise<null> => {
+      leaveConversation(game, now, playerId, conversationId);
+      return null;
+    },
+  }),
+};

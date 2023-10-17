@@ -270,6 +270,6 @@ export const queryPromptData = internalQuery({
 
 function stopWords(otherPlayer: Doc<'players'>, player: Doc<'players'>) {
   // These are the words we ask the LLM to stop on. OpenAI only supports 4.
-  const variants = [otherPlayer.name, `${otherPlayer.name} to ${player.name}`];
+  const variants = [`${otherPlayer.name} to ${player.name}`];
   return variants.flatMap((stop) => [stop + ':', stop.toLowerCase() + ':']);
 }

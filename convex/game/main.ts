@@ -44,7 +44,7 @@ export async function insertInput<Name extends InputNames>(
   if (!world) {
     throw new Error(`Invalid world ID: ${worldId}`);
   }
-  return await gameInsertInput(ctx, internal.game.main.runStep, world.engineId, name, args);
+  return await gameInsertInput(ctx, world.engineId, name, args);
 }
 
 export const sendInput = mutation({

@@ -210,6 +210,13 @@ export default function PlayerDetails({
           </>
         )}
       </SignedIn>
+      {(!playerConversation || playerConversation.member.status.kind === 'left') &&
+        player.activity &&
+        player.activity.until > Date.now() && (
+          <div className="box flex-grow mt-6">
+            <h2 className="bg-brown-700 text-lg text-center">{player.activity.description}</h2>
+          </div>
+        )}
       <div className="desc my-6">
         <p className="leading-tight -m-4 bg-brown-700 text-lg">
           {!isMe && player.description}

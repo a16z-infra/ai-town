@@ -1,18 +1,10 @@
-import { Infer, Validator } from 'convex/values';
 import { Id } from '../_generated/dataModel';
 import { MutationCtx } from '../_generated/server';
 import { FunctionReference, Scheduler } from 'convex/server';
 
-export type InputHandler<Args extends any, ReturnValue extends any> = {
-  args: Validator<Args, false, any>;
-  returnValue: Validator<ReturnValue, false, any>;
-};
-
-export type InputHandlers = Record<string, InputHandler<any, any>>;
-
 type StepReference = FunctionReference<'mutation', 'internal', { engineId: Id<'engines'> }, null>;
 
-export abstract class Game<Handlers extends InputHandlers> {
+export abstract class Game {
   abstract engineId: Id<'engines'>;
 
   abstract tickDuration: number;
@@ -24,12 +16,7 @@ export abstract class Game<Handlers extends InputHandlers> {
 
   constructor() {}
 
-  abstract handleInput(
-    now: number,
-    name: keyof Handlers,
-    args: Infer<Handlers[typeof name]['args']>,
-  ): Promise<Infer<Handlers[typeof name]['returnValue']>>;
-
+  abstract handleInput(now: number, name: string, args: object): Promise<any>;
   abstract tick(now: number): void;
   abstract save(): Promise<void>;
   idleUntil(now: number): null | number {
@@ -165,19 +152,11 @@ async function scheduleEngineRun(
 
 export async function insertInput(
   ctx: MutationCtx,
-  stepReference: StepReference,
   engineId: Id<'engines'>,
   name: string,
   args: any,
 ): Promise<Id<'inputs'>> {
   const now = Date.now();
-  const engine = await ctx.db.get(engineId);
-  if (!engine) {
-    throw new Error(`Invalid engine ID: ${engineId}`);
-  }
-  if (!engine.running) {
-    throw new Error(`engine ${engineId} is not active.`);
-  }
   const prevInput = await ctx.db
     .query('inputs')
     .withIndex('byInputNumber', (q) => q.eq('engineId', engineId))
