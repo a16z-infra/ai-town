@@ -5,9 +5,9 @@ import a16zImg from '../assets/a16z.png';
 import convexImg from '../assets/convex.svg';
 import starImg from '../assets/star.svg';
 import helpImg from '../assets/help.svg';
-import { UserButton } from '@clerk/clerk-react';
-import { Authenticated, Unauthenticated } from 'convex/react';
-import LoginButton from './components/buttons/LoginButton.tsx';
+// import { UserButton } from '@clerk/clerk-react';
+// import { Authenticated, Unauthenticated } from 'convex/react';
+// import LoginButton from './components/buttons/LoginButton.tsx';
 import { useState } from 'react';
 import ReactModal from 'react-modal';
 import MusicButton from './components/buttons/MusicButton.tsx';
@@ -62,7 +62,7 @@ export default function Home() {
           </p>
         </div>
       </ReactModal>
-      <div className="p-3 absolute top-0 right-0 z-10 text-2xl">
+      {/*<div className="p-3 absolute top-0 right-0 z-10 text-2xl">
         <Authenticated>
           <UserButton afterSignOutUrl="/ai-town" />
         </Authenticated>
@@ -70,7 +70,7 @@ export default function Home() {
         <Unauthenticated>
           <LoginButton />
         </Unauthenticated>
-      </div>
+      </div> */}
 
       <div className="w-full min-h-screen relative isolate overflow-hidden p-3 lg:p-8 shadow-2xl flex flex-col justify-start">
         <h1 className="mx-auto text-4xl sm:text-8xl lg:text-9xl font-bold font-display leading-none tracking-wide game-title w-full text-left sm:text-center sm:w-auto">
@@ -79,11 +79,11 @@ export default function Home() {
 
         <div className="max-w-xs md:max-w-xl lg:max-w-none mx-auto my-4 text-center text-base sm:text-xl md:text-2xl text-white leading-tight shadow-solid">
           A virtual town where AI characters live, chat and socialize.
-          <Unauthenticated>
+          {/* <Unauthenticated>
             <div className="my-1.5 sm:my-0" />
             Log in to join the town
             <br className="block sm:hidden" /> and the conversation!
-          </Unauthenticated>
+          </Unauthenticated> */}
         </div>
 
         <Game />
