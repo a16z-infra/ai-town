@@ -78,6 +78,7 @@ async function getOrCreateDefaultWorld(ctx: MutationCtx) {
       tileSetDimY: firstmap.tilesetpxh,
       bgTiles: firstmap.bgtiles,
       objectTiles: firstmap.objmap,
+      spriteTiles: firstmap.animatedsprites,
     });
     const worldId = await ctx.db.insert('worlds', {
       engineId,

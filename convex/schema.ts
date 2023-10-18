@@ -24,6 +24,15 @@ export default defineSchema({
     tileDim: v.number(),
     bgTiles:     v.array(v.array(v.array(v.number()))),
     objectTiles: v.array(v.array(v.array(v.number()))),
+    spriteTiles: v.array(v.object({
+      x : v.number(),
+      y : v.number(),
+      w : v.number(),
+      h : v.number(),
+      layer : v.number(),
+      sheet : v.string(),
+      animation : v.string(),
+    })),
   }),
 
   music: defineTable({

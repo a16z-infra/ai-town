@@ -12,6 +12,11 @@ import { toastOnError } from '../toasts.ts';
 import { DebugPath } from './DebugPath.tsx';
 import { PositionIndicator } from './PositionIndicator.tsx';
 import { SHOW_DEBUG_UI } from './Game.tsx';
+import { data as spritesheetdata} from '../../data/spritesheets/fountain';
+
+import { ASprite } from './ASprite.tsx';
+
+import { characters } from '../../data/characters.ts';
 
 export const PixiGame = (props: {
   worldId: Id<'worlds'>;
@@ -112,6 +117,16 @@ export const PixiGame = (props: {
           historicalTime={props.historicalTime}
         />
       ))}
+
+      {world.map.spriteTiles.map((p) => (
+        <ASprite
+        x={p.x+16}
+        y={p.y+48}
+        spritesheetURL={"./assets/"+p.sheet}
+        speed={0.1}
+        />
+      ))}
+
     </PixiViewport>
   );
 };
