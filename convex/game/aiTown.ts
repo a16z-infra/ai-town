@@ -133,8 +133,11 @@ export class AiTown extends Game {
   }
 
   tickPosition(now: number, player: Doc<'players'>) {
+    const location = this.locations.lookup(now, player.locationId);
+
     // There's nothing to do if we're not moving.
     if (!player.pathfinding || player.pathfinding.state.kind !== 'moving') {
+      location.velocity = 0;
       return;
     }
 
@@ -157,7 +160,6 @@ export class AiTown extends Game {
       return;
     }
     // Update the player's location.
-    const location = this.locations.lookup(now, player.locationId);
     location.x = position.x;
     location.y = position.y;
     location.dx = facing.dx;

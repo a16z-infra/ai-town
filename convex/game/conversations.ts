@@ -5,7 +5,7 @@ import { DatabaseWriter } from '../_generated/server';
 import { Doc, Id } from '../_generated/dataModel';
 import { AiTown } from './aiTown';
 import { acceptInvite, rejectInvite, leaveConversation } from './conversationMembers';
-import { inputHandler } from './inputs';
+import { inputHandler } from './inputHandler';
 
 export const conversations = defineTable({
   worldId: v.id('worlds'),
