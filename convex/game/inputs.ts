@@ -3,7 +3,7 @@ import { ObjectType, v } from 'convex/values';
 import { movePlayer } from './movement';
 import { conversationInputs } from './conversations';
 import { point } from '../util/types';
-import { AiTown } from './aiTown';
+import type { AiTown } from './aiTown';
 import { inputHandler } from './inputHandler';
 import { joinGame, leaveGame } from './players';
 
@@ -53,8 +53,6 @@ export const inputs = {
   moveTo,
   // Inputs for the messaging layer.
   ...conversationInputs,
-  startConversation: conversationInputs.startConversation,
-
   // Inputs for the agent layer.
   ...agentInputs,
 };

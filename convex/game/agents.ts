@@ -8,9 +8,8 @@ import {
   internalQuery,
 } from '../_generated/server';
 import { Doc } from '../_generated/dataModel';
-import { Players, activity } from './players';
+import { Players, activity, joinGame } from './players';
 import { AiTown } from './aiTown';
-import { join } from './inputs';
 import { inputHandler } from './inputHandler';
 import { conversationInputs } from './conversations';
 import { distance } from '../util/geometry';
@@ -115,11 +114,13 @@ export const createAgent = inputHandler({
     if (!description) {
       throw new Error(`Invalid description index: ${args.descriptionIndex}`);
     }
-    const playerId = await join.handler(game, now, {
-      name: description.name,
-      description: description.identity,
-      character: description.character,
-    });
+    const playerId = await joinGame(
+      game,
+      now,
+      description.name,
+      description.character,
+      description.identity,
+    );
     await game.agents.insert({
       worldId: game.world._id,
       playerId,
