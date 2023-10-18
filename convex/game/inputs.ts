@@ -1,6 +1,6 @@
 import { agentInputs } from './agents';
 import { ObjectType, v } from 'convex/values';
-import { movePlayer } from './movement';
+import { movePlayer, stopPlayer } from './movement';
 import { conversationInputs } from './conversations';
 import { point } from '../util/types';
 import type { AiTown } from './aiTown';
@@ -43,7 +43,11 @@ const moveTo = inputHandler({
     destination: v.union(point, v.null()),
   },
   handler: async (game: AiTown, now: number, { playerId, destination }) => {
-    movePlayer(game, now, playerId, destination);
+    if (destination !== null) {
+      movePlayer(game, now, playerId, destination);
+    } else {
+      stopPlayer(game, now, playerId);
+    }
     return null;
   },
 });

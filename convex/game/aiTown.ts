@@ -3,8 +3,8 @@ import { Doc, Id } from '../_generated/dataModel';
 import { Players } from './players';
 import { DatabaseWriter } from '../_generated/server';
 import { Locations } from './locations';
-import { blocked, findRoute } from './movement';
-import { EPSILON, distance, normalize, pathPosition, pointsEqual, vector } from '../util/geometry';
+import { blocked, findRoute, movePlayer, stopPlayer } from './movement';
+import { distance, normalize, pathPosition, pointsEqual, vector } from '../util/geometry';
 import {
   CONVERSATION_DISTANCE,
   PATHFINDING_BACKOFF,
@@ -15,6 +15,7 @@ import { Conversations } from './conversations';
 import { ConversationMembers } from './conversationMembers';
 import { Agents, tickAgent } from './agents';
 import { InputNames, InputArgs, inputs } from './inputs';
+import { Point } from '../util/types';
 
 export class AiTown extends Game {
   tickDuration = 16;
@@ -97,14 +98,13 @@ export class AiTown extends Game {
 
     // Stop pathfinding if we've reached our destination.
     if (pathfinding.state.kind === 'moving' && pointsEqual(pathfinding.destination, position)) {
-      delete player.pathfinding;
+      stopPlayer(this, now, player._id);
     }
 
     // Stop pathfinding if we've timed out.
     if (pathfinding.started + PATHFINDING_TIMEOUT < now) {
       console.warn(`Timing out pathfinding for ${player._id}`);
-      delete player.pathfinding;
-      location.velocity = 0;
+      stopPlayer(this, now, player._id);
     }
 
     // Transition from "waiting" to "needsPath" if we're past the deadline.
@@ -117,7 +117,7 @@ export class AiTown extends Game {
       const route = findRoute(this, now, player, pathfinding.destination);
       if (route === null) {
         console.log(`Failed to route to ${JSON.stringify(pathfinding.destination)}`);
-        delete player.pathfinding;
+        stopPlayer(this, now, player._id);
       } else {
         if (route.newDestination) {
           console.warn(
@@ -175,45 +175,71 @@ export class AiTown extends Game {
     if (members.length !== 2) {
       return;
     }
+
+    const [member1, member2] = members;
+    const player1 = this.players.lookup(member1.playerId);
+    const location1 = this.locations.lookup(now, player1.locationId);
+    const position1 = { x: location1.x, y: location1.y };
+
+    const player2 = this.players.lookup(member2.playerId);
+    const location2 = this.locations.lookup(now, player2.locationId);
+    const position2 = { x: location2.x, y: location2.y };
+
+    const playerDistance = distance(position1, position2);
+
     // If the players are both in the "walkingOver" state and they're sufficiently close, transition both
     // of them to "participating" and stop their paths.
-    const [member1, member2] = members;
     if (member1.status.kind === 'walkingOver' && member2.status.kind === 'walkingOver') {
-      const player1 = this.players.lookup(member1.playerId);
-      const location1 = this.locations.lookup(now, player1.locationId);
-      const position1 = { x: location1.x, y: location1.y };
-
-      const player2 = this.players.lookup(member2.playerId);
-      const location2 = this.locations.lookup(now, player2.locationId);
-      const position2 = { x: location2.x, y: location2.y };
-
-      const playerDistance = distance(position1, position2);
       if (playerDistance < CONVERSATION_DISTANCE) {
         console.log(`Starting conversation between ${player1._id} and ${player2._id}`);
+
+        // First, stop the two players from moving.
+        stopPlayer(this, now, player1._id);
+        stopPlayer(this, now, player2._id);
 
         member1.status = { kind: 'participating', started: now };
         member2.status = { kind: 'participating', started: now };
 
-        // Stop the two players from moving.
-        delete player1.pathfinding;
-        delete player2.pathfinding;
-        location1.velocity = 0;
-        location2.velocity = 0;
+        // Try to move the first player to grid point nearest the other player.
+        const neighbors = (p: Point) => [
+          { x: p.x + 1, y: p.y },
+          { x: p.x - 1, y: p.y },
+          { x: p.x, y: p.y + 1 },
+          { x: p.x, y: p.y - 1 },
+        ];
+        const floorPos1 = { x: Math.floor(position1.x), y: Math.floor(position1.y) };
+        const p1Candidates = neighbors(floorPos1).filter(
+          (p) => !blocked(this, now, p, player1._id),
+        );
+        p1Candidates.sort((a, b) => distance(a, position2) - distance(b, position2));
+        if (p1Candidates.length > 0) {
+          const p1Candidate = p1Candidates[0];
 
-        // Orient the players towards each other.
-        if (playerDistance > EPSILON) {
-          const v = normalize(vector(location1, location2));
-          if (v) {
-            location1.dx = v.dx;
-            location1.dy = v.dy;
-            location2.dx = -v.dx;
-            location2.dy = -v.dy;
-          } else {
-            console.warn(
-              `Starting conversation between ${player1._id} and ${player2._id} who are *too* close!`,
-            );
+          // Try to move the second player to the grid point nearest the first player's
+          // destination.
+          const p2Candidates = neighbors(p1Candidate).filter(
+            (p) => !blocked(this, now, p, player2._id),
+          );
+          p2Candidates.sort((a, b) => distance(a, position2) - distance(b, position2));
+          if (p2Candidates.length > 0) {
+            const p2Candidate = p2Candidates[0];
+            movePlayer(this, now, player1._id, p1Candidate, true);
+            movePlayer(this, now, player2._id, p2Candidate, true);
           }
         }
+      }
+    }
+
+    // Orient the two players towards each other if they're not moving.
+    if (member1.status.kind === 'participating' && member2.status.kind === 'participating') {
+      const v = normalize(vector(location1, location2));
+      if (!player1.pathfinding && v) {
+        location1.dx = v.dx;
+        location1.dy = v.dy;
+      }
+      if (!player2.pathfinding && v) {
+        location2.dx = -v.dx;
+        location2.dy = -v.dy;
       }
     }
   }
