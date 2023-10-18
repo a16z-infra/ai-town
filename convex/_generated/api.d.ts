@@ -26,6 +26,7 @@ import type * as game_agents from "../game/agents";
 import type * as game_aiTown from "../game/aiTown";
 import type * as game_conversationMembers from "../game/conversationMembers";
 import type * as game_conversations from "../game/conversations";
+import type * as game_inputHandler from "../game/inputHandler";
 import type * as game_inputs from "../game/inputs";
 import type * as game_locations from "../game/locations";
 import type * as game_main from "../game/main";
@@ -67,6 +68,7 @@ declare const fullApi: ApiFromModules<{
   "game/aiTown": typeof game_aiTown;
   "game/conversationMembers": typeof game_conversationMembers;
   "game/conversations": typeof game_conversations;
+  "game/inputHandler": typeof game_inputHandler;
   "game/inputs": typeof game_inputs;
   "game/locations": typeof game_locations;
   "game/main": typeof game_main;

@@ -10,7 +10,8 @@ import {
 import { Doc } from '../_generated/dataModel';
 import { Players, activity } from './players';
 import { AiTown } from './aiTown';
-import { inputHandler, join } from './inputs';
+import { join } from './inputs';
+import { inputHandler } from './inputHandler';
 import { conversationInputs } from './conversations';
 import { distance } from '../util/geometry';
 import {
