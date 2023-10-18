@@ -137,7 +137,7 @@ export class AiTown extends Game {
 
     // There's nothing to do if we're not moving.
     if (!player.pathfinding || player.pathfinding.state.kind !== 'moving') {
-      stopPlayer(this, now, player._id);
+      location.velocity = 0;
       return;
     }
 
