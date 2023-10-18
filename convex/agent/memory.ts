@@ -4,7 +4,6 @@ import { ActionCtx, DatabaseReader, internalMutation, internalQuery } from '../_
 import { Doc, Id } from '../_generated/dataModel';
 import { internal } from '../_generated/api';
 import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/openai';
-import { ACTION_TIMEOUT } from './constants';
 import { asyncMap } from '../util/asyncMap';
 
 // How long to wait before updating a memory's last access time.
@@ -50,7 +49,6 @@ export type MemoryOfType<T extends MemoryType> = Omit<Memory, 'data'> & {
 export async function rememberConversation(
   ctx: ActionCtx,
   agentId: Id<'agents'>,
-  generationNumber: number,
   playerId: Id<'players'>,
   conversationId: Id<'conversations'>,
 ) {
@@ -64,12 +62,6 @@ export async function rememberConversation(
     return;
   }
   const now = Date.now();
-
-  // Set the `isThinking` flag and schedule a function to clear it after 60s. We'll
-  // also clear the flag in `insertMemory` below to stop thinking early on success.
-  await ctx.runMutation(selfInternal.startThinking, { agentId, now });
-  const since = now;
-  await ctx.scheduler.runAfter(ACTION_TIMEOUT, selfInternal.clearThinking, { agentId, since });
 
   const llmMessages: LLMMessage[] = [
     {
@@ -102,8 +94,6 @@ export async function rememberConversation(
   authors.delete(player._id);
   await ctx.runMutation(selfInternal.insertMemory, {
     agentId,
-    generationNumber,
-
     playerId: player._id,
     description,
     importance,
@@ -115,8 +105,7 @@ export async function rememberConversation(
     },
     embedding,
   });
-  await reflectOnMemories(ctx, agentId, generationNumber, playerId);
-  await ctx.runMutation(selfInternal.clearThinking, { agentId, since });
+  await reflectOnMemories(ctx, agentId, playerId);
   return description;
 }
 
@@ -125,7 +114,14 @@ export const loadConversation = internalQuery({
     playerId: v.id('players'),
     conversationId: v.id('conversations'),
   },
-  handler: async (ctx, args) => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
+    player: Doc<'players'>;
+    conversation: Doc<'conversations'>;
+    otherPlayer: Doc<'players'>;
+  }> => {
     const player = await ctx.db.get(args.playerId);
     if (!player) {
       throw new Error(`Player ${args.playerId} not found`);
@@ -230,7 +226,7 @@ export const loadMessages = internalQuery({
   args: {
     conversationId: v.id('conversations'),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Doc<'messages'>[]> => {
     const messages = await ctx.db
       .query('messages')
       .withIndex('conversationId', (q) => q.eq('conversationId', args.conversationId))
@@ -265,54 +261,14 @@ async function calculateImportance(description: string) {
 }
 
 const { embeddingId, ...memoryFieldsWithoutEmbeddingId } = memoryFields;
-export const startThinking = internalMutation({
-  args: {
-    agentId: v.id('agents'),
-    now: v.number(),
-  },
-  handler: async (ctx, args) => {
-    await ctx.db.patch(args.agentId, { isThinking: { since: args.now } });
-  },
-});
-
-export const clearThinking = internalMutation({
-  args: {
-    agentId: v.id('agents'),
-    since: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const agent = await ctx.db.get(args.agentId);
-    if (!agent) {
-      throw new Error(`Agent ${args.agentId} not found`);
-    }
-    if (!agent.isThinking) {
-      return;
-    }
-    if (agent.isThinking.since !== args.since) {
-      return;
-    }
-    await ctx.db.patch(args.agentId, { isThinking: undefined });
-  },
-});
 
 export const insertMemory = internalMutation({
   args: {
     agentId: v.id('agents'),
-    generationNumber: v.number(),
-
     embedding: v.array(v.float64()),
     ...memoryFieldsWithoutEmbeddingId,
   },
-  handler: async (ctx, { agentId, generationNumber, embedding, ...memory }) => {
-    const agent = await ctx.db.get(agentId);
-    if (!agent) {
-      throw new Error(`Agent ${agentId} not found`);
-    }
-    if (agent.generationNumber !== generationNumber) {
-      throw new Error(
-        `Agent ${agentId} generation number ${agent.generationNumber} does not match ${generationNumber}`,
-      );
-    }
+  handler: async (ctx, { agentId, embedding, ...memory }): Promise<void> => {
     const embeddingId = await ctx.db.insert('memoryEmbeddings', {
       playerId: memory.playerId,
       embedding: embedding,
@@ -327,7 +283,6 @@ export const insertMemory = internalMutation({
 export const insertReflectionMemories = internalMutation({
   args: {
     agentId: v.id('agents'),
-    generationNumber: v.number(),
 
     reflections: v.array(
       v.object({
@@ -338,15 +293,10 @@ export const insertReflectionMemories = internalMutation({
       }),
     ),
   },
-  handler: async (ctx, { agentId, generationNumber, reflections }) => {
+  handler: async (ctx, { agentId, reflections }) => {
     const agent = await ctx.db.get(agentId);
     if (!agent) {
       throw new Error(`Agent ${agentId} not found`);
-    }
-    if (agent.generationNumber !== generationNumber) {
-      throw new Error(
-        `Agent ${agentId} generation number ${agent.generationNumber} does not match ${generationNumber}`,
-      );
     }
     const lastAccess = Date.now();
     for (const { embedding, relatedMemoryIds, ...rest } of reflections) {
@@ -368,12 +318,7 @@ export const insertReflectionMemories = internalMutation({
   },
 });
 
-async function reflectOnMemories(
-  ctx: ActionCtx,
-  agentId: Id<'agents'>,
-  generationNumber: number,
-  playerId: Id<'players'>,
-) {
+async function reflectOnMemories(ctx: ActionCtx, agentId: Id<'agents'>, playerId: Id<'players'>) {
   const { memories, lastReflectionTs, name } = await ctx.runQuery(
     internal.agent.memory.getReflectionMemories,
     {
@@ -431,7 +376,6 @@ async function reflectOnMemories(
 
     await ctx.runMutation(selfInternal.insertReflectionMemories, {
       agentId,
-      generationNumber,
       reflections: memoriesToSave,
     });
   } catch (e) {

@@ -26,7 +26,7 @@ export function DebugPath({ player, tileDim }: { player: Doc<'players'>; tileDim
     },
     [path],
   );
-  return path && <Graphics draw={draw} />;
+  return path ? <Graphics draw={draw} /> : null;
 }
 function debugColor(_id: string) {
   return { h: 0, s: 50, l: 90 };

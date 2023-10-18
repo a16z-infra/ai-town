@@ -8,12 +8,11 @@ import * as embeddingsCache from './embeddingsCache';
 
 const selfInternal = internal.agent.conversation;
 
-export async function startConversation(
+export async function startConversationMessage(
   ctx: ActionCtx,
   conversationId: Id<'conversations'>,
   playerId: Id<'players'>,
   otherPlayerId: Id<'players'>,
-  lastConversationId: Id<'conversations'> | null,
 ) {
   const { player, otherPlayer, agent, otherAgent, lastConversation } = await ctx.runQuery(
     selfInternal.queryPromptData,
@@ -21,7 +20,6 @@ export async function startConversation(
       playerId,
       otherPlayerId,
       conversationId,
-      lastConversationId,
     },
   );
   const embedding = await embeddingsCache.fetch(
@@ -59,12 +57,11 @@ export async function startConversation(
   return content;
 }
 
-export async function continueConversation(
+export async function continueConversationMessage(
   ctx: ActionCtx,
   conversationId: Id<'conversations'>,
   playerId: Id<'players'>,
   otherPlayerId: Id<'players'>,
-  lastConversationId: Id<'conversations'> | null,
 ) {
   const { player, otherPlayer, conversation, agent, otherAgent } = await ctx.runQuery(
     selfInternal.queryPromptData,
@@ -72,7 +69,6 @@ export async function continueConversation(
       playerId,
       otherPlayerId,
       conversationId,
-      lastConversationId,
     },
   );
   const now = Date.now();
@@ -110,12 +106,11 @@ export async function continueConversation(
   return content;
 }
 
-export async function leaveConversation(
+export async function leaveConversationMessage(
   ctx: ActionCtx,
   conversationId: Id<'conversations'>,
   playerId: Id<'players'>,
   otherPlayerId: Id<'players'>,
-  lastConversationId: Id<'conversations'> | null,
 ) {
   const { player, otherPlayer, conversation, agent, otherAgent } = await ctx.runQuery(
     selfInternal.queryPromptData,
@@ -123,7 +118,6 @@ export async function leaveConversation(
       playerId,
       otherPlayerId,
       conversationId,
-      lastConversationId,
     },
   );
   const prompt = [
@@ -220,8 +214,6 @@ export const queryPromptData = internalQuery({
     playerId: v.id('players'),
     otherPlayerId: v.id('players'),
     conversationId: v.id('conversations'),
-
-    lastConversationId: v.union(v.id('conversations'), v.null()),
   },
   handler: async (ctx, args) => {
     const player = await ctx.db.get(args.playerId);
@@ -247,54 +239,37 @@ export const queryPromptData = internalQuery({
       .query('agents')
       .withIndex('playerId', (q) => q.eq('playerId', args.otherPlayerId))
       .first();
-    let lastConversation = null;
-    if (args.lastConversationId) {
-      lastConversation = await ctx.db.get(args.lastConversationId);
-      if (!lastConversation) {
-        throw new Error(`Conversation ${args.lastConversationId} not found`);
-      }
-    }
-    return { player, otherPlayer, conversation, agent, otherAgent, lastConversation };
-  },
-});
 
-export const previousConversation = internalQuery({
-  args: {
-    conversationId: v.id('conversations'),
-    playerId: v.id('players'),
-    otherPlayerId: v.id('players'),
-  },
-  handler: async (ctx, args) => {
-    const previousConversations = await ctx.db
+    const lastMember = await ctx.db
       .query('conversationMembers')
-      .withIndex('playerId', (q) => q.eq('playerId', args.playerId))
-      .filter((q) => q.neq(q.field('conversationId'), args.conversationId))
-      .collect();
-    const conversations = [];
-    for (const member of previousConversations) {
-      const otherMember = await ctx.db
-        .query('conversationMembers')
-        .withIndex('conversationId', (q) =>
-          q.eq('conversationId', member.conversationId).eq('playerId', args.otherPlayerId),
-        )
-        .first();
-      if (otherMember) {
-        const conversation = await ctx.db.get(member.conversationId);
-        if (!conversation) {
-          throw new Error(`Conversation ${member.conversationId} not found`);
-        }
-        if (conversation.finished) {
-          conversations.push(conversation);
-        }
+      .withIndex('left', (q) =>
+        q
+          .eq('playerId', args.playerId)
+          .eq('status.kind', 'left')
+          .eq('status.with', args.otherPlayerId),
+      )
+      .order('desc')
+      .first();
+    let lastConversation = null;
+    if (lastMember) {
+      lastConversation = await ctx.db.get(lastMember.conversationId);
+      if (!lastConversation) {
+        throw new Error(`Conversation ${lastMember.conversationId} not found`);
       }
     }
-    conversations.sort((a, b) => b._creationTime - a._creationTime);
-    return conversations.length > 0 ? conversations[0] : null;
+    return {
+      player,
+      otherPlayer,
+      conversation,
+      agent,
+      otherAgent,
+      lastConversation,
+    };
   },
 });
 
 function stopWords(otherPlayer: Doc<'players'>, player: Doc<'players'>) {
   // These are the words we ask the LLM to stop on. OpenAI only supports 4.
-  const variants = [otherPlayer.name, `${otherPlayer.name} to ${player.name}`];
+  const variants = [`${otherPlayer.name} to ${player.name}`];
   return variants.flatMap((stop) => [stop + ':', stop.toLowerCase() + ':']);
 }

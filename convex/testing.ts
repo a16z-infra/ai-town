@@ -3,7 +3,6 @@ import { internal } from './_generated/api';
 import { DatabaseReader, internalMutation, mutation, query } from './_generated/server';
 import { v } from 'convex/values';
 import schema from './schema';
-import { kickAgents, stopAgents } from './agent/init';
 import { kickEngine, startEngine, stopEngine } from './engine/game';
 
 const DELETE_BATCH_SIZE = 64;
@@ -47,7 +46,6 @@ export const kick = internalMutation({
   handler: async (ctx) => {
     const { world, engine } = await getDefaultWorld(ctx.db);
     await kickEngine(ctx, internal.game.main.runStep, engine._id);
-    await kickAgents(ctx, { worldId: world._id });
   },
 });
 
@@ -62,7 +60,7 @@ export const stop = mutation({
     if (process.env.STOP_NOT_ALLOWED) throw new Error('Stop not allowed');
     const { world, engine } = await getDefaultWorld(ctx.db);
     if (world.status === 'inactive' || world.status === 'stoppedByDeveloper') {
-      if (engine.state.kind !== 'stopped') {
+      if (engine.running) {
         throw new Error(`Engine ${engine._id} isn't stopped?`);
       }
       console.debug(`World ${world._id} is already inactive`);
@@ -71,7 +69,6 @@ export const stop = mutation({
     console.log(`Stopping engine ${engine._id}...`);
     await ctx.db.patch(world._id, { status: 'stoppedByDeveloper' });
     await stopEngine(ctx, engine._id);
-    await stopAgents(ctx, { worldId: world._id });
   },
 });
 
@@ -79,7 +76,7 @@ export const resume = mutation({
   handler: async (ctx) => {
     const { world, engine } = await getDefaultWorld(ctx.db);
     if (world.status === 'running') {
-      if (engine.state.kind !== 'running') {
+      if (!engine.running) {
         throw new Error(`Engine ${engine._id} isn't running?`);
       }
       console.debug(`World ${world._id} is already running`);
@@ -88,14 +85,13 @@ export const resume = mutation({
     console.log(`Resuming engine ${engine._id} for world ${world._id} (state: ${world.status})...`);
     await ctx.db.patch(world._id, { status: 'running' });
     await startEngine(ctx, internal.game.main.runStep, engine._id);
-    await kickAgents(ctx, { worldId: world._id });
   },
 });
 
 export const archive = internalMutation({
   handler: async (ctx) => {
     const { world, engine } = await getDefaultWorld(ctx.db);
-    if (engine.state.kind === 'running') {
+    if (engine.running) {
       throw new Error(`Engine ${engine._id} is still running!`);
     }
     console.log(`Archiving world ${world._id}...`);

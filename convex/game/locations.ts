@@ -1,5 +1,4 @@
 import { v } from 'convex/values';
-import { GameTable } from '../engine/gameTable';
 import { defineTable } from 'convex/server';
 import { DatabaseWriter } from '../_generated/server';
 import { Players } from './players';

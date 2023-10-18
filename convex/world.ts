@@ -3,10 +3,10 @@ import { internalMutation, mutation, query } from './_generated/server';
 import { characters } from '../data/characters';
 import { sendInput } from './game/main';
 import { IDLE_WORLD_TIMEOUT } from './constants';
-import { kickAgents, stopAgents } from './agent/init';
 import { Doc, Id } from './_generated/dataModel';
 import { internal } from './_generated/api';
 import { startEngine, stopEngine } from './engine/game';
+import { conversationMember } from './game/conversationMembers';
 
 export const defaultWorld = query({
   handler: async (ctx) => {
@@ -51,7 +51,6 @@ export const heartbeatWorld = mutation({
       console.log(`Restarting inactive world ${world._id}...`);
       await ctx.db.patch(world._id, { status: 'running' });
       await startEngine(ctx, internal.game.main.runStep, engine._id);
-      await kickAgents(ctx, { worldId: world._id });
     }
   },
 });
@@ -67,25 +66,7 @@ export const stopInactiveWorlds = internalMutation({
       console.log(`Stopping inactive world ${world._id}`);
       await ctx.db.patch(world._id, { status: 'inactive' });
       await stopEngine(ctx, world.engineId);
-      await stopAgents(ctx, { worldId: world._id });
     }
-  },
-});
-
-export const engineStatus = query({
-  args: {
-    worldId: v.id('worlds'),
-  },
-  handler: async (ctx, args) => {
-    const world = await ctx.db.get(args.worldId);
-    if (!world) {
-      throw new Error(`Invalid world ID: ${args.worldId}`);
-    }
-    const engine = await ctx.db.get(world.engineId);
-    if (!engine) {
-      throw new Error(`Invalid engine ID: ${world.engineId}`);
-    }
-    return engine;
   },
 });
 
@@ -206,70 +187,50 @@ export const sendWorldInput = mutation({
 export type PlayerMetadata = Doc<'players'> & {
   isSpeaking: boolean;
   isThinking: boolean;
+  location: Doc<'locations'>;
 };
 
-export const activePlayers = query({
+export const gameState = query({
   args: {
     worldId: v.id('worlds'),
   },
-  handler: async (ctx, args): Promise<PlayerMetadata[]> => {
+  handler: async (ctx, args) => {
     const world = await ctx.db.get(args.worldId);
     if (!world) {
       throw new Error(`Invalid world ID: ${args.worldId}`);
     }
-    const out = [];
-    const players = await ctx.db
+    const engine = await ctx.db.get(world.engineId);
+    if (!engine) {
+      throw new Error(`Invalid engine ID: ${world.engineId}`);
+    }
+    const players = [] as PlayerMetadata[];
+    const playerDocs = await ctx.db
       .query('players')
       .withIndex('active', (q) => q.eq('worldId', world._id).eq('active', true))
       .collect();
-    for (const player of players) {
+    for (const player of playerDocs) {
       let isSpeaking = false;
-      const member = await ctx.db
-        .query('conversationMembers')
-        .withIndex('playerId', (q) =>
-          q.eq('playerId', player._id).eq('status.kind', 'participating'),
-        )
-        .first();
-      if (member) {
-        const indicator = await ctx.db
-          .query('typingIndicator')
-          .withIndex('conversationId', (q) => q.eq('conversationId', member.conversationId))
-          .first();
-        isSpeaking = !!indicator && indicator.typing?.playerId === player._id;
+      const member = await conversationMember(ctx.db, player._id);
+      if (member && member.status.kind === 'participating') {
+        const conversation = await ctx.db.get(member.conversationId);
+        if (!conversation) {
+          throw new Error(`Invalid conversation ID: ${member.conversationId}`);
+        }
+        isSpeaking = !!conversation.isTyping && conversation.isTyping.playerId == player._id;
       }
       const agent = await ctx.db
         .query('agents')
         .withIndex('playerId', (q) => q.eq('playerId', player._id))
         .first();
-      const isThinking = !!agent && agent.isThinking !== undefined;
-      out.push({ ...player, isSpeaking, isThinking });
-    }
-    return out;
-  },
-});
+      let isThinking = !isSpeaking && !!agent && !!agent.inProgressOperation;
 
-export const activePlayerLocations = query({
-  args: {
-    worldId: v.id('worlds'),
-  },
-  handler: async (ctx, args): Promise<Record<Id<'players'>, Doc<'locations'>>> => {
-    const world = await ctx.db.get(args.worldId);
-    if (!world) {
-      throw new Error(`Invalid world ID: ${args.worldId}`);
-    }
-    const out: Record<Id<'players'>, Doc<'locations'>> = {};
-    const players = await ctx.db
-      .query('players')
-      .withIndex('active', (q) => q.eq('worldId', world._id).eq('active', true))
-      .collect();
-    for (const player of players) {
       const location = await ctx.db.get(player.locationId);
       if (!location) {
         throw new Error(`Invalid location ID: ${player.locationId}`);
       }
-      out[player._id] = location;
+      players.push({ ...player, location, isSpeaking, isThinking });
     }
-    return out;
+    return { engine, players };
   },
 });
 
@@ -287,24 +248,7 @@ export const loadConversationState = query({
     if (!player) {
       throw new Error(`Invalid player ID: ${args.playerId}`);
     }
-    // TODO: We could combine these queries if we had `.neq()` in our index query API.
-    const invited = await ctx.db
-      .query('conversationMembers')
-      .withIndex('playerId', (q) => q.eq('playerId', player._id).eq('status.kind', 'invited'))
-      .unique();
-    const walkingOver = await ctx.db
-      .query('conversationMembers')
-      .withIndex('playerId', (q) => q.eq('playerId', player._id).eq('status.kind', 'walkingOver'))
-      .unique();
-    const participating = await ctx.db
-      .query('conversationMembers')
-      .withIndex('playerId', (q) => q.eq('playerId', player._id).eq('status.kind', 'participating'))
-      .unique();
-
-    if ([invited, walkingOver, participating].filter(Boolean).length > 1) {
-      throw new Error(`Player ${player._id} is in multiple conversations`);
-    }
-    const member = invited ?? walkingOver ?? participating;
+    const member = await conversationMember(ctx.db, player._id);
     if (!member) {
       return null;
     }

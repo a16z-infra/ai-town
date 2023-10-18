@@ -7,7 +7,7 @@ import {
   query,
 } from '../_generated/server';
 import { AiTown } from './aiTown';
-import { api, internal } from '../_generated/api';
+import { internal } from '../_generated/api';
 import { insertInput as gameInsertInput } from '../engine/game';
 import { InputArgs, InputNames } from './inputs';
 import { Id } from '../_generated/dataModel';
@@ -26,12 +26,11 @@ async function getWorldId(db: DatabaseReader, engineId: Id<'engines'>) {
 export const runStep = internalMutation({
   args: {
     engineId: v.id('engines'),
-    generationNumber: v.number(),
   },
   handler: async (ctx, args): Promise<void> => {
     const worldId = await getWorldId(ctx.db, args.engineId);
     const game = await AiTown.load(ctx.db, worldId);
-    await game.runStep(ctx, internal.game.main.runStep, args.generationNumber);
+    await game.runStep(ctx, internal.game.main.runStep);
   },
 });
 
@@ -45,7 +44,7 @@ export async function insertInput<Name extends InputNames>(
   if (!world) {
     throw new Error(`Invalid world ID: ${worldId}`);
   }
-  return await gameInsertInput(ctx, internal.game.main.runStep, world.engineId, name, args);
+  return await gameInsertInput(ctx, world.engineId, name, args);
 }
 
 export const sendInput = mutation({

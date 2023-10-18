@@ -14,18 +14,15 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
-import type * as agent_constants from "../agent/constants";
 import type * as agent_conversation from "../agent/conversation";
 import type * as agent_embeddingsCache from "../agent/embeddingsCache";
-import type * as agent_init from "../agent/init";
-import type * as agent_main from "../agent/main";
 import type * as agent_memory from "../agent/memory";
 import type * as constants from "../constants";
 import type * as crons from "../crons";
-import type * as engine_constants from "../engine/constants";
 import type * as engine_game from "../engine/game";
 import type * as engine_gameTable from "../engine/gameTable";
 import type * as engine_historicalTable from "../engine/historicalTable";
+import type * as game_agents from "../game/agents";
 import type * as game_aiTown from "../game/aiTown";
 import type * as game_conversationMembers from "../game/conversationMembers";
 import type * as game_conversations from "../game/conversations";
@@ -61,18 +58,15 @@ import type * as world from "../world";
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  "agent/constants": typeof agent_constants;
   "agent/conversation": typeof agent_conversation;
   "agent/embeddingsCache": typeof agent_embeddingsCache;
-  "agent/init": typeof agent_init;
-  "agent/main": typeof agent_main;
   "agent/memory": typeof agent_memory;
   constants: typeof constants;
   crons: typeof crons;
-  "engine/constants": typeof engine_constants;
   "engine/game": typeof engine_game;
   "engine/gameTable": typeof engine_gameTable;
   "engine/historicalTable": typeof engine_historicalTable;
+  "game/agents": typeof game_agents;
   "game/aiTown": typeof game_aiTown;
   "game/conversationMembers": typeof game_conversationMembers;
   "game/conversations": typeof game_conversations;

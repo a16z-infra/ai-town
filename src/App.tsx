@@ -88,7 +88,7 @@ export default function Home() {
           <div className="flex gap-4 flex-grow pointer-events-none">
             <FreezeButton />
             <MusicButton />
-            <Button href="https://github.com/get-convex/ai-town" imgUrl={starImg}>
+            <Button href="https://github.com/a16z-infra/ai-town" imgUrl={starImg}>
               Star
             </Button>
             <InteractButton />

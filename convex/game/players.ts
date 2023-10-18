@@ -24,6 +24,13 @@ const pathfinding = v.object({
 });
 export type Pathfinding = Infer<typeof pathfinding>;
 
+export const activity = v.object({
+  description: v.string(),
+  emoji: v.optional(v.string()),
+  until: v.number(),
+});
+export type Activity = Infer<typeof activity>;
+
 // The players table has game-specific public state, like
 // the player's name and position, some internal state,
 // like its current pathfinding state, and some engine
@@ -43,6 +50,7 @@ export const players = defineTable({
   human: v.optional(v.string()),
 
   pathfinding: v.optional(pathfinding),
+  activity: v.optional(activity),
 
   // Pointer to the locations table for the player's current position.
   locationId: v.id('locations'),

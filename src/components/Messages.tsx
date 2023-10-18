@@ -99,7 +99,7 @@ export function Messages({
           </div>
         )}
         {humanPlayer && inConversationWithMe && !conversation.finished && (
-          <MessageInput conversation={conversation} humanPlayer={humanPlayer} />
+          <MessageInput worldId={worldId} conversation={conversation} humanPlayer={humanPlayer} />
         )}
       </div>
     </div>

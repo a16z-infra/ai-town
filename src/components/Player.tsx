@@ -15,31 +15,29 @@ const logged = new Set<string>();
 export const Player = ({
   isViewer,
   player,
-  location,
   onClick,
   historicalTime,
 }: {
   isViewer: boolean;
   player: PlayerMetadata;
-  location: Doc<'locations'>;
   onClick: SelectElement;
   historicalTime?: number;
 }) => {
   const world = useQuery(api.world.defaultWorld);
   const character = characters.find((c) => c.name === player.character);
-  const historicalLocation = useHistoricalValue<'locations'>(historicalTime, location);
+  const historicalLocation = useHistoricalValue<'locations'>(historicalTime, player.location);
   if (!character) {
     if (!logged.has(player.character)) {
       logged.add(player.character);
       toast.error(`Unknown character ${player.character}`);
     }
-    return;
+    return null;
   }
   if (!world) {
-    return;
+    return null;
   }
   if (!historicalLocation) {
-    return;
+    return null;
   }
   const tileDim = world.map.tileDim;
   return (
@@ -51,6 +49,11 @@ export const Player = ({
         isMoving={historicalLocation.velocity > 0}
         isThinking={player.isThinking}
         isSpeaking={player.isSpeaking}
+        emoji={
+          player.activity && player.activity.until > (historicalTime ?? Date.now())
+            ? player.activity?.emoji
+            : undefined
+        }
         isViewer={isViewer}
         textureUrl={character.textureUrl}
         spritesheetData={character.spritesheetData}
