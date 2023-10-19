@@ -55,8 +55,16 @@ export async function fetchBatch(ctx: ActionCtx, texts: string[]) {
 async function hashText(text: string) {
   const textEncoder = new TextEncoder();
   const buf = textEncoder.encode(text);
-  const textHash = await crypto.subtle.digest('SHA-256', buf);
-  return textHash;
+  if (typeof crypto === 'undefined') {
+    // Ugly, ugly hax to get ESBuild to not try to bundle this node dependency.
+    const f = () => 'node:crypto';
+    const crypto: typeof import('crypto') = await import(f());
+    const hash = crypto.createHash('sha256');
+    hash.update(buf);
+    return hash.digest().buffer;
+  } else {
+    return await crypto.subtle.digest('SHA-256', buf);
+  }
 }
 
 export const getEmbeddingsByText = internalQuery({

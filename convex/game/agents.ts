@@ -1,12 +1,7 @@
 import { FunctionArgs, FunctionReference, defineTable, getFunctionName } from 'convex/server';
 import { v } from 'convex/values';
 import { GameTable } from '../engine/gameTable';
-import {
-  DatabaseWriter,
-  internalAction,
-  internalMutation,
-  internalQuery,
-} from '../_generated/server';
+import { DatabaseWriter, internalMutation, internalQuery } from '../_generated/server';
 import { Doc } from '../_generated/dataModel';
 import { Players, activity, joinGame } from './players';
 import { AiTown } from './aiTown';
@@ -15,7 +10,6 @@ import { conversationInputs } from './conversations';
 import { distance } from '../util/geometry';
 import {
   ACTION_TIMEOUT,
-  ACTIVITY_COOLDOWN,
   AWKWARD_CONVERSATION_TIMEOUT,
   CONVERSATION_COOLDOWN,
   CONVERSATION_DISTANCE,
@@ -35,19 +29,12 @@ import {
   rejectInvite,
 } from './conversationMembers';
 import { setIsTyping, startConversation } from './conversations';
-import { api, internal } from '../_generated/api';
-import { rememberConversation } from '../agent/memory';
+import { internal } from '../_generated/api';
 import { insertInput } from './main';
-import {
-  continueConversationMessage,
-  leaveConversationMessage,
-  startConversationMessage,
-} from '../agent/conversation';
-import { assertNever } from '../util/assertNever';
 import { Descriptions } from '../../data/characters';
 import { point } from '../util/types';
 
-const selfInternal = internal.game.agents;
+const agentActions = internal.game.agentActions;
 
 export const agents = defineTable({
   worldId: v.id('worlds'),
@@ -69,7 +56,7 @@ export const agents = defineTable({
   ),
 }).index('playerId', ['playerId']);
 
-const ACTIVITIES = [
+export const ACTIVITIES = [
   { description: 'reading a book', emoji: '📖', duration: 60_000 },
   { description: 'daydreaming', emoji: '🤔', duration: 60_000 },
   { description: 'gardening', emoji: '🥕', duration: 60_000 },
@@ -158,7 +145,7 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
   // If we have been wandering but haven't thought about something to do for
   // a while, do something.
   if (!member && !doingActivity && (!player.pathfinding || !recentlyAttemptedInvite)) {
-    startOperation(game, now, agent, selfInternal.agentDoSomething, {
+    startOperation(game, now, agent, agentActions.agentDoSomething, {
       worldId: agent.worldId,
       playerId: player._id,
       agentId: agent._id,
@@ -169,7 +156,7 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
   if (agent.toRemember) {
     // Fire off the action to remember the conversation.
     console.log(`Agent ${player.name} remembering conversation ${agent.toRemember}`);
-    startOperation(game, now, agent, selfInternal.agentRememberConversation, {
+    startOperation(game, now, agent, agentActions.agentRememberConversation, {
       worldId: agent.worldId,
       playerId: player._id,
       agentId: agent._id,
@@ -260,7 +247,7 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
           console.log(`${player.name} initiating conversation with ${otherPlayer.name}.`);
           const messageUuid = crypto.randomUUID();
           setIsTyping(game, now, conversation._id, player._id, messageUuid);
-          startOperation(game, now, agent, selfInternal.agentGenerateMessage, {
+          startOperation(game, now, agent, agentActions.agentGenerateMessage, {
             worldId: agent.worldId,
             agentId: agent._id,
             playerId: player._id,
@@ -282,7 +269,7 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
         console.log(`${player.name} leaving conversation with ${otherPlayer.name}.`);
         const messageUuid = crypto.randomUUID();
         setIsTyping(game, now, conversation._id, player._id, messageUuid);
-        startOperation(game, now, agent, selfInternal.agentGenerateMessage, {
+        startOperation(game, now, agent, agentActions.agentGenerateMessage, {
           worldId: agent.worldId,
           agentId: agent._id,
           playerId: player._id,
@@ -312,7 +299,7 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
       console.log(`${player.name} continuing conversation with ${otherPlayer.name}.`);
       const messageUuid = crypto.randomUUID();
       setIsTyping(game, now, conversation._id, player._id, messageUuid);
-      startOperation(game, now, agent, selfInternal.agentGenerateMessage, {
+      startOperation(game, now, agent, agentActions.agentGenerateMessage, {
         worldId: agent.worldId,
         agentId: agent._id,
         playerId: player._id,
@@ -347,27 +334,6 @@ function startOperation<F extends FunctionReference<any, any, any>>(
     started: now,
   };
 }
-
-export const agentRememberConversation = internalAction({
-  args: {
-    worldId: v.id('worlds'),
-    playerId: v.id('players'),
-    agentId: v.id('agents'),
-    conversationId: v.id('conversations'),
-    operationId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    await rememberConversation(ctx, args.agentId, args.playerId, args.conversationId);
-    await ctx.runMutation(api.game.main.sendInput, {
-      worldId: args.worldId,
-      name: 'finishRememberConversation',
-      args: {
-        agentId: args.agentId,
-        operationId: args.operationId,
-      },
-    });
-  },
-});
 
 export const finishRememberConversation = inputHandler({
   args: {
@@ -412,84 +378,6 @@ export const fetchAgent = internalQuery({
   },
 });
 
-export const agentDoSomething = internalAction({
-  args: {
-    worldId: v.id('worlds'),
-    playerId: v.id('players'),
-    agentId: v.id('agents'),
-    operationId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const now = Date.now();
-    const { player, agent, map } = await ctx.runQuery(selfInternal.fetchAgent, {
-      playerId: args.playerId,
-      agentId: args.agentId,
-    });
-    // Don't try to start a new conversation if we were just in one.
-    const justLeftConversation =
-      agent.lastConversation && now < agent.lastConversation + CONVERSATION_COOLDOWN;
-
-    // Don't try again if we recently tried to find someone to invite.
-    const recentlyAttemptedInvite =
-      agent.lastInviteAttempt && now < agent.lastInviteAttempt + CONVERSATION_COOLDOWN;
-
-    const recentActivity = player.activity && now < player.activity.until + ACTIVITY_COOLDOWN;
-
-    // Decide whether to do an activity or wander somewhere.
-    if (!player.pathfinding) {
-      if (recentActivity || justLeftConversation) {
-        await ctx.runMutation(api.game.main.sendInput, {
-          worldId: args.worldId,
-          name: 'finishDoSomething',
-          args: {
-            operationId: args.operationId,
-            agentId: args.agentId,
-            destination: wanderDestination(map),
-          },
-        });
-        return;
-      } else {
-        // TODO: have LLM choose the activity & emoji
-        const activity = ACTIVITIES[Math.floor(Math.random() * ACTIVITIES.length)];
-        await ctx.runMutation(api.game.main.sendInput, {
-          worldId: args.worldId,
-          name: 'finishDoSomething',
-          args: {
-            operationId: args.operationId,
-            agentId: args.agentId,
-            activity: {
-              description: activity.description,
-              emoji: activity.emoji,
-              until: Date.now() + activity.duration,
-            },
-          },
-        });
-        return;
-      }
-    }
-
-    const invitee =
-      justLeftConversation || recentlyAttemptedInvite
-        ? undefined
-        : await ctx.runQuery(selfInternal.findConversationCandidate, {
-            playerId: player._id,
-            locationId: player.locationId,
-            worldId: args.worldId,
-            now,
-          });
-
-    await ctx.runMutation(api.game.main.sendInput, {
-      worldId: args.worldId,
-      name: 'finishDoSomething',
-      args: {
-        operationId: args.operationId,
-        agentId: args.agentId,
-        invitee,
-      },
-    });
-  },
-});
-
 export const finishDoSomething = inputHandler({
   args: {
     operationId: v.string(),
@@ -517,52 +405,6 @@ export const finishDoSomething = inputHandler({
       player.activity = activity;
     }
     return null;
-  },
-});
-
-export const agentGenerateMessage = internalAction({
-  args: {
-    worldId: v.id('worlds'),
-    conversationId: v.id('conversations'),
-    agentId: v.id('agents'),
-    playerId: v.id('players'),
-    otherPlayerId: v.id('players'),
-
-    type: v.union(v.literal('start'), v.literal('continue'), v.literal('leave')),
-    messageUuid: v.string(),
-    operationId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    let completionFn;
-    switch (args.type) {
-      case 'start':
-        completionFn = startConversationMessage;
-        break;
-      case 'continue':
-        completionFn = continueConversationMessage;
-        break;
-      case 'leave':
-        completionFn = leaveConversationMessage;
-        break;
-      default:
-        assertNever(args.type);
-    }
-    const completion = await completionFn(
-      ctx,
-      args.conversationId,
-      args.playerId,
-      args.otherPlayerId,
-    );
-    const text = await completion.readAll();
-    await ctx.runMutation(selfInternal.agentSendMessage, {
-      worldId: args.worldId,
-      conversationId: args.conversationId,
-      agentId: args.agentId,
-      messageUuid: args.messageUuid,
-      text,
-      leaveConversation: args.type === 'leave',
-      operationId: args.operationId,
-    });
   },
 });
 
@@ -695,11 +537,3 @@ export const agentInputs = {
   finishDoSomething,
   agentFinishSendingMessage,
 };
-
-function wanderDestination(map: Doc<'maps'>) {
-  // Wander someonewhere at least one tile away from the edge.
-  return {
-    x: 1 + Math.floor(Math.random() * (map.width - 2)),
-    y: 1 + Math.floor(Math.random() * (map.height - 2)),
-  };
-}
