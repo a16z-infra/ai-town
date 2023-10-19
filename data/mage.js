@@ -277,5 +277,5 @@ export const objmap = [
 export const animatedsprites = [
 ];
 
-export const mapwidth = bgtiles[0][0].length;
-export const mapheight = bgtiles[0].length;
+export const mapwidth = bgtiles[0].length;
+export const mapheight = bgtiles[0][0].length;
