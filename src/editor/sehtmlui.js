@@ -45,3 +45,22 @@ export function initCompositePNGLoader() {
         g_ctx.composite.container.addChild(bg);
     }
 }
+// -- 
+// initailized handler to load a new tileset 
+// --
+
+export function initTilesetLoader(callme) {
+    const fileInput = document.getElementById('tilesetfile');
+    fileInput.onchange = async (evt) => {
+        if (!window.FileReader) return; // Browser is not compatible
+        if (g_ctx.debug_flag) {
+            console.log("spritesheet ", fileInput.files[0].name);
+        }
+        g_ctx.tilesetpath =  "./spritesheets/"+fileInput.files[0].name;
+
+        g_ctx.tiledimx = 16;
+        g_ctx.tiledimy = 16;
+
+        callme();
+    }
+}

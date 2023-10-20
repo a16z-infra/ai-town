@@ -302,8 +302,6 @@ class TilesetContext {
     constructor(app, mod = g_ctx) {
         this.app = app;
         this.container = new PIXI.Container();
-        this.widthpx  = g_ctx.tilesetpxw;
-        this.heightpx = g_ctx.tilesetpxh;
 
         this.widthpx  = g_ctx.tilesetpxw;
         this.heightpx = g_ctx.tilesetpxh;

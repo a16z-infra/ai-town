@@ -16,7 +16,6 @@
 //
 // 
 // Keybindings:
-// f - fill level 0 with current tile
 // <ctl>-z - undo
 // g - overlay 32x32 grid
 // s - generate .js file to move over to convex/maps/
@@ -317,15 +316,19 @@ class TilesetContext {
     constructor(app, mod = g_ctx) {
         this.app = app;
         this.container = new PIXI.Container();
-        this.widthpx  = g_ctx.tilesetpxw;
-        this.heightpx = g_ctx.tilesetpxh;
+
 
         console.log(mod.tilesetpath);
         const texture = PIXI.Texture.from(mod.tilesetpath);
         const bg    = new PIXI.Sprite(texture);
+
+        this.widthpx  = g_ctx.tilesetpxw;
+        this.heightpx = g_ctx.tilesetpxh;
+
         this.square = new PIXI.Graphics();
         this.square.beginFill(0x2980b9);
         this.square.drawRect(0, 0, mod.tilesetpxw, mod.tilesetpxh);
+        this.square.endFill();
         this.square.eventMode = 'static';
         this.container.addChild(this.square);
         this.container.addChild(bg);
@@ -400,12 +403,24 @@ function doimport (str) {
     return import(url)
   }
 
-function loadMapFromModule(mod) {
-    g_ctx.tileset = new TilesetContext(g_ctx.tileset_app, mod);
-    g_ctx.layer0 = new LayerContext(g_ctx.g_layer_apps[0], document.getElementById("layer0pane"), 0, mod);
-    g_ctx.layer1 = new LayerContext(g_ctx.g_layer_apps[1], document.getElementById("layer1pane"), 1, mod);
-    g_ctx.layer2 = new LayerContext(g_ctx.g_layer_apps[2], document.getElementById("layer2pane"), 2, mod);
-    g_ctx.layer3 = new LayerContext(g_ctx.g_layer_apps[3], document.getElementById("layer3pane"), 3, mod);
+function resetPanes() {
+    g_ctx.tiledimx = 16;
+    g_ctx.tiledimy = 16;
+
+    g_ctx.composite.container.removeChildren();
+    g_ctx.composite = new CompositeContext(g_ctx.composite_app);
+    g_ctx.tileset_app.stage.removeChildren()
+    g_ctx.tileset = new TilesetContext(g_ctx.tileset_app);
+    g_ctx.g_layer_apps[0].stage.removeChildren()
+    g_ctx.g_layers[0] = new LayerContext(g_ctx.g_layer_apps[0], document.getElementById("layer0pane"), 0);
+    g_ctx.g_layer_apps[1].stage.removeChildren()
+    g_ctx.g_layers[1] = new LayerContext(g_ctx.g_layer_apps[1], document.getElementById("layer1pane"), 1);
+    g_ctx.g_layer_apps[2].stage.removeChildren()
+    g_ctx.g_layers[2] = new LayerContext(g_ctx.g_layer_apps[2], document.getElementById("layer2pane"), 2);
+    g_ctx.g_layer_apps[3].stage.removeChildren()
+    g_ctx.g_layers[3] = new LayerContext(g_ctx.g_layer_apps[3], document.getElementById("layer3pane"), 3);
+
+    redrawGrid();
 }
 
 function downloadpng(filename) {
@@ -464,20 +479,6 @@ window.onTab = (evt, tabName) => {
     }
 }
 
-// fill base level with currentIndex tile 
-// Unused in sprite creator
-// window.fill0 = () => {
-//     UNDO.undo_mark_task_start(g_ctx.g_layers[0]);
-//     for(let i = 0; i < CONFIG.levelwidth / g_ctx.tiledimx; i++){
-//         for(let j = 0; j < CONFIG.levelheight / g_ctx.tiledimy; j++){
-//             // FIXME need to pass in tiledimy
-//             let ti = g_ctx.g_layers[0].addTileLevelCoords(i,j,g_ctx.tiledimx, g_ctx.tile_index);
-//             UNDO.undo_add_index_to_task(ti);
-//         }
-//     }
-//     UNDO.undo_mark_task_end();
-// }
-
 window.addEventListener(
     "keyup", (event) => {
         if (event.code == "KeyD"){
@@ -495,9 +496,6 @@ window.addEventListener(
             g_ctx.composite.container.removeChild(g_ctx.composite.mouseshadow);
         }
 
-        // if (event.code == 'KeyF'){
-        //     window.fill0();
-        // }
         if (event.code == 'KeyS'){
             SPRITEFILE.generate_sprite_file();
         }
@@ -510,11 +508,6 @@ window.addEventListener(
             g_ctx.g_layers.map((l) => l.drawFilter () );
         }else if (event.code == 'KeyP'){
             setGridSize((g_ctx.tiledimx == 16)?32:16);
-        }
-        else if (event.code == 'KeyG'){
-            g_ctx.g_layers.map((l) => redrawGrid (l, false) );
-            redrawGrid(g_ctx.tileset, false); 
-            redrawGrid(g_ctx.composite, false); 
         }
         else if (event.ctrlKey && event.code === 'KeyZ'){
             let undome = UNDO.undo_pop();
@@ -532,19 +525,19 @@ window.addEventListener(
         }
         else if (event.shiftKey && event.code == 'ArrowUp') {
             g_ctx.tileset.fudgey -= 1;
-            redrawGrid(g_ctx.tileset, true);
+            redrawGridPane(g_ctx.tileset);
         }
         else if (event.shiftKey && event.code == 'ArrowDown') {
             g_ctx.tileset.fudgey += 1;
-            redrawGrid(g_ctx.tileset, true);
+            redrawGridPane(g_ctx.tileset);
         }
         else if (event.shiftKey && event.code == 'ArrowLeft') {
             g_ctx.tileset.fudgex -= 1;
-            redrawGrid(g_ctx.tileset, true);
+            redrawGridPane(g_ctx.tileset);
         }
         else if (event.shiftKey && event.code == 'ArrowRight') {
             g_ctx.tileset.fudgex += 1;
-            redrawGrid(g_ctx.tileset, true);
+            redrawGridPane(g_ctx.tileset);
         }
      }
   );
@@ -605,6 +598,18 @@ function onTilesetDragEnd(e)
             g_ctx.selected_tiles.push([x - origx,y - origy,squareindex]);
         }
     }
+
+    // if we're still 16x16 assume we're resizing the grid
+    if (g_ctx.tiledimx == 16 && g_ctx.tiledimy == 16) {
+        // for sprite tool, we want to set the tilesize based on the selected region
+        // FIXME .. don't use magic number 16
+        g_ctx.tiledimx = (1 + endtilex - starttilex) * 16;
+        g_ctx.tiledimy = (1 + endtiley - starttiley) * 16;
+        redrawGrid();
+        g_ctx.selected_tiles = [];
+        g_ctx.tile_index = tileset_index_from_px(g_ctx.tileset.dragctx.startx - g_ctx.tileset.fudgex, g_ctx.tileset.dragctx.starty - g_ctx.tileset.fudgey);
+    }
+
     g_ctx.tileset.dragctx.square.clear();
     // g_ctx.tileset.dragctx.tooltip.clear();
 }
@@ -637,58 +642,44 @@ function onTilesetDrag(e)
 
 //g_ctx.tileset.app.stage.addChild(g_ctx.tileset.container);
 
-function redrawGrid(pane, redraw = false) {
+function redrawGridPane(pane) {
 
-    if (typeof pane.gridtoggle == 'undefined') {
-        // first time we're being called, initialized
-        pane.gridtoggle  = false;
-        pane.gridvisible = false;
-        redraw = true;
-        pane.gridvisible = true;
-    }
-
-    if (redraw) {
-        if (typeof pane.gridgraphics != 'undefined') {
-            pane.container.removeChild(pane.gridgraphics);
-        }
-
-        pane.gridgraphics = new PIXI.Graphics();
-        let gridsizex = g_ctx.tiledimx;
-        let gridsizey = g_ctx.tiledimy;
-        pane.gridgraphics.lineStyle(1, 0x000000, 1);
-
-
-        let index = 0;
-        for (let i = 0; i < pane.widthpx; i += gridsizex) {
-            pane.gridgraphics.moveTo(i + pane.fudgex, 0 + pane.fudgey);
-            pane.gridgraphics.lineTo(i + pane.fudgex, pane.heightpx + pane.fudgey);
-            pane.gridgraphics.moveTo(i + gridsizex + pane.fudgex, 0 + pane.fudgey);
-            pane.gridgraphics.lineTo(i + gridsizex + pane.fudgex, pane.heightpx + pane.fudgey);
-
-        }
-        for (let j = 0; j < pane.heightpx; j += gridsizey) {
-            pane.gridgraphics.moveTo(0 + pane.fudgex, j + gridsizey + pane.fudgey);
-            pane.gridgraphics.lineTo(pane.widthpx + pane.fudgex, j + gridsizey + pane.fudgey);
-            pane.gridgraphics.moveTo(0 + pane.fudgex, j + pane.fudgey);
-            pane.gridgraphics.lineTo(pane.heightpx + pane.fudgex, j + pane.fudgey);
-        }
-
-
-        if(pane.gridvisible){
-            pane.container.addChild(pane.gridgraphics);
-        }
-        return;
-    }
-
-    if (pane.gridtoggle) {
-        pane.container.addChild(pane.gridgraphics);
-        pane.gridvisible = true;
-    }else{
+    if (typeof pane.gridgraphics != 'undefined') {
         pane.container.removeChild(pane.gridgraphics);
-        pane.gridvisible = false;
     }
 
-    pane.gridtoggle = !pane.gridtoggle;
+    pane.gridgraphics = new PIXI.Graphics();
+    let gridsizex = g_ctx.tiledimx;
+    let gridsizey = g_ctx.tiledimy;
+    pane.gridgraphics.lineStyle(1, 0x000000, 1);
+
+
+    let index = 0;
+    for (let i = 0; i < pane.widthpx; i += gridsizex) {
+        pane.gridgraphics.moveTo(i + pane.fudgex, 0 + pane.fudgey);
+        pane.gridgraphics.lineTo(i + pane.fudgex, pane.heightpx + pane.fudgey);
+        pane.gridgraphics.moveTo(i + gridsizex + pane.fudgex, 0 + pane.fudgey);
+        pane.gridgraphics.lineTo(i + gridsizex + pane.fudgex, pane.heightpx + pane.fudgey);
+
+    }
+    for (let j = 0; j < pane.heightpx; j += gridsizey) {
+        pane.gridgraphics.moveTo(0 + pane.fudgex, j + gridsizey + pane.fudgey);
+        pane.gridgraphics.lineTo(pane.widthpx + pane.fudgex, j + gridsizey + pane.fudgey);
+        pane.gridgraphics.moveTo(0 + pane.fudgex, j + pane.fudgey);
+        pane.gridgraphics.lineTo(pane.heightpx + pane.fudgex, j + pane.fudgey);
+    }
+
+    if (pane.gridvisible) {
+        pane.container.addChild(pane.gridgraphics);
+    }
+    pane.container.addChild(pane.gridgraphics);
+    pane.gridvisible = true;
+}
+
+function redrawGrid() {
+    g_ctx.g_layers.map((l) => redrawGridPane(l));
+    redrawGridPane(g_ctx.tileset);
+    redrawGridPane(g_ctx.composite);
 }
 
 
@@ -826,7 +817,8 @@ function levelPlaceNoVariable(layer, e) {
     let xorig = e.global.x;
     let yorig = e.global.y;
 
-    centerCompositePane(xorig,yorig);
+    // No need to center pane
+    // centerCompositePane(xorig,yorig);
 
     if (g_ctx.dkey || g_ctx.selected_tiles.length == 0) {
         let ti = layer.addTileLevelPx(e.global.x, e.global.y, g_ctx.tile_index);
@@ -917,7 +909,6 @@ function onLevelDragEnd(layer, e)
         console.log("onLevelDragEnd()");
     }
 
-    //FIXME TEST CODE show mouseshadow again once done draggin
     layer.container.addChild(layer.mouseshadow);
     g_ctx.composite.container.addChild(g_ctx.composite.mouseshadow);
 
@@ -1067,7 +1058,10 @@ function initPixiApps() {
     g_ctx.map_app = new PIXI.Application({ backgroundColor: 0x2980b9, width: CONFIG.levelwidth, height: CONFIG.levelheight, view: document.getElementById('mapcanvas') });
 
     // g_ctx.tileset
-    g_ctx.tileset_app = new PIXI.Application({ width: g_ctx.tilesetpxw, height: g_ctx.tilesetpxh, view: document.getElementById('tilesetpane') });
+    // g_ctx.tileset_app = new PIXI.Application({ width: g_ctx.tilesetpxw, height: g_ctx.tilesetpxh, view: document.getElementById('tileset') });
+    g_ctx.tileset_app = new PIXI.Application({ width: 5632 , height: 8672, view: document.getElementById('tileset') });
+    //g_ctx.tileset_app = new PIXI.Application({ backgroundColor: 0x2980b9, width: 5632 , height: 8672, view: document.getElementById('tileset') });
+
     const { renderer } = g_ctx.tileset_app;
     // Install the EventSystem
     renderer.addSystem(EventSystem, 'tileevents');
@@ -1124,9 +1118,7 @@ function setGridSize(size) {
         console.debug("Invalid TileDim!");
         return;
     }
-    g_ctx.g_layers.map((l) => redrawGrid (l, true) );
-    redrawGrid(g_ctx.tileset, true);
-    redrawGrid(g_ctx.composite, true);
+    redrawGrid();
 }
 
 function initRadios() {
@@ -1145,13 +1137,14 @@ function initRadios() {
 // --
 // Load in default tileset and use to set properties
 // --
-const initTilesConfig = async () => {
+const initTilesConfig = async (path = CONFIG.DEFAULTTILESETPATH) => {
 
-    g_ctx.tilesetpath = CONFIG.DEFAULTTILESETPATH;
+    g_ctx.tilesetpath = path; 
 
     return new Promise((resolve, reject) => {
         
     const texture = new PIXI.BaseTexture(g_ctx.tilesetpath);
+
     console.log("Loading texture ",g_ctx.tilesetpath);
     texture .on('loaded', function() {
         // size of g_ctx.tileset in px
@@ -1165,7 +1158,10 @@ const initTilesConfig = async () => {
         let numtilesandpadh = Math.floor(g_ctx.tilesetpxh / tileandpad);
         g_ctx.tilesettileh = numtilesandpadh + Math.floor((g_ctx.tilesetpxh - (numtilesandpadh * tileandpad))/g_ctx.tiledimy);
         console.log("Number of x tiles ",g_ctx.tilesettilew," y tiles ",g_ctx.tilesettileh);
+
         g_ctx.MAXTILEINDEX = g_ctx.tilesettilew * g_ctx.tilesettileh;
+
+        texture.destroy();
         resolve();
     });
 
@@ -1198,21 +1194,9 @@ function initTiles() {
     g_ctx.curtiles = g_ctx.tiles32;
 }
 
-// -- 
-// initailized handler to load a new tileset 
-// --
+function newTilesetFromFile(){
 
-function initTilesetLoader() {
-    const fileInput = document.getElementById('tilesetfile');
-    fileInput.onchange = async (evt) => {
-        if (!window.FileReader) return; // Browser is not compatible
-        if (g_ctx.debug_flag) {
-            console.log("tilesetfile ", fileInput.files[0].name);
-        }
-        g_ctx.tilesetpath =  "./spritesheets/"+fileInput.files[0].name;
-
-        loadMapFromModule(g_ctx);
-    }
+    initTilesConfig(g_ctx.tilesetpath).then(resetPanes);
 }
 
 async function init() {
@@ -1224,8 +1208,10 @@ async function init() {
     initRadios();
     initTiles();
     initLevelLoader();
-    initTilesetLoader();
     UI.initCompositePNGLoader();
+    UI.initTilesetLoader(newTilesetFromFile); 
+
+    redrawGrid();
 }
 
 init();
