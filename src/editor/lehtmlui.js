@@ -70,6 +70,7 @@ export function initSpriteSheetLoader() {
         let sheet = await PIXI.Assets.load("./"+ssname);
         console.log(sheet);
         g_ctx.tileset.addTileSheet(ssname, sheet);
+        g_ctx.selected_tiles = [];
     }
 }
 
