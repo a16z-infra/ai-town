@@ -400,7 +400,15 @@ export const fetchAgent = internalQuery({
     if (!agent) {
       throw new Error(`Couldn't find agent: ${args.agentId}`);
     }
-    return { player, agent };
+    const world = await ctx.db.get(agent.worldId);
+    if (!world) {
+      throw new Error(`Couldn't find world: ${agent.worldId}`);
+    }
+    const map = await ctx.db.get(world.mapId);
+    if (!map) {
+      throw new Error(`Couldn't find map: ${world.mapId}`);
+    }
+    return { player, agent, world, map };
   },
 });
 
@@ -413,7 +421,7 @@ export const agentDoSomething = internalAction({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
-    const { player, agent } = await ctx.runQuery(selfInternal.fetchAgent, {
+    const { player, agent, map } = await ctx.runQuery(selfInternal.fetchAgent, {
       playerId: args.playerId,
       agentId: args.agentId,
     });
@@ -427,15 +435,19 @@ export const agentDoSomething = internalAction({
 
     const recentActivity = player.activity && now < player.activity.until + ACTIVITY_COOLDOWN;
 
-    // Decide whether to do an activity or
+    // Decide whether to do an activity or wander somewhere.
     if (!player.pathfinding) {
       if (recentActivity || justLeftConversation) {
-        // TODO: decide where to go
-        // await insertInput(ctx, args.worldId, 'finishDoSomething', {
-        //   operationId: args.operationId,
-        //   agentId: args.agentId,
-        //   destination:
-        // });
+        await ctx.runMutation(api.game.main.sendInput, {
+          worldId: args.worldId,
+          name: 'finishDoSomething',
+          args: {
+            operationId: args.operationId,
+            agentId: args.agentId,
+            destination: wanderDestination(map),
+          },
+        });
+        return;
       } else {
         // TODO: have LLM choose the activity & emoji
         const activity = ACTIVITIES[Math.floor(Math.random() * ACTIVITIES.length)];
@@ -489,27 +501,20 @@ export const finishDoSomething = inputHandler({
   handler: async (game, now, { operationId, agentId, destination, invitee, activity }) => {
     const agent = game.agents.lookup(agentId);
     if (!agent.inProgressOperation || agent.inProgressOperation.operationId !== operationId) {
-      console.debug(`Agent ${agentId} wasn't looking for a conversation ${operationId}`);
-    } else {
-      delete agent.inProgressOperation;
-      const player = game.players.lookup(agent.playerId);
-      if (invitee) {
-        agent.lastInviteAttempt = now;
-        await startConversation(game, agent.playerId, invitee);
-      }
-      if (destination) {
-        movePlayer(game, now, agent.playerId, destination);
-      }
-      if (activity) {
-        player.activity = activity;
-      }
-      // TODO: remove once we're going to destinations intentionally
-      if (!invitee && !activity) {
-        movePlayer(game, now, player._id, {
-          x: 1 + Math.floor(Math.random() * (game.map.width - 2)),
-          y: 1 + Math.floor(Math.random() * (game.map.height - 2)),
-        });
-      }
+      console.debug(`Agent ${agentId} didn't have ${operationId} in progress`);
+      return null;
+    }
+    delete agent.inProgressOperation;
+    const player = game.players.lookup(agent.playerId);
+    if (invitee) {
+      agent.lastInviteAttempt = now;
+      await startConversation(game, agent.playerId, invitee);
+    }
+    if (destination) {
+      movePlayer(game, now, agent.playerId, destination);
+    }
+    if (activity) {
+      player.activity = activity;
     }
     return null;
   },
@@ -690,3 +695,11 @@ export const agentInputs = {
   finishDoSomething,
   agentFinishSendingMessage,
 };
+
+function wanderDestination(map: Doc<'maps'>) {
+  // Wander someonewhere at least one tile away from the edge.
+  return {
+    x: 1 + Math.floor(Math.random() * (map.width - 2)),
+    y: 1 + Math.floor(Math.random() * (map.height - 2)),
+  };
+}

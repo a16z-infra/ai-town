@@ -15,23 +15,27 @@ type PathCandidate = {
   prev?: PathCandidate;
 };
 
+export function stopPlayer(game: AiTown, now: number, playerId: Id<'players'>) {
+  const player = game.players.lookup(playerId);
+  const location = game.locations.lookup(now, player.locationId);
+  delete player.pathfinding;
+  location.velocity = 0;
+}
+
 export function movePlayer(
   game: AiTown,
   now: number,
   playerId: Id<'players'>,
-  destination: Point | null,
+  destination: Point,
+  allowInConversation?: boolean,
 ) {
   const player = game.players.lookup(playerId);
-
-  if (destination === null) {
-    delete player.pathfinding;
-    return;
-  }
+  const location = game.locations.lookup(now, player.locationId);
   if (Math.floor(destination.x) !== destination.x || Math.floor(destination.y) !== destination.y) {
     throw new Error(`Non-integral destination: ${JSON.stringify(destination)}`);
   }
-  const { x, y } = game.locations.lookup(now, player.locationId);
-  const position = { x, y };
+
+  const position = { x: location.x, y: location.y };
   // Close enough to current position or destination => no-op.
   if (pointsEqual(position, destination)) {
     return;
@@ -40,7 +44,7 @@ export function movePlayer(
   const member = game.conversationMembers.find(
     (m) => m.playerId === playerId && m.status.kind === 'participating',
   );
-  if (member) {
+  if (member && !allowInConversation) {
     throw new Error(`Can't move when in a conversation. Leave the conversation first!`);
   }
   player.pathfinding = {
