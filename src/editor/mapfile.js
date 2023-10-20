@@ -90,7 +90,9 @@ function write_map_file(bg_tiles_0, bg_tiles_1, obj_tiles_1, obj_tiles_2, animat
         text += ', sheet: "'+ atile.spritesheetname+ '", animation: "'+ atile.animationname+'" },\n';
     }
 
-    text += '];\n';
+    text += '];\n\n';
+    text += 'export const mapwidth = bgtiles[0][0].length;\n';
+    text += 'export const mapheight = bgtiles[0].length;\n';
 
     UTIL.download(text, "map.js", "text/plain");
 }
