@@ -229,8 +229,8 @@ class LayerContext {
         let ctile2 = null;
 
         if(g_ctx.spritesheet != null){
-            ctile  =  new PIXI.AnimatedSprite(g_ctx.spritesheet.animations['pixels_large']);
-            ctile2 =  new PIXI.AnimatedSprite(g_ctx.spritesheet.animations['pixels_large']);
+            ctile  =  new PIXI.AnimatedSprite(g_ctx.spritesheet.animations['row0']);
+            ctile2 =  new PIXI.AnimatedSprite(g_ctx.spritesheet.animations['row0']);
             ctile.animationSpeed = .1;
             ctile2.animationSpeed = .1;
             ctile.autoUpdate = true;
@@ -239,7 +239,7 @@ class LayerContext {
             ctile2.play();
 
             // HACK for now just stuff animated sprite details into the sprite
-            ctile.animationname   = 'pixels_large';
+            ctile.animationname   = 'row0';
             ctile.spritesheetname = g_ctx.spritesheetname; 
 
         } else {
@@ -356,7 +356,7 @@ class TilesetContext {
         g_ctx.spritesheet = sheet;
         g_ctx.spritesheetname = name;
 
-        let as =  new PIXI.AnimatedSprite(sheet.animations['pixels_large']);
+        let as =  new PIXI.AnimatedSprite(sheet.animations['row0']);
         as.animationSpeed = .1;
         as.autoUpdate = true;
         as.play();
@@ -789,8 +789,8 @@ function onLevelMouseover(e) {
 
     // FIXME test code
     if ( g_ctx.spritesheet != null){
-        let ctile  =  new PIXI.AnimatedSprite(g_ctx.spritesheet.animations['pixels_large']);
-        let ctile2 =  new PIXI.AnimatedSprite(g_ctx.spritesheet.animations['pixels_large']);
+        let ctile  =  new PIXI.AnimatedSprite(g_ctx.spritesheet.animations['row0']);
+        let ctile2 =  new PIXI.AnimatedSprite(g_ctx.spritesheet.animations['row0']);
         ctile.animationSpeed = .1;
         ctile2.animationSpeed = .1;
         ctile.autoUpdate = true;
