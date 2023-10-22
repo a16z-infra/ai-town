@@ -15,6 +15,7 @@ const init = mutation({
     numAgents: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    console.log("ASKLDJALKDAKLSDJ",args);
     if (!process.env.OPENAI_API_KEY) {
       const deploymentName = process.env.CONVEX_CLOUD_URL?.slice(8).replace('.convex.cloud', '');
       throw new Error(

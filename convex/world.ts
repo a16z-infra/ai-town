@@ -75,10 +75,10 @@ export const userStatus = query({
     worldId: v.id('worlds'),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return null;
-    }
+    // const identity = await ctx.auth.getUserIdentity();
+    // if (!identity) {
+    //   return null;
+    // }
     const world = await ctx.db.get(args.worldId);
     if (!world) {
       throw new Error(`Invalid world ID: ${args.worldId}`);
@@ -86,7 +86,11 @@ export const userStatus = query({
     const player = await ctx.db
       .query('players')
       .withIndex('active', (q) =>
-        q.eq('worldId', world._id).eq('active', true).eq('human', identity.tokenIdentifier),
+        //q.eq('worldId', world._id).eq('active', true).eq('human', identity.tokenIdentifier),
+        q.eq('worldId', world._id).eq('active', true).eq(
+          'human',
+          'Testing', // identity.tokenIdentifier
+        ),
       )
       .first();
     return player?._id ?? null;
@@ -98,22 +102,26 @@ export const joinWorld = mutation({
     worldId: v.id('worlds'),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error(`Not logged in`);
-    }
-    if (!identity.givenName) {
-      throw new Error(`Missing givenName on ${JSON.stringify(identity)}`);
-    }
+    // const identity = await ctx.auth.getUserIdentity();
+    // if (!identity) {
+    //   throw new Error(`Not logged in`);
+    // }
+    // if (!identity.givenName) {
+    //   throw new Error(`Missing givenName on ${JSON.stringify(identity)}`);
+    // }
     const world = await ctx.db.get(args.worldId);
     if (!world) {
       throw new Error(`Invalid world ID: ${args.worldId}`);
     }
-    const { tokenIdentifier } = identity;
+    //const { tokenIdentifier } = identity;
     const existingPlayer = await ctx.db
       .query('players')
       .withIndex('active', (q) =>
-        q.eq('worldId', world._id).eq('active', true).eq('human', identity.tokenIdentifier),
+        //q.eq('worldId', world._id).eq('active', true).eq('human', identity.tokenIdentifier),
+        q.eq('worldId', world._id).eq('active', true).eq(
+          'human',
+          'Testing', // identity.tokenIdentifier
+        ),
       )
       .first();
     if (existingPlayer) {
@@ -123,10 +131,13 @@ export const joinWorld = mutation({
       worldId: world._id,
       name: 'join',
       args: {
-        name: identity.givenName,
+        // name: identity.givenName,
+        name: 'Testing',
         character: characters[Math.floor(Math.random() * characters.length)].name,
-        description: `${identity.givenName} is a human player`,
-        tokenIdentifier,
+        // description: `${identity.givenName} is a human player`,
+        description: `Testing is a human player`,
+        // tokenIdentifier,
+        tokenIdentifier: 'Testing',
       },
     });
   },
@@ -137,11 +148,11 @@ export const leaveWorld = mutation({
     worldId: v.id('worlds'),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error(`Not logged in`);
-    }
-    const { tokenIdentifier } = identity;
+    // const identity = await ctx.auth.getUserIdentity();
+    // if (!identity) {
+    //   throw new Error(`Not logged in`);
+    // }
+    // const { tokenIdentifier } = identity;
     const world = await ctx.db.get(args.worldId);
     if (!world) {
       throw new Error(`Invalid world ID: ${args.worldId}`);
@@ -149,7 +160,11 @@ export const leaveWorld = mutation({
     const existingPlayer = await ctx.db
       .query('players')
       .withIndex('active', (q) =>
-        q.eq('worldId', world._id).eq('active', true).eq('human', tokenIdentifier),
+     //   q.eq('worldId', world._id).eq('active', true).eq('human', tokenIdentifier),
+      q.eq('worldId', world._id).eq('active', true).eq(
+        'human',
+        'Testing', // identity.tokenIdentifier
+      ),
       )
       .first();
     if (!existingPlayer) {

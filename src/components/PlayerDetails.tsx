@@ -3,7 +3,7 @@ import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import closeImg from '../../assets/close.svg';
 import { SelectElement } from './Player';
-import { SignedIn } from '@clerk/clerk-react';
+//import { SignedIn } from '@clerk/clerk-react';
 import { Messages } from './Messages';
 import { toastOnError } from '../toasts';
 import { useSendInput } from '../hooks/sendInput';
@@ -142,7 +142,7 @@ export default function PlayerDetails({
           </h2>
         </a>
       </div>
-      <SignedIn>
+         {/* <SignedIn> */}
         {canInvite && (
           <a
             className={
@@ -209,7 +209,7 @@ export default function PlayerDetails({
             </a>
           </>
         )}
-      </SignedIn>
+        {/* </SignedIn> */}
       {(!playerConversation || playerConversation.member.status.kind === 'left') &&
         player.activity &&
         player.activity.until > Date.now() && (

@@ -1,10 +1,16 @@
 import Button from './Button';
 import interactImg from '../../../assets/interact.svg';
-import { useConvexAuth, useMutation, useQuery } from 'convex/react';
+import {
+  //  useConvexAuth,
+  useMutation,
+  useQuery,
+} from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 
+const _force_interactive = false;
+
 export default function InteractButton() {
-  const { isAuthenticated } = useConvexAuth();
+  //const { isAuthenticated } = useConvexAuth();
   const world = useQuery(api.world.defaultWorld);
   const userPlayerId = useQuery(api.world.userStatus, world ? { worldId: world._id } : 'skip');
   const join = useMutation(api.world.joinWorld);
@@ -12,7 +18,11 @@ export default function InteractButton() {
   const isPlaying = !!userPlayerId;
 
   const joinOrLeaveGame = () => {
-    if (!world || !isAuthenticated || userPlayerId === undefined) {
+    if (
+      !world ||
+      // || !isAuthenticated
+      userPlayerId === undefined
+    ) {
       return;
     }
     if (isPlaying) {
@@ -23,7 +33,12 @@ export default function InteractButton() {
       void join({ worldId: world._id });
     }
   };
-  if (!isAuthenticated || userPlayerId === undefined) {
+  if (
+    // !isAuthenticated ||
+    userPlayerId === undefined
+      ||
+      !_force_interactive
+  ) {
     return null;
   }
   return (
