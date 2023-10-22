@@ -39,7 +39,7 @@ export const ASprite = ({
     <Container x={x} y={y} interactive={true} pointerdown={onClick} cursor="pointer">
       <AnimatedSprite
         isPlaying={true}
-        textures={spriteSheet.animations['pixels_large']}
+        textures={spriteSheet.animations['row0']}
         animationSpeed={speed}
         anchor={{ x: 0.5, y: 0.5 }}
       />
