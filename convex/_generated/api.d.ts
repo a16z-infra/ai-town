@@ -22,6 +22,7 @@ import type * as crons from "../crons";
 import type * as engine_game from "../engine/game";
 import type * as engine_gameTable from "../engine/gameTable";
 import type * as engine_historicalTable from "../engine/historicalTable";
+import type * as game_agentActions from "../game/agentActions";
 import type * as game_agents from "../game/agents";
 import type * as game_aiTown from "../game/aiTown";
 import type * as game_conversationMembers from "../game/conversationMembers";
@@ -67,6 +68,7 @@ declare const fullApi: ApiFromModules<{
   "engine/game": typeof engine_game;
   "engine/gameTable": typeof engine_gameTable;
   "engine/historicalTable": typeof engine_historicalTable;
+  "game/agentActions": typeof game_agentActions;
   "game/agents": typeof game_agents;
   "game/aiTown": typeof game_aiTown;
   "game/conversationMembers": typeof game_conversationMembers;
