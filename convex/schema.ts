@@ -12,18 +12,6 @@ export default defineSchema({
     lastViewed: v.number(),
     status: v.union(v.literal('running'), v.literal('stoppedByDeveloper'), v.literal('inactive')),
   }).index('engineId', ['engineId']),
-  maps: defineTable({
-    width: v.number(),
-    height: v.number(),
-
-    tileSetUrl: v.string(),
-    //  Width & height of tileset image, px (assume square)
-    tileSetDim: v.number(),
-    // Tile size in pixels (assume square)
-    tileDim: v.number(),
-    bgTiles: v.array(v.array(v.array(v.number()))),
-    objectTiles: v.array(v.array(v.number())),
-  }),
 
   music: defineTable({
     storageId: v.string(),

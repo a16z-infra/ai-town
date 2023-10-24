@@ -36,7 +36,7 @@ import { point } from '../util/types';
 
 const agentActions = internal.game.agentActions;
 
-export const agents = defineTable({
+const agentValidator = {
   worldId: v.id('worlds'),
   playerId: v.id('players'),
 
@@ -54,7 +54,13 @@ export const agents = defineTable({
       started: v.number(),
     }),
   ),
-}).index('playerId', ['playerId']);
+};
+export const agents = defineTable(agentValidator).index('playerId', ['playerId']);
+export const agentDoc = v.object({
+  _id: v.id('agents'),
+  _creationTime: v.number(),
+  ...agentValidator,
+});
 
 export const ACTIVITIES = [
   { description: 'reading a book', emoji: '📖', duration: 60_000 },
@@ -146,9 +152,10 @@ export function tickAgent(game: AiTown, now: number, agent: Doc<'agents'>) {
   // a while, do something.
   if (!member && !doingActivity && (!player.pathfinding || !recentlyAttemptedInvite)) {
     startOperation(game, now, agent, agentActions.agentDoSomething, {
-      worldId: agent.worldId,
-      playerId: player._id,
-      agentId: agent._id,
+      worldId: game.world._id,
+      map: game.map,
+      player,
+      agent,
     });
     return;
   }
@@ -349,32 +356,6 @@ export const finishRememberConversation = inputHandler({
       delete agent.toRemember;
     }
     return null;
-  },
-});
-
-export const fetchAgent = internalQuery({
-  args: {
-    playerId: v.id('players'),
-    agentId: v.id('agents'),
-  },
-  handler: async (ctx, args) => {
-    const player = await ctx.db.get(args.playerId);
-    if (!player) {
-      throw new Error(`Couldn't find player: ${args.playerId}`);
-    }
-    const agent = await ctx.db.get(args.agentId);
-    if (!agent) {
-      throw new Error(`Couldn't find agent: ${args.agentId}`);
-    }
-    const world = await ctx.db.get(agent.worldId);
-    if (!world) {
-      throw new Error(`Couldn't find world: ${agent.worldId}`);
-    }
-    const map = await ctx.db.get(world.mapId);
-    if (!map) {
-      throw new Error(`Couldn't find map: ${world.mapId}`);
-    }
-    return { player, agent, world, map };
   },
 });
 

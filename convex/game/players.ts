@@ -41,7 +41,7 @@ export type Activity = Infer<typeof activity>;
 // specific state, like a position buffer of the player's
 // positions over the last step. Eventually we can pull this
 // out into something engine managed.
-export const players = defineTable({
+const playerValidator = {
   worldId: v.id('worlds'),
   // Is the player active?
   active: v.boolean(),
@@ -58,7 +58,15 @@ export const players = defineTable({
 
   // Pointer to the locations table for the player's current position.
   locationId: v.id('locations'),
-}).index('active', ['worldId', 'active', 'human']);
+};
+
+export const playerDoc = v.object({
+  _id: v.id('players'),
+  _creationTime: v.number(),
+  ...playerValidator,
+});
+
+export const players = defineTable(playerValidator).index('active', ['worldId', 'active', 'human']);
 
 export class Players extends GameTable<'players'> {
   table = 'players' as const;

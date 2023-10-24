@@ -10,9 +10,11 @@ import {
   leaveConversationMessage,
 } from '../agent/conversation';
 import { assertNever } from '../util/assertNever';
-import { ACTIVITIES } from './agents';
+import { ACTIVITIES, agentDoc } from './agents';
 import { CONVERSATION_COOLDOWN, ACTIVITY_COOLDOWN } from '../constants';
 import { Doc } from '../_generated/dataModel';
+import { playerDoc } from './players';
+import { mapDoc } from './schema';
 
 export const agentRememberConversation = internalAction({
   args: {
@@ -84,16 +86,13 @@ export const agentGenerateMessage = internalAction({
 export const agentDoSomething = internalAction({
   args: {
     worldId: v.id('worlds'),
-    playerId: v.id('players'),
-    agentId: v.id('agents'),
+    player: playerDoc,
+    agent: agentDoc,
+    map: mapDoc,
     operationId: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, { worldId, map, player, agent, operationId }) => {
     const now = Date.now();
-    const { player, agent, map } = await ctx.runQuery(internal.game.agents.fetchAgent, {
-      playerId: args.playerId,
-      agentId: args.agentId,
-    });
     // Don't try to start a new conversation if we were just in one.
     const justLeftConversation =
       agent.lastConversation && now < agent.lastConversation + CONVERSATION_COOLDOWN;
@@ -108,11 +107,11 @@ export const agentDoSomething = internalAction({
     if (!player.pathfinding) {
       if (recentActivity || justLeftConversation) {
         await ctx.runMutation(api.game.main.sendInput, {
-          worldId: args.worldId,
+          worldId,
           name: 'finishDoSomething',
           args: {
-            operationId: args.operationId,
-            agentId: args.agentId,
+            operationId,
+            agentId: agent._id,
             destination: wanderDestination(map),
           },
         });
@@ -121,11 +120,11 @@ export const agentDoSomething = internalAction({
         // TODO: have LLM choose the activity & emoji
         const activity = ACTIVITIES[Math.floor(Math.random() * ACTIVITIES.length)];
         await ctx.runMutation(api.game.main.sendInput, {
-          worldId: args.worldId,
+          worldId,
           name: 'finishDoSomething',
           args: {
-            operationId: args.operationId,
-            agentId: args.agentId,
+            operationId,
+            agentId: agent._id,
             activity: {
               description: activity.description,
               emoji: activity.emoji,
@@ -143,16 +142,16 @@ export const agentDoSomething = internalAction({
         : await ctx.runQuery(internal.game.agents.findConversationCandidate, {
             playerId: player._id,
             locationId: player.locationId,
-            worldId: args.worldId,
+            worldId,
             now,
           });
 
     await ctx.runMutation(api.game.main.sendInput, {
-      worldId: args.worldId,
+      worldId,
       name: 'finishDoSomething',
       args: {
-        operationId: args.operationId,
-        agentId: args.agentId,
+        operationId,
+        agentId: agent._id,
         invitee,
       },
     });
