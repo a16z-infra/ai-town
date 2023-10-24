@@ -7,7 +7,8 @@ import { useHistoricalValue } from '../hooks/useHistoricalValue.ts';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { PlayerMetadata } from '../../convex/world.ts';
-import { locationFields } from '../../convex/game/locations.ts';
+import { locationFields, Location } from '../../convex/game/locations.ts';
+import { Infer } from 'convex/values';
 
 export type SelectElement = (element?: { kind: 'player'; id: Id<'players'> }) => void;
 
@@ -16,11 +17,13 @@ const logged = new Set<string>();
 export const Player = ({
   isViewer,
   player,
+  location,
   onClick,
   historicalTime,
 }: {
   isViewer: boolean;
   player: PlayerMetadata;
+  location: { doc: Location; history?: ArrayBuffer } | null;
   onClick: SelectElement;
   historicalTime?: number;
 }) => {
@@ -29,7 +32,8 @@ export const Player = ({
   const historicalLocation = useHistoricalValue<'locations'>(
     locationFields,
     historicalTime,
-    player.location,
+    location?.doc,
+    location?.history,
   );
   if (!character) {
     if (!logged.has(player.character)) {

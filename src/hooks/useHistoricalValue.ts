@@ -6,33 +6,33 @@ import { useMemo, useRef } from 'react';
 export function useHistoricalValue<Name extends TableNames>(
   fields: FieldConfig,
   historicalTime: number | undefined,
-  value: Doc<Name> | undefined,
+  value: WithoutSystemFields<Doc<Name>> | undefined,
+  history: ArrayBuffer | undefined,
 ): WithoutSystemFields<Doc<Name>> | undefined {
   const manager = useRef(new HistoryManager());
   const sampleRecord: Record<string, History> | undefined = useMemo(() => {
-    if (!value || !value.history) {
+    if (!value || !history) {
       return undefined;
     }
-    if (!(value.history instanceof ArrayBuffer)) {
-      throw new Error(`Expected ArrayBuffer, found ${typeof value.history}`);
+    if (!(history instanceof ArrayBuffer)) {
+      throw new Error(`Expected ArrayBuffer, found ${typeof history}`);
     }
-    return unpackSampleRecord(fields, value.history as ArrayBuffer);
-  }, [value && value.history]);
+    return unpackSampleRecord(fields, history);
+  }, [value && history]);
   if (sampleRecord) {
     manager.current.receive(sampleRecord);
   }
   if (value === undefined) {
     return undefined;
   }
-  const { _id, _creationTime, history, ...latest } = value;
   if (!historicalTime) {
-    return latest as any;
+    return value;
   }
   const historicalFields = manager.current.query(historicalTime);
-  for (const [fieldName, value] of Object.entries(historicalFields)) {
-    (latest as any)[fieldName] = value;
+  for (const [fieldName, historicalValue] of Object.entries(historicalFields)) {
+    (value as any)[fieldName] = historicalValue;
   }
-  return latest as any;
+  return value;
 }
 
 class HistoryManager {

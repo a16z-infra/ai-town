@@ -7,6 +7,7 @@ import { Doc, Id } from './_generated/dataModel';
 import { internal } from './_generated/api';
 import { startEngine, stopEngine } from './engine/game';
 import { conversationMember } from './game/conversationMembers';
+import { WithoutSystemFields } from 'convex/server';
 
 export const defaultWorld = query({
   handler: async (ctx) => {
@@ -187,7 +188,6 @@ export const sendWorldInput = mutation({
 export type PlayerMetadata = Doc<'players'> & {
   isSpeaking: boolean;
   isThinking: boolean;
-  location: Doc<'locations'>;
 };
 
 export const gameState = query({
@@ -203,6 +203,11 @@ export const gameState = query({
     if (!engine) {
       throw new Error(`Invalid engine ID: ${world.engineId}`);
     }
+    const locationHistories = await ctx.db
+      .query('locationHistories')
+      .withIndex('engineId', (q) => q.eq('engineId', engine._id))
+      .first();
+
     const players = [] as PlayerMetadata[];
     const playerDocs = await ctx.db
       .query('players')
@@ -224,13 +229,13 @@ export const gameState = query({
         .first();
       let isThinking = !isSpeaking && !!agent && !!agent.inProgressOperation;
 
-      const location = await ctx.db.get(player.locationId);
-      if (!location) {
-        throw new Error(`Invalid location ID: ${player.locationId}`);
-      }
-      players.push({ ...player, location, isSpeaking, isThinking });
+      players.push({
+        ...player,
+        isSpeaking,
+        isThinking,
+      });
     }
-    return { engine, players };
+    return { engine, players, locations: locationHistories?.locations ?? {} };
   },
 });
 

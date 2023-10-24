@@ -1,11 +1,11 @@
-import { v } from 'convex/values';
+import { GenericId, Infer, v } from 'convex/values';
 import { defineTable } from 'convex/server';
 import { DatabaseWriter } from '../_generated/server';
 import { Players } from './players';
 import { Doc, Id } from '../_generated/dataModel';
 import { FieldConfig, HistoricalTable } from '../engine/historicalTable';
 
-export const locations = defineTable({
+export const location = v.object({
   // Position.
   x: v.number(),
   y: v.number(),
@@ -16,10 +16,9 @@ export const locations = defineTable({
 
   // Velocity (in tiles/sec).
   velocity: v.number(),
-
-  // History buffer field out by `HistoricalTable`.
-  history: v.optional(v.bytes()),
 });
+
+export type Location = Infer<typeof location>;
 
 export const locationFields: FieldConfig = [
   { name: 'x', precision: 8 },
@@ -28,6 +27,20 @@ export const locationFields: FieldConfig = [
   { name: 'dy', precision: 8 },
   { name: 'velocity', precision: 16 },
 ];
+
+const locationBuffer = v.object({
+  doc: location,
+  history: v.optional(v.bytes()),
+});
+
+export const locationTables = {
+  locations: defineTable(location),
+  locationHistories: defineTable({
+    engineId: v.id('engines'),
+    locations: v.record(v.id('locations'), locationBuffer),
+  }).index('engineId', ['engineId']),
+};
+
 export class Locations extends HistoricalTable<'locations'> {
   table = 'locations' as const;
 
@@ -54,5 +67,28 @@ export class Locations extends HistoricalTable<'locations'> {
     rows: Doc<'locations'>[],
   ) {
     super(locationFields, rows);
+  }
+
+  async saveHistory(
+    buffers: Record<
+      Id<'locations'>,
+      {
+        doc: Doc<'locations'>;
+        history?: ArrayBuffer;
+      }
+    >,
+  ): Promise<void> {
+    const existing = await this.db
+      .query('locationHistories')
+      .withIndex('engineId', (q) => q.eq('engineId', this.engineId))
+      .unique();
+    if (!existing) {
+      await this.db.insert('locationHistories', {
+        engineId: this.engineId,
+        locations: buffers,
+      });
+      return;
+    }
+    await this.db.patch(existing._id, { locations: buffers });
   }
 }
