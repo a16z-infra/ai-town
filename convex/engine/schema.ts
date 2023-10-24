@@ -1,7 +1,7 @@
 import { defineTable } from 'convex/server';
 import { Infer, v } from 'convex/values';
 
-const inputs = v.object({
+const input = v.object({
   // Inputs are scoped to a single engine.
   engineId: v.id('engines'),
 
@@ -51,6 +51,6 @@ export const engine = v.object({
 export type Engine = Infer<typeof engine>;
 
 export const engineTables = {
-  inputs: defineTable(inputs).index('byInputNumber', ['engineId', 'number']),
+  inputs: defineTable(input).index('byInputNumber', ['engineId', 'number']),
   engines: defineTable(engine),
 };

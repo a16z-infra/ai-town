@@ -1,12 +1,6 @@
 import { Infer, v } from 'convex/values';
 import { Doc, Id } from '../_generated/dataModel';
-import {
-  ActionCtx,
-  DatabaseReader,
-  DatabaseWriter,
-  MutationCtx,
-  internalMutation,
-} from '../_generated/server';
+import { ActionCtx, DatabaseReader, MutationCtx, internalMutation } from '../_generated/server';
 import { WorldMap, worldMap, world } from './world';
 import {
   AgentDescription,
@@ -36,9 +30,8 @@ import {
   applyEngineUpdate,
   engineUpdate,
   loadEngine,
-} from '../engine2/abstractGame';
+} from '../engine/abstractGame';
 import { internal } from '../_generated/api';
-import { assertNever } from '../util/assertNever';
 
 const gameState = v.object({
   world,
@@ -77,7 +70,7 @@ export class Game extends AbstractGame {
 
   constructor(
     engine: Doc<'engines'>,
-    private worldId: Id<'worlds2'>,
+    public worldId: Id<'worlds'>,
     state: GameState,
   ) {
     super(engine);
@@ -103,20 +96,20 @@ export class Game extends AbstractGame {
 
   static async load(
     db: DatabaseReader,
-    worldId: Id<'worlds2'>,
+    worldId: Id<'worlds'>,
   ): Promise<{ engine: Doc<'engines'>; gameState: GameState }> {
     const worldDoc = await db.get(worldId);
     if (!worldDoc) {
       throw new Error(`No world found with id ${worldId}`);
     }
-    const worldEngine = await db
-      .query('worldEngine')
+    const worldStatus = await db
+      .query('worldStatus')
       .withIndex('worldId', (q) => q.eq('worldId', worldId))
       .unique();
-    if (!worldEngine) {
+    if (!worldStatus) {
       throw new Error(`No engine found for world ${worldId}`);
     }
-    const engine = await loadEngine(db, worldEngine.engineId);
+    const engine = await loadEngine(db, worldStatus.engineId);
     const playerDescriptionsDocs = await db
       .query('playerDescriptions')
       .withIndex('worldId', (q) => q.eq('worldId', worldId))
@@ -126,7 +119,7 @@ export class Game extends AbstractGame {
       .withIndex('worldId', (q) => q.eq('worldId', worldId))
       .collect();
     const worldMapDoc = await db
-      .query('maps2')
+      .query('maps')
       .withIndex('worldId', (q) => q.eq('worldId', worldId))
       .unique();
     if (!worldMapDoc) {
@@ -230,7 +223,7 @@ export class Game extends AbstractGame {
     });
   }
 
-  static async saveDiff(ctx: MutationCtx, worldId: Id<'worlds2'>, diff: GameStateDiff) {
+  static async saveDiff(ctx: MutationCtx, worldId: Id<'worlds'>, diff: GameStateDiff) {
     const existingWorld = await ctx.db.get(worldId);
     if (!existingWorld) {
       throw new Error(`No world found with id ${worldId}`);
@@ -314,13 +307,13 @@ export class Game extends AbstractGame {
     }
     if (worldMap) {
       const existing = await ctx.db
-        .query('maps2')
+        .query('maps')
         .withIndex('worldId', (q) => q.eq('worldId', worldId))
         .unique();
       if (existing) {
         await ctx.db.replace(existing._id, { worldId, ...worldMap });
       } else {
-        await ctx.db.insert('maps2', { worldId, ...worldMap });
+        await ctx.db.insert('maps', { worldId, ...worldMap });
       }
     }
 
@@ -339,7 +332,7 @@ export const saveWorld = internalMutation({
   args: {
     engineId: v.id('engines'),
     engineUpdate,
-    worldId: v.id('worlds2'),
+    worldId: v.id('worlds'),
     worldDiff: gameStateDiff,
   },
   handler: async (ctx, args) => {

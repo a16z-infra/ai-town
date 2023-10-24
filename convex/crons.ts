@@ -7,11 +7,11 @@ import { v } from 'convex/values';
 
 const crons = cronJobs();
 
-crons.interval(
-  'stop inactive worlds',
-  { seconds: IDLE_WORLD_TIMEOUT / 1000 },
-  internal.world.stopInactiveWorlds,
-);
+// crons.interval(
+//   'stop inactive worlds',
+//   { seconds: IDLE_WORLD_TIMEOUT / 1000 },
+//   internal.world.stopInactiveWorlds,
+// );
 
 crons.daily('vacuum old entries', { hourUTC: 4, minuteUTC: 20 }, internal.crons.vacuumOldEntries);
 

@@ -7,35 +7,38 @@ import { conversationFields } from './conversation';
 import { conversationId, playerId } from './ids';
 
 export const aiTownTables = {
-  worlds2: defineTable({ isDefault: v.boolean(), ...worldFields }),
-  worldEngine: defineTable({ worldId: v.id('worlds2'), engineId: v.id('engines') }).index(
-    'worldId',
-    ['worldId'],
-  ),
+  worlds: defineTable({ isDefault: v.boolean(), ...worldFields }),
+  worldStatus: defineTable({
+    worldId: v.id('worlds'),
+    engineId: v.id('engines'),
+    lastViewed: v.number(),
+    status: v.union(v.literal('running'), v.literal('stoppedByDeveloper'), v.literal('inactive')),
+  }).index('worldId', ['worldId']),
 
   // Store the larger data for player, agent, and world descriptions
   // in separate tables.
-  playerDescriptions: defineTable({ worldId: v.id('worlds2'), ...playerDescriptionFields }).index(
+  playerDescriptions: defineTable({ worldId: v.id('worlds'), ...playerDescriptionFields }).index(
     'worldId',
     ['worldId', 'playerId'],
   ),
   agentDescriptions: defineTable({
-    worldId: v.id('worlds2'),
+    worldId: v.id('worlds'),
     ...agentDescriptionFields,
   }).index('worldId', ['worldId', 'agentId']),
-  maps2: defineTable({
-    worldId: v.id('worlds2'),
+  maps: defineTable({
+    worldId: v.id('worlds'),
     ...worldMapFields,
   }).index('worldId', ['worldId']),
 
   // Store inactive players, agents, and conversations in separate tables to keep
   // the core game state small.
-  archivedPlayers: defineTable({ worldId: v.id('worlds2'), ...playerFields }).index('worldId', [
+  archivedPlayers: defineTable({ worldId: v.id('worlds'), ...playerFields }).index('worldId', [
     'worldId',
     'id',
   ]),
   archivedConversations: defineTable({
-    worldId: v.id('worlds2'),
+    worldId: v.id('worlds'),
+    created: v.number(),
     id: conversationId,
     lastMessage: conversationFields.lastMessage,
     numMessages: conversationFields.numMessages,
@@ -44,14 +47,16 @@ export const aiTownTables = {
 
   // Store an undirected graph of who were in the same archived conversations together.
   participatedTogether: defineTable({
-    worldId: v.id('worlds2'),
+    worldId: v.id('worlds'),
     conversationId,
     player1: playerId,
     player2: playerId,
     ended: v.number(),
-  }).index('edge', ['worldId', 'player1', 'player2', 'ended']),
+  })
+    .index('edge', ['worldId', 'player1', 'player2', 'ended'])
+    .index('conversation', ['worldId', 'player1', 'conversationId']),
 
-  archivedAgents: defineTable({ worldId: v.id('worlds2'), ...agentFields }).index('worldId', [
+  archivedAgents: defineTable({ worldId: v.id('worlds'), ...agentFields }).index('worldId', [
     'worldId',
     'id',
   ]),

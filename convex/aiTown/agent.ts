@@ -162,9 +162,10 @@ export function tickAgent(game: Game, now: number, agent: Agent) {
   // a while, do something.
   if (!conversation && !doingActivity && (!player.pathfinding || !recentlyAttemptedInvite)) {
     startOperation(game, now, agent, 'agentDoSomething', {
-      // worldId: agent.worldId,
-      // playerId: player._id,
-      // agentId: agent._id,
+      worldId: game.worldId,
+      player,
+      agent,
+      map: game.worldMap,
     });
     return;
   }
@@ -173,10 +174,10 @@ export function tickAgent(game: Game, now: number, agent: Agent) {
     // Fire off the action to remember the conversation.
     console.log(`Agent ${agent.id} remembering conversation ${agent.toRemember}`);
     startOperation(game, now, agent, 'agentRememberConversation', {
-      // worldId: agent.worldId,
-      // playerId: player._id,
-      // agentId: agent._id,
-      // conversationId: agent.toRemember,
+      worldId: game.worldId,
+      playerId: agent.playerId,
+      agentId: agent.id,
+      conversationId: agent.toRemember,
     });
     delete agent.toRemember;
     return;
@@ -252,13 +253,13 @@ export function tickAgent(game: Game, now: number, agent: Agent) {
           const messageUuid = crypto.randomUUID();
           setIsTyping(now, conversation, player, messageUuid);
           startOperation(game, now, agent, 'agentGenerateMessage', {
-            // worldId: agent.worldId,
-            // agentId: agent._id,
-            // playerId: player._id,
-            // messageUuid,
-            // otherPlayerId: otherPlayer._id,
-            // conversationId: conversation._id,
-            // type: 'start',
+            worldId: game.worldId,
+            playerId: player.id,
+            agentId: agent.id,
+            conversationId: conversation.id,
+            otherPlayerId: otherPlayer.id,
+            messageUuid,
+            type: 'start',
           });
           return;
         } else {
@@ -273,13 +274,13 @@ export function tickAgent(game: Game, now: number, agent: Agent) {
         const messageUuid = crypto.randomUUID();
         setIsTyping(now, conversation, player, messageUuid);
         startOperation(game, now, agent, 'agentGenerateMessage', {
-          // worldId: agent.worldId,
-          // agentId: agent._id,
-          // playerId: player._id,
-          // messageUuid,
-          // otherPlayerId: otherPlayer._id,
-          // conversationId: conversation._id,
-          // type: 'leave',
+          worldId: game.worldId,
+          playerId: player.id,
+          agentId: agent.id,
+          conversationId: conversation.id,
+          otherPlayerId: otherPlayer.id,
+          messageUuid,
+          type: 'leave',
         });
         return;
       }
@@ -300,13 +301,13 @@ export function tickAgent(game: Game, now: number, agent: Agent) {
       const messageUuid = crypto.randomUUID();
       setIsTyping(now, conversation, player, messageUuid);
       startOperation(game, now, agent, 'agentGenerateMessage', {
-        // worldId: agent.worldId,
-        // agentId: agent._id,
-        // playerId: player._id,
-        // messageUuid,
-        // otherPlayerId: otherPlayer._id,
-        // conversationId: conversation._id,
-        // type: 'continue',
+        worldId: game.worldId,
+        playerId: player.id,
+        agentId: agent.id,
+        conversationId: conversation.id,
+        otherPlayerId: otherPlayer.id,
+        messageUuid,
+        type: 'continue',
       });
       return;
     }
@@ -337,7 +338,7 @@ function startOperation<Name extends keyof AgentOperations>(
   }
   const operationId = crypto.randomUUID();
   console.log(`Agent ${agent.id} starting operation ${name} (${operationId})`);
-  game.scheduleOperation(name, { operationId, ...args });
+  game.scheduleOperation(name, { operationId, ...args } as any);
   agent.inProgressOperation = {
     name,
     operationId,
@@ -456,7 +457,7 @@ export const agentInputs = {
 
 export const agentSendMessage = internalMutation({
   args: {
-    worldId: v.id('worlds2'),
+    worldId: v.id('worlds'),
     conversationId,
     agentId,
     playerId,
@@ -485,7 +486,7 @@ export const agentSendMessage = internalMutation({
 export const findConversationCandidate = internalQuery({
   args: {
     now: v.number(),
-    worldId: v.id('worlds2'),
+    worldId: v.id('worlds'),
     player,
     otherPlayers: v.array(player),
   },

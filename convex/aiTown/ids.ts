@@ -28,6 +28,7 @@ export function allocGameId<T extends IdTypes>(idType: T, idNumber: number): Gam
   }
   return `${type}:${idNumber}` as GameId<T>;
 }
+
 export const conversationId = v.string();
 export const playerId = v.string();
 export const agentId = v.string();

@@ -1,7 +1,7 @@
 import { Infer, v } from 'convex/values';
 import { GameId, parseGameId } from './ids';
 import { conversationId, playerId } from './ids';
-import { Player, player } from './player';
+import { Player } from './player';
 import { inputHandler } from './inputHandler';
 
 import { TYPING_TIMEOUT, CONVERSATION_DISTANCE } from '../constants';
@@ -23,6 +23,7 @@ export type ConversationMembership = Infer<typeof conversationMembership>;
 export const conversationFields = {
   id: conversationId,
   creator: playerId,
+  created: v.number(),
   isTyping: v.optional(
     v.object({
       playerId,
