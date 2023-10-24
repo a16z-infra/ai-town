@@ -31,7 +31,8 @@ import {
 import { setIsTyping, startConversation } from './conversations';
 import { internal } from '../_generated/api';
 import { insertInput } from './main';
-import { Descriptions } from '../../data/characters';
+//import { Descriptions } from '../../data/characters';
+import { Descriptions } from '../../data/akwardadamandeve';
 import { point } from '../util/types';
 
 const agentActions = internal.game.agentActions;

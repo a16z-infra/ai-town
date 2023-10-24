@@ -1,6 +1,7 @@
 import { v } from 'convex/values';
 import { internalMutation, mutation, query } from './_generated/server';
-import { characters } from '../data/characters';
+//import { characters } from '../data/characters';
+import { Descriptions } from '../data/akwardadamandeve';
 import { sendInput } from './game/main';
 import { IDLE_WORLD_TIMEOUT } from './constants';
 import { Doc, Id } from './_generated/dataModel';

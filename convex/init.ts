@@ -1,7 +1,8 @@
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { DatabaseReader, MutationCtx, internalMutation, mutation } from './_generated/server';
-import { Descriptions } from '../data/characters';
+//import { Descriptions } from '../data/characters';
+import { Descriptions } from '../data/akwardadamandeve';
 //import * as firstmap from '../data/firstmap';
 //import * as firstmap from '../data/mage';
 import * as firstmap from '../data/gentle';
