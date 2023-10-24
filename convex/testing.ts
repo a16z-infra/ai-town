@@ -4,8 +4,7 @@ import { DatabaseReader, internalMutation, mutation, query } from './_generated/
 import { v } from 'convex/values';
 import schema from './schema';
 import { kickEngine, startEngine, stopEngine } from './engine/game';
-
-const DELETE_BATCH_SIZE = 64;
+import { DELETE_BATCH_SIZE } from './constants';
 
 // Clear all of the tables except for the embeddings cache.
 const excludedTables: Array<TableNames> = ['embeddingsCache'];
