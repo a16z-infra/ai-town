@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { Doc, Id } from '../_generated/dataModel';
+import { Id } from '../_generated/dataModel';
 import { ActionCtx, internalQuery } from '../_generated/server';
 import { LLMMessage, chatCompletion } from '../util/openai';
 import * as memory from './memory';

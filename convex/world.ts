@@ -1,3 +1,5 @@
+export const x = 3;
+
 // import { v } from 'convex/values';
 // import { internalMutation, mutation, query } from './_generated/server';
 // import { characters } from '../data/characters';

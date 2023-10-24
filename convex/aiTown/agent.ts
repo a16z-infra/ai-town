@@ -17,7 +17,7 @@ import {
   PLAYER_CONVERSATION_COOLDOWN,
 } from '../constants';
 import { FunctionArgs, getFunctionName } from 'convex/server';
-import { internalMutation, internalQuery } from '../_generated/server';
+import { MutationCtx, internalMutation, internalQuery } from '../_generated/server';
 import { distance } from '../util/geometry';
 import { internal } from '../_generated/api';
 import {
@@ -318,15 +318,29 @@ export function tickAgent(game: Game, now: number, agent: Agent) {
   }
 }
 
-const agentOperations = {
-  agentRememberConversation: internal.aiTown.agentOperations.agentRememberConversation,
-  agentGenerateMessage: internal.aiTown.agentOperations.agentGenerateMessage,
-  agentDoSomething: internal.aiTown.agentOperations.agentDoSomething,
+type AgentOperations = {
+  agentRememberConversation: typeof internal.aiTown.agentOperations.agentRememberConversation;
+  agentGenerateMessage: typeof internal.aiTown.agentOperations.agentGenerateMessage;
+  agentDoSomething: typeof internal.aiTown.agentOperations.agentDoSomething;
 };
-export type AgentOperations = typeof agentOperations;
 
-// Export as any to avoid a circular type.
-export const agentOperationMap = agentOperations as any;
+export async function runAgentOperation(ctx: MutationCtx, operation: string, args: any) {
+  let reference;
+  switch (operation) {
+    case 'agentRememberConversation':
+      reference = internal.aiTown.agentOperations.agentRememberConversation;
+      break;
+    case 'agentGenerateMessage':
+      reference = internal.aiTown.agentOperations.agentGenerateMessage;
+      break;
+    case 'agentDoSomething':
+      reference = internal.aiTown.agentOperations.agentDoSomething;
+      break;
+    default:
+      throw new Error(`Unknown operation: ${operation}`);
+  }
+  await ctx.scheduler.runAfter(0, reference, args);
+}
 
 function startOperation<Name extends keyof AgentOperations>(
   game: Game,

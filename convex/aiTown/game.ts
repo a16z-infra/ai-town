@@ -5,9 +5,9 @@ import { WorldMap, worldMap, world } from './world';
 import {
   AgentDescription,
   agentDescriptionFields,
-  agentOperationMap,
   parseAgentDescriptions,
   parseAgents,
+  runAgentOperation,
   tickAgent,
 } from './agent';
 import {
@@ -18,11 +18,10 @@ import {
   tickPathfinding,
   tickPosition,
 } from './player';
-import { Agent, AgentOperations } from './agent';
+import { Agent } from './agent';
 import { Player } from './player';
 import { Conversation, parseConversations, tickConversation } from './conversation';
 import { GameId, IdTypes, allocGameId, parseGameId } from './ids';
-import { FunctionArgs } from 'convex/server';
 import { InputArgs, InputNames, inputs } from './inputs';
 import {
   AbstractGame,
@@ -66,7 +65,7 @@ export class Game extends AbstractGame {
   playerDescriptions: Map<GameId<'players'>, PlayerDescription>;
   agentDescriptions: Map<GameId<'agents'>, AgentDescription>;
 
-  pendingOperations: Array<{ name: keyof AgentOperations; args: any }> = [];
+  pendingOperations: Array<{ name: string; args: any }> = [];
 
   constructor(
     engine: Doc<'engines'>,
@@ -159,10 +158,7 @@ export class Game extends AbstractGame {
     return parseGameId(idType, id, this.nextId);
   }
 
-  scheduleOperation<T extends keyof AgentOperations>(
-    name: T,
-    args: FunctionArgs<AgentOperations[T]>,
-  ) {
+  scheduleOperation(name: string, args: any) {
     this.pendingOperations.push({ name, args });
   }
 
@@ -242,6 +238,7 @@ export class Game extends AbstractGame {
         const archivedConversation = {
           worldId,
           id: conversation.id,
+          created: conversation.created,
           lastMessage: conversation.lastMessage,
           numMessages: conversation.numMessages,
           participants,
@@ -319,11 +316,7 @@ export class Game extends AbstractGame {
 
     // Start the desired agent operations.
     for (const operation of diff.agentOperations) {
-      const reference = agentOperationMap[operation.name];
-      if (!reference) {
-        throw new Error(`Invalid agent operation: ${operation.name}`);
-      }
-      await ctx.scheduler.runAfter(0, reference, operation.args);
+      await runAgentOperation(ctx, operation.name, operation.args);
     }
   }
 }

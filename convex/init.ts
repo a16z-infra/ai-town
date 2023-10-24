@@ -1,3 +1,4 @@
+export const x = 3;
 // import { v } from 'convex/values';
 // import { internal } from './_generated/api';
 // import { DatabaseReader, MutationCtx, internalMutation, mutation } from './_generated/server';

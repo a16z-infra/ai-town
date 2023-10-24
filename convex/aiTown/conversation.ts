@@ -45,6 +45,7 @@ type ConversationDoc = Infer<typeof conversation>;
 
 export type Conversation = {
   id: GameId<'conversations'>;
+  created: number;
   creator: GameId<'players'>;
   isTyping?: {
     playerId: GameId<'players'>;
@@ -99,6 +100,7 @@ function parseConversation(
   }
   return {
     id: parseGameId('conversations', conversation.id, nextId),
+    created: conversation.created,
     creator: parseGameId('players', conversation.creator, nextId),
     isTyping,
     lastMessage,
@@ -232,6 +234,7 @@ export function startConversation(game: Game, now: number, player: Player, invit
   console.log(`Creating conversation ${conversationId}`);
   game.conversations.set(conversationId, {
     id: conversationId,
+    created: now,
     creator: player.id,
     numMessages: 0,
     participants: new Map([

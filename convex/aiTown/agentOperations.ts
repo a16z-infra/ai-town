@@ -14,6 +14,7 @@ import { assertNever } from '../util/assertNever';
 import { agentFields } from './agent';
 import { player } from './player';
 import { ACTIVITIES, ACTIVITY_COOLDOWN, CONVERSATION_COOLDOWN } from '../constants';
+import { api, internal } from '../_generated/api';
 
 export const agentRememberConversation = internalAction({
   args: {
@@ -111,7 +112,7 @@ export const agentDoSomething = internalAction({
     // Decide whether to do an activity or wander somewhere.
     if (!player.pathfinding) {
       if (recentActivity || justLeftConversation) {
-        await ctx.runMutation(api.game.main.sendInput, {
+        await ctx.runMutation(api.aiTown.main.sendInput, {
           worldId: args.worldId,
           name: 'finishDoSomething',
           args: {
@@ -124,7 +125,7 @@ export const agentDoSomething = internalAction({
       } else {
         // TODO: have LLM choose the activity & emoji
         const activity = ACTIVITIES[Math.floor(Math.random() * ACTIVITIES.length)];
-        await ctx.runMutation(api.game.main.sendInput, {
+        await ctx.runMutation(api.aiTown.main.sendInput, {
           worldId: args.worldId,
           name: 'finishDoSomething',
           args: {
@@ -143,13 +144,13 @@ export const agentDoSomething = internalAction({
     const invitee =
       justLeftConversation || recentlyAttemptedInvite
         ? undefined
-        : await ctx.runQuery(internal.game.agents.findConversationCandidate, {
+        : await ctx.runQuery(internal.aiTown.agent.findConversationCandidate, {
             now,
             worldId: args.worldId,
             player: args.player,
             otherFreePlayers: args.otherFreePlayers,
           });
-    await ctx.runMutation(api.game.main.sendInput, {
+    await ctx.runMutation(api.aiTown.main.sendInput, {
       worldId: args.worldId,
       name: 'finishDoSomething',
       args: {

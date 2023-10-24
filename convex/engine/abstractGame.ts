@@ -17,7 +17,7 @@ export abstract class AbstractGame {
   abstract save(ctx: ActionCtx, engineUpdate: EngineUpdate): Promise<void>;
 
   async runStep(ctx: ActionCtx, now: number) {
-    const inputs = await ctx.runQuery(internal.engine2.abstractEngine.loadInputs, {
+    const inputs = await ctx.runQuery(internal.engine.abstractGame.loadInputs, {
       engineId: this.engine._id,
       processedInputNumber: this.engine.processedInputNumber,
       max: this.maxInputsPerStep,
