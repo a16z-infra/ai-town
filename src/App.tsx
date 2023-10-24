@@ -14,6 +14,7 @@ import MusicButton from './components/buttons/MusicButton.tsx';
 import Button from './components/buttons/Button.tsx';
 import InteractButton from './components/buttons/InteractButton.tsx';
 import FreezeButton from './components/FreezeButton.tsx';
+import { MAX_HUMAN_PLAYERS } from '../convex/constants.ts';
 
 export default function Home() {
   const [helpModalOpen, setHelpModalOpen] = useState(false);
@@ -40,25 +41,21 @@ export default function Home() {
           <h2 className="text-4xl mt-4">Interactivity</h2>
           <p>
             If you log in, you can join the simulation and directly talk to different agents! After
-            logging in, click the "Interact" button, and your character will appear in the top-left
-            of the map.
+            logging in, click the "Interact" button, and your character will appear somewhere on the
+            map with a highlighted circle underneath you.
           </p>
           <p className="text-2xl mt-2">Controls:</p>
-          <ul>
-            <li>W, ⬆️: Move up</li>
-            <li>A, ⬅️: Move left</li>
-            <li>S, ⬇️: Move down</li>
-            <li>D, ➡️: Move right</li>
-          </ul>
+          <p className="mt-4">Click to navigate around.</p>
           <p className="mt-4">
             To talk to an agent, click on them and then click "Start conversation," which will ask
             them to start walking towards you. Once they're nearby, the conversation will start, and
             you can speak to each other. You can leave at any time by closing the conversation pane
-            or moving away.
+            or moving away. They may propose a conversation to you - you'll see a button to accept
+            in the messages panel.
           </p>
           <p className="mt-4">
-            AI town only supports SOME FINITE NUMBER of humans at a time. If other humans are
-            waiting, each human session is limited to five minutes.
+            AI town only supports {MAX_HUMAN_PLAYERS} humans at a time. If you're idle for five
+            minutes, you'll be automatically removed from the simulation.
           </p>
         </div>
       </ReactModal>
