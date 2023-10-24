@@ -1,5 +1,5 @@
 import { defineTable } from 'convex/server';
-import { v } from 'convex/values';
+import { Infer, v } from 'convex/values';
 
 const inputs = v.object({
   // Inputs are scoped to a single engine.
@@ -32,7 +32,7 @@ const inputs = v.object({
   received: v.number(),
 });
 
-const engines = v.object({
+export const engine = v.object({
   // What is the current simulation time for the engine? Monotonically increasing.
   currentTime: v.optional(v.number()),
   // What was `currentTime` for the preceding step of the engine?
@@ -48,8 +48,9 @@ const engines = v.object({
   // conflict.
   generationNumber: v.number(),
 });
+export type Engine = Infer<typeof engine>;
 
 export const engineTables = {
   inputs: defineTable(inputs).index('byInputNumber', ['engineId', 'number']),
-  engines: defineTable(engines),
+  engines: defineTable(engine),
 };

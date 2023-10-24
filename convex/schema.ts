@@ -2,6 +2,8 @@ import { defineSchema, defineTable } from 'convex/server';
 import { gameTables } from './game/schema';
 import { v } from 'convex/values';
 import { agentTables } from './agent/schema';
+import { aiTownTables } from './aiTown/schema';
+import { conversationId, playerId } from './aiTown/ids';
 
 export default defineSchema({
   worlds: defineTable({
@@ -31,9 +33,9 @@ export default defineSchema({
   }),
 
   messages: defineTable({
-    conversationId: v.id('conversations'),
+    conversationId,
     messageUuid: v.string(),
-    author: v.id('players'),
+    author: playerId,
     text: v.string(),
   })
     .index('conversationId', ['conversationId'])
@@ -41,4 +43,5 @@ export default defineSchema({
 
   ...gameTables,
   ...agentTables,
+  ...aiTownTables,
 });

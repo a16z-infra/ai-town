@@ -1,8 +1,57 @@
+import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
-import { MutationCtx } from '../_generated/server';
+import { MutationCtx, internalMutation, internalQuery } from '../_generated/server';
 import { FunctionReference, Scheduler } from 'convex/server';
 
 type StepReference = FunctionReference<'mutation', 'internal', { engineId: Id<'engines'> }, null>;
+
+export const loadStep = internalQuery({
+  args: { now: v.number(), engineId: v.id('engines'), maxInputs: v.number() },
+  handler: async (ctx, { now, engineId, maxInputs }) => {
+    const engine = await ctx.db.get(engineId);
+    if (!engine) {
+      throw new Error(`Invalid engine ID: ${engineId}`);
+    }
+    if (!engine.running) {
+      console.debug(`Engine ${engineId} is not active, returning immediately.`);
+      return { kind: 'inactive' };
+    }
+    if (engine.currentTime && now < engine.currentTime) {
+      throw new Error(`Server time moving backwards: ${now} < ${engine.currentTime}`);
+    }
+    const inputs = await ctx.db
+      .query('inputs')
+      .withIndex('byInputNumber', (q) =>
+        q.eq('engineId', engineId).gt('number', engine.processedInputNumber ?? -1),
+      )
+      .take(maxInputs);
+    return {
+      kind: 'ok',
+      engine,
+      inputs,
+    };
+  },
+});
+
+const saveStep = internalMutation({
+  args: {
+    engineId: v.id('engines'),
+    generationNumber: v.number(),
+
+    currentTime: v.number(),
+    lastStepTs: v.number(),
+
+    processedInputNumber: v.number(),
+    completedInputs: v.record(
+      v.id('inputs'),
+      v.union(
+        v.object({ kind: v.literal('ok'), value: v.any() }),
+        v.object({ kind: v.literal('error'), message: v.string() }),
+      ),
+    ),
+  },
+  handler: async (ctx, args) => {},
+});
 
 export abstract class Game {
   abstract engineId: Id<'engines'>;
