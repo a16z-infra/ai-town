@@ -2,6 +2,7 @@ import Button from './Button';
 import interactImg from '../../../assets/interact.svg';
 import { useConvexAuth, useMutation, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
+import { SignInButton } from '@clerk/clerk-react';
 
 export default function InteractButton() {
   const { isAuthenticated } = useConvexAuth();
@@ -24,7 +25,18 @@ export default function InteractButton() {
     }
   };
   if (!isAuthenticated || userPlayerId === undefined) {
-    return null;
+    return (
+      <SignInButton>
+        <button className="button text-white shadow-solid text-2xl pointer-events-auto">
+          <div className="inline-block bg-clay-700">
+            <div className="inline-flex h-full items-center gap-4">
+              <img className="w-[30px] h-[30px]" src={interactImg} />
+              Interact
+            </div>
+          </div>
+        </button>
+      </SignInButton>
+    );
   }
   return (
     <Button imgUrl={interactImg} onClick={joinOrLeaveGame}>
