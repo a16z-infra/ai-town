@@ -48,6 +48,7 @@ const moveTo = inputHandler({
     } else {
       stopPlayer(game, now, playerId);
     }
+    game.players.lookup(playerId).lastInput = now;
     return null;
   },
 });

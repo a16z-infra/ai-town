@@ -7,6 +7,7 @@ import { blocked, findRoute, movePlayer, stopPlayer } from './movement';
 import { distance, normalize, pathPosition, pointsEqual, vector } from '../util/geometry';
 import {
   CONVERSATION_DISTANCE,
+  HUMAN_IDLE_TOO_LONG,
   PATHFINDING_BACKOFF,
   PATHFINDING_TIMEOUT,
   TYPING_TIMEOUT,
@@ -74,6 +75,9 @@ export class AiTown extends Game {
 
   tick(now: number) {
     for (const player of this.players.allDocuments()) {
+      this.tickPlayer(now, player);
+    }
+    for (const player of this.players.allDocuments()) {
       this.tickPathfinding(now, player);
     }
     for (const player of this.players.allDocuments()) {
@@ -84,6 +88,12 @@ export class AiTown extends Game {
     }
     for (const agent of this.agents.allDocuments()) {
       tickAgent(this, now, agent);
+    }
+  }
+
+  tickPlayer(now: number, player: Doc<'players'>) {
+    if (player.human && player.lastInput < now - HUMAN_IDLE_TOO_LONG) {
+      player.active = false;
     }
   }
 
