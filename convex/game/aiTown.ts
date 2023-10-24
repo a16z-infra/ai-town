@@ -1,6 +1,6 @@
 import { Game } from '../engine/game';
 import { Doc, Id } from '../_generated/dataModel';
-import { Players } from './players';
+import { Players, leaveGame } from './players';
 import { DatabaseWriter } from '../_generated/server';
 import { Locations } from './locations';
 import { blocked, findRoute, movePlayer, stopPlayer } from './movement';
@@ -93,7 +93,7 @@ export class AiTown extends Game {
 
   tickPlayer(now: number, player: Doc<'players'>) {
     if (player.human && player.lastInput < now - HUMAN_IDLE_TOO_LONG) {
-      player.active = false;
+      leaveGame(this, now, player._id);
     }
   }
 
