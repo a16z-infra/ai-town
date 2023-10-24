@@ -14,6 +14,7 @@ import {
   MAX_CONVERSATION_MESSAGES,
   MESSAGE_COOLDOWN,
   MIDPOINT_THRESHOLD,
+  PLAYER_CONVERSATION_COOLDOWN,
 } from '../constants';
 import { FunctionArgs, getFunctionName } from 'convex/server';
 import { internalMutation, internalQuery } from '../_generated/server';
@@ -164,6 +165,9 @@ export function tickAgent(game: Game, now: number, agent: Agent) {
     startOperation(game, now, agent, 'agentDoSomething', {
       worldId: game.worldId,
       player,
+      otherFreePlayers: [...game.players.values()]
+        .filter((p) => p.id !== player.id)
+        .filter((p) => ![...game.conversations.values()].find((c) => c.participants.has(p.id))),
       agent,
       map: game.worldMap,
     });
@@ -488,38 +492,26 @@ export const findConversationCandidate = internalQuery({
     now: v.number(),
     worldId: v.id('worlds'),
     player,
-    otherPlayers: v.array(player),
+    otherFreePlayers: v.array(player),
   },
-  handler: async (ctx, { now, worldId, player, otherPlayers }) => {
+  handler: async (ctx, { now, worldId, player, otherFreePlayers }) => {
     const { position } = player;
     const candidates = [];
 
-    for (const otherPlayer of otherPlayers) {
-      // Skip players that are currently in a conversation.
-      // const member = await conversationMember(ctx.db, otherPlayer._id);
-      // if (member) {
-      //   continue;
-      // }
-      // // Find the latest conversation we're both members of.
-      // const lastMember = await ctx.db
-      //   .query('conversationMembers')
-      //   .withIndex('playerId', (q) =>
-      //     q
-      //       .eq('playerId', playerId)
-      //       .eq('status.kind', 'left')
-      //       .gt('status.ended', now - PLAYER_CONVERSATION_COOLDOWN),
-      //   )
-      //   .order('desc')
-      //   .first();
-
-      // if (lastMember) {
-      //   if (lastMember.status.kind !== 'left') {
-      //     throw new Error(`Unexpected status: ${lastMember.status.kind}`);
-      //   }
-      //   if (now < lastMember.status.ended + PLAYER_CONVERSATION_COOLDOWN) {
-      //     continue;
-      //   }
-      // }
+    for (const otherPlayer of otherFreePlayers) {
+      // Find the latest conversation we're both members of.
+      const lastMember = await ctx.db
+        .query('participatedTogether')
+        .withIndex('edge', (q) =>
+          q.eq('worldId', worldId).eq('player1', player.id).eq('player2', otherPlayer.id),
+        )
+        .order('desc')
+        .first();
+      if (lastMember) {
+        if (now < lastMember.ended + PLAYER_CONVERSATION_COOLDOWN) {
+          continue;
+        }
+      }
       candidates.push({ id: otherPlayer.id, position });
     }
 

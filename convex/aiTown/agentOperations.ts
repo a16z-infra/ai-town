@@ -12,8 +12,8 @@ import {
 } from '../agent/conversation';
 import { assertNever } from '../util/assertNever';
 import { agentFields } from './agent';
-import { playerFields } from './player';
-import { ACTIVITY_COOLDOWN, CONVERSATION_COOLDOWN } from '../constants';
+import { player } from './player';
+import { ACTIVITIES, ACTIVITY_COOLDOWN, CONVERSATION_COOLDOWN } from '../constants';
 
 export const agentRememberConversation = internalAction({
   args: {
@@ -92,9 +92,10 @@ export const agentGenerateMessage = internalAction({
 export const agentDoSomething = internalAction({
   args: {
     worldId: v.id('worlds'),
-    player: v.object(playerFields),
+    player,
     agent: v.object(agentFields),
     map: v.object(worldMapFields),
+    otherFreePlayers: v.array(player),
     operationId: v.string(),
   },
   handler: async (ctx, args) => {
@@ -139,24 +140,24 @@ export const agentDoSomething = internalAction({
         return;
       }
     }
-    // const invitee =
-    //   justLeftConversation || recentlyAttemptedInvite
-    //     ? undefined
-    //     : await ctx.runQuery(internal.game.agents.findConversationCandidate, {
-    //         playerId: player._id,
-    //         locationId: player.locationId,
-    //         worldId: args.worldId,
-    //         now,
-    //       });
-    // await ctx.runMutation(api.game.main.sendInput, {
-    //   worldId: args.worldId,
-    //   name: 'finishDoSomething',
-    //   args: {
-    //     operationId: args.operationId,
-    //     agentId: args.agentId,
-    //     invitee,
-    //   },
-    // });
+    const invitee =
+      justLeftConversation || recentlyAttemptedInvite
+        ? undefined
+        : await ctx.runQuery(internal.game.agents.findConversationCandidate, {
+            now,
+            worldId: args.worldId,
+            player: args.player,
+            otherFreePlayers: args.otherFreePlayers,
+          });
+    await ctx.runMutation(api.game.main.sendInput, {
+      worldId: args.worldId,
+      name: 'finishDoSomething',
+      args: {
+        operationId: args.operationId,
+        agentId: args.agent.id,
+        invitee,
+      },
+    });
   },
 });
 

@@ -101,6 +101,7 @@ export async function continueConversationMessage(
     },
     ...(await previousMessages(
       ctx,
+      worldId,
       player,
       otherPlayer,
       conversation.id as GameId<'conversations'>,
@@ -148,6 +149,7 @@ export async function leaveConversationMessage(
     },
     ...(await previousMessages(
       ctx,
+      worldId,
       player,
       otherPlayer,
       conversation.id as GameId<'conversations'>,
@@ -209,12 +211,13 @@ function relatedMemoriesPrompt(memories: memory.Memory[]): string[] {
 
 async function previousMessages(
   ctx: ActionCtx,
+  worldId: Id<'worlds'>,
   player: { id: string; name: string },
   otherPlayer: { id: string; name: string },
   conversationId: GameId<'conversations'>,
 ) {
   const llmMessages: LLMMessage[] = [];
-  const prevMessages = await ctx.runQuery(api.messages.listMessages, { conversationId });
+  const prevMessages = await ctx.runQuery(api.messages.listMessages, { worldId, conversationId });
   for (const message of prevMessages) {
     const author = message.author === player.id ? player : otherPlayer;
     const recipient = message.author === player.id ? otherPlayer : player;
