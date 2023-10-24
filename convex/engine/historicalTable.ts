@@ -94,14 +94,15 @@ export abstract class HistoricalTable<T extends TableNames> {
     }
     this.fieldConfig = normalizeFieldConfig(fields);
     for (const row of rows) {
-      if ('history' in row) {
-        delete row.history;
-        this.modified.add(row._id);
-      }
       this.checkShape(row);
       this.data.set(row._id, row);
     }
   }
+
+  // Save the packed history buffers for all of the modified rows.
+  abstract saveHistory(
+    buffers: Record<Id<T>, { doc: WithoutSystemFields<Doc<T>>; history?: ArrayBuffer }>,
+  ): Promise<void>;
 
   historyLength() {
     return [...this.history.values()]
@@ -111,9 +112,6 @@ export abstract class HistoricalTable<T extends TableNames> {
   }
 
   checkShape(obj: any) {
-    if ('history' in obj) {
-      throw new Error(`Cannot insert row with 'history' field`);
-    }
     for (const [key, value] of Object.entries(obj)) {
       if (this.isReservedFieldName(key)) {
         continue;
@@ -127,7 +125,7 @@ export abstract class HistoricalTable<T extends TableNames> {
   }
 
   isReservedFieldName(key: string) {
-    return key.startsWith('_') || key === 'history';
+    return key.startsWith('_');
   }
 
   async insert(now: number, row: WithoutSystemFields<Doc<T>>): Promise<Id<T>> {
@@ -225,18 +223,20 @@ export abstract class HistoricalTable<T extends TableNames> {
     }
     let totalSize = 0;
     let buffersPacked = 0;
+    const buffers: Record<Id<T>, { doc: WithoutSystemFields<Doc<T>>; history?: ArrayBuffer }> = {};
+    for (const [id, doc] of this.data.entries()) {
+      const { _id, _creationTime, ...withoutSystemFields } = doc;
+      buffers[id] = { doc: withoutSystemFields as any };
+    }
     for (const id of this.modified) {
       const row = this.data.get(id);
       if (!row) {
         throw new Error(`Invalid modified id: ${id}`);
       }
-      if ('history' in row) {
-        throw new Error(`Cannot save row with 'history' field`);
-      }
       const sampleRecord = this.history.get(id);
       if (sampleRecord && Object.entries(sampleRecord).length > 0) {
         const packed = packSampleRecord(this.fieldConfig, sampleRecord);
-        (row as any).history = packed;
+        buffers[id].history = packed;
         totalSize += packed.byteLength;
         buffersPacked += 1;
       }
@@ -251,6 +251,7 @@ export abstract class HistoricalTable<T extends TableNames> {
         ).toFixed(2)}KiB`,
       );
     }
+    await this.saveHistory(buffers);
     this.modified.clear();
     this.deleted.clear();
   }
