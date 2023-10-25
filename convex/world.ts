@@ -184,21 +184,25 @@ export const previousConversation = query({
     playerId,
   },
   handler: async (ctx, args) => {
-    const member = await ctx.db
+    // Walk the player's history in descending order, looking for a nonempty
+    // conversation.
+    const members = ctx.db
       .query('participatedTogether')
       .withIndex('playerHistory', (q) => q.eq('worldId', args.worldId).eq('player1', args.playerId))
-      .order('desc')
-      .first();
-    if (!member) {
-      return null;
+      .order('desc');
+
+    for await (const member of members) {
+      const conversation = await ctx.db
+        .query('archivedConversations')
+        .withIndex('worldId', (q) => q.eq('worldId', args.worldId).eq('id', member.conversationId))
+        .unique();
+      if (!conversation) {
+        throw new Error(`Invalid conversation ID: ${member.conversationId}`);
+      }
+      if (conversation.numMessages > 0) {
+        return conversation;
+      }
     }
-    const conversation = await ctx.db
-      .query('archivedConversations')
-      .withIndex('worldId', (q) => q.eq('worldId', args.worldId).eq('id', member.conversationId))
-      .unique();
-    if (!conversation) {
-      throw new Error(`Invalid conversation ID: ${member.conversationId}`);
-    }
-    return conversation;
+    return null;
   },
 });

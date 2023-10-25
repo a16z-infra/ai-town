@@ -1,6 +1,3 @@
-import { WithoutSystemFields } from 'convex/server';
-import { Doc, Id, TableNames } from '../_generated/dataModel';
-import { DatabaseWriter } from '../_generated/server';
 import { xxHash32 } from '../util/xxhash';
 import { compressSigned, uncompressSigned } from '../util/FastIntegerCompression';
 import {
