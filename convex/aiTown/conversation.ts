@@ -41,7 +41,7 @@ export const conversationFields = {
   participants: v.record(playerId, conversationMembership),
 };
 export const conversation = v.object(conversationFields);
-type ConversationDoc = Infer<typeof conversation>;
+export type ConversationDoc = Infer<typeof conversation>;
 
 export type Conversation = {
   id: GameId<'conversations'>;
@@ -304,8 +304,8 @@ export const conversationInputs = {
   // so we don't have a separate "invite" input.
   startConversation: inputHandler({
     args: {
-      playerId: v.id('players'),
-      invitee: v.id('players'),
+      playerId,
+      invitee: playerId,
     },
     handler: (game: Game, now: number, args): GameId<'conversations'> => {
       const playerId = game.parseId('players', args.playerId);
@@ -330,8 +330,8 @@ export const conversationInputs = {
 
   startTyping: inputHandler({
     args: {
-      playerId: v.id('players'),
-      conversationId: v.id('conversations'),
+      playerId,
+      conversationId,
       messageUuid: v.string(),
     },
     handler: (game: Game, now: number, args): null => {
@@ -382,8 +382,8 @@ export const conversationInputs = {
   // enough to the other participant.
   acceptInvite: inputHandler({
     args: {
-      playerId: v.id('players'),
-      conversationId: v.id('conversations'),
+      playerId,
+      conversationId,
     },
     handler: (game: Game, now: number, args): null => {
       const playerId = game.parseId('players', args.playerId);
@@ -405,8 +405,8 @@ export const conversationInputs = {
   // that explains why!
   rejectInvite: inputHandler({
     args: {
-      playerId: v.id('players'),
-      conversationId: v.id('conversations'),
+      playerId,
+      conversationId,
     },
     handler: (game: Game, now: number, args): null => {
       const playerId = game.parseId('players', args.playerId);
@@ -426,8 +426,8 @@ export const conversationInputs = {
   // Leave a conversation.
   leaveConversation: inputHandler({
     args: {
-      playerId: v.id('players'),
-      conversationId: v.id('conversations'),
+      playerId,
+      conversationId,
     },
     handler: (game: Game, now: number, args): null => {
       const playerId = game.parseId('players', args.playerId);

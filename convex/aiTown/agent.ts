@@ -1,7 +1,7 @@
 import { Infer, v } from 'convex/values';
 import { GameId, parseGameId } from './ids';
 import { agentId, conversationId, playerId } from './ids';
-import { Player, activity, player } from './player';
+import { Player, activity, joinGame, player } from './player';
 import { Game } from './game';
 import {
   ACTION_TIMEOUT,
@@ -16,7 +16,7 @@ import {
   MIDPOINT_THRESHOLD,
   PLAYER_CONVERSATION_COOLDOWN,
 } from '../constants';
-import { FunctionArgs, getFunctionName } from 'convex/server';
+import { FunctionArgs } from 'convex/server';
 import { MutationCtx, internalMutation, internalQuery } from '../_generated/server';
 import { distance } from '../util/geometry';
 import { internal } from '../_generated/api';
@@ -32,6 +32,7 @@ import { movePlayer } from './movement';
 import { inputHandler } from './inputHandler';
 import { point } from '../util/types';
 import { insertInput } from './inputs';
+import { Descriptions } from '../../data/characters';
 
 export const agentFields = {
   id: agentId,
@@ -396,7 +397,7 @@ export const agentInputs = {
       invitee: v.optional(v.id('players')),
       activity: v.optional(activity),
     },
-    handler: async (game, now, args) => {
+    handler: (game, now, args) => {
       const agentId = game.parseId('agents', args.agentId);
       const agent = game.agents.get(agentId);
       if (!agent) {
@@ -437,7 +438,7 @@ export const agentInputs = {
       operationId: v.string(),
       leaveConversation: v.boolean(),
     },
-    handler: async (game: Game, now: number, args) => {
+    handler: (game: Game, now: number, args) => {
       const agentId = game.parseId('agents', args.agentId);
       const agent = game.agents.get(agentId);
       if (!agent) {
@@ -469,6 +470,32 @@ export const agentInputs = {
         leaveConversation(game, now, player, conversation);
       }
       return null;
+    },
+  }),
+  createAgent: inputHandler({
+    args: {
+      descriptionIndex: v.number(),
+    },
+    handler: (game, now, args) => {
+      const description = Descriptions[args.descriptionIndex];
+      const playerId = joinGame(
+        game,
+        now,
+        description.name,
+        description.character,
+        description.identity,
+      );
+      const agentId = game.allocId('agents');
+      game.agents.set(agentId, {
+        id: agentId,
+        playerId: playerId,
+      });
+      game.agentDescriptions.set(agentId, {
+        agentId: agentId,
+        identity: description.identity,
+        plan: description.plan,
+      });
+      return { agentId };
     },
   }),
 };

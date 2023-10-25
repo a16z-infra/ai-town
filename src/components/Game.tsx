@@ -10,16 +10,20 @@ import { api } from '../../convex/_generated/api';
 import { useWorldHeartbeat } from '../hooks/useWorldHeartbeat.ts';
 import { useHistoricalTime } from '../hooks/useHistoricalTime.ts';
 import { DebugTimeManager } from './DebugTimeManager.tsx';
+import { GameId } from '../../convex/aiTown/ids.ts';
 
 export const SHOW_DEBUG_UI = !!import.meta.env.VITE_SHOW_DEBUG_UI;
 
 export default function Game() {
   const convex = useConvex();
-  const [selectedElement, setSelectedElement] = useState<{ kind: 'player'; id: Id<'players'> }>();
+  const [selectedElement, setSelectedElement] = useState<{
+    kind: 'player';
+    id: GameId<'players'>;
+  }>();
   const [gameWrapperRef, { width, height }] = useElementSize();
 
-  const world = useQuery(api.world.defaultWorld);
-  const worldId = world?._id;
+  const worldStatus = useQuery(api.world.defaultWorldStatus);
+  const worldId = worldStatus?.worldId;
 
   // Send a periodic heartbeat to our world to keep it alive.
   useWorldHeartbeat(worldId);

@@ -3,6 +3,8 @@ import { Doc, Id } from '../../convex/_generated/dataModel';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { MessageInput } from './MessageInput';
+import { ConversationDoc } from '../../convex/aiTown/conversation';
+import { Player } from '../../convex/aiTown/player';
 
 export function Messages({
   worldId,
@@ -11,18 +13,29 @@ export function Messages({
   humanPlayer,
 }: {
   worldId: Id<'worlds'>;
-  conversation: Doc<'conversations'>;
+  conversation:
+    | { kind: 'active'; doc: ConversationDoc }
+    | { kind: 'archived'; doc: Doc<'archivedConversations'> };
   inConversationWithMe: boolean;
-  humanPlayer?: Doc<'players'>;
+  humanPlayer?: Player;
 }) {
-  const humanPlayerId = humanPlayer?._id;
-  const messages = useQuery(api.messages.listMessages, { conversationId: conversation._id });
-  const currentlyTyping = useQuery(api.messages.currentlyTyping, {
-    conversationId: conversation._id,
+  const humanPlayerId = humanPlayer?.id;
+  const descriptions = useQuery(api.world.gameDescriptions, { worldId });
+  const messages = useQuery(api.messages.listMessages, {
+    worldId,
+    conversationId: conversation.doc.id,
   });
-  const members = useQuery(api.world.conversationMembers, { conversationId: conversation._id });
+  let currentlyTyping = conversation.kind === 'active' ? conversation.doc.isTyping : undefined;
+  if (messages !== undefined && conversation.kind === 'active' && conversation.doc.isTyping) {
+    if (messages.find((m) => m.messageUuid === conversation.doc.isTyping?.messageUuid)) {
+      currentlyTyping = undefined;
+    }
+  }
+  const currentlyTypingName =
+    currentlyTyping &&
+    descriptions?.playerDescriptions.find((p) => p.playerId === currentlyTyping?.playerId)?.name;
 
-  if (messages === undefined || currentlyTyping === undefined || members === undefined) {
+  if (messages === undefined) {
     return null;
   }
   if (messages.length === 0 && !inConversationWithMe) {
@@ -46,28 +59,44 @@ export function Messages({
   });
   const lastMessageTs = messages.map((m) => m._creationTime).reduce((a, b) => Math.max(a, b), 0);
 
-  const membershipNodes: typeof messageNodes = members.flatMap((m) => {
-    let started;
-    if (m.status.kind === 'participating' || m.status.kind === 'left') {
-      started = m.status.started;
+  const membershipNodes: typeof messageNodes = [];
+  if (conversation.kind === 'active') {
+    for (const [playerId, m] of Object.entries(conversation.doc.participants)) {
+      const playerName = descriptions?.playerDescriptions.find((p) => p.playerId === playerId)
+        ?.name;
+      let started;
+      if (m.status.kind === 'participating') {
+        started = m.status.started;
+      }
+      if (started) {
+        membershipNodes.push({
+          node: (
+            <div key={`joined-${playerId}`} className="leading-tight mb-6">
+              <p className="text-brown-700 text-center">{playerName} joined the conversation.</p>
+            </div>
+          ),
+          time: started,
+        });
+      }
     }
-    const ended = m.status.kind === 'left' ? m.status.ended : undefined;
-    const out = [];
-    if (started) {
-      out.push({
+  } else {
+    for (const playerId of conversation.doc.participants) {
+      const playerName = descriptions?.playerDescriptions.find((p) => p.playerId === playerId)
+        ?.name;
+      const started = conversation.doc.created;
+      membershipNodes.push({
         node: (
-          <div key={`joined-${m._id}`} className="leading-tight mb-6">
-            <p className="text-brown-700 text-center">{m.playerName} joined the conversation.</p>
+          <div key={`joined-${playerId}`} className="leading-tight mb-6">
+            <p className="text-brown-700 text-center">{playerName} joined the conversation.</p>
           </div>
         ),
         time: started,
       });
-    }
-    if (ended) {
-      out.push({
+      const ended = conversation.doc.ended;
+      membershipNodes.push({
         node: (
-          <div key={`left-${m._id}`} className="leading-tight mb-6">
-            <p className="text-brown-700 text-center">{m.playerName} left the conversation.</p>
+          <div key={`left-${playerId}`} className="leading-tight mb-6">
+            <p className="text-brown-700 text-center">{playerName} left the conversation.</p>
           </div>
         ),
         // Always sort all "left" messages after the last message.
@@ -75,8 +104,7 @@ export function Messages({
         time: Math.max(lastMessageTs + 1, ended),
       });
     }
-    return out;
-  });
+  }
   const nodes = [...messageNodes, ...membershipNodes];
   nodes.sort((a, b) => a.time - b.time);
   return (
@@ -86,7 +114,7 @@ export function Messages({
         {currentlyTyping && currentlyTyping.playerId !== humanPlayerId && (
           <div key="typing" className="leading-tight mb-6">
             <div className="flex gap-4">
-              <span className="uppercase flex-grow">{currentlyTyping.playerName}</span>
+              <span className="uppercase flex-grow">{currentlyTypingName}</span>
               <time dateTime={currentlyTyping.since.toString()}>
                 {new Date(currentlyTyping.since).toLocaleString()}
               </time>
@@ -98,8 +126,12 @@ export function Messages({
             </div>
           </div>
         )}
-        {humanPlayer && inConversationWithMe && !conversation.finished && (
-          <MessageInput worldId={worldId} conversation={conversation} humanPlayer={humanPlayer} />
+        {humanPlayer && inConversationWithMe && conversation.kind === 'active' && (
+          <MessageInput
+            worldId={worldId}
+            conversation={conversation.doc}
+            humanPlayer={humanPlayer}
+          />
         )}
       </div>
     </div>

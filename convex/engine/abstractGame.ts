@@ -1,4 +1,4 @@
-import { ConvexError, Infer, v } from 'convex/values';
+import { ConvexError, Infer, Value, v } from 'convex/values';
 import { Doc, Id } from '../_generated/dataModel';
 import { ActionCtx, DatabaseReader, MutationCtx, internalQuery } from '../_generated/server';
 import { engine } from '../engine/schema';
@@ -12,7 +12,7 @@ export abstract class AbstractGame {
 
   constructor(public engine: Doc<'engines'>) {}
 
-  abstract handleInput(now: number, name: string, args: object): any;
+  abstract handleInput(now: number, name: string, args: object): Value;
   abstract tick(now: number): void;
   abstract save(ctx: ActionCtx, engineUpdate: EngineUpdate): Promise<void>;
 
@@ -31,7 +31,7 @@ export abstract class AbstractGame {
     let processedInputNumber = this.engine.processedInputNumber;
     const completedInputs = [];
 
-    while (numTicks < this.maxInputsPerStep) {
+    while (numTicks < this.maxTicksPerStep) {
       numTicks += 1;
 
       // Collect all of the inputs for this tick.
@@ -69,21 +69,17 @@ export abstract class AbstractGame {
       currentTs = candidateTs;
     }
 
+    // Commit the step by moving time forward, consuming our inputs, and saving the game's state.
+    const expectedGenerationNumber = this.engine.generationNumber;
     this.engine.currentTime = currentTs;
     this.engine.lastStepTs = lastStepTs;
     this.engine.generationNumber += 1;
-
-    // Commit the step by moving time forward, consuming our inputs, and saving the game's state.
-    await this.applyUpdate(ctx, completedInputs);
+    this.engine.processedInputNumber = processedInputNumber;
+    const { _id, _creationTime, ...engine } = this.engine;
+    const engineUpdate = { engine, completedInputs, expectedGenerationNumber };
+    await this.save(ctx, engineUpdate);
 
     console.debug(`Simulated from ${startTs} to ${currentTs} (${currentTs - startTs}ms)`);
-  }
-
-  async applyUpdate(ctx: ActionCtx, completedInputs: Infer<typeof completedInput>[]) {
-    const { _id, _creationTime, ...engine } = this.engine;
-    const engineUpdate = { engine, completedInputs };
-
-    await this.save(ctx, engineUpdate);
   }
 }
 
@@ -103,11 +99,16 @@ const completedInput = v.object({
 
 export const engineUpdate = v.object({
   engine,
+  expectedGenerationNumber: v.number(),
   completedInputs: v.array(completedInput),
 });
 export type EngineUpdate = Infer<typeof engineUpdate>;
 
-export async function loadEngine(db: DatabaseReader, engineId: Id<'engines'>) {
+export async function loadEngine(
+  db: DatabaseReader,
+  engineId: Id<'engines'>,
+  generationNumber: number,
+) {
   const engine = await db.get(engineId);
   if (!engine) {
     throw new Error(`No engine found with id ${engineId}`);
@@ -117,6 +118,9 @@ export async function loadEngine(db: DatabaseReader, engineId: Id<'engines'>) {
       kind: 'engineNotRunning',
       message: `Engine ${engineId} is not running`,
     });
+  }
+  if (engine.generationNumber !== generationNumber) {
+    throw new ConvexError({ kind: 'generationNumber', message: 'Generation number mismatch' });
   }
   return engine;
 }
@@ -166,10 +170,7 @@ export async function applyEngineUpdate(
   engineId: Id<'engines'>,
   update: EngineUpdate,
 ) {
-  const engine = await loadEngine(ctx.db, engineId);
-  if (engine.generationNumber !== update.engine.generationNumber) {
-    throw new ConvexError({ kind: 'generationNumber', message: 'Generation number mismatch' });
-  }
+  const engine = await loadEngine(ctx.db, engineId, update.expectedGenerationNumber);
   if (
     engine.currentTime &&
     update.engine.currentTime &&

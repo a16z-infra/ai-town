@@ -4,6 +4,8 @@ import { KeyboardEvent, useRef, useState } from 'react';
 import { api } from '../../convex/_generated/api';
 import { Doc, Id } from '../../convex/_generated/dataModel';
 import { useSendInput } from '../hooks/sendInput';
+import { ConversationDoc } from '../../convex/aiTown/conversation';
+import { PlayerDoc } from '../../convex/aiTown/player';
 
 export function MessageInput({
   worldId,
@@ -11,16 +13,17 @@ export function MessageInput({
   conversation,
 }: {
   worldId: Id<'worlds'>;
-  humanPlayer: Doc<'players'>;
-  conversation: Doc<'conversations'>;
+  humanPlayer: PlayerDoc;
+  conversation: ConversationDoc;
 }) {
+  const descriptions = useQuery(api.world.gameDescriptions, { worldId });
+  const humanName = descriptions?.playerDescriptions.find((p) => p.playerId === humanPlayer.id)
+    ?.name;
   const inputRef = useRef<HTMLParagraphElement>(null);
   const inflightUuid = useRef<string | undefined>();
   const writeMessage = useMutation(api.messages.writeMessage);
   const startTyping = useSendInput(worldId, 'startTyping');
-  const currentlyTyping = useQuery(api.messages.currentlyTyping, {
-    conversationId: conversation._id,
-  });
+  const currentlyTyping = conversation.isTyping;
 
   const onKeyDown = async (e: KeyboardEvent) => {
     e.stopPropagation();
@@ -35,8 +38,8 @@ export function MessageInput({
       try {
         // Don't show a toast on error.
         await startTyping({
-          playerId: humanPlayer._id,
-          conversationId: conversation._id,
+          playerId: humanPlayer.id,
+          conversationId: conversation.id,
           messageUuid: inflightUuid.current,
         });
       } finally {
@@ -56,14 +59,14 @@ export function MessageInput({
       return;
     }
     let messageUuid = inflightUuid.current;
-    if (currentlyTyping && currentlyTyping.playerId === humanPlayer._id) {
+    if (currentlyTyping && currentlyTyping.playerId === humanPlayer.id) {
       messageUuid = currentlyTyping.messageUuid;
     }
     messageUuid = messageUuid || crypto.randomUUID();
     await writeMessage({
       worldId,
-      playerId: humanPlayer._id,
-      conversationId: conversation._id,
+      playerId: humanPlayer.id,
+      conversationId: conversation.id,
       text,
       messageUuid,
     });
@@ -71,7 +74,7 @@ export function MessageInput({
   return (
     <div className="leading-tight mb-6">
       <div className="flex gap-4">
-        <span className="uppercase flex-grow">{humanPlayer.name}</span>
+        <span className="uppercase flex-grow">{humanName}</span>
       </div>
       <div className={clsx('bubble', 'bubble-mine')}>
         <p

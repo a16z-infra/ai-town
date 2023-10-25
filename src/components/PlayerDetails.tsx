@@ -6,6 +6,8 @@ import { SelectElement } from './Player';
 import { Messages } from './Messages';
 import { toastOnError } from '../toasts';
 import { useSendInput } from '../hooks/sendInput';
+import { Player } from '../../convex/aiTown/player';
+import { GameId } from '../../convex/aiTown/ids';
 
 export default function PlayerDetails({
   worldId,
@@ -13,33 +15,39 @@ export default function PlayerDetails({
   setSelectedElement,
 }: {
   worldId: Id<'worlds'>;
-  playerId?: Id<'players'>;
+  playerId?: GameId<'players'>;
   setSelectedElement: SelectElement;
 }) {
-  const humanPlayerId = useQuery(api.world.userStatus, { worldId });
+  const humanTokenIdentifier = useQuery(api.world.userStatus, { worldId });
   const gameState = useQuery(api.world.gameState, { worldId });
-  const players = gameState?.players ?? [];
+  const descriptions = useQuery(api.world.gameDescriptions, { worldId });
+  const humanPlayerId = gameState?.world.players.find((p) => p.human === humanTokenIdentifier)?.id;
 
-  const humanConversation = useQuery(
-    api.world.loadConversationState,
-    humanPlayerId ? { playerId: humanPlayerId } : 'skip',
-  );
+  const players = (gameState?.world.players ?? []) as Player[];
+
+  const humanConversation = humanPlayerId
+    ? gameState.world.conversations.find((c) => humanPlayerId in c.participants)
+    : undefined;
   // Always select the other player if we're in a conversation with them.
   if (humanConversation) {
-    playerId = humanConversation.otherPlayerId;
+    const otherPlayerIds = Object.keys(humanConversation.participants).filter(
+      (p) => p !== humanPlayerId,
+    );
+    playerId = otherPlayerIds[0] as GameId<'players'>;
   }
 
-  const playerConversation = useQuery(
-    api.world.loadConversationState,
-    playerId ? { playerId } : 'skip',
-  );
+  const playerConversation = playerId
+    ? gameState?.world.conversations.find((c) => playerId! in c.participants)
+    : undefined;
+
   const previousConversation = useQuery(
     api.world.previousConversation,
-    playerId ? { playerId } : 'skip',
+    playerId ? { worldId, playerId } : 'skip',
   );
 
-  const player = players.find((p) => p._id === playerId);
-  const humanPlayer = players.find((p) => p._id === humanPlayerId);
+  const player = players.find((p) => p.id === playerId);
+  const playerDescription = descriptions?.playerDescriptions.find((p) => p.playerId === playerId);
+  const humanPlayer = players.find((p) => p.id === humanPlayerId);
 
   const startConversation = useSendInput(worldId, 'startConversation');
   const acceptInvite = useSendInput(worldId, 'acceptInvite');
@@ -53,7 +61,7 @@ export default function PlayerDetails({
       </div>
     );
   }
-  if (humanPlayerId === undefined || !player) {
+  if (gameState === undefined || !player) {
     return null;
   }
   const isMe = humanPlayerId && playerId === humanPlayerId;
@@ -64,18 +72,21 @@ export default function PlayerDetails({
     humanPlayer &&
     humanConversation &&
     playerConversation &&
-    humanConversation._id === playerConversation._id;
-  const haveInvite = sameConversation && humanConversation.member.status.kind === 'invited';
-  const waitingForAccept = sameConversation && playerConversation.member.status.kind === 'invited';
+    humanConversation.id === playerConversation.id;
+
+  const humanStatus = humanConversation && humanConversation.participants[humanPlayerId!].status;
+  const playerStatus = playerConversation && playerConversation.participants[playerId].status;
+
+  const haveInvite = sameConversation && humanStatus?.kind === 'invited';
+  const waitingForAccept =
+    sameConversation && playerConversation.participants[playerId].status.kind === 'invited';
   const waitingForNearby =
-    sameConversation &&
-    playerConversation.member.status.kind === 'walkingOver' &&
-    humanConversation.member.status.kind === 'walkingOver';
+    sameConversation && playerStatus?.kind === 'walkingOver' && humanStatus?.kind === 'walkingOver';
 
   const inConversationWithMe =
     sameConversation &&
-    playerConversation.member.status.kind === 'participating' &&
-    humanConversation.member.status.kind === 'participating';
+    playerStatus?.kind === 'participating' &&
+    humanStatus?.kind === 'participating';
 
   const onStartConversation = async () => {
     if (!humanPlayerId || !playerId) {
@@ -94,7 +105,7 @@ export default function PlayerDetails({
     await toastOnError(
       acceptInvite({
         playerId: humanPlayerId,
-        conversationId: humanConversation._id,
+        conversationId: humanConversation.id,
       }),
     );
   };
@@ -105,7 +116,7 @@ export default function PlayerDetails({
     await toastOnError(
       rejectInvite({
         playerId: humanPlayerId,
-        conversationId: humanConversation._id,
+        conversationId: humanConversation.id,
       }),
     );
   };
@@ -116,7 +127,7 @@ export default function PlayerDetails({
     await toastOnError(
       leaveConversation({
         playerId: humanPlayerId,
-        conversationId: humanConversation._id,
+        conversationId: humanConversation.id,
       }),
     );
   };
@@ -129,7 +140,7 @@ export default function PlayerDetails({
       <div className="flex gap-4">
         <div className="box flex-grow">
           <h2 className="bg-brown-700 p-2 font-display text-4xl tracking-wider shadow-solid text-center">
-            {player.name}
+            {playerDescription?.name}
           </h2>
         </div>
         <a
@@ -207,16 +218,14 @@ export default function PlayerDetails({
           </a>
         </>
       )}
-      {(!playerConversation || playerConversation.member.status.kind === 'left') &&
-        player.activity &&
-        player.activity.until > Date.now() && (
-          <div className="box flex-grow mt-6">
-            <h2 className="bg-brown-700 text-lg text-center">{player.activity.description}</h2>
-          </div>
-        )}
+      {!playerConversation && player.activity && player.activity.until > Date.now() && (
+        <div className="box flex-grow mt-6">
+          <h2 className="bg-brown-700 text-lg text-center">{player.activity.description}</h2>
+        </div>
+      )}
       <div className="desc my-6">
         <p className="leading-tight -m-4 bg-brown-700 text-lg">
-          {!isMe && player.description}
+          {!isMe && playerDescription?.description}
           {isMe && <i>This is you!</i>}
           {!isMe && inConversationWithMe && (
             <>
@@ -226,28 +235,27 @@ export default function PlayerDetails({
           )}
         </p>
       </div>
-      {!isMe && playerConversation && playerConversation.member.status.kind === 'participating' && (
+      {!isMe && playerConversation && playerStatus?.kind === 'participating' && (
         <Messages
           worldId={worldId}
           inConversationWithMe={inConversationWithMe ?? false}
-          conversation={playerConversation}
+          conversation={{ kind: 'active', doc: playerConversation }}
           humanPlayer={humanPlayer}
         />
       )}
-      {(!playerConversation || playerConversation.member.status.kind !== 'participating') &&
-        previousConversation && (
-          <>
-            <div className="box flex-grow">
-              <h2 className="bg-brown-700 text-lg text-center">Previous conversation</h2>
-            </div>
-            <Messages
-              worldId={worldId}
-              inConversationWithMe={false}
-              conversation={previousConversation}
-              humanPlayer={humanPlayer}
-            />
-          </>
-        )}
+      {!playerConversation && previousConversation && (
+        <>
+          <div className="box flex-grow">
+            <h2 className="bg-brown-700 text-lg text-center">Previous conversation</h2>
+          </div>
+          <Messages
+            worldId={worldId}
+            inConversationWithMe={false}
+            conversation={{ kind: 'archived', doc: previousConversation }}
+            humanPlayer={humanPlayer}
+          />
+        </>
+      )}
     </>
   );
 }

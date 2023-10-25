@@ -47,7 +47,7 @@ export const playerFields = {
   speed: v.number(),
 };
 export const player = v.object(playerFields);
-type PlayerDoc = Infer<typeof player>;
+export type PlayerDoc = Infer<typeof player>;
 export type Player = {
   id: GameId<'players'>;
   human?: string;
@@ -198,7 +198,7 @@ export function tickPosition(game: Game, now: number, player: Player) {
   player.speed = velocity;
 }
 
-function joinGame(
+export function joinGame(
   game: Game,
   now: number,
   name: string,
@@ -246,6 +246,7 @@ function joinGame(
     name,
   });
   game.descriptionsModified = true;
+  return playerId;
 }
 
 function leaveGame(game: Game, now: number, player: Player) {
@@ -298,6 +299,7 @@ export const playerInputs = {
       } else {
         stopPlayer(player);
       }
+      return null;
     },
   }),
 };

@@ -1,6 +1,12 @@
-import { Infer, v } from 'convex/values';
+import { Infer, Value, v } from 'convex/values';
 import { Doc, Id } from '../_generated/dataModel';
-import { ActionCtx, DatabaseReader, MutationCtx, internalMutation } from '../_generated/server';
+import {
+  ActionCtx,
+  DatabaseReader,
+  MutationCtx,
+  internalMutation,
+  internalQuery,
+} from '../_generated/server';
 import { WorldMap, worldMap, world } from './world';
 import {
   AgentDescription,
@@ -96,6 +102,7 @@ export class Game extends AbstractGame {
   static async load(
     db: DatabaseReader,
     worldId: Id<'worlds'>,
+    generationNumber: number,
   ): Promise<{ engine: Doc<'engines'>; gameState: GameState }> {
     const worldDoc = await db.get(worldId);
     if (!worldDoc) {
@@ -108,7 +115,7 @@ export class Game extends AbstractGame {
     if (!worldStatus) {
       throw new Error(`No engine found for world ${worldId}`);
     }
-    const engine = await loadEngine(db, worldStatus.engineId);
+    const engine = await loadEngine(db, worldStatus.engineId, generationNumber);
     const playerDescriptionsDocs = await db
       .query('playerDescriptions')
       .withIndex('worldId', (q) => q.eq('worldId', worldId))
@@ -162,8 +169,7 @@ export class Game extends AbstractGame {
     this.pendingOperations.push({ name, args });
   }
 
-  async handleInput<Name extends InputNames>(now: number, name: Name, args: InputArgs<Name>) {
-    // TODO: figure out how to type this properly.
+  handleInput<Name extends InputNames>(now: number, name: Name, args: InputArgs<Name>) {
     const handler = inputs[name]?.handler;
     if (!handler) {
       throw new Error(`Invalid input: ${name}`);
@@ -239,10 +245,11 @@ export class Game extends AbstractGame {
           worldId,
           id: conversation.id,
           created: conversation.created,
+          creator: conversation.creator,
+          ended: Date.now(),
           lastMessage: conversation.lastMessage,
           numMessages: conversation.numMessages,
           participants,
-          ended: Date.now(),
         };
         await ctx.db.insert('archivedConversations', archivedConversation);
         for (let i = 0; i < participants.length; i++) {
@@ -270,7 +277,7 @@ export class Game extends AbstractGame {
     }
 
     // Update the world state.
-    await ctx.db.replace(worldId, { isDefault: existingWorld.isDefault, ...newWorld });
+    await ctx.db.replace(worldId, newWorld);
 
     // Update the larger description tables if they changed.
     const { playerDescriptions, agentDescriptions, worldMap } = diff;
@@ -320,6 +327,16 @@ export class Game extends AbstractGame {
     }
   }
 }
+
+export const loadWorld = internalQuery({
+  args: {
+    worldId: v.id('worlds'),
+    generationNumber: v.number(),
+  },
+  handler: async (ctx, args) => {
+    return await Game.load(ctx.db, args.worldId, args.generationNumber);
+  },
+});
 
 export const saveWorld = internalMutation({
   args: {

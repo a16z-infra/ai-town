@@ -8,22 +8,25 @@ import { ConvexError } from 'convex/values';
 
 export default function InteractButton() {
   const { isAuthenticated } = useConvexAuth();
-  const world = useQuery(api.world.defaultWorld);
-  const userPlayerId = useQuery(api.world.userStatus, world ? { worldId: world._id } : 'skip');
+  const worldStatus = useQuery(api.world.defaultWorldStatus);
+  const worldId = worldStatus?.worldId;
+  const humanTokenIdentifier = useQuery(api.world.userStatus, worldId ? { worldId } : 'skip');
+  const gameState = useQuery(api.world.gameState, worldId ? { worldId } : 'skip');
+  const userPlayerId = gameState?.world.players.find((p) => p.human === humanTokenIdentifier)?.id;
   const join = useMutation(api.world.joinWorld);
   const leave = useMutation(api.world.leaveWorld);
   const isPlaying = !!userPlayerId;
 
   const joinOrLeaveGame = () => {
-    if (!world || !isAuthenticated || userPlayerId === undefined) {
+    if (!worldId || !isAuthenticated || userPlayerId === undefined) {
       return;
     }
     if (isPlaying) {
       console.log(`Leaving game for player ${userPlayerId}`);
-      void leave({ worldId: world._id });
+      void leave({ worldId });
     } else {
       console.log(`Joining game`);
-      join({ worldId: world._id }).catch((error) => {
+      join({ worldId }).catch((error) => {
         if (error instanceof ConvexError) {
           toast.error(error.data);
         }

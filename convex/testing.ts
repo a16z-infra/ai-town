@@ -4,8 +4,8 @@ import { DatabaseReader, internalMutation, mutation, query } from './_generated/
 import { v } from 'convex/values';
 import schema from './schema';
 import { DELETE_BATCH_SIZE } from './constants';
-// import { kickEngine, startEngine, stopEngine } from './engine/game';
-// import { insertInput } from './game/main';
+import { kickEngine, startEngine, stopEngine } from './aiTown/main';
+import { insertInput } from './aiTown/inputs';
 
 // Clear all of the tables except for the embeddings cache.
 const excludedTables: Array<TableNames> = ['embeddingsCache'];
@@ -42,125 +42,118 @@ export const deletePage = internalMutation({
   },
 });
 
-// export const kick = internalMutation({
-//   handler: async (ctx) => {
-//     const { world, engine } = await getDefaultWorld(ctx.db);
-//     await kickEngine(ctx, internal.game.main.runStep, engine._id);
-//   },
-// });
+export const kick = internalMutation({
+  handler: async (ctx) => {
+    const { worldStatus } = await getDefaultWorld(ctx.db);
+    await kickEngine(ctx, worldStatus.worldId);
+  },
+});
 
-// export const stopAllowed = query({
-//   handler: async () => {
-//     return !process.env.STOP_NOT_ALLOWED;
-//   },
-// });
+export const stopAllowed = query({
+  handler: async () => {
+    return !process.env.STOP_NOT_ALLOWED;
+  },
+});
 
-// export const stop = mutation({
-//   handler: async (ctx) => {
-//     if (process.env.STOP_NOT_ALLOWED) throw new Error('Stop not allowed');
-//     const { world, engine } = await getDefaultWorld(ctx.db);
-//     if (world.status === 'inactive' || world.status === 'stoppedByDeveloper') {
-//       if (engine.running) {
-//         throw new Error(`Engine ${engine._id} isn't stopped?`);
-//       }
-//       console.debug(`World ${world._id} is already inactive`);
-//       return;
-//     }
-//     console.log(`Stopping engine ${engine._id}...`);
-//     await ctx.db.patch(world._id, { status: 'stoppedByDeveloper' });
-//     await stopEngine(ctx, engine._id);
-//   },
-// });
+export const stop = mutation({
+  handler: async (ctx) => {
+    if (process.env.STOP_NOT_ALLOWED) throw new Error('Stop not allowed');
+    const { worldStatus, engine } = await getDefaultWorld(ctx.db);
+    if (worldStatus.status === 'inactive' || worldStatus.status === 'stoppedByDeveloper') {
+      if (engine.running) {
+        throw new Error(`Engine ${engine._id} isn't stopped?`);
+      }
+      console.debug(`World ${worldStatus.worldId} is already inactive`);
+      return;
+    }
+    console.log(`Stopping engine ${engine._id}...`);
+    await ctx.db.patch(worldStatus._id, { status: 'stoppedByDeveloper' });
+    await stopEngine(ctx, worldStatus.worldId);
+  },
+});
 
-// export const resume = mutation({
-//   handler: async (ctx) => {
-//     const { world, engine } = await getDefaultWorld(ctx.db);
-//     if (world.status === 'running') {
-//       if (!engine.running) {
-//         throw new Error(`Engine ${engine._id} isn't running?`);
-//       }
-//       console.debug(`World ${world._id} is already running`);
-//       return;
-//     }
-//     console.log(`Resuming engine ${engine._id} for world ${world._id} (state: ${world.status})...`);
-//     await ctx.db.patch(world._id, { status: 'running' });
-//     await startEngine(ctx, internal.game.main.runStep, engine._id);
-//   },
-// });
+export const resume = mutation({
+  handler: async (ctx) => {
+    const { worldStatus, engine } = await getDefaultWorld(ctx.db);
+    if (worldStatus.status === 'running') {
+      if (!engine.running) {
+        throw new Error(`Engine ${engine._id} isn't running?`);
+      }
+      console.debug(`World ${worldStatus.worldId} is already running`);
+      return;
+    }
+    console.log(
+      `Resuming engine ${engine._id} for world ${worldStatus.worldId} (state: ${worldStatus.status})...`,
+    );
+    await ctx.db.patch(worldStatus._id, { status: 'running' });
+    await startEngine(ctx, worldStatus.worldId);
+  },
+});
 
-// export const archive = internalMutation({
-//   handler: async (ctx) => {
-//     const { world, engine } = await getDefaultWorld(ctx.db);
-//     if (engine.running) {
-//       throw new Error(`Engine ${engine._id} is still running!`);
-//     }
-//     console.log(`Archiving world ${world._id}...`);
-//     await ctx.db.patch(world._id, { isDefault: false });
-//   },
-// });
+export const archive = internalMutation({
+  handler: async (ctx) => {
+    const { worldStatus, engine } = await getDefaultWorld(ctx.db);
+    if (engine.running) {
+      throw new Error(`Engine ${engine._id} is still running!`);
+    }
+    console.log(`Archiving world ${worldStatus.worldId}...`);
+    await ctx.db.patch(worldStatus._id, { isDefault: false });
+  },
+});
 
-// async function getDefaultWorld(db: DatabaseReader) {
-//   const world = await db
-//     .query('worlds')
-//     .filter((q) => q.eq(q.field('isDefault'), true))
-//     .first();
-//   if (!world) {
-//     throw new Error('No default world found');
-//   }
-//   const engine = await db.get(world.engineId);
-//   if (!engine) {
-//     throw new Error(`Engine ${world.engineId} not found`);
-//   }
-//   return { world, engine };
-// }
+async function getDefaultWorld(db: DatabaseReader) {
+  const worldStatus = await db
+    .query('worldStatus')
+    .filter((q) => q.eq(q.field('isDefault'), true))
+    .first();
+  if (!worldStatus) {
+    throw new Error('No default world found');
+  }
+  const engine = await db.get(worldStatus.engineId);
+  if (!engine) {
+    throw new Error(`Engine ${worldStatus.engineId} not found`);
+  }
+  return { worldStatus, engine };
+}
 
-// export const debugCreatePlayers = internalMutation({
-//   args: {
-//     numPlayers: v.number(),
-//   },
-//   handler: async (ctx, args) => {
-//     const world = await ctx.db
-//       .query('worlds')
-//       .filter((q) => q.eq(q.field('isDefault'), true))
-//       .first();
-//     if (!world) {
-//       throw new Error('No default world');
-//     }
-//     for (let i = 0; i < args.numPlayers; i++) {
-//       const inputId = await insertInput(ctx, world._id, 'join', {
-//         name: `Robot${i}`,
-//         description: `This player is a robot.`,
-//         character: `f${1 + (i % 8)}`,
-//       });
-//     }
-//   },
-// });
+export const debugCreatePlayers = internalMutation({
+  args: {
+    numPlayers: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { worldStatus } = await getDefaultWorld(ctx.db);
+    for (let i = 0; i < args.numPlayers; i++) {
+      const inputId = await insertInput(ctx, worldStatus.worldId, 'join', {
+        name: `Robot${i}`,
+        description: `This player is a robot.`,
+        character: `f${1 + (i % 8)}`,
+      });
+    }
+  },
+});
 
-// export const randomPositions = internalMutation({
-//   handler: async (ctx) => {
-//     const world = await ctx.db
-//       .query('worlds')
-//       .filter((q) => q.eq(q.field('isDefault'), true))
-//       .first();
-//     if (!world) {
-//       throw new Error('No default world');
-//     }
-//     const map = await ctx.db.get(world.mapId);
-//     if (!map) {
-//       throw new Error(`Invalid map ID: ${world.mapId}`);
-//     }
-//     const players = await ctx.db
-//       .query('players')
-//       .withIndex('active', (q) => q.eq('worldId', world._id).eq('active', true))
-//       .collect();
-//     for (const player of players) {
-//       await insertInput(ctx, world._id, 'moveTo', {
-//         playerId: player._id,
-//         destination: {
-//           x: 1 + Math.floor(Math.random() * (map.width - 2)),
-//           y: 1 + Math.floor(Math.random() * (map.height - 2)),
-//         },
-//       });
-//     }
-//   },
-// });
+export const randomPositions = internalMutation({
+  handler: async (ctx) => {
+    const { worldStatus } = await getDefaultWorld(ctx.db);
+    const map = await ctx.db
+      .query('maps')
+      .withIndex('worldId', (q) => q.eq('worldId', worldStatus.worldId))
+      .unique();
+    if (!map) {
+      throw new Error(`No map for world ${worldStatus.worldId}`);
+    }
+    const world = await ctx.db.get(worldStatus.worldId);
+    if (!world) {
+      throw new Error(`No world for world ${worldStatus.worldId}`);
+    }
+    for (const player of world.players) {
+      await insertInput(ctx, world._id, 'moveTo', {
+        playerId: player.id,
+        destination: {
+          x: 1 + Math.floor(Math.random() * (map.width - 2)),
+          y: 1 + Math.floor(Math.random() * (map.height - 2)),
+        },
+      });
+    }
+  },
+});

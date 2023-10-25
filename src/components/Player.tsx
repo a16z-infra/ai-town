@@ -1,63 +1,73 @@
-import { Doc, Id } from '../../convex/_generated/dataModel';
 import { Character } from './Character.tsx';
 import { orientationDegrees } from '../../convex/util/geometry.ts';
 import { characters } from '../../data/characters.ts';
 import { toast } from 'react-toastify';
-import { useHistoricalValue } from '../hooks/useHistoricalValue.ts';
+import { Player as PlayerType } from '../../convex/aiTown/player.ts';
+import { GameId } from '../../convex/aiTown/ids.ts';
+import { World, WorldMap } from '../../convex/aiTown/world.ts';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { PlayerMetadata } from '../../convex/world.ts';
-import { locationFields, Location } from '../../convex/game/locations.ts';
-import { Infer } from 'convex/values';
+import { Id } from '../../convex/_generated/dataModel';
 
-export type SelectElement = (element?: { kind: 'player'; id: Id<'players'> }) => void;
+export type SelectElement = (element?: { kind: 'player'; id: GameId<'players'> }) => void;
 
 const logged = new Set<string>();
 
 export const Player = ({
+  worldId,
   isViewer,
   player,
-  location,
   onClick,
   historicalTime,
 }: {
+  worldId: Id<'worlds'>;
   isViewer: boolean;
-  player: PlayerMetadata;
-  location: { doc: Location; history?: ArrayBuffer } | null;
+  player: PlayerType;
   onClick: SelectElement;
   historicalTime?: number;
 }) => {
-  const world = useQuery(api.world.defaultWorld);
-  const character = characters.find((c) => c.name === player.character);
-  const historicalLocation = useHistoricalValue<'locations'>(
-    locationFields,
-    historicalTime,
-    location?.doc,
-    location?.history,
-  );
+  const gameState = useQuery(api.world.gameState, { worldId });
+  const descriptions = useQuery(api.world.gameDescriptions, { worldId });
+
+  if (!gameState || !descriptions) {
+    return null;
+  }
+  const { world } = gameState;
+
+  const { playerDescriptions, map } = descriptions;
+  const playerCharacter = playerDescriptions.find((p) => p.playerId === player.id)?.character!;
+  const character = characters.find((c) => c.name === playerCharacter);
+  // const historicalLocation = useHistoricalValue<'locations'>(
+  //   locationFields,
+  //   historicalTime,
+  //   location?.doc,
+  //   location?.history,
+  // );
   if (!character) {
-    if (!logged.has(player.character)) {
-      logged.add(player.character);
-      toast.error(`Unknown character ${player.character}`);
+    if (!logged.has(playerCharacter)) {
+      logged.add(playerCharacter);
+      toast.error(`Unknown character ${playerCharacter}`);
     }
     return null;
   }
-  if (!world) {
-    return null;
-  }
-  if (!historicalLocation) {
-    return null;
-  }
-  const tileDim = world.map.tileDim;
+
+  // if (!historicalLocation) {
+  //   return null;
+  // }
+
+  const isSpeaking = !!world.conversations.find((c) => c.isTyping?.playerId === player.id);
+  const isThinking =
+    !isSpeaking && !!world.agents.find((a) => a.playerId === player.id && !!a.inProgressOperation);
+  const tileDim = map.tileDim;
   return (
     <>
       <Character
-        x={historicalLocation.x * tileDim + tileDim / 2}
-        y={historicalLocation.y * tileDim + tileDim / 2}
-        orientation={orientationDegrees({ dx: historicalLocation.dx, dy: historicalLocation.dy })}
-        isMoving={historicalLocation.velocity > 0}
-        isThinking={player.isThinking}
-        isSpeaking={player.isSpeaking}
+        x={player.position.x * tileDim + tileDim / 2}
+        y={player.position.y * tileDim + tileDim / 2}
+        orientation={orientationDegrees(player.facing)}
+        isMoving={player.speed > 0}
+        isThinking={isThinking}
+        isSpeaking={isSpeaking}
         emoji={
           player.activity && player.activity.until > (historicalTime ?? Date.now())
             ? player.activity?.emoji
@@ -68,7 +78,7 @@ export const Player = ({
         spritesheetData={character.spritesheetData}
         speed={character.speed}
         onClick={() => {
-          onClick({ kind: 'player', id: player._id });
+          onClick({ kind: 'player', id: player.id });
         }}
       />
     </>

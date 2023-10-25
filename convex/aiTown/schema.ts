@@ -7,9 +7,10 @@ import { conversationFields } from './conversation';
 import { conversationId, playerId } from './ids';
 
 export const aiTownTables = {
-  worlds: defineTable({ isDefault: v.boolean(), ...worldFields }),
+  worlds: defineTable({ ...worldFields }),
   worldStatus: defineTable({
     worldId: v.id('worlds'),
+    isDefault: v.boolean(),
     engineId: v.id('engines'),
     lastViewed: v.number(),
     status: v.union(v.literal('running'), v.literal('stoppedByDeveloper'), v.literal('inactive')),
@@ -38,8 +39,10 @@ export const aiTownTables = {
   ]),
   archivedConversations: defineTable({
     worldId: v.id('worlds'),
-    created: v.number(),
     id: conversationId,
+    creator: playerId,
+    created: v.number(),
+    ended: v.number(),
     lastMessage: conversationFields.lastMessage,
     numMessages: conversationFields.numMessages,
     participants: v.array(playerId),
@@ -54,7 +57,8 @@ export const aiTownTables = {
     ended: v.number(),
   })
     .index('edge', ['worldId', 'player1', 'player2', 'ended'])
-    .index('conversation', ['worldId', 'player1', 'conversationId']),
+    .index('conversation', ['worldId', 'player1', 'conversationId'])
+    .index('playerHistory', ['worldId', 'player1', 'ended']),
 
   archivedAgents: defineTable({ worldId: v.id('worlds'), ...agentFields }).index('worldId', [
     'worldId',
