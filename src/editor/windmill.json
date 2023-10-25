@@ -66,7 +66,7 @@
 }
 },
 "animations": {
-	"pixels_large": ["pixels_large1.png","pixels_large2.png","pixels_large3.png","pixels_large4.png","pixels_large5.png","pixels_large6.png","pixels_large7.png","pixels_large8.png"]
+	"row0": ["pixels_large1.png","pixels_large2.png","pixels_large3.png","pixels_large4.png","pixels_large5.png","pixels_large6.png","pixels_large7.png","pixels_large8.png"]
 },
 "meta": {
 	"image": "./spritesheets/windmill.png",
