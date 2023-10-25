@@ -4,6 +4,7 @@ import { characters } from '../data/characters';
 import { insertInput } from './aiTown/inputs';
 import { IDLE_WORLD_TIMEOUT } from './constants';
 import { playerId } from './aiTown/ids';
+import { startEngine, stopEngine } from './aiTown/main';
 
 export const defaultWorldStatus = query({
   handler: async (ctx) => {
@@ -38,9 +39,8 @@ export const heartbeatWorld = mutation({
     }
     if (worldStatus.status === 'inactive') {
       console.log(`Restarting inactive world ${worldStatus._id}...`);
-      throw new Error(`TODO`);
-      // await ctx.db.patch(worldStatus._id, { status: 'running' });
-      // await startEngine(ctx, internal.game.main.runStep, engine._id);
+      await ctx.db.patch(worldStatus._id, { status: 'running' });
+      await startEngine(ctx, worldStatus.worldId);
     }
   },
 });
@@ -55,8 +55,7 @@ export const stopInactiveWorlds = internalMutation({
       }
       console.log(`Stopping inactive world ${worldStatus._id}`);
       await ctx.db.patch(worldStatus._id, { status: 'inactive' });
-      // await stopEngine(ctx, world.engineId);
-      throw new Error('TODO');
+      await stopEngine(ctx, worldStatus.worldId);
     }
   },
 });
