@@ -9,6 +9,7 @@ import { useSendInput } from '../hooks/sendInput';
 import { Player } from '../../convex/aiTown/player';
 import { GameId } from '../../convex/aiTown/ids';
 import { ServerGame } from '../hooks/serverGame';
+import { useSessionQuery } from '../hooks/useServerSession';
 
 export default function PlayerDetails({
   worldId,
@@ -23,10 +24,9 @@ export default function PlayerDetails({
   playerId?: GameId<'players'>;
   setSelectedElement: SelectElement;
 }) {
-  const humanTokenIdentifier = useQuery(api.world.userStatus, { worldId });
-
+  const humanId = useSessionQuery(api.world.userStatus, { worldId });
   const players = [...game.world.players.values()];
-  const humanPlayer = players.find((p) => p.human === humanTokenIdentifier);
+  const humanPlayer = players.find((p) => p.human === humanId);
   const humanConversation = humanPlayer ? game.world.playerConversation(humanPlayer) : undefined;
   // Always select the other player if we're in a conversation with them.
   if (humanPlayer && humanConversation) {

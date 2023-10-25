@@ -23,7 +23,6 @@ a simple project to play around with to a scalable, multi-player game. A seconda
 ## Stack
 
 - Game engine, database, and vector search: [Convex](https://convex.dev/)
-- Auth: [Clerk](https://clerk.com/)
 - Text model: [OpenAI](https://platform.openai.com/docs/models)
 - Deployment: [Vercel](https://vercel.com/)
 - Pixel Art Generation: [Replicate](https://replicate.com/), [Fal.ai](https://serverless.fal.ai/lora)
@@ -45,33 +44,18 @@ Enter them in the environment variables on your Convex dashboard to proceed.
 You can get there via `npx convex dashboard` or https://dashboard.convex.dev
 See below on how to get the various environment variables.
 
-a. **Set up Clerk**
-
-- Go to https://dashboard.clerk.com/ and click on "Add Application"
-- Name your application and select the sign-in providers you would like to offer users
-- Create Application
-- Add `VITE_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` to `.env.local`
-
-```bash
-VITE_CLERK_PUBLISHABLE_KEY=pk_***
-CLERK_SECRET_KEY=sk_***
-```
-
-- Go to JWT Templates and create a new Convex Template.
-- Copy the JWKS endpoint URL for use below.
-
-b. **OpenAI API key**
+a. **OpenAI API key**
 
 Visit https://platform.openai.com/account/api-keys to get your OpenAI API key and set the
 `OPENAI_API_KEY` environment variable in your Convex deployment (see below).
 
-c. **Replicate API key (Optional)**
+b. **Replicate API key (Optional)**
 For Daily background music generation, create a
 [Replicate](https://replicate.com/) account and create a token in your Profile's
 [API Token page](https://replicate.com/account/api-tokens).
 Add the token as `REPLICATE_API_TOKEN` in your Convex environment variables.
 
-d. **Add environment variables to the Convex backend**
+c. **Add environment variables to the Convex backend**
 
 Environment variables for a Convex backend is configured through the dashboard:
 
@@ -79,11 +63,10 @@ Environment variables for a Convex backend is configured through the dashboard:
 npx convex dashboard
 ```
 
-Go to "settings" and add the following environment variables. `CLERK_ISSUER_URL` should be the URL from the JWKS endpoint.
+Go to "settings" and add the following environment variables.
 
 ```bash
 OPENAI_API_KEY  sk-*******
-CLERK_ISSUER_URL  https://****
 REPLICATE_API_TOKEN **** #optional
 ```
 

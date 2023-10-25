@@ -1,11 +1,13 @@
 import { ConvexError, v } from 'convex/values';
 import { internalMutation, mutation, query } from './_generated/server';
-import { characters } from '../data/characters';
+import { Descriptions, characters } from '../data/characters';
 import { insertInput } from './aiTown/insertInput';
 import { IDLE_WORLD_TIMEOUT, WORLD_HEARTBEAT_INTERVAL } from './constants';
 import { playerId } from './aiTown/ids';
 import { startEngine, stopEngine } from './aiTown/main';
 import { engineInsertInput } from './engine/abstractGame';
+import { queryWithSession } from './util/withSession';
+import { mutationWithSessionAuth } from './auth';
 
 export const defaultWorldStatus = query({
   handler: async (ctx) => {
@@ -66,60 +68,44 @@ export const stopInactiveWorlds = internalMutation({
   },
 });
 
-export const userStatus = query({
+export const userStatus = queryWithSession({
   args: {
     worldId: v.id('worlds'),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return null;
-    }
-    return identity.tokenIdentifier;
+    return ctx.session?.userId;
   },
 });
 
-export const joinWorld = mutation({
+export const joinWorld = mutationWithSessionAuth({
   args: {
     worldId: v.id('worlds'),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError(`Not logged in`);
-    }
-    if (!identity.givenName) {
-      throw new ConvexError(`Missing givenName on ${JSON.stringify(identity)}`);
-    }
     const world = await ctx.db.get(args.worldId);
     if (!world) {
       throw new ConvexError(`Invalid world ID: ${args.worldId}`);
     }
-    const { tokenIdentifier } = identity;
+    const { name, character } = Descriptions[Math.floor(Math.random() * Descriptions.length)];
     return await insertInput(ctx, world._id, 'join', {
-      name: identity.givenName,
-      character: characters[Math.floor(Math.random() * characters.length)].name,
-      description: `${identity.givenName} is a human player`,
-      tokenIdentifier,
+      name,
+      character,
+      description: `${name} is a human player`,
+      userId: ctx.user._id,
     });
   },
 });
 
-export const leaveWorld = mutation({
+export const leaveWorld = mutationWithSessionAuth({
   args: {
     worldId: v.id('worlds'),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error(`Not logged in`);
-    }
-    const { tokenIdentifier } = identity;
     const world = await ctx.db.get(args.worldId);
     if (!world) {
       throw new Error(`Invalid world ID: ${args.worldId}`);
     }
-    const existingPlayer = world.players.find((p) => p.human === tokenIdentifier);
+    const existingPlayer = world.players.find((p) => p.human === ctx.user._id);
     if (!existingPlayer) {
       return;
     }
@@ -129,17 +115,13 @@ export const leaveWorld = mutation({
   },
 });
 
-export const sendWorldInput = mutation({
+export const sendWorldInput = mutationWithSessionAuth({
   args: {
     engineId: v.id('engines'),
     name: v.string(),
     args: v.any(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error(`Not logged in`);
-    }
     return await engineInsertInput(ctx, args.engineId, args.name as any, args.args);
   },
 });

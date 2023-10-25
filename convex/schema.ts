@@ -6,6 +6,12 @@ import { conversationId, playerId } from './aiTown/ids';
 import { engineTables } from './engine/schema';
 
 export default defineSchema({
+  sessions: defineTable({
+    userId: v.optional(v.id('users')),
+  }),
+
+  users: defineTable({}),
+
   music: defineTable({
     storageId: v.string(),
     type: v.union(v.literal('background'), v.literal('player')),

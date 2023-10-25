@@ -11,6 +11,7 @@ import { useHistoricalTime } from '../hooks/useHistoricalTime.ts';
 import { DebugTimeManager } from './DebugTimeManager.tsx';
 import { GameId } from '../../convex/aiTown/ids.ts';
 import { useServerGame } from '../hooks/serverGame.ts';
+import { SessionProvider } from '../hooks/useServerSession.ts';
 
 export const SHOW_DEBUG_UI = !!import.meta.env.VITE_SHOW_DEBUG_UI;
 
@@ -49,15 +50,17 @@ export default function Game() {
                 {/* Re-propagate context because contexts are not shared between renderers.
 https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-531549215 */}
                 <ConvexProvider client={convex}>
-                  <PixiGame
-                    game={game}
-                    worldId={worldId}
-                    engineId={engineId}
-                    width={width}
-                    height={height}
-                    historicalTime={historicalTime}
-                    setSelectedElement={setSelectedElement}
-                  />
+                  <SessionProvider>
+                    <PixiGame
+                      game={game}
+                      worldId={worldId}
+                      engineId={engineId}
+                      width={width}
+                      height={height}
+                      historicalTime={historicalTime}
+                      setSelectedElement={setSelectedElement}
+                    />
+                  </SessionProvider>
                 </ConvexProvider>
               </Stage>
             </div>

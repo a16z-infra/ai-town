@@ -1,7 +1,6 @@
 import { ReactNode } from 'react';
-import { ConvexReactClient } from 'convex/react';
-import { ConvexProviderWithClerk } from 'convex/react-clerk';
-import { ClerkProvider, useAuth } from '@clerk/clerk-react';
+import { ConvexReactClient, ConvexProvider } from 'convex/react';
+import { SessionProvider } from '../hooks/useServerSession';
 
 /**
  * Determines the Convex deployment to use.
@@ -20,11 +19,13 @@ function convexUrl(): string {
 const convex = new ConvexReactClient(convexUrl(), { unsavedChangesWarning: false });
 
 export default function ConvexClientProvider({ children }: { children: ReactNode }) {
+  // We waitForSessionId since we also mount the session provider in the Game
+  // and we don't want to have them both inventing sessionIds for themselves.
   return (
-    <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string}>
-      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+    <ConvexProvider client={convex}>
+      <SessionProvider storageLocation="localStorage" storageKey="ai-town-session-id">
         {children}
-      </ConvexProviderWithClerk>
-    </ClerkProvider>
+      </SessionProvider>
+    </ConvexProvider>
   );
 }
