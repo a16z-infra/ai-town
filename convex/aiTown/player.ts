@@ -176,7 +176,7 @@ export function tickPosition(game: Game, now: number, player: Player) {
 
   // Compute a candidate new position and check if it collides
   // with anything.
-  const candidate = pathPosition(player.pathfinding.state.path, now);
+  const candidate = pathPosition(player.pathfinding.state.path as any, now);
   if (!candidate) {
     console.warn(`Path out of range of ${now} for ${player.id}`);
     return;

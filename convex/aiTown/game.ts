@@ -213,8 +213,12 @@ export class Game extends AbstractGame {
     // Save each player's location into the history buffer at the end of
     // each tick.
     for (const player of this.players.values()) {
-      const historicalObject = this.historicalLocations.get(player.id);
-      historicalObject!.update(now, playerLocation(player));
+      let historicalObject = this.historicalLocations.get(player.id);
+      if (!historicalObject) {
+        historicalObject = new HistoricalObject(locationFields, playerLocation(player));
+        this.historicalLocations.set(player.id, historicalObject);
+      }
+      historicalObject.update(now, playerLocation(player));
     }
   }
 
