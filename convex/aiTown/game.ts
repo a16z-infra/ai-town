@@ -24,10 +24,11 @@ import {
   tickPathfinding,
   tickPosition,
 } from './player';
+import { Location, locationFields, playerLocation } from './location';
 import { Agent } from './agent';
 import { Player } from './player';
 import { Conversation, parseConversations, tickConversation } from './conversation';
-import { GameId, IdTypes, allocGameId, parseGameId } from './ids';
+import { GameId, IdTypes, allocGameId, parseGameId, playerId } from './ids';
 import { InputArgs, InputNames, inputs } from './inputs';
 import {
   AbstractGame,
@@ -37,6 +38,7 @@ import {
   loadEngine,
 } from '../engine/abstractGame';
 import { internal } from '../_generated/api';
+import { HistoricalObject } from '../engine/historicalObject';
 
 const gameState = v.object({
   world,
@@ -52,6 +54,7 @@ const gameStateDiff = v.object({
   agentDescriptions: v.optional(v.array(v.object(agentDescriptionFields))),
   worldMap: v.optional(worldMap),
   agentOperations: v.array(v.object({ name: v.string(), args: v.any() })),
+  historyBuffers: v.record(playerId, v.bytes()),
 });
 type GameStateDiff = Infer<typeof gameStateDiff>;
 
@@ -65,6 +68,8 @@ export class Game extends AbstractGame {
   conversations: Map<GameId<'conversations'>, Conversation>;
   players: Map<GameId<'players'>, Player>;
   agents: Map<GameId<'agents'>, Agent>;
+
+  historicalLocations: Map<GameId<'players'>, HistoricalObject<Location>>;
 
   descriptionsModified: boolean;
   worldMap: WorldMap;
@@ -97,6 +102,8 @@ export class Game extends AbstractGame {
       state.agentDescriptions,
       this.nextId,
     );
+
+    this.historicalLocations = new Map();
   }
 
   static async load(
@@ -131,7 +138,8 @@ export class Game extends AbstractGame {
     if (!worldMapDoc) {
       throw new Error(`No map found for world ${worldId}`);
     }
-    const { _id, _creationTime, ...world } = worldDoc;
+    // Discard the system fields and historicalLocations from the world state.
+    const { _id, _creationTime, historicalLocations, ...world } = worldDoc;
     const playerDescriptions = playerDescriptionsDocs.map(
       ({ _id, _creationTime, worldId, ...doc }) => doc,
     );
@@ -177,6 +185,17 @@ export class Game extends AbstractGame {
     return handler(this, now, args as any);
   }
 
+  beginStep(now: number) {
+    // Store the current location of all players in the history tracking buffer.
+    this.historicalLocations.clear();
+    for (const player of this.players.values()) {
+      this.historicalLocations.set(
+        player.id,
+        new HistoricalObject(locationFields, playerLocation(player)),
+      );
+    }
+  }
+
   tick(now: number) {
     for (const player of this.players.values()) {
       tickPathfinding(this, now, player);
@@ -190,9 +209,45 @@ export class Game extends AbstractGame {
     for (const agent of this.agents.values()) {
       tickAgent(this, now, agent);
     }
+
+    // Save each player's location into the history buffer at the end of
+    // each tick.
+    for (const player of this.players.values()) {
+      const historicalObject = this.historicalLocations.get(player.id);
+      historicalObject!.update(now, playerLocation(player));
+    }
+  }
+
+  async saveStep(ctx: ActionCtx, engineUpdate: EngineUpdate): Promise<void> {
+    const diff = this.takeDiff();
+    await ctx.runMutation(internal.aiTown.game.saveWorld, {
+      engineId: this.engine._id,
+      engineUpdate,
+      worldId: this.worldId,
+      worldDiff: diff,
+    });
   }
 
   takeDiff(): GameStateDiff {
+    const historyBuffers: Record<GameId<'players'>, ArrayBuffer> = {};
+    let bufferSize = 0;
+    for (const [id, historicalObject] of this.historicalLocations.entries()) {
+      const buffer = historicalObject.pack();
+      if (!buffer) {
+        continue;
+      }
+      historyBuffers[id] = buffer;
+      bufferSize += buffer.byteLength;
+    }
+    if (bufferSize > 0) {
+      console.debug(
+        `Packed ${Object.entries(historyBuffers).length} history buffers in ${(
+          bufferSize / 1024
+        ).toFixed(2)}KiB.`,
+      );
+    }
+    this.historicalLocations.clear();
+
     const result: GameStateDiff = {
       world: {
         nextId: this.nextId,
@@ -204,6 +259,7 @@ export class Game extends AbstractGame {
         agents: [...this.agents.values()],
       },
       agentOperations: this.pendingOperations,
+      historyBuffers,
     };
     this.pendingOperations = [];
     if (this.descriptionsModified) {
@@ -213,16 +269,6 @@ export class Game extends AbstractGame {
       this.descriptionsModified = false;
     }
     return result;
-  }
-
-  async save(ctx: ActionCtx, engineUpdate: EngineUpdate): Promise<void> {
-    const diff = this.takeDiff();
-    await ctx.runMutation(internal.aiTown.game.saveWorld, {
-      engineId: this.engine._id,
-      engineUpdate,
-      worldId: this.worldId,
-      worldDiff: diff,
-    });
   }
 
   static async saveDiff(ctx: MutationCtx, worldId: Id<'worlds'>, diff: GameStateDiff) {
@@ -277,7 +323,7 @@ export class Game extends AbstractGame {
     }
 
     // Update the world state.
-    await ctx.db.replace(worldId, newWorld);
+    await ctx.db.replace(worldId, { historicalLocations: diff.historyBuffers, ...newWorld });
 
     // Update the larger description tables if they changed.
     const { playerDescriptions, agentDescriptions, worldMap } = diff;

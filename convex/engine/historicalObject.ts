@@ -12,8 +12,6 @@ import {
   unquantize,
 } from '../util/compression';
 
-export type FieldName = string;
-
 // `HistoricalTable`s require the developer to pass in the
 // field names that'll be tracked and sent down to the client.
 //
@@ -75,46 +73,33 @@ export type Sample = {
 // - Documents in a historical can only have up to 16 fields.
 // - The historical tracking only applies to a specified list of fields,
 //   and these fields must match between the client and server.
-export abstract class HistoricalTable<T extends TableNames> {
-  abstract table: T;
-  abstract db: DatabaseWriter;
+export class HistoricalObject<T extends Record<string, number>> {
   startTs?: number;
 
   fieldConfig: NormalizedFieldConfig;
 
-  data: Map<Id<T>, Doc<T>> = new Map();
-  modified: Set<Id<T>> = new Set();
-  deleted: Set<Id<T>> = new Set();
+  data: T;
+  history: Record<string, History> = {};
 
-  history: Map<Id<T>, Record<FieldName, History>> = new Map();
-
-  constructor(fields: FieldConfig, rows: Doc<T>[]) {
+  constructor(fields: FieldConfig, initialValue: T) {
     if (fields.length >= MAX_FIELDS) {
       throw new Error(`HistoricalTable can have at most ${MAX_FIELDS} fields.`);
     }
     this.fieldConfig = normalizeFieldConfig(fields);
-    for (const row of rows) {
-      this.checkShape(row);
-      this.data.set(row._id, row);
-    }
+    this.checkShape(initialValue);
+    this.data = initialValue;
   }
 
-  // Save the packed history buffers for all of the modified rows.
-  abstract saveHistory(
-    buffers: Record<Id<T>, { doc: WithoutSystemFields<Doc<T>>; history?: ArrayBuffer }>,
-  ): Promise<void>;
-
   historyLength() {
-    return [...this.history.values()]
-      .flatMap((sampleRecord) => Object.values(sampleRecord))
+    return Object.values(this.history)
       .map((h) => h.samples.length)
       .reduce((a, b) => a + b, 0);
   }
 
-  checkShape(obj: any) {
-    for (const [key, value] of Object.entries(obj)) {
-      if (this.isReservedFieldName(key)) {
-        continue;
+  checkShape(data: any) {
+    for (const [key, value] of Object.entries(data)) {
+      if (!this.fieldConfig.find((f) => f.name === key)) {
+        throw new Error(`Cannot set undeclared field '${key}'`);
       }
       if (typeof value !== 'number') {
         throw new Error(
@@ -124,136 +109,40 @@ export abstract class HistoricalTable<T extends TableNames> {
     }
   }
 
-  isReservedFieldName(key: string) {
-    return key.startsWith('_');
-  }
-
-  async insert(now: number, row: WithoutSystemFields<Doc<T>>): Promise<Id<T>> {
-    this.checkShape(row);
-
-    const id = await this.db.insert(this.table, row);
-    const withSystemFields = await this.db.get(id);
-    if (!withSystemFields) {
-      throw new Error(`Failed to db.get() inserted row`);
-    }
-    this.data.set(id, withSystemFields);
-    return id;
-  }
-
-  lookup(now: number, id: Id<T>): Doc<T> {
-    const row = this.data.get(id);
-    if (!row) {
-      throw new Error(`Invalid ID: ${id}`);
-    }
-    const handlers = {
-      defineProperty: (target: any, key: any, descriptor: any) => {
-        throw new Error(`Adding new fields unsupported on HistoricalTable`);
-      },
-      get: (target: any, prop: any, receiver: any) => {
-        const value = Reflect.get(target, prop, receiver);
-        if (typeof value === 'object') {
-          throw new Error(`Nested objects unsupported on HistoricalTable`);
-        } else {
-          return value;
+  update(now: number, data: T) {
+    this.checkShape(data);
+    for (const [key, value] of Object.entries(data)) {
+      const currentValue = this.data[key];
+      if (currentValue !== value) {
+        let history = this.history[key];
+        if (!history) {
+          this.history[key] = history = { initialValue: currentValue, samples: [] };
         }
-      },
-      set: (obj: any, prop: any, value: any) => {
-        if (this.isReservedFieldName(prop)) {
-          throw new Error(`Cannot set reserved field '${prop}'`);
+        const { samples } = history;
+        let inserted = false;
+        if (samples.length > 0) {
+          const last = samples[samples.length - 1];
+          if (now < last.time) {
+            throw new Error(`Server time moving backwards: ${now} < ${last.time}`);
+          }
+          if (now === last.time) {
+            last.value = value;
+            inserted = true;
+          }
         }
-        this.markModified(id, now, prop, value);
-        return Reflect.set(obj, prop, value);
-      },
-      deleteProperty: (target: any, prop: any) => {
-        throw new Error(`Deleting fields unsupported on HistoricalTable`);
-      },
-    };
-
-    return new Proxy<Doc<T>>(row, handlers);
-  }
-
-  private markModified(id: Id<T>, now: number, fieldName: FieldName, value: any) {
-    if (typeof value !== 'number') {
-      throw new Error(`Cannot set field '${fieldName}' to ${JSON.stringify(value)}`);
-    }
-    if (!this.fieldConfig.find((f) => f.name === fieldName)) {
-      throw new Error(`Mutating undeclared field name: ${fieldName}`);
-    }
-    const doc = this.data.get(id);
-    if (!doc) {
-      throw new Error(`Invalid ID: ${id}`);
-    }
-    const currentValue = doc[fieldName];
-    if (currentValue === undefined || typeof currentValue !== 'number') {
-      throw new Error(`Invalid value ${currentValue} for ${fieldName} in ${id}`);
-    }
-    if (currentValue !== value) {
-      let historyRecord = this.history.get(id);
-      if (!historyRecord) {
-        historyRecord = {};
-        this.history.set(id, historyRecord);
-      }
-      let history = historyRecord[fieldName];
-      if (!history) {
-        history = { initialValue: currentValue, samples: [] };
-        historyRecord[fieldName] = history;
-      }
-      const { samples } = history;
-      let inserted = false;
-      if (samples.length > 0) {
-        const last = samples[samples.length - 1];
-        if (now < last.time) {
-          throw new Error(`Server time moving backwards: ${now} < ${last.time}`);
-        }
-        if (now === last.time) {
-          last.value = value;
-          inserted = true;
+        if (!inserted) {
+          samples.push({ time: now, value });
         }
       }
-      if (!inserted) {
-        samples.push({ time: now, value });
-      }
     }
-    this.modified.add(id);
+    this.data = data;
   }
 
-  async save() {
-    for (const id of this.deleted) {
-      await this.db.delete(id);
+  pack(): ArrayBuffer | null {
+    if (this.historyLength() === 0) {
+      return null;
     }
-    let totalSize = 0;
-    let buffersPacked = 0;
-    const buffers: Record<Id<T>, { doc: WithoutSystemFields<Doc<T>>; history?: ArrayBuffer }> = {};
-    for (const [id, doc] of this.data.entries()) {
-      const { _id, _creationTime, ...withoutSystemFields } = doc;
-      buffers[id] = { doc: withoutSystemFields as any };
-    }
-    for (const id of this.modified) {
-      const row = this.data.get(id);
-      if (!row) {
-        throw new Error(`Invalid modified id: ${id}`);
-      }
-      const sampleRecord = this.history.get(id);
-      if (sampleRecord && Object.entries(sampleRecord).length > 0) {
-        const packed = packSampleRecord(this.fieldConfig, sampleRecord);
-        buffers[id].history = packed;
-        totalSize += packed.byteLength;
-        buffersPacked += 1;
-      }
-      // Somehow TypeScript isn't able to figure out that our
-      // generic `Doc<T>` unifies with `replace()`'s type.
-      await this.db.replace(id, row as any);
-    }
-    if (buffersPacked > 0) {
-      console.debug(
-        `Packed ${buffersPacked} buffers for ${this.table}, total size: ${(
-          totalSize / 1024
-        ).toFixed(2)}KiB`,
-      );
-    }
-    await this.saveHistory(buffers);
-    this.modified.clear();
-    this.deleted.clear();
+    return packSampleRecord(this.fieldConfig, this.history);
   }
 }
 
@@ -327,7 +216,7 @@ function packFieldConfig(fields: NormalizedFieldConfig) {
 // ```
 export function packSampleRecord(
   fields: NormalizedFieldConfig,
-  sampleRecord: Record<FieldName, History>,
+  sampleRecord: Record<string, History>,
 ): ArrayBuffer {
   const out = new ArrayBuffer(65536);
   const outView = new DataView(out);
@@ -409,7 +298,7 @@ export function unpackSampleRecord(fields: FieldConfig, buffer: ArrayBuffer) {
     throw new Error(`Config hash mismatch: ${configHash} !== ${expectedConfigHash}`);
   }
 
-  const out = {} as Record<FieldName, History>;
+  const out = {} as Record<string, History>;
   while (pos < buffer.byteLength) {
     const fieldHeader = view.getUint8(pos);
     pos += 1;

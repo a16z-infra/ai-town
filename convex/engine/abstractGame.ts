@@ -14,7 +14,10 @@ export abstract class AbstractGame {
 
   abstract handleInput(now: number, name: string, args: object): Value;
   abstract tick(now: number): void;
-  abstract save(ctx: ActionCtx, engineUpdate: EngineUpdate): Promise<void>;
+
+  // Optional callback at the beginning of each step.
+  beginStep(now: number) {}
+  abstract saveStep(ctx: ActionCtx, engineUpdate: EngineUpdate): Promise<void>;
 
   async runStep(ctx: ActionCtx, now: number) {
     const inputs = await ctx.runQuery(internal.engine.abstractGame.loadInputs, {
@@ -30,6 +33,8 @@ export abstract class AbstractGame {
     let numTicks = 0;
     let processedInputNumber = this.engine.processedInputNumber;
     const completedInputs = [];
+
+    this.beginStep(currentTs);
 
     while (numTicks < this.maxTicksPerStep) {
       numTicks += 1;
@@ -77,7 +82,7 @@ export abstract class AbstractGame {
     this.engine.processedInputNumber = processedInputNumber;
     const { _id, _creationTime, ...engine } = this.engine;
     const engineUpdate = { engine, completedInputs, expectedGenerationNumber };
-    await this.save(ctx, engineUpdate);
+    await this.saveStep(ctx, engineUpdate);
 
     console.debug(`Simulated from ${startTs} to ${currentTs} (${currentTs - startTs}ms)`);
   }

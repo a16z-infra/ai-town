@@ -4,10 +4,11 @@ import { characters } from '../../data/characters.ts';
 import { toast } from 'react-toastify';
 import { Player as PlayerType } from '../../convex/aiTown/player.ts';
 import { GameId } from '../../convex/aiTown/ids.ts';
-import { World, WorldMap } from '../../convex/aiTown/world.ts';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
+import { Location, locationFields, playerLocation } from '../../convex/aiTown/location.ts';
+import { useHistoricalValue } from '../hooks/useHistoricalValue.ts';
 
 export type SelectElement = (element?: { kind: 'player'; id: GameId<'players'> }) => void;
 
@@ -37,12 +38,14 @@ export const Player = ({
   const { playerDescriptions, map } = descriptions;
   const playerCharacter = playerDescriptions.find((p) => p.playerId === player.id)?.character!;
   const character = characters.find((c) => c.name === playerCharacter);
-  // const historicalLocation = useHistoricalValue<'locations'>(
-  //   locationFields,
-  //   historicalTime,
-  //   location?.doc,
-  //   location?.history,
-  // );
+
+  const locationBuffer = world.historicalLocations && world.historicalLocations[player.id];
+  const historicalLocation = useHistoricalValue<Location>(
+    locationFields,
+    historicalTime,
+    playerLocation(player),
+    locationBuffer,
+  );
   if (!character) {
     if (!logged.has(playerCharacter)) {
       logged.add(playerCharacter);
@@ -51,21 +54,22 @@ export const Player = ({
     return null;
   }
 
-  // if (!historicalLocation) {
-  //   return null;
-  // }
+  if (!historicalLocation) {
+    return null;
+  }
 
   const isSpeaking = !!world.conversations.find((c) => c.isTyping?.playerId === player.id);
   const isThinking =
     !isSpeaking && !!world.agents.find((a) => a.playerId === player.id && !!a.inProgressOperation);
   const tileDim = map.tileDim;
+  const historicalFacing = { dx: historicalLocation.dx, dy: historicalLocation.dy };
   return (
     <>
       <Character
-        x={player.position.x * tileDim + tileDim / 2}
-        y={player.position.y * tileDim + tileDim / 2}
-        orientation={orientationDegrees(player.facing)}
-        isMoving={player.speed > 0}
+        x={historicalLocation.x * tileDim + tileDim / 2}
+        y={historicalLocation.y * tileDim + tileDim / 2}
+        orientation={orientationDegrees(historicalFacing)}
+        isMoving={historicalLocation.speed > 0}
         isThinking={isThinking}
         isSpeaking={isSpeaking}
         emoji={

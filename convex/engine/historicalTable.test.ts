@@ -1,8 +1,8 @@
-import { FieldName, History, packSampleRecord, unpackSampleRecord } from './historicalTable';
+import { History, packSampleRecord, unpackSampleRecord } from './historicalObject';
 
-describe('HistoricalTable', () => {
+describe('HistoricalObject', () => {
   test('pack sample record roundtrips', () => {
-    let data: Record<FieldName, History> = {
+    let data: Record<string, History> = {
       x: {
         initialValue: 0,
         samples: [

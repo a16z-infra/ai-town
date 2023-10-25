@@ -11,7 +11,8 @@ export function parseGameId<T extends IdTypes>(
   nextId: number,
 ): GameId<T> {
   const type = gameId[0];
-  if (!Object.entries(IdShortCodes).find(([_, value]) => value === type)) {
+  const match = Object.entries(IdShortCodes).find(([_, value]) => value === type);
+  if (!match || match[0] !== idType) {
     throw new Error(`Invalid game ID type: ${type}`);
   }
   const number = parseInt(gameId.slice(2), 10);

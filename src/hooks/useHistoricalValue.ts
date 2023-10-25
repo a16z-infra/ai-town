@@ -1,14 +1,14 @@
 import { WithoutSystemFields } from 'convex/server';
 import { Doc, TableNames } from '../../convex/_generated/dataModel';
-import { FieldConfig, History, unpackSampleRecord } from '../../convex/engine/historicalTable';
+import { FieldConfig, History, unpackSampleRecord } from '../../convex/engine/historicalObject';
 import { useMemo, useRef } from 'react';
 
-export function useHistoricalValue<Name extends TableNames>(
+export function useHistoricalValue<T extends Record<string, number>>(
   fields: FieldConfig,
   historicalTime: number | undefined,
-  value: WithoutSystemFields<Doc<Name>> | undefined,
+  value: T | undefined,
   history: ArrayBuffer | undefined,
-): WithoutSystemFields<Doc<Name>> | undefined {
+): T | undefined {
   const manager = useRef(new HistoryManager());
   const sampleRecord: Record<string, History> | undefined = useMemo(() => {
     if (!value || !history) {
