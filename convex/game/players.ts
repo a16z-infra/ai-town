@@ -52,6 +52,8 @@ export const players = defineTable({
 
   // If present, it's the auth tokenIdentifier of the owning player.
   human: v.optional(v.string()),
+  // The last time they did something.
+  lastInput: v.number(),
 
   pathfinding: v.optional(pathfinding),
   activity: v.optional(activity),
@@ -132,6 +134,7 @@ export async function joinGame(
     human: tokenIdentifier,
     character,
     locationId,
+    lastInput: now,
   });
   return playerId;
 }

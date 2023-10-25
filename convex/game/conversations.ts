@@ -156,6 +156,7 @@ export const conversationInputs = {
         // TODO: pass it back to the client for them to show an error.
         throw new Error(error);
       }
+      game.players.lookup(playerId).lastInput = now;
       return conversationId;
     },
   }),
@@ -181,6 +182,7 @@ export const conversationInputs = {
         );
       }
       conversation.isTyping = { playerId, messageUuid, since: now };
+      game.players.lookup(playerId).lastInput = now;
       return null;
     },
   }),
@@ -208,6 +210,7 @@ export const conversationInputs = {
       }
       conversation.lastMessage = { author: playerId, timestamp };
       conversation.numMessages++;
+      game.players.lookup(playerId).lastInput = now;
       return null;
     },
   }),
@@ -222,6 +225,7 @@ export const conversationInputs = {
     },
     handler: async (game: AiTown, now: number, { playerId, conversationId }): Promise<null> => {
       acceptInvite(game, playerId, conversationId);
+      game.players.lookup(playerId).lastInput = now;
       return null;
     },
   }),

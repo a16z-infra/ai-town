@@ -1,8 +1,8 @@
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 import { internalMutation, mutation, query } from './_generated/server';
 import { characters } from '../data/characters';
 import { sendInput } from './game/main';
-import { IDLE_WORLD_TIMEOUT } from './constants';
+import { IDLE_WORLD_TIMEOUT, MAX_HUMAN_PLAYERS } from './constants';
 import { Doc, Id } from './_generated/dataModel';
 import { internal } from './_generated/api';
 import { startEngine, stopEngine } from './engine/game';
@@ -100,14 +100,14 @@ export const joinWorld = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error(`Not logged in`);
+      throw new ConvexError(`Not logged in`);
     }
     if (!identity.givenName) {
-      throw new Error(`Missing givenName on ${JSON.stringify(identity)}`);
+      throw new ConvexError(`Missing givenName on ${JSON.stringify(identity)}`);
     }
     const world = await ctx.db.get(args.worldId);
     if (!world) {
-      throw new Error(`Invalid world ID: ${args.worldId}`);
+      throw new ConvexError(`Invalid world ID: ${args.worldId}`);
     }
     const { tokenIdentifier } = identity;
     const existingPlayer = await ctx.db
@@ -117,8 +117,16 @@ export const joinWorld = mutation({
       )
       .first();
     if (existingPlayer) {
-      throw new Error(`Already joined as ${existingPlayer._id}`);
+      throw new ConvexError(`Already joined as ${existingPlayer._id}`);
     }
+    const activePlayers = await ctx.db
+      .query('players')
+      .withIndex('active', (q) => q.eq('worldId', world._id).eq('active', true))
+      .collect();
+    if (activePlayers.filter((p) => p.human).length >= MAX_HUMAN_PLAYERS) {
+      throw new ConvexError(`Only ${MAX_HUMAN_PLAYERS} human players allowed at once.`);
+    }
+
     await sendInput(ctx, {
       worldId: world._id,
       name: 'join',
@@ -172,6 +180,10 @@ export const sendWorldInput = mutation({
     args: v.any(),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error(`Not logged in`);
+    }
     const world = await ctx.db.get(args.worldId);
     if (!world) {
       throw new Error(`Invalid world ID: ${args.worldId}`);

@@ -3,7 +3,6 @@ import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import closeImg from '../../assets/close.svg';
 import { SelectElement } from './Player';
-import { SignedIn } from '@clerk/clerk-react';
 import { Messages } from './Messages';
 import { toastOnError } from '../toasts';
 import { useSendInput } from '../hooks/sendInput';
@@ -142,74 +141,72 @@ export default function PlayerDetails({
           </h2>
         </a>
       </div>
-      <SignedIn>
-        {canInvite && (
+      {canInvite && (
+        <a
+          className={
+            'mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto' +
+            pendingSuffix('startConversation')
+          }
+          onClick={onStartConversation}
+        >
+          <div className="h-full bg-clay-700 text-center">
+            <span>Start conversation</span>
+          </div>
+        </a>
+      )}
+      {waitingForAccept && (
+        <a className="mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto opacity-50">
+          <div className="h-full bg-clay-700 text-center">
+            <span>Waiting for accept...</span>
+          </div>
+        </a>
+      )}
+      {waitingForNearby && (
+        <a className="mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto opacity-50">
+          <div className="h-full bg-clay-700 text-center">
+            <span>Walking over...</span>
+          </div>
+        </a>
+      )}
+      {inConversationWithMe && (
+        <a
+          className={
+            'mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto' +
+            pendingSuffix('leaveConversation')
+          }
+          onClick={onLeaveConversation}
+        >
+          <div className="h-full bg-clay-700 text-center">
+            <span>Leave conversation</span>
+          </div>
+        </a>
+      )}
+      {haveInvite && (
+        <>
           <a
             className={
               'mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto' +
-              pendingSuffix('startConversation')
+              pendingSuffix('acceptInvite')
             }
-            onClick={onStartConversation}
+            onClick={onAcceptInvite}
           >
             <div className="h-full bg-clay-700 text-center">
-              <span>Start conversation</span>
+              <span>Accept</span>
             </div>
           </a>
-        )}
-        {waitingForAccept && (
-          <a className="mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto opacity-50">
-            <div className="h-full bg-clay-700 text-center">
-              <span>Waiting for accept...</span>
-            </div>
-          </a>
-        )}
-        {waitingForNearby && (
-          <a className="mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto opacity-50">
-            <div className="h-full bg-clay-700 text-center">
-              <span>Walking over...</span>
-            </div>
-          </a>
-        )}
-        {inConversationWithMe && (
           <a
             className={
               'mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto' +
-              pendingSuffix('leaveConversation')
+              pendingSuffix('rejectInvite')
             }
-            onClick={onLeaveConversation}
+            onClick={onRejectInvite}
           >
             <div className="h-full bg-clay-700 text-center">
-              <span>Leave conversation</span>
+              <span>Reject</span>
             </div>
           </a>
-        )}
-        {haveInvite && (
-          <>
-            <a
-              className={
-                'mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto' +
-                pendingSuffix('acceptInvite')
-              }
-              onClick={onAcceptInvite}
-            >
-              <div className="h-full bg-clay-700 text-center">
-                <span>Accept</span>
-              </div>
-            </a>
-            <a
-              className={
-                'mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto' +
-                pendingSuffix('rejectInvite')
-              }
-              onClick={onRejectInvite}
-            >
-              <div className="h-full bg-clay-700 text-center">
-                <span>Reject</span>
-              </div>
-            </a>
-          </>
-        )}
-      </SignedIn>
+        </>
+      )}
       {(!playerConversation || playerConversation.member.status.kind === 'left') &&
         player.activity &&
         player.activity.until > Date.now() && (

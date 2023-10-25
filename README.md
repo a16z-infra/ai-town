@@ -115,18 +115,13 @@ browser, you can comment-out the "stop inactive worlds" cron in `convex/crons.ts
 
 ### Various commands to run / test / debug
 
-**Note**: you can add `--no-push` to run these commands without first syncing
-the functions. If you already have `npm run dev` running, this will be faster.
-If you remove it, it'll push up the latest version of code before running the
-command.
-
 **To stop the back end, in case of too much activity**
 
 This will stop running the engine and agents. You can still run queries and
 run functions to debug.
 
 ```bash
-npx convex run --no-push testing:stop
+npx convex run testing:stop
 ```
 
 **To restart the back end after stopping it**
@@ -163,7 +158,7 @@ npx convex run init
 You can wipe all tables with the `wipeAllTables` testing function.
 
 ```bash
-npx convex run --no-push testing:wipeAllTables
+npx convex run testing:wipeAllTables
 ```
 
 **To pause your backend deployment**
@@ -186,9 +181,9 @@ there are gentler ways of stopping above. Once you
 Before you can run the app, you will need to make sure the Convex functions are deployed to its production environment.
 
 1. Run `npx convex deploy` to deploy the convex functions to production
-2. Run `npx convex run init --prod --no-push`
+2. Run `npx convex run init --prod`
 
-If you have existing data you want to clear, you can run `npx convex run testing:debugClearAll --prod --no-push`
+If you have existing data you want to clear, you can run `npx convex run testing:debugClearAll --prod`
 
 ## Customize your own simulation
 
@@ -196,7 +191,7 @@ NOTE: every time you change character data, you should re-run
 `npx convex run testing:debugClearAll` and then
 `npm run dev` to re-upload everything to Convex.
 This is because character data is sent to Convex on the initial load.
-However, beware that `npx convex run testing:debugClearAll --no-push` WILL wipe all of your data.
+However, beware that `npx convex run testing:debugClearAll` WILL wipe all of your data.
 
 1. Create your own characters and stories: All characters and stories, as well as their spritesheet references are stored in [characters.ts](./data/characters.ts). You can start by changing character descriptions.
 
