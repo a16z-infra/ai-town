@@ -1,6 +1,6 @@
 import { movementSpeed } from '../../data/characters';
 import { COLLISION_THRESHOLD } from '../constants';
-import { distance, manhattanDistance, pointsEqual } from '../util/geometry';
+import { compressPath, distance, manhattanDistance, pointsEqual } from '../util/geometry';
 import { MinHeap } from '../util/minheap';
 import { Point, Vector } from '../util/types';
 import { Game } from './game';
@@ -158,7 +158,7 @@ export function findRoute(game: Game, now: number, player: Player, destination: 
   }
   densePath.reverse();
 
-  return { path: densePath, newDestination };
+  return { path: compressPath(densePath), newDestination };
 }
 
 export function blocked(game: Game, now: number, pos: Point, playerId?: GameId<'players'>) {

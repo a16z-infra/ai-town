@@ -63,12 +63,16 @@ export function vector(p0: Point, p1: Point): Vector {
   return { dx, dy };
 }
 
+export function vectorLength(vector: Vector): number {
+  return Math.sqrt(vector.dx * vector.dx + vector.dy * vector.dy);
+}
+
 export function normalize(vector: Vector): Vector | null {
-  const { dx, dy } = vector;
-  const len = Math.sqrt(dx * dx + dy * dy);
+  const len = vectorLength(vector);
   if (len < EPSILON) {
     return null;
   }
+  const { dx, dy } = vector;
   return {
     dx: dx / len,
     dy: dy / len,
@@ -82,4 +86,41 @@ export function orientationDegrees(vector: Vector): number {
   const twoPi = 2 * Math.PI;
   const radians = (Math.atan2(vector.dy, vector.dx) + twoPi) % twoPi;
   return (radians / twoPi) * 360;
+}
+
+export function compressPath(densePath: Path) {
+  if (densePath.length <= 2) {
+    return densePath;
+  }
+  const out = [densePath[0]];
+  let last = densePath[0];
+  let candidate;
+  for (const point of densePath.slice(1)) {
+    if (!candidate) {
+      candidate = point;
+      continue;
+    }
+    // We can skip `candidate` if it interpolates cleanly between
+    // `last` and `point`.
+    const { position, facing } = pathPosition([last, point], candidate.t);
+    const positionCloseEnough = distance(position, candidate.position) < EPSILON;
+    const facingDifference = {
+      dx: facing.dx - candidate.facing.dx,
+      dy: facing.dy - candidate.facing.dy,
+    };
+    const facingCloseEnough = vectorLength(facingDifference) < EPSILON;
+
+    if (positionCloseEnough && facingCloseEnough) {
+      candidate = point;
+      continue;
+    }
+
+    out.push(candidate);
+    last = candidate;
+    candidate = point;
+  }
+  if (candidate) {
+    out.push(candidate);
+  }
+  return out;
 }
