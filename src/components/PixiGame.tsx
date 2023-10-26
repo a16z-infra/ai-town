@@ -78,15 +78,15 @@ export const PixiGame = (props: {
     console.log(`Moving to ${JSON.stringify(roundedTiles)}`);
     await toastOnError(moveTo({ playerId: humanPlayerId, destination: roundedTiles }));
   };
-  const { tileSetDim, tileDim } = props.game.worldMap;
+  const { width, height, tileDim } = props.game.worldMap;
   const players = [...props.game.world.players.values()];
   return (
     <PixiViewport
       app={pixiApp}
       screenWidth={props.width}
       screenHeight={props.height}
-      worldWidth={tileSetDim}
-      worldHeight={tileSetDim}
+      worldWidth={width * tileDim}
+      worldHeight={height * tileDim}
       viewportRef={viewportRef}
     >
       <PixiStaticMap

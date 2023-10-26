@@ -1,0 +1,61 @@
+{"frames": {
+
+"pixels_large1.png":
+{
+	"frame": {"x":0,"y":32,"w":32,"h":96},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":32,"h":96},
+	"sourceSize": {"w":32,"h":96}
+},
+"pixels_large2.png":
+{
+	"frame": {"x":32,"y":32,"w":32,"h":96},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":32,"h":96},
+	"sourceSize": {"w":32,"h":96}
+},
+"pixels_large3.png":
+{
+	"frame": {"x":64,"y":32,"w":32,"h":96},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":32,"h":96},
+	"sourceSize": {"w":32,"h":96}
+},
+"pixels_large4.png":
+{
+	"frame": {"x":96,"y":32,"w":32,"h":96},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":32,"h":96},
+	"sourceSize": {"w":32,"h":96}
+},
+"pixels_large5.png":
+{
+	"frame": {"x":128,"y":32,"w":32,"h":96},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":32,"h":96},
+	"sourceSize": {"w":32,"h":96}
+},
+"pixels_large6.png":
+{
+	"frame": {"x":160,"y":32,"w":32,"h":96},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":0,"y":0,"w":32,"h":96},
+	"sourceSize": {"w":32,"h":96}
+}
+},
+"animations": {
+	"pixels_large": ["pixels_large1.png","pixels_large2.png","pixels_large3.png","pixels_large4.png","pixels_large5.png","pixels_large6.png"]
+},
+"meta": {
+	"image": "./spritesheets/gentlewaterfall32.png",
+	"format": "RGBA8888",
+	"size": {"w":192,"h":320},
+	"scale": "1"
+}
+}
