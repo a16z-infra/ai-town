@@ -1,10 +1,13 @@
 import Button from './Button';
 import { toast } from 'react-toastify';
 import interactImg from '../../../assets/interact.svg';
-import { useConvexAuth, useMutation, useQuery } from 'convex/react';
+import { useConvex, useConvexAuth, useMutation, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { SignInButton } from '@clerk/clerk-react';
 import { ConvexError } from 'convex/values';
+import { Id } from '../../../convex/_generated/dataModel';
+import { useCallback } from 'react';
+import { waitForInput } from '../../hooks/sendInput';
 
 export default function InteractButton() {
   const { isAuthenticated } = useConvexAuth();
@@ -17,6 +20,28 @@ export default function InteractButton() {
   const leave = useMutation(api.world.leaveWorld);
   const isPlaying = !!userPlayerId;
 
+  const convex = useConvex();
+  const joinInput = useCallback(
+    async (worldId: Id<'worlds'>) => {
+      let inputId;
+      try {
+        inputId = await join({ worldId });
+      } catch (e: any) {
+        if (e instanceof ConvexError) {
+          toast.error(e.data);
+          return;
+        }
+        throw e;
+      }
+      try {
+        await waitForInput(convex, inputId);
+      } catch (e: any) {
+        toast.error(e.message);
+      }
+    },
+    [convex],
+  );
+
   const joinOrLeaveGame = () => {
     if (!worldId || !isAuthenticated || gameState === undefined) {
       return;
@@ -26,11 +51,7 @@ export default function InteractButton() {
       void leave({ worldId });
     } else {
       console.log(`Joining game`);
-      join({ worldId }).catch((error) => {
-        if (error instanceof ConvexError) {
-          toast.error(error.data);
-        }
-      });
+      void joinInput(worldId);
     }
   };
   if (!isAuthenticated || gameState === undefined) {

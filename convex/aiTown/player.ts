@@ -2,7 +2,12 @@ import { Infer, v } from 'convex/values';
 import { Point, Vector, path, point, vector } from '../util/types';
 import { GameId, parseGameId } from './ids';
 import { playerId } from './ids';
-import { PATHFINDING_TIMEOUT, PATHFINDING_BACKOFF, HUMAN_IDLE_TOO_LONG } from '../constants';
+import {
+  PATHFINDING_TIMEOUT,
+  PATHFINDING_BACKOFF,
+  HUMAN_IDLE_TOO_LONG,
+  MAX_HUMAN_PLAYERS,
+} from '../constants';
 import { pointsEqual, pathPosition } from '../util/geometry';
 import { Game } from './game';
 import { stopPlayer, findRoute, blocked, movePlayer } from './movement';
@@ -218,6 +223,20 @@ export function joinGame(
   description: string,
   tokenIdentifier?: string,
 ) {
+  if (tokenIdentifier) {
+    let numHumans = 0;
+    for (const player of game.players.values()) {
+      if (player.human) {
+        numHumans++;
+      }
+      if (player.human === tokenIdentifier) {
+        throw new Error(`You are already in this game!`);
+      }
+    }
+    if (numHumans >= MAX_HUMAN_PLAYERS) {
+      throw new Error(`Only ${MAX_HUMAN_PLAYERS} human players allowed at once.`);
+    }
+  }
   let position;
   for (let attempt = 0; attempt < 10; attempt++) {
     const candidate = {

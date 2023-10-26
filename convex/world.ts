@@ -90,7 +90,7 @@ export const joinWorld = mutation({
       throw new ConvexError(`Invalid world ID: ${args.worldId}`);
     }
     const { tokenIdentifier } = identity;
-    await insertInput(ctx, world._id, 'join', {
+    return await insertInput(ctx, world._id, 'join', {
       name: identity.givenName,
       character: characters[Math.floor(Math.random() * characters.length)].name,
       description: `${identity.givenName} is a human player`,
