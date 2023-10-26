@@ -24,6 +24,7 @@ export default function Game() {
 
   const worldStatus = useQuery(api.world.defaultWorldStatus);
   const worldId = worldStatus?.worldId;
+  const engineId = worldStatus?.engineId;
 
   const game = useServerGame(worldId);
 
@@ -34,7 +35,7 @@ export default function Game() {
   const descriptions = useQuery(api.world.gameDescriptions, worldId ? { worldId } : 'skip');
   const { historicalTime, timeManager } = useHistoricalTime(worldState?.engine);
 
-  if (!worldId || !game) {
+  if (!worldId || !engineId || !game) {
     return null;
   }
   return (
@@ -52,6 +53,7 @@ https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-5315492
                   <PixiGame
                     game={game}
                     worldId={worldId}
+                    engineId={engineId}
                     width={width}
                     height={height}
                     historicalTime={historicalTime}
@@ -66,6 +68,7 @@ https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-5315492
         <div className="flex flex-col overflow-y-auto shrink-0 px-4 py-6 sm:px-6 lg:w-96 xl:pr-6 bg-brown-800 text-brown-100">
           <PlayerDetails
             worldId={worldId}
+            engineId={engineId}
             game={game}
             playerId={selectedElement?.id}
             setSelectedElement={setSelectedElement}

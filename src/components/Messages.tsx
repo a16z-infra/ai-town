@@ -8,11 +8,13 @@ import { Conversation } from '../../convex/aiTown/conversation';
 
 export function Messages({
   worldId,
+  engineId,
   conversation,
   inConversationWithMe,
   humanPlayer,
 }: {
   worldId: Id<'worlds'>;
+  engineId: Id<'engines'>;
   conversation:
     | { kind: 'active'; doc: Conversation }
     | { kind: 'archived'; doc: Doc<'archivedConversations'> };
@@ -129,6 +131,7 @@ export function Messages({
         {humanPlayer && inConversationWithMe && conversation.kind === 'active' && (
           <MessageInput
             worldId={worldId}
+            engineId={engineId}
             conversation={conversation.doc}
             humanPlayer={humanPlayer}
           />

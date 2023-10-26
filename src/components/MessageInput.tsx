@@ -9,10 +9,12 @@ import { Conversation } from '../../convex/aiTown/conversation';
 
 export function MessageInput({
   worldId,
+  engineId,
   humanPlayer,
   conversation,
 }: {
   worldId: Id<'worlds'>;
+  engineId: Id<'engines'>;
   humanPlayer: Player;
   conversation: Conversation;
 }) {
@@ -22,7 +24,7 @@ export function MessageInput({
   const inputRef = useRef<HTMLParagraphElement>(null);
   const inflightUuid = useRef<string | undefined>();
   const writeMessage = useMutation(api.messages.writeMessage);
-  const startTyping = useSendInput(worldId, 'startTyping');
+  const startTyping = useSendInput(engineId, 'startTyping');
   const currentlyTyping = conversation.isTyping;
 
   const onKeyDown = async (e: KeyboardEvent) => {

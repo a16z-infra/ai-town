@@ -16,6 +16,7 @@ import { ServerGame } from '../hooks/serverGame.ts';
 
 export const PixiGame = (props: {
   worldId: Id<'worlds'>;
+  engineId: Id<'engines'>;
   game: ServerGame;
   historicalTime: number | undefined;
   width: number;
@@ -31,7 +32,7 @@ export const PixiGame = (props: {
     (p) => p.human === humanTokenIdentifier,
   )?.id;
 
-  const moveTo = useSendInput(props.worldId, 'moveTo');
+  const moveTo = useSendInput(props.engineId, 'moveTo');
 
   // Interaction for clicking on the world to navigate.
   const dragStart = useRef<{ screenX: number; screenY: number } | null>(null);

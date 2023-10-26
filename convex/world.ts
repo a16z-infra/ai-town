@@ -5,6 +5,7 @@ import { insertInput } from './aiTown/insertInput';
 import { IDLE_WORLD_TIMEOUT, WORLD_HEARTBEAT_INTERVAL } from './constants';
 import { playerId } from './aiTown/ids';
 import { startEngine, stopEngine } from './aiTown/main';
+import { engineInsertInput } from './engine/abstractGame';
 
 export const defaultWorldStatus = query({
   handler: async (ctx) => {
@@ -130,12 +131,12 @@ export const leaveWorld = mutation({
 
 export const sendWorldInput = mutation({
   args: {
-    worldId: v.id('worlds'),
+    engineId: v.id('engines'),
     name: v.string(),
     args: v.any(),
   },
   handler: async (ctx, args) => {
-    return await insertInput(ctx, args.worldId, args.name as any, args.args);
+    return await engineInsertInput(ctx, args.engineId, args.name as any, args.args);
   },
 });
 

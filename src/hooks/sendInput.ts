@@ -40,12 +40,12 @@ export async function waitForInput(convex: ConvexReactClient, inputId: Id<'input
 }
 
 export function useSendInput<Name extends keyof Inputs>(
-  worldId: Id<'worlds'>,
+  engineId: Id<'engines'>,
   name: Name,
 ): (args: InputArgs<Name>) => Promise<InputReturnValue<Name>> {
   const convex = useConvex();
   return async (args) => {
-    const inputId = await convex.mutation(api.world.sendWorldInput, { worldId, name, args });
+    const inputId = await convex.mutation(api.world.sendWorldInput, { engineId, name, args });
     return await waitForInput(convex, inputId);
   };
 }

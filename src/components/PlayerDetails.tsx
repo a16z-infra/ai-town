@@ -12,11 +12,13 @@ import { ServerGame } from '../hooks/serverGame';
 
 export default function PlayerDetails({
   worldId,
+  engineId,
   game,
   playerId,
   setSelectedElement,
 }: {
   worldId: Id<'worlds'>;
+  engineId: Id<'engines'>;
   game: ServerGame;
   playerId?: GameId<'players'>;
   setSelectedElement: SelectElement;
@@ -44,10 +46,10 @@ export default function PlayerDetails({
 
   const playerDescription = playerId && game.playerDescriptions.get(playerId);
 
-  const startConversation = useSendInput(worldId, 'startConversation');
-  const acceptInvite = useSendInput(worldId, 'acceptInvite');
-  const rejectInvite = useSendInput(worldId, 'rejectInvite');
-  const leaveConversation = useSendInput(worldId, 'leaveConversation');
+  const startConversation = useSendInput(engineId, 'startConversation');
+  const acceptInvite = useSendInput(engineId, 'acceptInvite');
+  const rejectInvite = useSendInput(engineId, 'rejectInvite');
+  const leaveConversation = useSendInput(engineId, 'leaveConversation');
 
   if (!playerId) {
     return (
@@ -230,6 +232,7 @@ export default function PlayerDetails({
       {!isMe && playerConversation && playerStatus?.kind === 'participating' && (
         <Messages
           worldId={worldId}
+          engineId={engineId}
           inConversationWithMe={inConversationWithMe ?? false}
           conversation={{ kind: 'active', doc: playerConversation }}
           humanPlayer={humanPlayer}
@@ -242,6 +245,7 @@ export default function PlayerDetails({
           </div>
           <Messages
             worldId={worldId}
+            engineId={engineId}
             inConversationWithMe={false}
             conversation={{ kind: 'archived', doc: previousConversation }}
             humanPlayer={humanPlayer}
