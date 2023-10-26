@@ -28,8 +28,8 @@ export function Messages({
     conversationId: conversation.doc.id,
   });
   let currentlyTyping = conversation.kind === 'active' ? conversation.doc.isTyping : undefined;
-  if (messages !== undefined && conversation.kind === 'active' && conversation.doc.isTyping) {
-    if (messages.find((m) => m.messageUuid === conversation.doc.isTyping?.messageUuid)) {
+  if (messages !== undefined && currentlyTyping) {
+    if (messages.find((m) => m.messageUuid === currentlyTyping.messageUuid)) {
       currentlyTyping = undefined;
     }
   }
