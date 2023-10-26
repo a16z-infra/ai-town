@@ -8,9 +8,6 @@ import { Id } from './_generated/dataModel';
 import { createEngine } from './aiTown/main';
 import { ENGINE_ACTION_DURATION } from './constants';
 
-// import * as mage from '../data/mage';
-// import * as gentleFull from "../data/gentle-full"
-
 const init = mutation({
   args: {
     numAgents: v.optional(v.number()),
