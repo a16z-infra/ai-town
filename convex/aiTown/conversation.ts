@@ -1,4 +1,4 @@
-import { Infer, ObjectType, v } from 'convex/values';
+import { ObjectType, v } from 'convex/values';
 import { GameId, parseGameId } from './ids';
 import { conversationId, playerId } from './ids';
 import { Player } from './player';

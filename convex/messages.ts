@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
-import { insertInput } from './aiTown/inputs';
+import { insertInput } from './aiTown/insertInput';
 import { conversationId, playerId } from './aiTown/ids';
 
 export const listMessages = query({

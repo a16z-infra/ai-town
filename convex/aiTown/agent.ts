@@ -21,7 +21,7 @@ import { MutationCtx, internalMutation, internalQuery } from '../_generated/serv
 import { distance } from '../util/geometry';
 import { internal } from '../_generated/api';
 import { movePlayer } from './movement';
-import { insertInput } from './inputs';
+import { insertInput } from './insertInput';
 
 export class Agent {
   id: GameId<'agents'>;
@@ -78,7 +78,7 @@ export class Agent {
     if (!conversation && !doingActivity && (!player.pathfinding || !recentlyAttemptedInvite)) {
       this.startOperation(game, now, 'agentDoSomething', {
         worldId: game.worldId,
-        player,
+        player: player.serialize(),
         otherFreePlayers: [...game.world.players.values()]
           .filter((p) => p.id !== player.id)
           .filter(
@@ -86,7 +86,7 @@ export class Agent {
           )
           .map((p) => p.serialize()),
         agent: this.serialize(),
-        map: game.worldMap,
+        map: game.worldMap.serialize(),
       });
       return;
     }

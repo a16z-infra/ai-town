@@ -1,5 +1,5 @@
 import { ObjectType, PropertyValidators, Value } from 'convex/values';
-import { Game } from './game';
+import type { Game } from './game';
 
 export function inputHandler<ArgsValidator extends PropertyValidators, Return extends Value>(def: {
   args: ArgsValidator;

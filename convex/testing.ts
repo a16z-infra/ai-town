@@ -5,7 +5,7 @@ import { v } from 'convex/values';
 import schema from './schema';
 import { DELETE_BATCH_SIZE } from './constants';
 import { kickEngine, startEngine, stopEngine } from './aiTown/main';
-import { insertInput } from './aiTown/inputs';
+import { insertInput } from './aiTown/insertInput';
 
 // Clear all of the tables except for the embeddings cache.
 const excludedTables: Array<TableNames> = ['embeddingsCache'];

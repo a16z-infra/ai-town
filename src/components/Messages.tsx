@@ -3,9 +3,7 @@ import { Doc, Id } from '../../convex/_generated/dataModel';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { MessageInput } from './MessageInput';
-import { ConversationMembership } from '../../convex/aiTown/conversationMembership';
 import { Player } from '../../convex/aiTown/player';
-import { GameId } from '../../convex/aiTown/ids';
 import { Conversation } from '../../convex/aiTown/conversation';
 
 export function Messages({

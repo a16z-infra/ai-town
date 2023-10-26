@@ -22,7 +22,6 @@ export default function PlayerDetails({
   setSelectedElement: SelectElement;
 }) {
   const humanTokenIdentifier = useQuery(api.world.userStatus, { worldId });
-  const descriptions = useQuery(api.world.gameDescriptions, { worldId });
 
   const players = [...game.world.players.values()];
   const humanPlayer = players.find((p) => p.human === humanTokenIdentifier);

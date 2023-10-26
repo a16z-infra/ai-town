@@ -27,6 +27,7 @@ import type * as aiTown_game from "../aiTown/game";
 import type * as aiTown_ids from "../aiTown/ids";
 import type * as aiTown_inputHandler from "../aiTown/inputHandler";
 import type * as aiTown_inputs from "../aiTown/inputs";
+import type * as aiTown_insertInput from "../aiTown/insertInput";
 import type * as aiTown_location from "../aiTown/location";
 import type * as aiTown_main from "../aiTown/main";
 import type * as aiTown_movement from "../aiTown/movement";
@@ -79,6 +80,7 @@ declare const fullApi: ApiFromModules<{
   "aiTown/ids": typeof aiTown_ids;
   "aiTown/inputHandler": typeof aiTown_inputHandler;
   "aiTown/inputs": typeof aiTown_inputs;
+  "aiTown/insertInput": typeof aiTown_insertInput;
   "aiTown/location": typeof aiTown_location;
   "aiTown/main": typeof aiTown_main;
   "aiTown/movement": typeof aiTown_movement;

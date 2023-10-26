@@ -32,8 +32,8 @@ export class World {
     const { nextId, historicalLocations } = serialized;
 
     this.nextId = nextId;
-    this.conversations = new Map();
-    this.players = new Map();
+    this.conversations = parseMap(serialized.conversations, Conversation, (c) => c.id);
+    this.players = parseMap(serialized.players, Player, (p) => p.id);
     this.agents = parseMap(serialized.agents, Agent, (a) => a.id);
 
     if (historicalLocations) {

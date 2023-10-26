@@ -3,7 +3,7 @@ import { internal } from './_generated/api';
 import { DatabaseReader, MutationCtx, internalMutation, mutation } from './_generated/server';
 import { Descriptions } from '../data/characters';
 import * as firstmap from '../data/firstmap';
-import { insertInput } from './aiTown/inputs';
+import { insertInput } from './aiTown/insertInput';
 import { Doc, Id } from './_generated/dataModel';
 import { ENGINE_ACTION_DURATION, createEngine } from './aiTown/main';
 

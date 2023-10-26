@@ -40,7 +40,6 @@ const gameStateDiff = v.object({
   agentDescriptions: v.optional(v.array(v.object(serializedAgentDescription))),
   worldMap: v.optional(v.object(serializedWorldMap)),
   agentOperations: v.array(v.object({ name: v.string(), args: v.any() })),
-  historicalLocations,
 });
 type GameStateDiff = Infer<typeof gameStateDiff>;
 
@@ -69,6 +68,7 @@ export class Game extends AbstractGame {
     super(engine);
 
     this.world = new World(state.world);
+    delete this.world.historicalLocations;
 
     this.descriptionsModified = false;
     this.worldMap = new WorldMap(state.worldMap);
@@ -229,9 +229,8 @@ export class Game extends AbstractGame {
     this.historicalLocations.clear();
 
     const result: GameStateDiff = {
-      world: this.world.serialize(),
+      world: { ...this.world.serialize(), historicalLocations },
       agentOperations: this.pendingOperations,
-      historicalLocations,
     };
     this.pendingOperations = [];
     if (this.descriptionsModified) {
@@ -257,7 +256,7 @@ export class Game extends AbstractGame {
     }
     for (const conversation of existingWorld.conversations) {
       if (!newWorld.conversations.some((c) => c.id === conversation.id)) {
-        const participants = Object.keys(conversation.participants);
+        const participants = conversation.participants.map((p) => p.playerId);
         const archivedConversation = {
           worldId,
           id: conversation.id,
@@ -293,7 +292,7 @@ export class Game extends AbstractGame {
       }
     }
     // Update the world state.
-    await ctx.db.replace(worldId, { historicalLocations: diff.historicalLocations, ...newWorld });
+    await ctx.db.replace(worldId, newWorld);
 
     // Update the larger description tables if they changed.
     const { playerDescriptions, agentDescriptions, worldMap } = diff;

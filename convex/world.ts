@@ -1,7 +1,7 @@
 import { ConvexError, v } from 'convex/values';
 import { internalMutation, mutation, query } from './_generated/server';
 import { characters } from '../data/characters';
-import { insertInput } from './aiTown/inputs';
+import { insertInput } from './aiTown/insertInput';
 import { IDLE_WORLD_TIMEOUT, WORLD_HEARTBEAT_INTERVAL } from './constants';
 import { playerId } from './aiTown/ids';
 import { startEngine, stopEngine } from './aiTown/main';
