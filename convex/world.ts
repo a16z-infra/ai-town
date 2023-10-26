@@ -2,7 +2,7 @@ import { ConvexError, v } from 'convex/values';
 import { internalMutation, mutation, query } from './_generated/server';
 import { characters } from '../data/characters';
 import { insertInput } from './aiTown/inputs';
-import { IDLE_WORLD_TIMEOUT } from './constants';
+import { IDLE_WORLD_TIMEOUT, WORLD_HEARTBEAT_INTERVAL } from './constants';
 import { playerId } from './aiTown/ids';
 import { startEngine, stopEngine } from './aiTown/main';
 
@@ -29,9 +29,14 @@ export const heartbeatWorld = mutation({
       throw new Error(`Invalid world ID: ${args.worldId}`);
     }
     const now = Date.now();
-    await ctx.db.patch(worldStatus._id, {
-      lastViewed: Math.max(worldStatus.lastViewed ?? now, now),
-    });
+
+    // Skip the update (and then potentially make the transaction readonly)
+    // if it's been viewed sufficiently recently..
+    if (!worldStatus.lastViewed || worldStatus.lastViewed < now - WORLD_HEARTBEAT_INTERVAL / 2) {
+      await ctx.db.patch(worldStatus._id, {
+        lastViewed: Math.max(worldStatus.lastViewed ?? now, now),
+      });
+    }
 
     // Restart inactive worlds, but leave worlds explicitly stopped by the developer alone.
     if (worldStatus.status === 'stoppedByDeveloper') {
