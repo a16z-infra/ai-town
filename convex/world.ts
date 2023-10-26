@@ -136,6 +136,10 @@ export const sendWorldInput = mutation({
     args: v.any(),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error(`Not logged in`);
+    }
     return await engineInsertInput(ctx, args.engineId, args.name as any, args.args);
   },
 });
