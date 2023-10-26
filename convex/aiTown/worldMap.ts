@@ -4,7 +4,7 @@ import { Infer, ObjectType, v } from 'convex/values';
 const tileLayer = v.array(v.array(v.number()));
 export type TileLayer = Infer<typeof tileLayer>;
 
-const sprite = {
+const animatedSprite = {
   x: v.number(),
   y: v.number(),
   w: v.number(),
@@ -13,7 +13,7 @@ const sprite = {
   sheet: v.string(),
   animation: v.string(),
 };
-export type Sprite = ObjectType<typeof sprite>;
+export type AnimatedSprite = ObjectType<typeof animatedSprite>;
 
 export const serializedWorldMap = {
   width: v.number(),
@@ -28,7 +28,7 @@ export const serializedWorldMap = {
   tileDim: v.number(),
   bgTiles: v.array(v.array(v.array(v.number()))),
   objectTiles: v.array(tileLayer),
-  spriteTiles: v.array(v.object(sprite)),
+  animatedSprites: v.array(v.object(animatedSprite)),
 };
 export type SerializedWorldMap = ObjectType<typeof serializedWorldMap>;
 
@@ -44,7 +44,7 @@ export class WorldMap {
 
   bgTiles: TileLayer[];
   objectTiles: TileLayer[];
-  spriteTiles: Sprite[];
+  animatedSprites: AnimatedSprite[];
 
   constructor(serialized: SerializedWorldMap) {
     this.width = serialized.width;
@@ -55,7 +55,7 @@ export class WorldMap {
     this.tileDim = serialized.tileDim;
     this.bgTiles = serialized.bgTiles;
     this.objectTiles = serialized.objectTiles;
-    this.spriteTiles = serialized.spriteTiles;
+    this.animatedSprites = serialized.animatedSprites;
   }
 
   serialize(): SerializedWorldMap {
@@ -68,7 +68,7 @@ export class WorldMap {
       tileDim: this.tileDim,
       bgTiles: this.bgTiles,
       objectTiles: this.objectTiles,
-      spriteTiles: this.spriteTiles,
+      animatedSprites: this.animatedSprites,
     };
   }
 }

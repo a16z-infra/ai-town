@@ -40,7 +40,7 @@ export default PixiComponent('Viewport', {
       .setZoom(1.5)
       .clampZoom({
         minScale: (1.04 * props.screenWidth) / (props.worldWidth / 2),
-        maxScale: 3.0,
+        maxScale: 12,
       });
     return viewport;
   },

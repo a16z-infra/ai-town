@@ -1,6 +1,23 @@
 import { PixiComponent, applyDefaultProps } from '@pixi/react';
 import * as PIXI from 'pixi.js';
-import { WorldMap } from '../../convex/aiTown/worldMap';
+import { AnimatedSprite, WorldMap } from '../../convex/aiTown/worldMap';
+import * as campfire from '../../data/animations/campfire.json';
+import * as gentlesparkle from '../../data/animations/gentlesparkle.json';
+import * as gentlewaterfall from '../../data/animations/gentlewaterfall.json';
+import * as windmill from '../../data/animations/windmill.json';
+
+const animations = {
+  'campfire.json': { spritesheet: campfire, url: '/ai-town/assets/spritesheets/campfire.png' },
+  'gentlesparkle.json': {
+    spritesheet: gentlesparkle,
+    url: '/ai-town/assets/spritesheets/gentlesparkle32.png',
+  },
+  'gentlewaterfall.json': {
+    spritesheet: gentlewaterfall,
+    url: '/ai-town/assets/spritesheets/gentlewaterfall32.png',
+  },
+  'windmill.json': { spritesheet: windmill, url: '/ai-town/assets/spritesheets/windmill.png' },
+};
 
 export const PixiStaticMap = PixiComponent('StaticMap', {
   create: (props: { map: WorldMap; [k: string]: any }) => {
@@ -14,7 +31,7 @@ export const PixiStaticMap = PixiComponent('StaticMap', {
     const tiles = [];
     for (let x = 0; x < numytiles; x++) {
       for (let y = 0; y < numytiles; y++) {
-        tiles[x + y * numytiles] = new PIXI.Texture(
+        tiles[x + y * numxtiles] = new PIXI.Texture(
           bt,
           new PIXI.Rectangle(x * map.tileDim, y * map.tileDim, map.tileDim, map.tileDim),
         );
@@ -43,6 +60,46 @@ export const PixiStaticMap = PixiComponent('StaticMap', {
         ctile.y = yPx;
         container.addChild(ctile);
       }
+    }
+
+    // TODO: Add layers.
+    const spritesBySheet = new Map<string, AnimatedSprite[]>();
+    for (const sprite of map.animatedSprites) {
+      const sheet = sprite.sheet;
+      if (!spritesBySheet.has(sheet)) {
+        spritesBySheet.set(sheet, []);
+      }
+      spritesBySheet.get(sheet)!.push(sprite);
+    }
+    for (const [sheet, sprites] of spritesBySheet.entries()) {
+      const animation = (animations as any)[sheet];
+      if (!animation) {
+        console.error('Could not find animation', sheet);
+        continue;
+      }
+      const { spritesheet, url } = animation;
+      const texture = PIXI.BaseTexture.from(url, {
+        scaleMode: PIXI.SCALE_MODES.NEAREST,
+      });
+      const spriteSheet = new PIXI.Spritesheet(texture, spritesheet);
+      spriteSheet.parse().then(() => {
+        for (const sprite of sprites) {
+          const pixiAnimation = spriteSheet.animations[sprite.animation];
+          if (!pixiAnimation) {
+            console.error('Failed to load animation', sprite);
+            continue;
+          }
+          const pixiSprite = new PIXI.AnimatedSprite(pixiAnimation);
+          pixiSprite.animationSpeed = 0.1;
+          pixiSprite.autoUpdate = true;
+          pixiSprite.x = sprite.x;
+          pixiSprite.y = sprite.y;
+          pixiSprite.width = sprite.w;
+          pixiSprite.height = sprite.h;
+          container.addChild(pixiSprite);
+          pixiSprite.play();
+        }
+      });
     }
 
     container.x = 0;

@@ -1,0 +1,78 @@
+{
+  "frames": {
+    "pixels_large1.png": {
+      "frame": { "x": 0, "y": 0, "w": 208, "h": 208 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 208, "h": 208 },
+      "sourceSize": { "w": 208, "h": 208 }
+    },
+    "pixels_large2.png": {
+      "frame": { "x": 208, "y": 0, "w": 208, "h": 208 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 208, "h": 208 },
+      "sourceSize": { "w": 208, "h": 208 }
+    },
+    "pixels_large3.png": {
+      "frame": { "x": 416, "y": 0, "w": 208, "h": 208 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 208, "h": 208 },
+      "sourceSize": { "w": 208, "h": 208 }
+    },
+    "pixels_large4.png": {
+      "frame": { "x": 0, "y": 208, "w": 208, "h": 208 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 208, "h": 208 },
+      "sourceSize": { "w": 208, "h": 208 }
+    },
+    "pixels_large5.png": {
+      "frame": { "x": 208, "y": 208, "w": 208, "h": 208 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 208, "h": 208 },
+      "sourceSize": { "w": 208, "h": 208 }
+    },
+    "pixels_large6.png": {
+      "frame": { "x": 416, "y": 208, "w": 208, "h": 208 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 208, "h": 208 },
+      "sourceSize": { "w": 208, "h": 208 }
+    },
+    "pixels_large7.png": {
+      "frame": { "x": 0, "y": 416, "w": 208, "h": 208 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 208, "h": 208 },
+      "sourceSize": { "w": 208, "h": 208 }
+    },
+    "pixels_large8.png": {
+      "frame": { "x": 208, "y": 416, "w": 208, "h": 208 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 208, "h": 208 },
+      "sourceSize": { "w": 208, "h": 208 }
+    }
+  },
+  "animations": {
+    "pixels_large": [
+      "pixels_large1.png",
+      "pixels_large2.png",
+      "pixels_large3.png",
+      "pixels_large4.png",
+      "pixels_large5.png",
+      "pixels_large6.png",
+      "pixels_large7.png",
+      "pixels_large8.png"
+    ]
+  },
+  "meta": {
+    "image": "./spritesheets/windmill.png",
+    "format": "RGBA8888",
+    "size": { "w": 624, "h": 624 },
+    "scale": "1"
+  }
+}
