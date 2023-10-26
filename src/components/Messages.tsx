@@ -3,8 +3,9 @@ import { Doc, Id } from '../../convex/_generated/dataModel';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { MessageInput } from './MessageInput';
-import { ConversationDoc } from '../../convex/aiTown/conversation';
+import { ConversationDoc, ConversationMembership } from '../../convex/aiTown/conversation';
 import { Player } from '../../convex/aiTown/player';
+import { GameId } from '../../convex/aiTown/ids';
 
 export function Messages({
   worldId,
@@ -61,7 +62,9 @@ export function Messages({
 
   const membershipNodes: typeof messageNodes = [];
   if (conversation.kind === 'active') {
-    for (const [playerId, m] of Object.entries(conversation.doc.participants)) {
+    const participants: Record<GameId<'players'>, ConversationMembership> = conversation.doc
+      .participants;
+    for (const [playerId, m] of Object.entries(participants)) {
       const playerName = descriptions?.playerDescriptions.find((p) => p.playerId === playerId)
         ?.name;
       let started;

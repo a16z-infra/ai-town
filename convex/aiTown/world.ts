@@ -2,7 +2,6 @@ import { Infer, v } from 'convex/values';
 import { conversation } from './conversation';
 import { player } from './player';
 import { agent } from './agent';
-import { playerId } from './ids';
 
 export const worldFields = {
   nextId: v.number(),
@@ -10,7 +9,8 @@ export const worldFields = {
   players: v.array(player),
   agents: v.array(agent),
 
-  historicalLocations: v.optional(v.record(playerId, v.bytes())),
+  // v.optional(v.record(playerId, v.bytes()))
+  historicalLocations: v.optional(v.any()),
 };
 export const world = v.object(worldFields);
 export type World = Infer<typeof world>;

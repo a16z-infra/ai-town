@@ -22,6 +22,7 @@ import {
   parsePlayers,
   playerDescriptionFields,
   tickPathfinding,
+  tickPlayer,
   tickPosition,
 } from './player';
 import { Location, locationFields, playerLocation } from './location';
@@ -54,7 +55,8 @@ const gameStateDiff = v.object({
   agentDescriptions: v.optional(v.array(v.object(agentDescriptionFields))),
   worldMap: v.optional(worldMap),
   agentOperations: v.array(v.object({ name: v.string(), args: v.any() })),
-  historyBuffers: v.record(playerId, v.bytes()),
+  // v.record(playerId, v.bytes())
+  historyBuffers: v.any(),
 });
 type GameStateDiff = Infer<typeof gameStateDiff>;
 
@@ -140,12 +142,13 @@ export class Game extends AbstractGame {
     }
     // Discard the system fields and historicalLocations from the world state.
     const { _id, _creationTime, historicalLocations, ...world } = worldDoc;
-    const playerDescriptions = playerDescriptionsDocs.map(
-      ({ _id, _creationTime, worldId, ...doc }) => doc,
-    );
-    const agentDescriptions = agentDescriptionsDocs.map(
-      ({ _id, _creationTime, worldId, ...doc }) => doc,
-    );
+    const playerDescriptions = playerDescriptionsDocs
+      // Discard player descriptions for players that no longer exist.
+      .filter((d) => !!world.players.find((p) => p.id === d.playerId))
+      .map(({ _id, _creationTime, worldId, ...doc }) => doc);
+    const agentDescriptions = agentDescriptionsDocs
+      .filter((a) => !!world.agents.find((p) => p.id === a.agentId))
+      .map(({ _id, _creationTime, worldId, ...doc }) => doc);
     const {
       _id: mapId,
       _creationTime: mapCreationTime,
@@ -197,6 +200,9 @@ export class Game extends AbstractGame {
   }
 
   tick(now: number) {
+    for (const player of this.players.values()) {
+      tickPlayer(this, now, player);
+    }
     for (const player of this.players.values()) {
       tickPathfinding(this, now, player);
     }

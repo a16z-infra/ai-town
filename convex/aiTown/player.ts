@@ -2,7 +2,7 @@ import { Infer, v } from 'convex/values';
 import { Point, Vector, path, point, vector } from '../util/types';
 import { GameId, parseGameId } from './ids';
 import { playerId } from './ids';
-import { PATHFINDING_TIMEOUT, PATHFINDING_BACKOFF } from '../constants';
+import { PATHFINDING_TIMEOUT, PATHFINDING_BACKOFF, HUMAN_IDLE_TOO_LONG } from '../constants';
 import { pointsEqual, pathPosition } from '../util/geometry';
 import { Game } from './game';
 import { stopPlayer, findRoute, blocked, movePlayer } from './movement';
@@ -42,6 +42,9 @@ export const playerFields = {
   pathfinding: v.optional(pathfinding),
   activity: v.optional(activity),
 
+  // The last time they did something.
+  lastInput: v.number(),
+
   position: point,
   facing: vector,
   speed: v.number(),
@@ -53,6 +56,8 @@ export type Player = {
   human?: string;
   pathfinding?: Pathfinding;
   activity?: Activity;
+
+  lastInput: number;
 
   position: Point;
   facing: Vector;
@@ -75,10 +80,11 @@ export type PlayerDescription = {
 };
 
 function parsePlayer(player: PlayerDoc, nextId: number): Player {
-  const { id, human, pathfinding, activity, position, facing, speed } = player;
+  const { id, human, lastInput, pathfinding, activity, position, facing, speed } = player;
   return {
     id: parseGameId('players', id, nextId),
     human,
+    lastInput,
     pathfinding,
     activity,
     position,
@@ -122,6 +128,12 @@ export function parsePlayerDescriptions(
     });
   }
   return result;
+}
+
+export function tickPlayer(game: Game, now: number, player: Player) {
+  if (player.human && player.lastInput < now - HUMAN_IDLE_TOO_LONG) {
+    leaveGame(game, now, player);
+  }
 }
 
 export function tickPathfinding(game: Game, now: number, player: Player) {
@@ -235,6 +247,7 @@ export function joinGame(
   game.players.set(playerId, {
     id: playerId,
     human: tokenIdentifier,
+    lastInput: now,
     position,
     facing,
     speed: 0,

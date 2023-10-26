@@ -65,8 +65,7 @@ export default function PlayerDetails({
     return null;
   }
   const isMe = humanPlayerId && playerId === humanPlayerId;
-  const canInvite =
-    !isMe && playerConversation === null && humanPlayer && humanConversation === null;
+  const canInvite = !isMe && !playerConversation && humanPlayer && !humanConversation;
   const sameConversation =
     !isMe &&
     humanPlayer &&

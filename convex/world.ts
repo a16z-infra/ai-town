@@ -1,4 +1,4 @@
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 import { internalMutation, mutation, query } from './_generated/server';
 import { characters } from '../data/characters';
 import { insertInput } from './aiTown/inputs';
@@ -80,14 +80,14 @@ export const joinWorld = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error(`Not logged in`);
+      throw new ConvexError(`Not logged in`);
     }
     if (!identity.givenName) {
-      throw new Error(`Missing givenName on ${JSON.stringify(identity)}`);
+      throw new ConvexError(`Missing givenName on ${JSON.stringify(identity)}`);
     }
     const world = await ctx.db.get(args.worldId);
     if (!world) {
-      throw new Error(`Invalid world ID: ${args.worldId}`);
+      throw new ConvexError(`Invalid world ID: ${args.worldId}`);
     }
     const { tokenIdentifier } = identity;
     await insertInput(ctx, world._id, 'join', {

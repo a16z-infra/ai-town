@@ -38,7 +38,8 @@ export const conversationFields = {
     }),
   ),
   numMessages: v.number(),
-  participants: v.record(playerId, conversationMembership),
+  // v.record(playerId, conversationMembership)
+  participants: v.any(),
 };
 export const conversation = v.object(conversationFields);
 export type ConversationDoc = Infer<typeof conversation>;
@@ -71,7 +72,7 @@ function parseConversation(
     if (!players.has(id)) {
       throw new Error(`Invalid player ID ${id}`);
     }
-    participants.set(id, membership);
+    participants.set(id, membership as ConversationMembership);
   }
   let isTyping;
   if (conversation.isTyping) {

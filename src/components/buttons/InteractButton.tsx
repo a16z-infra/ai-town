@@ -18,7 +18,7 @@ export default function InteractButton() {
   const isPlaying = !!userPlayerId;
 
   const joinOrLeaveGame = () => {
-    if (!worldId || !isAuthenticated || userPlayerId === undefined) {
+    if (!worldId || !isAuthenticated || gameState === undefined) {
       return;
     }
     if (isPlaying) {
@@ -33,7 +33,7 @@ export default function InteractButton() {
       });
     }
   };
-  if (!isAuthenticated || userPlayerId === undefined) {
+  if (!isAuthenticated || gameState === undefined) {
     return (
       <SignInButton>
         <button className="button text-white shadow-solid text-2xl pointer-events-auto">
