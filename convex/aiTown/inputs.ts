@@ -3,7 +3,8 @@ import { playerInputs } from './player';
 import { conversationInputs } from './conversation';
 import { agentInputs } from './agentInputs';
 
-// It's easy to hit circular dependencies with these imports
+// It's easy to hit circular dependencies with these imports,
+// so assert at module scope so we hit errors when analyzing.
 if (playerInputs === undefined || conversationInputs === undefined || agentInputs === undefined) {
   throw new Error("Input map is undefined, check if there's a circular import.");
 }
