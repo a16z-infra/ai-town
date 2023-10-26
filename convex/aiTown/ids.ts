@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 
-const IdShortCodes = { agents: 'a', conversations: 'c', players: 'p' };
+const IdShortCodes = { agents: 'a', conversations: 'c', players: 'p', operations: 'o' };
 export type IdTypes = keyof typeof IdShortCodes;
 
 export type GameId<T extends IdTypes> = string & { __type: T };
@@ -29,3 +29,4 @@ export function allocGameId<T extends IdTypes>(idType: T, idNumber: number): Gam
 export const conversationId = v.string();
 export const playerId = v.string();
 export const agentId = v.string();
+export const operationId = v.string();

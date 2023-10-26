@@ -246,7 +246,7 @@ export class Agent {
         `Agent ${this.id} already has an operation: ${JSON.stringify(this.inProgressOperation)}`,
       );
     }
-    const operationId = crypto.randomUUID();
+    const operationId = game.allocId('operations');
     console.log(`Agent ${this.id} starting operation ${name} (${operationId})`);
     game.scheduleOperation(name, { operationId, ...args } as any);
     this.inProgressOperation = {
@@ -284,11 +284,7 @@ export const serializedAgent = {
 };
 export type SerializedAgent = ObjectType<typeof serializedAgent>;
 
-type AgentOperations = {
-  agentRememberConversation: typeof internal.aiTown.agentOperations.agentRememberConversation;
-  agentGenerateMessage: typeof internal.aiTown.agentOperations.agentGenerateMessage;
-  agentDoSomething: typeof internal.aiTown.agentOperations.agentDoSomething;
-};
+type AgentOperations = typeof internal.aiTown.agentOperations;
 
 export async function runAgentOperation(ctx: MutationCtx, operation: string, args: any) {
   let reference;

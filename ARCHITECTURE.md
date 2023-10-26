@@ -56,22 +56,13 @@ AI Town's data model has a few concepts:
 
 ### Schema
 
-To keep the game state small and efficient to read and write, we store this data model across a few tables.
+There are three main categories of tables:
 
-- `worlds`: This table has a single document that stores all players, conversations, and agents. This
-  data is small and changes regularly over time.
-- `worldStatus`: Worlds can be started or stopped by the developer or paused for inactivity, and this
-  infrequently changing document tracks this world state.
-- `maps`: This table contains the map data for a given world. Since it's a bit larger than the player
-  state and infrequently changes, we store it in a separate table.
-- `playerDescriptions` and `agentDescriptions`: Human readable text describing players and agents that's
-  stored in separate tables, just like `maps`.
-- `archivedPlayers`, `archivedConversations`, `archivedAgents`: The game engine doesn't want to track
-  players that have left or conversations that are over, since it wants to keep its managed state small.
-  However, we may want to look at old conversations in the UI or from the agent code. So, whenever we
-  delete an entry from within the world's document, we "archive" it within these tables.
-- `participatedTogether`: The agent layer wants to know what the last conversation was between two players,
-  so this table represent a labelled graph indicating which players have talked to each other.
+1. Engine tables (`convex/engine/schema.ts`) for maintaining engine-internal state.
+2. Game tables (`convex/aiTown/schema.ts`) for game state. To keep game state small and efficient to
+   read and write, we store AI Town's data model across a few tables. See `convex/aiTown/schema.ts` for an overview.
+3. Agent tables (`convex/agent/schema.ts`) for agent state. Agents can freely read and write to these tables
+   within their actions.
 
 ### Inputs (`convex/aiTown/inputs.ts`)
 

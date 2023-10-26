@@ -1,5 +1,3 @@
-import { WithoutSystemFields } from 'convex/server';
-import { Doc, TableNames } from '../../convex/_generated/dataModel';
 import { FieldConfig, History, unpackSampleRecord } from '../../convex/engine/historicalObject';
 import { useMemo, useRef } from 'react';
 
@@ -29,10 +27,7 @@ export function useHistoricalValue<T extends Record<string, number>>(
     return value;
   }
   const historicalFields = manager.current.query(historicalTime);
-  for (const [fieldName, historicalValue] of Object.entries(historicalFields)) {
-    (value as any)[fieldName] = historicalValue;
-  }
-  return value;
+  return { ...value, ...historicalFields };
 }
 
 class HistoryManager {
