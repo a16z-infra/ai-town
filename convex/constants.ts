@@ -63,3 +63,5 @@ export const ACTIVITIES = [
   { description: 'daydreaming', emoji: '🤔', duration: 60_000 },
   { description: 'gardening', emoji: '🥕', duration: 60_000 },
 ];
+
+export const ENGINE_ACTION_DURATION = 30000;

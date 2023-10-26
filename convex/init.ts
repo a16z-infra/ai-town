@@ -5,7 +5,8 @@ import { Descriptions } from '../data/characters';
 import * as firstmap from '../data/firstmap';
 import { insertInput } from './aiTown/insertInput';
 import { Doc, Id } from './_generated/dataModel';
-import { ENGINE_ACTION_DURATION, createEngine } from './aiTown/main';
+import { createEngine } from './aiTown/main';
+import { ENGINE_ACTION_DURATION } from './constants';
 
 const init = mutation({
   args: {

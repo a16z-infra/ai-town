@@ -5,8 +5,7 @@ import { Game } from './game';
 import { internal } from '../_generated/api';
 import { sleep } from '../util/sleep';
 import { Id } from '../_generated/dataModel';
-
-export const ENGINE_ACTION_DURATION = 2000;
+import { ENGINE_ACTION_DURATION } from '../constants';
 
 export async function createEngine(ctx: MutationCtx) {
   const now = Date.now();
