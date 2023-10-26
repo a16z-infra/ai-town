@@ -2,29 +2,39 @@
 
 import { v } from 'convex/values';
 import { internalAction } from '../_generated/server';
-import { api, internal } from '../_generated/api';
+import { WorldMap, serializedWorldMap } from './worldMap';
 import { rememberConversation } from '../agent/memory';
+import { GameId, agentId, conversationId, playerId } from './ids';
 import {
-  startConversationMessage,
   continueConversationMessage,
   leaveConversationMessage,
+  startConversationMessage,
 } from '../agent/conversation';
 import { assertNever } from '../util/assertNever';
-import { ACTIVITIES } from './agents';
-import { CONVERSATION_COOLDOWN, ACTIVITY_COOLDOWN } from '../constants';
-import { Doc } from '../_generated/dataModel';
+import { serializedAgent } from './agent';
+import { ACTIVITIES, ACTIVITY_COOLDOWN, CONVERSATION_COOLDOWN } from '../constants';
+import { api, internal } from '../_generated/api';
+import { sleep } from '../util/sleep';
+import { serializedPlayer } from './player';
 
 export const agentRememberConversation = internalAction({
   args: {
     worldId: v.id('worlds'),
-    playerId: v.id('players'),
-    agentId: v.id('agents'),
-    conversationId: v.id('conversations'),
+    playerId,
+    agentId,
+    conversationId,
     operationId: v.string(),
   },
   handler: async (ctx, args) => {
-    await rememberConversation(ctx, args.agentId, args.playerId, args.conversationId);
-    await ctx.runMutation(api.game.main.sendInput, {
+    await rememberConversation(
+      ctx,
+      args.worldId,
+      args.agentId as GameId<'agents'>,
+      args.playerId as GameId<'players'>,
+      args.conversationId as GameId<'conversations'>,
+    );
+    await sleep(Math.random() * 1000);
+    await ctx.runMutation(api.aiTown.main.sendInput, {
       worldId: args.worldId,
       name: 'finishRememberConversation',
       args: {
@@ -38,14 +48,13 @@ export const agentRememberConversation = internalAction({
 export const agentGenerateMessage = internalAction({
   args: {
     worldId: v.id('worlds'),
-    conversationId: v.id('conversations'),
-    agentId: v.id('agents'),
-    playerId: v.id('players'),
-    otherPlayerId: v.id('players'),
-
+    playerId,
+    agentId,
+    conversationId,
+    otherPlayerId: playerId,
+    operationId: v.string(),
     type: v.union(v.literal('start'), v.literal('continue'), v.literal('leave')),
     messageUuid: v.string(),
-    operationId: v.string(),
   },
   handler: async (ctx, args) => {
     let completionFn;
@@ -64,17 +73,19 @@ export const agentGenerateMessage = internalAction({
     }
     const completion = await completionFn(
       ctx,
-      args.conversationId,
-      args.playerId,
-      args.otherPlayerId,
+      args.worldId,
+      args.conversationId as GameId<'conversations'>,
+      args.playerId as GameId<'players'>,
+      args.otherPlayerId as GameId<'players'>,
     );
     const text = await completion.readAll();
-    await ctx.runMutation(internal.game.agents.agentSendMessage, {
+    await ctx.runMutation(internal.aiTown.agent.agentSendMessage, {
       worldId: args.worldId,
       conversationId: args.conversationId,
       agentId: args.agentId,
-      messageUuid: args.messageUuid,
+      playerId: args.playerId,
       text,
+      messageUuid: args.messageUuid,
       leaveConversation: args.type === 'leave',
       operationId: args.operationId,
     });
@@ -84,35 +95,33 @@ export const agentGenerateMessage = internalAction({
 export const agentDoSomething = internalAction({
   args: {
     worldId: v.id('worlds'),
-    playerId: v.id('players'),
-    agentId: v.id('agents'),
+    player: v.object(serializedPlayer),
+    agent: v.object(serializedAgent),
+    map: v.object(serializedWorldMap),
+    otherFreePlayers: v.array(v.object(serializedPlayer)),
     operationId: v.string(),
   },
   handler: async (ctx, args) => {
+    const { player, agent } = args;
+    const map = new WorldMap(args.map);
     const now = Date.now();
-    const { player, agent, map } = await ctx.runQuery(internal.game.agents.fetchAgent, {
-      playerId: args.playerId,
-      agentId: args.agentId,
-    });
     // Don't try to start a new conversation if we were just in one.
     const justLeftConversation =
       agent.lastConversation && now < agent.lastConversation + CONVERSATION_COOLDOWN;
-
     // Don't try again if we recently tried to find someone to invite.
     const recentlyAttemptedInvite =
       agent.lastInviteAttempt && now < agent.lastInviteAttempt + CONVERSATION_COOLDOWN;
-
     const recentActivity = player.activity && now < player.activity.until + ACTIVITY_COOLDOWN;
-
     // Decide whether to do an activity or wander somewhere.
     if (!player.pathfinding) {
       if (recentActivity || justLeftConversation) {
-        await ctx.runMutation(api.game.main.sendInput, {
+        await sleep(Math.random() * 1000);
+        await ctx.runMutation(api.aiTown.main.sendInput, {
           worldId: args.worldId,
           name: 'finishDoSomething',
           args: {
             operationId: args.operationId,
-            agentId: args.agentId,
+            agentId: agent.id,
             destination: wanderDestination(map),
           },
         });
@@ -120,12 +129,13 @@ export const agentDoSomething = internalAction({
       } else {
         // TODO: have LLM choose the activity & emoji
         const activity = ACTIVITIES[Math.floor(Math.random() * ACTIVITIES.length)];
-        await ctx.runMutation(api.game.main.sendInput, {
+        await sleep(Math.random() * 1000);
+        await ctx.runMutation(api.aiTown.main.sendInput, {
           worldId: args.worldId,
           name: 'finishDoSomething',
           args: {
             operationId: args.operationId,
-            agentId: args.agentId,
+            agentId: agent.id,
             activity: {
               description: activity.description,
               emoji: activity.emoji,
@@ -136,33 +146,35 @@ export const agentDoSomething = internalAction({
         return;
       }
     }
-
     const invitee =
       justLeftConversation || recentlyAttemptedInvite
         ? undefined
-        : await ctx.runQuery(internal.game.agents.findConversationCandidate, {
-            playerId: player._id,
-            locationId: player.locationId,
-            worldId: args.worldId,
+        : await ctx.runQuery(internal.aiTown.agent.findConversationCandidate, {
             now,
+            worldId: args.worldId,
+            player: args.player,
+            otherFreePlayers: args.otherFreePlayers,
           });
 
-    await ctx.runMutation(api.game.main.sendInput, {
+    // TODO: We hit a lot of OCC errors on sending inputs in this file. It's
+    // easy for them to get scheduled at the same time and line up in time.
+    await sleep(Math.random() * 1000);
+    await ctx.runMutation(api.aiTown.main.sendInput, {
       worldId: args.worldId,
       name: 'finishDoSomething',
       args: {
         operationId: args.operationId,
-        agentId: args.agentId,
+        agentId: args.agent.id,
         invitee,
       },
     });
   },
 });
 
-function wanderDestination(map: Doc<'maps'>) {
+function wanderDestination(worldMap: WorldMap) {
   // Wander someonewhere at least one tile away from the edge.
   return {
-    x: 1 + Math.floor(Math.random() * (map.width - 2)),
-    y: 1 + Math.floor(Math.random() * (map.height - 2)),
+    x: 1 + Math.floor(Math.random() * (worldMap.width - 2)),
+    y: 1 + Math.floor(Math.random() * (worldMap.height - 2)),
   };
 }

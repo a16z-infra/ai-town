@@ -1,4 +1,4 @@
-import { Path, Point, Vector } from './types';
+import { Path, PathComponent, Point, Vector, packPathComponent, queryPath } from './types';
 
 export function distance(p0: Point, p1: Point): number {
   const dx = p0.x - p1.x;
@@ -18,7 +18,9 @@ export function pathOverlaps(path: Path, time: number): boolean {
   if (path.length < 2) {
     throw new Error(`Invalid path: ${JSON.stringify(path)}`);
   }
-  return path.at(0)!.t <= time && time <= path.at(-1)!.t;
+  const start = queryPath(path, 0);
+  const end = queryPath(path, path.length - 1);
+  return start.t <= time && time <= end.t;
 }
 
 export function pathPosition(
@@ -28,17 +30,17 @@ export function pathPosition(
   if (path.length < 2) {
     throw new Error(`Invalid path: ${JSON.stringify(path)}`);
   }
-  const first = path[0];
+  const first = queryPath(path, 0);
   if (time < first.t) {
     return { position: first.position, facing: first.facing, velocity: 0 };
   }
-  const last = path[path.length - 1];
+  const last = queryPath(path, path.length - 1);
   if (last.t < time) {
     return { position: last.position, facing: last.facing, velocity: 0 };
   }
   for (let i = 0; i < path.length - 1; i++) {
-    const segmentStart = path[i];
-    const segmentEnd = path[i + 1];
+    const segmentStart = queryPath(path, i);
+    const segmentEnd = queryPath(path, i + 1);
     if (segmentStart.t <= time && time <= segmentEnd.t) {
       const interp = (time - segmentStart.t) / (segmentEnd.t - segmentStart.t);
       return {
@@ -63,12 +65,16 @@ export function vector(p0: Point, p1: Point): Vector {
   return { dx, dy };
 }
 
+export function vectorLength(vector: Vector): number {
+  return Math.sqrt(vector.dx * vector.dx + vector.dy * vector.dy);
+}
+
 export function normalize(vector: Vector): Vector | null {
-  const { dx, dy } = vector;
-  const len = Math.sqrt(dx * dx + dy * dy);
+  const len = vectorLength(vector);
   if (len < EPSILON) {
     return null;
   }
+  const { dx, dy } = vector;
   return {
     dx: dx / len,
     dy: dy / len,
@@ -82,4 +88,45 @@ export function orientationDegrees(vector: Vector): number {
   const twoPi = 2 * Math.PI;
   const radians = (Math.atan2(vector.dy, vector.dx) + twoPi) % twoPi;
   return (radians / twoPi) * 360;
+}
+
+export function compressPath(densePath: PathComponent[]): Path {
+  const packed = densePath.map(packPathComponent);
+  if (densePath.length <= 2) {
+    return densePath.map(packPathComponent);
+  }
+  const out = [packPathComponent(densePath[0])];
+  let last = densePath[0];
+  let candidate;
+  for (const point of densePath.slice(1)) {
+    if (!candidate) {
+      candidate = point;
+      continue;
+    }
+    // We can skip `candidate` if it interpolates cleanly between
+    // `last` and `point`.
+    const { position, facing } = pathPosition(
+      [packPathComponent(last), packPathComponent(point)],
+      candidate.t,
+    );
+    const positionCloseEnough = distance(position, candidate.position) < EPSILON;
+    const facingDifference = {
+      dx: facing.dx - candidate.facing.dx,
+      dy: facing.dy - candidate.facing.dy,
+    };
+    const facingCloseEnough = vectorLength(facingDifference) < EPSILON;
+
+    if (positionCloseEnough && facingCloseEnough) {
+      candidate = point;
+      continue;
+    }
+
+    out.push(packPathComponent(candidate));
+    last = candidate;
+    candidate = point;
+  }
+  if (candidate) {
+    out.push(packPathComponent(candidate));
+  }
+  return out;
 }

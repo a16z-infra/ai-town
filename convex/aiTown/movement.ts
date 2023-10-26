@@ -1,10 +1,12 @@
-import { Doc, Id } from '../_generated/dataModel';
 import { movementSpeed } from '../../data/characters';
 import { COLLISION_THRESHOLD } from '../constants';
-import { Point, Vector } from '../util/types';
-import { distance, manhattanDistance, pointsEqual } from '../util/geometry';
+import { compressPath, distance, manhattanDistance, pointsEqual } from '../util/geometry';
 import { MinHeap } from '../util/minheap';
-import { AiTown } from './aiTown';
+import { Point, Vector } from '../util/types';
+import { Game } from './game';
+import { GameId } from './ids';
+import { Player } from './player';
+import { WorldMap } from './worldMap';
 
 type PathCandidate = {
   position: Point;
@@ -15,36 +17,31 @@ type PathCandidate = {
   prev?: PathCandidate;
 };
 
-export function stopPlayer(game: AiTown, now: number, playerId: Id<'players'>) {
-  const player = game.players.lookup(playerId);
-  const location = game.locations.lookup(now, player.locationId);
+export function stopPlayer(player: Player) {
   delete player.pathfinding;
-  location.velocity = 0;
+  player.speed = 0;
 }
 
 export function movePlayer(
-  game: AiTown,
+  game: Game,
   now: number,
-  playerId: Id<'players'>,
+  player: Player,
   destination: Point,
   allowInConversation?: boolean,
 ) {
-  const player = game.players.lookup(playerId);
-  const location = game.locations.lookup(now, player.locationId);
   if (Math.floor(destination.x) !== destination.x || Math.floor(destination.y) !== destination.y) {
     throw new Error(`Non-integral destination: ${JSON.stringify(destination)}`);
   }
-
-  const position = { x: location.x, y: location.y };
+  const { position } = player;
   // Close enough to current position or destination => no-op.
   if (pointsEqual(position, destination)) {
     return;
   }
   // Don't allow players in a conversation to move.
-  const member = game.conversationMembers.find(
-    (m) => m.playerId === playerId && m.status.kind === 'participating',
+  const inConversation = [...game.world.conversations.values()].some(
+    (c) => c.participants.get(player.id)?.status.kind === 'participating',
   );
-  if (member && !allowInConversation) {
+  if (inConversation && !allowInConversation) {
     throw new Error(`Can't move when in a conversation. Leave the conversation first!`);
   }
   player.pathfinding = {
@@ -57,7 +54,7 @@ export function movePlayer(
   return;
 }
 
-export function findRoute(game: AiTown, now: number, player: Doc<'players'>, destination: Point) {
+export function findRoute(game: Game, now: number, player: Player, destination: Point) {
   const minDistances: PathCandidate[][] = [];
   const explore = (current: PathCandidate): Array<PathCandidate> => {
     const { x, y } = current.position;
@@ -93,7 +90,7 @@ export function findRoute(game: AiTown, now: number, player: Doc<'players'>, des
     for (const { position, facing } of neighbors) {
       const segmentLength = distance(current.position, position);
       const length = current.length + segmentLength;
-      if (blocked(game, now, position, player._id)) {
+      if (blocked(game, now, position, player.id)) {
         continue;
       }
       const remaining = manhattanDistance(position, destination);
@@ -117,11 +114,11 @@ export function findRoute(game: AiTown, now: number, player: Doc<'players'>, des
     return next;
   };
 
-  const startingLocation = game.locations.lookup(now, player.locationId);
+  const startingLocation = player.position;
   const startingPosition = { x: startingLocation.x, y: startingLocation.y };
   let current: PathCandidate | undefined = {
     position: startingPosition,
-    facing: { dx: startingLocation.dx, dy: startingLocation.dy },
+    facing: player.facing,
     t: now,
     length: 0,
     cost: manhattanDistance(startingPosition, destination),
@@ -161,18 +158,17 @@ export function findRoute(game: AiTown, now: number, player: Doc<'players'>, des
   }
   densePath.reverse();
 
-  return { path: densePath, newDestination };
+  return { path: compressPath(densePath), newDestination };
 }
 
-export function blocked(game: AiTown, now: number, pos: Point, playerId?: Id<'players'>) {
-  const otherPositions = game.players
-    .allDocuments()
-    .filter((p) => p._id !== playerId)
-    .map((p) => game.locations.lookup(now, p.locationId));
-  return blockedWithPositions(pos, otherPositions, game.map);
+export function blocked(game: Game, now: number, pos: Point, playerId?: GameId<'players'>) {
+  const otherPositions = [...game.world.players.values()]
+    .filter((p) => p.id !== playerId)
+    .map((p) => p.position);
+  return blockedWithPositions(pos, otherPositions, game.worldMap);
 }
 
-export function blockedWithPositions(position: Point, otherPositions: Point[], map: Doc<'maps'>) {
+export function blockedWithPositions(position: Point, otherPositions: Point[], map: WorldMap) {
   if (isNaN(position.x) || isNaN(position.y)) {
     throw new Error(`NaN position in ${JSON.stringify(position)}`);
   }

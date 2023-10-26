@@ -4,7 +4,7 @@ import Button from './buttons/Button';
 
 export default function FreezeButton() {
   const stopAllowed = useQuery(api.testing.stopAllowed) ?? false;
-  const defaultWorld = useQuery(api.world.defaultWorld);
+  const defaultWorld = useQuery(api.world.defaultWorldStatus);
 
   const frozen = defaultWorld?.status === 'stoppedByDeveloper';
 
@@ -17,7 +17,7 @@ export default function FreezeButton() {
       await unfreeze();
     } else {
       console.log('Freezing');
-      await freeze(); 
+      await freeze();
     }
   };
 
