@@ -20,6 +20,7 @@ import { FunctionReference, OptionalRestArgs } from 'convex/server';
 import { api } from '../../convex/_generated/api';
 import { useQuery, useMutation } from 'convex/react';
 import { GenericId } from 'convex/values';
+import { useSessionStorage } from 'usehooks-ts';
 
 export const { SessionProvider, useSessionMutation, useSessionQuery } = makeUseSessionHooks(
   api.auth.createOrValidateSession,
@@ -71,16 +72,17 @@ export function makeUseSessionHooks<SessionId extends GenericId<any>>(
       // If it's rendering in SSR or such.
       typeof window === 'undefined' ? null : window[storageLocation ?? 'sessionStorage'];
     const storeKey = storageKey ?? 'convex-session-id';
-    const [sessionId, setSession] = useState<SessionId | null>(null);
+    const [sessionId, setSession] = useSessionStorage<SessionId | null>(storeKey, null);
+    const [validated, setValidated] = useState(false);
     const createOrValidate = useMutation(createOrValidateSession);
 
     // Get or set the ID from our desired storage location.
     useEffect(() => {
-      const stored = store?.getItem(storeKey) ?? null;
-      createOrValidate({ sessionId: stored }).then((sessionId) => {
-        setSession(sessionId);
-        if (sessionId !== stored) {
-          store?.setItem(storeKey, sessionId);
+      createOrValidate({ sessionId }).then((validId) => {
+        setValidated(true);
+        if (validId !== sessionId) {
+          setSession(validId);
+          store?.setItem(storeKey, validId);
         }
       });
     }, [createOrValidate, store]);
@@ -88,7 +90,7 @@ export function makeUseSessionHooks<SessionId extends GenericId<any>>(
     return React.createElement(
       SessionContext.Provider,
       { value: sessionId },
-      waitForSessionId && !sessionId ? null : children,
+      waitForSessionId && !validated ? null : children,
     );
   };
 
