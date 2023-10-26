@@ -23,7 +23,7 @@ export default function ConvexClientProvider({ children }: { children: ReactNode
   // and we don't want to have them both inventing sessionIds for themselves.
   return (
     <ConvexProvider client={convex}>
-      <SessionProvider>{children}</SessionProvider>
+      <SessionProvider waitForSessionId>{children}</SessionProvider>
     </ConvexProvider>
   );
 }

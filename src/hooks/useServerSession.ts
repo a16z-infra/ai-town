@@ -64,8 +64,9 @@ export function makeUseSessionHooks<SessionId extends GenericId<any>>(
    * To be used with useSessionQuery and useSessionMutation.
    */
   const SessionProvider: React.FC<{
+    waitForSessionId?: boolean;
     children?: React.ReactNode;
-  }> = ({ children }) => {
+  }> = ({ waitForSessionId, children }) => {
     const store =
       // If it's rendering in SSR or such.
       typeof window === 'undefined' ? null : window[storageLocation ?? 'sessionStorage'];
@@ -84,7 +85,11 @@ export function makeUseSessionHooks<SessionId extends GenericId<any>>(
       });
     }, [createOrValidate, store]);
 
-    return React.createElement(SessionContext.Provider, { value: sessionId }, children);
+    return React.createElement(
+      SessionContext.Provider,
+      { value: sessionId },
+      waitForSessionId && !sessionId ? null : children,
+    );
   };
 
   // Like useQuery, but for a Query that takes a session ID.
