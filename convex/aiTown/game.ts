@@ -7,7 +7,7 @@ import {
   internalMutation,
   internalQuery,
 } from '../_generated/server';
-import { World, historicalLocations, serializedWorld } from './world';
+import { World, serializedWorld } from './world';
 import { WorldMap, serializedWorldMap } from './worldMap';
 import { PlayerDescription, serializedPlayerDescription } from './playerDescription';
 import { Location, locationFields, playerLocation } from './location';
