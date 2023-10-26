@@ -32,7 +32,6 @@ export default function Game() {
   useWorldHeartbeat();
 
   const worldState = useQuery(api.world.worldState, worldId ? { worldId } : 'skip');
-  const descriptions = useQuery(api.world.gameDescriptions, worldId ? { worldId } : 'skip');
   const { historicalTime, timeManager } = useHistoricalTime(worldState?.engine);
 
   if (!worldId || !engineId || !game) {
