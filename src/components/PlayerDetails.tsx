@@ -8,46 +8,42 @@ import { toastOnError } from '../toasts';
 import { useSendInput } from '../hooks/sendInput';
 import { Player } from '../../convex/aiTown/player';
 import { GameId } from '../../convex/aiTown/ids';
+import { ServerGame } from '../hooks/serverGame';
 
 export default function PlayerDetails({
   worldId,
+  game,
   playerId,
   setSelectedElement,
 }: {
   worldId: Id<'worlds'>;
+  game: ServerGame;
   playerId?: GameId<'players'>;
   setSelectedElement: SelectElement;
 }) {
   const humanTokenIdentifier = useQuery(api.world.userStatus, { worldId });
-  const gameState = useQuery(api.world.gameState, { worldId });
   const descriptions = useQuery(api.world.gameDescriptions, { worldId });
-  const humanPlayerId = gameState?.world.players.find((p) => p.human === humanTokenIdentifier)?.id;
 
-  const players = (gameState?.world.players ?? []) as Player[];
-
-  const humanConversation = humanPlayerId
-    ? gameState.world.conversations.find((c) => humanPlayerId in c.participants)
-    : undefined;
+  const players = [...game.world.players.values()];
+  const humanPlayer = players.find((p) => p.human === humanTokenIdentifier);
+  const humanConversation = humanPlayer ? game.world.playerConversation(humanPlayer) : undefined;
   // Always select the other player if we're in a conversation with them.
-  if (humanConversation) {
-    const otherPlayerIds = Object.keys(humanConversation.participants).filter(
-      (p) => p !== humanPlayerId,
+  if (humanPlayer && humanConversation) {
+    const otherPlayerIds = [...humanConversation.participants.keys()].filter(
+      (p) => p !== humanPlayer.id,
     );
-    playerId = otherPlayerIds[0] as GameId<'players'>;
+    playerId = otherPlayerIds[0];
   }
 
-  const playerConversation = playerId
-    ? gameState?.world.conversations.find((c) => playerId! in c.participants)
-    : undefined;
+  const player = playerId && game.world.players.get(playerId);
+  const playerConversation = player && game.world.playerConversation(player);
 
   const previousConversation = useQuery(
     api.world.previousConversation,
     playerId ? { worldId, playerId } : 'skip',
   );
 
-  const player = players.find((p) => p.id === playerId);
-  const playerDescription = descriptions?.playerDescriptions.find((p) => p.playerId === playerId);
-  const humanPlayer = players.find((p) => p.id === humanPlayerId);
+  const playerDescription = playerId && game.playerDescriptions.get(playerId);
 
   const startConversation = useSendInput(worldId, 'startConversation');
   const acceptInvite = useSendInput(worldId, 'acceptInvite');
@@ -61,10 +57,10 @@ export default function PlayerDetails({
       </div>
     );
   }
-  if (gameState === undefined || !player) {
+  if (!player) {
     return null;
   }
-  const isMe = humanPlayerId && playerId === humanPlayerId;
+  const isMe = humanPlayer && player.id === humanPlayer.id;
   const canInvite = !isMe && !playerConversation && humanPlayer && !humanConversation;
   const sameConversation =
     !isMe &&
@@ -73,12 +69,13 @@ export default function PlayerDetails({
     playerConversation &&
     humanConversation.id === playerConversation.id;
 
-  const humanStatus = humanConversation && humanConversation.participants[humanPlayerId!].status;
-  const playerStatus = playerConversation && playerConversation.participants[playerId].status;
+  const humanStatus =
+    humanPlayer && humanConversation && humanConversation.participants.get(humanPlayer.id)?.status;
+  const playerStatus = playerConversation && playerConversation.participants.get(playerId)?.status;
 
   const haveInvite = sameConversation && humanStatus?.kind === 'invited';
   const waitingForAccept =
-    sameConversation && playerConversation.participants[playerId].status.kind === 'invited';
+    sameConversation && playerConversation.participants.get(playerId)?.status.kind === 'invited';
   const waitingForNearby =
     sameConversation && playerStatus?.kind === 'walkingOver' && humanStatus?.kind === 'walkingOver';
 
@@ -88,44 +85,41 @@ export default function PlayerDetails({
     humanStatus?.kind === 'participating';
 
   const onStartConversation = async () => {
-    if (!humanPlayerId || !playerId) {
+    if (!humanPlayer || !playerId) {
       return;
     }
     console.log(`Starting conversation`);
-    await toastOnError(startConversation({ playerId: humanPlayerId, invitee: playerId }));
+    await toastOnError(startConversation({ playerId: humanPlayer.id, invitee: playerId }));
   };
   const onAcceptInvite = async () => {
-    if (!humanPlayerId || !playerId) {
-      return;
-    }
-    if (!humanPlayer || !humanConversation) {
+    if (!humanPlayer || !humanConversation || !playerId) {
       return;
     }
     await toastOnError(
       acceptInvite({
-        playerId: humanPlayerId,
+        playerId: humanPlayer.id,
         conversationId: humanConversation.id,
       }),
     );
   };
   const onRejectInvite = async () => {
-    if (!humanPlayerId || !humanConversation) {
+    if (!humanPlayer || !humanConversation) {
       return;
     }
     await toastOnError(
       rejectInvite({
-        playerId: humanPlayerId,
+        playerId: humanPlayer.id,
         conversationId: humanConversation.id,
       }),
     );
   };
   const onLeaveConversation = async () => {
-    if (!humanPlayerId || !humanPlayerId || !inConversationWithMe || !humanConversation) {
+    if (!humanPlayer || !inConversationWithMe || !humanConversation) {
       return;
     }
     await toastOnError(
       leaveConversation({
-        playerId: humanPlayerId,
+        playerId: humanPlayer.id,
         conversationId: humanConversation.id,
       }),
     );

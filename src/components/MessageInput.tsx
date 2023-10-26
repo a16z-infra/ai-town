@@ -2,10 +2,10 @@ import clsx from 'clsx';
 import { useMutation, useQuery } from 'convex/react';
 import { KeyboardEvent, useRef, useState } from 'react';
 import { api } from '../../convex/_generated/api';
-import { Doc, Id } from '../../convex/_generated/dataModel';
+import { Id } from '../../convex/_generated/dataModel';
 import { useSendInput } from '../hooks/sendInput';
-import { ConversationDoc } from '../../convex/aiTown/conversation';
-import { PlayerDoc } from '../../convex/aiTown/player';
+import { Player } from '../../convex/aiTown/player';
+import { Conversation } from '../../convex/aiTown/conversation';
 
 export function MessageInput({
   worldId,
@@ -13,8 +13,8 @@ export function MessageInput({
   conversation,
 }: {
   worldId: Id<'worlds'>;
-  humanPlayer: PlayerDoc;
-  conversation: ConversationDoc;
+  humanPlayer: Player;
+  conversation: Conversation;
 }) {
   const descriptions = useQuery(api.world.gameDescriptions, { worldId });
   const humanName = descriptions?.playerDescriptions.find((p) => p.playerId === humanPlayer.id)

@@ -6,7 +6,7 @@ import { Point, Vector } from '../util/types';
 import { Game } from './game';
 import { GameId } from './ids';
 import { Player } from './player';
-import { WorldMap } from './world';
+import { WorldMap } from './worldMap';
 
 type PathCandidate = {
   position: Point;
@@ -38,7 +38,7 @@ export function movePlayer(
     return;
   }
   // Don't allow players in a conversation to move.
-  const inConversation = [...game.conversations.values()].some(
+  const inConversation = [...game.world.conversations.values()].some(
     (c) => c.participants.get(player.id)?.status.kind === 'participating',
   );
   if (inConversation && !allowInConversation) {
@@ -162,7 +162,7 @@ export function findRoute(game: Game, now: number, player: Player, destination: 
 }
 
 export function blocked(game: Game, now: number, pos: Point, playerId?: GameId<'players'>) {
-  const otherPositions = [...game.players.values()]
+  const otherPositions = [...game.world.players.values()]
     .filter((p) => p.id !== playerId)
     .map((p) => p.position);
   return blockedWithPositions(pos, otherPositions, game.worldMap);

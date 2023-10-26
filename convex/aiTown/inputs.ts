@@ -1,7 +1,7 @@
 import { ObjectType } from 'convex/values';
 import { playerInputs } from './player';
 import { conversationInputs } from './conversation';
-import { agentInputs } from './agent';
+import { agentInputs } from './agentInputs';
 import { MutationCtx } from '../_generated/server';
 import { Id } from '../_generated/dataModel';
 import { engineInsertInput } from '../engine/abstractGame';

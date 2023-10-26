@@ -1,13 +1,16 @@
 import { v } from 'convex/values';
 import { defineTable } from 'convex/server';
-import { playerDescriptionFields, playerFields } from './player';
-import { agentDescriptionFields, agentFields } from './agent';
-import { worldFields, worldMapFields } from './world';
-import { conversationFields } from './conversation';
+import { serializedPlayer } from './player';
+import { serializedPlayerDescription } from './playerDescription';
+import { serializedAgent } from './agent';
+import { serializedAgentDescription } from './agentDescription';
+import { serializedWorld } from './world';
+import { serializedWorldMap } from './worldMap';
+import { serializedConversation } from './conversation';
 import { conversationId, playerId } from './ids';
 
 export const aiTownTables = {
-  worlds: defineTable({ ...worldFields }),
+  worlds: defineTable({ ...serializedWorld }),
   worldStatus: defineTable({
     worldId: v.id('worlds'),
     isDefault: v.boolean(),
@@ -18,22 +21,22 @@ export const aiTownTables = {
 
   // Store the larger data for player, agent, and world descriptions
   // in separate tables.
-  playerDescriptions: defineTable({ worldId: v.id('worlds'), ...playerDescriptionFields }).index(
-    'worldId',
-    ['worldId', 'playerId'],
-  ),
+  playerDescriptions: defineTable({
+    worldId: v.id('worlds'),
+    ...serializedPlayerDescription,
+  }).index('worldId', ['worldId', 'playerId']),
   agentDescriptions: defineTable({
     worldId: v.id('worlds'),
-    ...agentDescriptionFields,
+    ...serializedAgentDescription,
   }).index('worldId', ['worldId', 'agentId']),
   maps: defineTable({
     worldId: v.id('worlds'),
-    ...worldMapFields,
+    ...serializedWorldMap,
   }).index('worldId', ['worldId']),
 
   // Store inactive players, agents, and conversations in separate tables to keep
   // the core game state small.
-  archivedPlayers: defineTable({ worldId: v.id('worlds'), ...playerFields }).index('worldId', [
+  archivedPlayers: defineTable({ worldId: v.id('worlds'), ...serializedPlayer }).index('worldId', [
     'worldId',
     'id',
   ]),
@@ -43,8 +46,8 @@ export const aiTownTables = {
     creator: playerId,
     created: v.number(),
     ended: v.number(),
-    lastMessage: conversationFields.lastMessage,
-    numMessages: conversationFields.numMessages,
+    lastMessage: serializedConversation.lastMessage,
+    numMessages: serializedConversation.numMessages,
     participants: v.array(playerId),
   }).index('worldId', ['worldId', 'id']),
 
@@ -60,7 +63,7 @@ export const aiTownTables = {
     .index('conversation', ['worldId', 'player1', 'conversationId'])
     .index('playerHistory', ['worldId', 'player1', 'ended']),
 
-  archivedAgents: defineTable({ worldId: v.id('worlds'), ...agentFields }).index('worldId', [
+  archivedAgents: defineTable({ worldId: v.id('worlds'), ...serializedAgent }).index('worldId', [
     'worldId',
     'id',
   ]),

@@ -1,4 +1,4 @@
-import { Infer, Value, v } from 'convex/values';
+import { Infer, v } from 'convex/values';
 import { Doc, Id } from '../_generated/dataModel';
 import {
   ActionCtx,
@@ -7,29 +7,12 @@ import {
   internalMutation,
   internalQuery,
 } from '../_generated/server';
-import { WorldMap, worldMap, world } from './world';
-import {
-  AgentDescription,
-  agentDescriptionFields,
-  parseAgentDescriptions,
-  parseAgents,
-  runAgentOperation,
-  tickAgent,
-} from './agent';
-import {
-  PlayerDescription,
-  parsePlayerDescriptions,
-  parsePlayers,
-  playerDescriptionFields,
-  tickPathfinding,
-  tickPlayer,
-  tickPosition,
-} from './player';
+import { World, historicalLocations, serializedWorld } from './world';
+import { WorldMap, serializedWorldMap } from './worldMap';
+import { PlayerDescription, serializedPlayerDescription } from './playerDescription';
 import { Location, locationFields, playerLocation } from './location';
-import { Agent } from './agent';
-import { Player } from './player';
-import { Conversation, parseConversations, tickConversation } from './conversation';
-import { GameId, IdTypes, allocGameId, parseGameId, playerId } from './ids';
+import { runAgentOperation } from './agent';
+import { GameId, IdTypes, allocGameId } from './ids';
 import { InputArgs, InputNames, inputs } from './inputs';
 import {
   AbstractGame,
@@ -40,23 +23,24 @@ import {
 } from '../engine/abstractGame';
 import { internal } from '../_generated/api';
 import { HistoricalObject } from '../engine/historicalObject';
+import { AgentDescription, serializedAgentDescription } from './agentDescription';
+import { parseMap, serializeMap } from '../util/object';
 
 const gameState = v.object({
-  world,
-  playerDescriptions: v.array(v.object(playerDescriptionFields)),
-  agentDescriptions: v.array(v.object(agentDescriptionFields)),
-  worldMap,
+  world: v.object(serializedWorld),
+  playerDescriptions: v.array(v.object(serializedPlayerDescription)),
+  agentDescriptions: v.array(v.object(serializedAgentDescription)),
+  worldMap: v.object(serializedWorldMap),
 });
 type GameState = Infer<typeof gameState>;
 
 const gameStateDiff = v.object({
-  world,
-  playerDescriptions: v.optional(v.array(v.object(playerDescriptionFields))),
-  agentDescriptions: v.optional(v.array(v.object(agentDescriptionFields))),
-  worldMap: v.optional(worldMap),
+  world: v.object(serializedWorld),
+  playerDescriptions: v.optional(v.array(v.object(serializedPlayerDescription))),
+  agentDescriptions: v.optional(v.array(v.object(serializedAgentDescription))),
+  worldMap: v.optional(v.object(serializedWorldMap)),
   agentOperations: v.array(v.object({ name: v.string(), args: v.any() })),
-  // v.record(playerId, v.bytes())
-  historyBuffers: v.any(),
+  historicalLocations,
 });
 type GameStateDiff = Infer<typeof gameStateDiff>;
 
@@ -66,10 +50,7 @@ export class Game extends AbstractGame {
   maxTicksPerStep = 600;
   maxInputsPerStep = 32;
 
-  nextId: number;
-  conversations: Map<GameId<'conversations'>, Conversation>;
-  players: Map<GameId<'players'>, Player>;
-  agents: Map<GameId<'agents'>, Agent>;
+  world: World;
 
   historicalLocations: Map<GameId<'players'>, HistoricalObject<Location>>;
 
@@ -87,22 +68,15 @@ export class Game extends AbstractGame {
   ) {
     super(engine);
 
-    this.nextId = state.world.nextId;
-    this.players = parsePlayers(state.world.players, this.nextId);
-    this.conversations = parseConversations(this.players, state.world.conversations, this.nextId);
-    this.agents = parseAgents(this.players, state.world.agents, this.nextId);
+    this.world = new World(state.world);
 
     this.descriptionsModified = false;
-    this.worldMap = state.worldMap;
-    this.playerDescriptions = parsePlayerDescriptions(
-      this.players,
+    this.worldMap = new WorldMap(state.worldMap);
+    this.agentDescriptions = parseMap(state.agentDescriptions, AgentDescription, (a) => a.agentId);
+    this.playerDescriptions = parseMap(
       state.playerDescriptions,
-      this.nextId,
-    );
-    this.agentDescriptions = parseAgentDescriptions(
-      this.agents,
-      state.agentDescriptions,
-      this.nextId,
+      PlayerDescription,
+      (p) => p.playerId,
     );
 
     this.historicalLocations = new Map();
@@ -167,13 +141,9 @@ export class Game extends AbstractGame {
   }
 
   allocId<T extends IdTypes>(idType: T): GameId<T> {
-    const id = allocGameId(idType, this.nextId);
-    this.nextId += 1;
+    const id = allocGameId(idType, this.world.nextId);
+    this.world.nextId += 1;
     return id;
-  }
-
-  parseId<T extends IdTypes>(idType: T, id: string): GameId<T> {
-    return parseGameId(idType, id, this.nextId);
   }
 
   scheduleOperation(name: string, args: any) {
@@ -191,7 +161,7 @@ export class Game extends AbstractGame {
   beginStep(now: number) {
     // Store the current location of all players in the history tracking buffer.
     this.historicalLocations.clear();
-    for (const player of this.players.values()) {
+    for (const player of this.world.players.values()) {
       this.historicalLocations.set(
         player.id,
         new HistoricalObject(locationFields, playerLocation(player)),
@@ -200,25 +170,25 @@ export class Game extends AbstractGame {
   }
 
   tick(now: number) {
-    for (const player of this.players.values()) {
-      tickPlayer(this, now, player);
+    for (const player of this.world.players.values()) {
+      player.tick(this, now);
     }
-    for (const player of this.players.values()) {
-      tickPathfinding(this, now, player);
+    for (const player of this.world.players.values()) {
+      player.tickPathfinding(this, now);
     }
-    for (const player of this.players.values()) {
-      tickPosition(this, now, player);
+    for (const player of this.world.players.values()) {
+      player.tickPosition(this, now);
     }
-    for (const conversation of this.conversations.values()) {
-      tickConversation(this, now, conversation);
+    for (const conversation of this.world.conversations.values()) {
+      conversation.tick(this, now);
     }
-    for (const agent of this.agents.values()) {
-      tickAgent(this, now, agent);
+    for (const agent of this.world.agents.values()) {
+      agent.tick(this, now);
     }
 
     // Save each player's location into the history buffer at the end of
     // each tick.
-    for (const player of this.players.values()) {
+    for (const player of this.world.players.values()) {
       let historicalObject = this.historicalLocations.get(player.id);
       if (!historicalObject) {
         historicalObject = new HistoricalObject(locationFields, playerLocation(player));
@@ -239,19 +209,19 @@ export class Game extends AbstractGame {
   }
 
   takeDiff(): GameStateDiff {
-    const historyBuffers: Record<GameId<'players'>, ArrayBuffer> = {};
+    const historicalLocations = [];
     let bufferSize = 0;
     for (const [id, historicalObject] of this.historicalLocations.entries()) {
       const buffer = historicalObject.pack();
       if (!buffer) {
         continue;
       }
-      historyBuffers[id] = buffer;
+      historicalLocations.push({ playerId: id, location: buffer });
       bufferSize += buffer.byteLength;
     }
     if (bufferSize > 0) {
       console.debug(
-        `Packed ${Object.entries(historyBuffers).length} history buffers in ${(
+        `Packed ${Object.entries(historicalLocations).length} history buffers in ${(
           bufferSize / 1024
         ).toFixed(2)}KiB.`,
       );
@@ -259,23 +229,15 @@ export class Game extends AbstractGame {
     this.historicalLocations.clear();
 
     const result: GameStateDiff = {
-      world: {
-        nextId: this.nextId,
-        players: [...this.players.values()],
-        conversations: [...this.conversations.values()].map((c) => ({
-          ...c,
-          participants: Object.fromEntries([...c.participants.entries()]),
-        })),
-        agents: [...this.agents.values()],
-      },
+      world: this.world.serialize(),
       agentOperations: this.pendingOperations,
-      historyBuffers,
+      historicalLocations,
     };
     this.pendingOperations = [];
     if (this.descriptionsModified) {
-      result.playerDescriptions = [...this.playerDescriptions.values()];
-      result.agentDescriptions = [...this.agentDescriptions.values()];
-      result.worldMap = this.worldMap;
+      result.playerDescriptions = serializeMap(this.playerDescriptions);
+      result.agentDescriptions = serializeMap(this.agentDescriptions);
+      result.worldMap = this.worldMap.serialize();
       this.descriptionsModified = false;
     }
     return result;
@@ -287,7 +249,6 @@ export class Game extends AbstractGame {
       throw new Error(`No world found with id ${worldId}`);
     }
     const newWorld = diff.world;
-
     // Archive newly deleted players, conversations, and agents.
     for (const player of existingWorld.players) {
       if (!newWorld.players.some((p) => p.id === player.id)) {
@@ -331,9 +292,8 @@ export class Game extends AbstractGame {
         await ctx.db.insert('archivedAgents', { worldId, ...conversation });
       }
     }
-
     // Update the world state.
-    await ctx.db.replace(worldId, { historicalLocations: diff.historyBuffers, ...newWorld });
+    await ctx.db.replace(worldId, { historicalLocations: diff.historicalLocations, ...newWorld });
 
     // Update the larger description tables if they changed.
     const { playerDescriptions, agentDescriptions, worldMap } = diff;
@@ -376,7 +336,6 @@ export class Game extends AbstractGame {
         await ctx.db.insert('maps', { worldId, ...worldMap });
       }
     }
-
     // Start the desired agent operations.
     for (const operation of diff.agentOperations) {
       await runAgentOperation(ctx, operation.name, operation.args);

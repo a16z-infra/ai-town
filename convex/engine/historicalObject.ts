@@ -9,7 +9,7 @@ import {
   unquantize,
 } from '../util/compression';
 
-// `HistoricalTable`s require the developer to pass in the
+// `HistoricalObject`s require the developer to pass in the
 // field names that'll be tracked and sent down to the client.
 //
 // By default, the historical tracking will round each floating point
@@ -19,7 +19,7 @@ import {
 // imply less error.
 export type FieldConfig = Array<string | { name: string; precision: number }>;
 
-// `HistoricalTable`s support at most 16 fields.
+// `HistoricalObject`s support at most 16 fields.
 const MAX_FIELDS = 16;
 
 const PACKED_VERSION = 1;
@@ -59,14 +59,13 @@ export type Sample = {
   value: number;
 };
 
-// `HistoricalTable` is a more restricted version of `GameTable` that
-// tracks its intermediate value throughout a step. This can be useful
-// for continuous properties like position, where we'd want to smoothly
-// replay their tick-by-tick progress at a high frame rate on the client.
+// `HistoricalObject` tracks a set of numeric fields over time and
+// supports compressing the fields' histories into a binary buffer.
+// This can be useful for continuous properties like position, where
+// we'd want to smoothly replay their tick-by-tick progress at a high
+// frame rate on the client.
 //
-// `HistoricalTable`s have a few limitations:
-// - Other than the built in `_id` and `_creationTime`, they can only
-//   have numeric values. Nested objects are not supported.
+// `HistoricalObject`s have a few limitations:
 // - Documents in a historical can only have up to 16 fields.
 // - The historical tracking only applies to a specified list of fields,
 //   and these fields must match between the client and server.
@@ -80,7 +79,7 @@ export class HistoricalObject<T extends Record<string, number>> {
 
   constructor(fields: FieldConfig, initialValue: T) {
     if (fields.length >= MAX_FIELDS) {
-      throw new Error(`HistoricalTable can have at most ${MAX_FIELDS} fields.`);
+      throw new Error(`HistoricalObject can have at most ${MAX_FIELDS} fields.`);
     }
     this.fieldConfig = normalizeFieldConfig(fields);
     this.checkShape(initialValue);
@@ -100,7 +99,7 @@ export class HistoricalObject<T extends Record<string, number>> {
       }
       if (typeof value !== 'number') {
         throw new Error(
-          `HistoricalTable only supports numeric values, found: ${JSON.stringify(value)}`,
+          `HistoricalObject only supports numeric values, found: ${JSON.stringify(value)}`,
         );
       }
     }

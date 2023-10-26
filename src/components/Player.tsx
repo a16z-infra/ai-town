@@ -2,44 +2,40 @@ import { Character } from './Character.tsx';
 import { orientationDegrees } from '../../convex/util/geometry.ts';
 import { characters } from '../../data/characters.ts';
 import { toast } from 'react-toastify';
-import { Player as PlayerType } from '../../convex/aiTown/player.ts';
+import { Player as ServerPlayer } from '../../convex/aiTown/player.ts';
 import { GameId } from '../../convex/aiTown/ids.ts';
-import { useQuery } from 'convex/react';
-import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import { Location, locationFields, playerLocation } from '../../convex/aiTown/location.ts';
 import { useHistoricalValue } from '../hooks/useHistoricalValue.ts';
+import { PlayerDescription } from '../../convex/aiTown/playerDescription.ts';
+import { WorldMap } from '../../convex/aiTown/worldMap.ts';
+import { ServerGame } from '../hooks/serverGame.ts';
 
 export type SelectElement = (element?: { kind: 'player'; id: GameId<'players'> }) => void;
 
 const logged = new Set<string>();
 
 export const Player = ({
-  worldId,
+  game,
   isViewer,
   player,
   onClick,
   historicalTime,
 }: {
-  worldId: Id<'worlds'>;
+  game: ServerGame;
   isViewer: boolean;
-  player: PlayerType;
+  player: ServerPlayer;
+
   onClick: SelectElement;
   historicalTime?: number;
 }) => {
-  const gameState = useQuery(api.world.gameState, { worldId });
-  const descriptions = useQuery(api.world.gameDescriptions, { worldId });
-
-  if (!gameState || !descriptions) {
-    return null;
+  const playerCharacter = game.playerDescriptions.get(player.id)?.character;
+  if (!playerCharacter) {
+    throw new Error(`Player ${player.id} has no character`);
   }
-  const { world } = gameState;
-
-  const { playerDescriptions, map } = descriptions;
-  const playerCharacter = playerDescriptions.find((p) => p.playerId === player.id)?.character!;
   const character = characters.find((c) => c.name === playerCharacter);
 
-  const locationBuffer = world.historicalLocations && world.historicalLocations[player.id];
+  const locationBuffer = game.world.historicalLocations?.get(player.id);
   const historicalLocation = useHistoricalValue<Location>(
     locationFields,
     historicalTime,
@@ -58,10 +54,15 @@ export const Player = ({
     return null;
   }
 
-  const isSpeaking = !!world.conversations.find((c) => c.isTyping?.playerId === player.id);
+  const isSpeaking = !![...game.world.conversations.values()].find(
+    (c) => c.isTyping?.playerId === player.id,
+  );
   const isThinking =
-    !isSpeaking && !!world.agents.find((a) => a.playerId === player.id && !!a.inProgressOperation);
-  const tileDim = map.tileDim;
+    !isSpeaking &&
+    !![...game.world.agents.values()].find(
+      (a) => a.playerId === player.id && !!a.inProgressOperation,
+    );
+  const tileDim = game.worldMap.tileDim;
   const historicalFacing = { dx: historicalLocation.dx, dy: historicalLocation.dy };
   return (
     <>

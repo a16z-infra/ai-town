@@ -1,6 +1,5 @@
 import { v } from 'convex/values';
-import { DatabaseReader, mutation, query } from './_generated/server';
-import { Id } from './_generated/dataModel';
+import { mutation, query } from './_generated/server';
 import { insertInput } from './aiTown/inputs';
 import { conversationId, playerId } from './aiTown/ids';
 

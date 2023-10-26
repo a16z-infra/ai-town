@@ -8,14 +8,16 @@ import { ConvexError } from 'convex/values';
 import { Id } from '../../../convex/_generated/dataModel';
 import { useCallback } from 'react';
 import { waitForInput } from '../../hooks/sendInput';
+import { useServerGame } from '../../hooks/serverGame';
 
 export default function InteractButton() {
   const { isAuthenticated } = useConvexAuth();
   const worldStatus = useQuery(api.world.defaultWorldStatus);
   const worldId = worldStatus?.worldId;
+  const game = useServerGame(worldId);
   const humanTokenIdentifier = useQuery(api.world.userStatus, worldId ? { worldId } : 'skip');
-  const gameState = useQuery(api.world.gameState, worldId ? { worldId } : 'skip');
-  const userPlayerId = gameState?.world.players.find((p) => p.human === humanTokenIdentifier)?.id;
+  const userPlayerId =
+    game && [...game.world.players.values()].find((p) => p.human === humanTokenIdentifier)?.id;
   const join = useMutation(api.world.joinWorld);
   const leave = useMutation(api.world.leaveWorld);
   const isPlaying = !!userPlayerId;
@@ -43,7 +45,7 @@ export default function InteractButton() {
   );
 
   const joinOrLeaveGame = () => {
-    if (!worldId || !isAuthenticated || gameState === undefined) {
+    if (!worldId || !isAuthenticated || game === undefined) {
       return;
     }
     if (isPlaying) {
@@ -54,7 +56,7 @@ export default function InteractButton() {
       void joinInput(worldId);
     }
   };
-  if (!isAuthenticated || gameState === undefined) {
+  if (!isAuthenticated || game === undefined) {
     return (
       <SignInButton>
         <button className="button text-white shadow-solid text-2xl pointer-events-auto">

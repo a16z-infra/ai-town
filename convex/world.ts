@@ -139,7 +139,7 @@ export const sendWorldInput = mutation({
   },
 });
 
-export const gameState = query({
+export const worldState = query({
   args: {
     worldId: v.id('worlds'),
   },
@@ -172,14 +172,18 @@ export const gameDescriptions = query({
       .query('playerDescriptions')
       .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
       .collect();
-    const map = await ctx.db
+    const agentDescriptions = await ctx.db
+      .query('agentDescriptions')
+      .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
+      .collect();
+    const worldMap = await ctx.db
       .query('maps')
       .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
       .first();
-    if (!map) {
+    if (!worldMap) {
       throw new Error(`No map for world: ${args.worldId}`);
     }
-    return { map, playerDescriptions };
+    return { worldMap, playerDescriptions, agentDescriptions };
   },
 });
 

@@ -2,7 +2,7 @@
 
 import { v } from 'convex/values';
 import { internalAction } from '../_generated/server';
-import { WorldMap, worldMapFields } from './world';
+import { WorldMap, serializedWorldMap } from './worldMap';
 import { rememberConversation } from '../agent/memory';
 import { GameId, agentId, conversationId, playerId } from './ids';
 import {
@@ -11,11 +11,11 @@ import {
   startConversationMessage,
 } from '../agent/conversation';
 import { assertNever } from '../util/assertNever';
-import { agentFields } from './agent';
-import { player } from './player';
+import { serializedAgent } from './agent';
 import { ACTIVITIES, ACTIVITY_COOLDOWN, CONVERSATION_COOLDOWN } from '../constants';
 import { api, internal } from '../_generated/api';
 import { sleep } from '../util/sleep';
+import { serializedPlayer } from './player';
 
 export const agentRememberConversation = internalAction({
   args: {
@@ -95,14 +95,15 @@ export const agentGenerateMessage = internalAction({
 export const agentDoSomething = internalAction({
   args: {
     worldId: v.id('worlds'),
-    player,
-    agent: v.object(agentFields),
-    map: v.object(worldMapFields),
-    otherFreePlayers: v.array(player),
+    player: v.object(serializedPlayer),
+    agent: v.object(serializedAgent),
+    map: v.object(serializedWorldMap),
+    otherFreePlayers: v.array(v.object(serializedPlayer)),
     operationId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { player, agent, map } = args;
+    const { player, agent } = args;
+    const map = new WorldMap(args.map);
     const now = Date.now();
     // Don't try to start a new conversation if we were just in one.
     const justLeftConversation =

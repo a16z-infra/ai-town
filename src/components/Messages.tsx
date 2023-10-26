@@ -3,9 +3,10 @@ import { Doc, Id } from '../../convex/_generated/dataModel';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { MessageInput } from './MessageInput';
-import { ConversationDoc, ConversationMembership } from '../../convex/aiTown/conversation';
+import { ConversationMembership } from '../../convex/aiTown/conversationMembership';
 import { Player } from '../../convex/aiTown/player';
 import { GameId } from '../../convex/aiTown/ids';
+import { Conversation } from '../../convex/aiTown/conversation';
 
 export function Messages({
   worldId,
@@ -15,7 +16,7 @@ export function Messages({
 }: {
   worldId: Id<'worlds'>;
   conversation:
-    | { kind: 'active'; doc: ConversationDoc }
+    | { kind: 'active'; doc: Conversation }
     | { kind: 'archived'; doc: Doc<'archivedConversations'> };
   inConversationWithMe: boolean;
   humanPlayer?: Player;
@@ -62,9 +63,7 @@ export function Messages({
 
   const membershipNodes: typeof messageNodes = [];
   if (conversation.kind === 'active') {
-    const participants: Record<GameId<'players'>, ConversationMembership> = conversation.doc
-      .participants;
-    for (const [playerId, m] of Object.entries(participants)) {
+    for (const [playerId, m] of conversation.doc.participants) {
       const playerName = descriptions?.playerDescriptions.find((p) => p.playerId === playerId)
         ?.name;
       let started;

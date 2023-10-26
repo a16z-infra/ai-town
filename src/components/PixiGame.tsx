@@ -1,4 +1,4 @@
-import { useApp, useTick } from '@pixi/react';
+import { useApp } from '@pixi/react';
 import { Player, SelectElement } from './Player.tsx';
 import { useRef, useState } from 'react';
 import { PixiStaticMap } from './PixiStaticMap.tsx';
@@ -12,10 +12,11 @@ import { toastOnError } from '../toasts.ts';
 import { DebugPath } from './DebugPath.tsx';
 import { PositionIndicator } from './PositionIndicator.tsx';
 import { SHOW_DEBUG_UI } from './Game.tsx';
-import { Player as PlayerType } from '../../convex/aiTown/player.ts';
+import { ServerGame } from '../hooks/serverGame.ts';
 
 export const PixiGame = (props: {
   worldId: Id<'worlds'>;
+  game: ServerGame;
   historicalTime: number | undefined;
   width: number;
   height: number;
@@ -25,12 +26,11 @@ export const PixiGame = (props: {
   const pixiApp = useApp();
   const viewportRef = useRef<Viewport | undefined>();
 
-  const gameState = useQuery(api.world.gameState, { worldId: props.worldId });
-  const descriptions = useQuery(api.world.gameDescriptions, { worldId: props.worldId });
   const humanTokenIdentifier = useQuery(api.world.userStatus, { worldId: props.worldId }) ?? null;
-  const humanPlayerId = gameState?.world.players.find((p) => p.human === humanTokenIdentifier)?.id;
+  const humanPlayerId = [...props.game.world.players.values()].find(
+    (p) => p.human === humanTokenIdentifier,
+  )?.id;
 
-  const players = (gameState?.world.players ?? []) as PlayerType[];
   const moveTo = useSendInput(props.worldId, 'moveTo');
 
   // Interaction for clicking on the world to navigate.
@@ -56,18 +56,18 @@ export const PixiGame = (props: {
         return;
       }
     }
-    if (!humanPlayerId || !descriptions) {
+    if (!humanPlayerId) {
       return;
     }
     const viewport = viewportRef.current;
-    const map = descriptions.map;
-    if (!viewport || !map) {
+    if (!viewport) {
       return;
     }
     const gameSpacePx = viewport.toWorld(e.screenX, e.screenY);
+    const tileDim = props.game.worldMap.tileDim;
     const gameSpaceTiles = {
-      x: gameSpacePx.x / map.tileDim,
-      y: gameSpacePx.y / map.tileDim,
+      x: gameSpacePx.x / tileDim,
+      y: gameSpacePx.y / tileDim,
     };
     setLastDestination({ t: Date.now(), ...gameSpaceTiles });
     const roundedTiles = {
@@ -77,10 +77,8 @@ export const PixiGame = (props: {
     console.log(`Moving to ${JSON.stringify(roundedTiles)}`);
     await toastOnError(moveTo({ playerId: humanPlayerId, destination: roundedTiles }));
   };
-  if (!gameState || !descriptions) {
-    return null;
-  }
-  const { tileSetDim, tileDim } = descriptions.map;
+  const { tileSetDim, tileDim } = props.game.worldMap;
+  const players = [...props.game.world.players.values()];
   return (
     <PixiViewport
       app={pixiApp}
@@ -91,7 +89,7 @@ export const PixiGame = (props: {
       viewportRef={viewportRef}
     >
       <PixiStaticMap
-        map={descriptions.map}
+        map={props.game.worldMap}
         onpointerup={onMapPointerUp}
         onpointerdown={onMapPointerDown}
       />
@@ -106,7 +104,7 @@ export const PixiGame = (props: {
       {players.map((p) => (
         <Player
           key={`player-${p.id}`}
-          worldId={props.worldId}
+          game={props.game}
           player={p}
           isViewer={p.id === humanPlayerId}
           onClick={props.setSelectedElement}

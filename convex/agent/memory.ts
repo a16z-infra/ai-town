@@ -6,7 +6,7 @@ import { internal } from '../_generated/api';
 import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/openai';
 import { asyncMap } from '../util/asyncMap';
 import { GameId, agentId, conversationId, playerId } from '../aiTown/ids';
-import { Player, PlayerDoc } from '../aiTown/player';
+import { SerializedPlayer } from '../aiTown/player';
 
 // How long to wait before updating a memory's last access time.
 export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
@@ -157,7 +157,7 @@ export const loadConversation = internalQuery({
       );
     }
     const otherPlayerId = otherParticipator.player2;
-    let otherPlayer: PlayerDoc | Doc<'archivedPlayers'> | null =
+    let otherPlayer: SerializedPlayer | Doc<'archivedPlayers'> | null =
       world.players.find((p) => p.id === otherPlayerId) ?? null;
     if (!otherPlayer) {
       otherPlayer = await ctx.db
