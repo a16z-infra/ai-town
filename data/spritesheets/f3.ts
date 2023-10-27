@@ -33,17 +33,17 @@ export const data: SpritesheetData = {
       spriteSourceSize: { x: 0, y: 0 },
     },
     right: {
-      frame: { x: 192, y: 64, w: 32, h: 32 },
+      frame: { x: 192, y: 65, w: 32, h: 32 },
       sourceSize: { w: 32, h: 32 },
       spriteSourceSize: { x: 0, y: 0 },
     },
     right2: {
-      frame: { x: 224, y: 64, w: 32, h: 32 },
+      frame: { x: 224, y: 65, w: 32, h: 32 },
       sourceSize: { w: 32, h: 32 },
       spriteSourceSize: { x: 0, y: 0 },
     },
     right3: {
-      frame: { x: 256, y: 64, w: 32, h: 32 },
+      frame: { x: 256, y: 65, w: 32, h: 32 },
       sourceSize: { w: 32, h: 32 },
       spriteSourceSize: { x: 0, y: 0 },
     },

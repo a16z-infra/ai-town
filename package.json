@@ -13,7 +13,7 @@
     "le": "vite src/editor/"
   },
   "dependencies": {
-    "@clerk/clerk-react": "^4.21.9-snapshot.56dc3e3",
+    "@clerk/clerk-react": "^4.27.0",
     "@pinecone-database/pinecone": "^0.1.6",
     "@pixi/react": "^7.1.0",
     "@pixi/sound": "^5.2.0",
