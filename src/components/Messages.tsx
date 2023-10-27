@@ -29,7 +29,7 @@ export function Messages({
   });
   let currentlyTyping = conversation.kind === 'active' ? conversation.doc.isTyping : undefined;
   if (messages !== undefined && currentlyTyping) {
-    if (messages.find((m) => m.messageUuid === currentlyTyping.messageUuid)) {
+    if (messages.find((m) => m.messageUuid === currentlyTyping!.messageUuid)) {
       currentlyTyping = undefined;
     }
   }
