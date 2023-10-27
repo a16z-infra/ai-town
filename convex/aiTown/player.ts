@@ -14,6 +14,7 @@ import { stopPlayer, findRoute, blocked, movePlayer } from './movement';
 import { inputHandler } from './inputHandler';
 import { characters } from '../../data/characters';
 import { PlayerDescription } from './playerDescription';
+import { Id } from '../_generated/dataModel';
 
 const pathfinding = v.object({
   destination: point,
@@ -43,7 +44,7 @@ export type Activity = Infer<typeof activity>;
 
 export const serializedPlayer = {
   id: playerId,
-  human: v.optional(v.string()),
+  human: v.optional(v.id('users')),
   pathfinding: v.optional(pathfinding),
   activity: v.optional(activity),
 
@@ -58,7 +59,7 @@ export type SerializedPlayer = ObjectType<typeof serializedPlayer>;
 
 export class Player {
   id: GameId<'players'>;
-  human?: string;
+  human?: Id<'users'>;
   pathfinding?: Pathfinding;
   activity?: Activity;
 
@@ -166,15 +167,15 @@ export class Player {
     name: string,
     character: string,
     description: string,
-    tokenIdentifier?: string,
+    human?: Id<'users'>,
   ) {
-    if (tokenIdentifier) {
+    if (human) {
       let numHumans = 0;
       for (const player of game.world.players.values()) {
         if (player.human) {
           numHumans++;
         }
-        if (player.human === tokenIdentifier) {
+        if (player.human === human) {
           throw new Error(`You are already in this game!`);
         }
       }
@@ -212,7 +213,7 @@ export class Player {
       playerId,
       new Player({
         id: playerId,
-        human: tokenIdentifier,
+        human,
         lastInput: now,
         position,
         facing,
@@ -264,10 +265,10 @@ export const playerInputs = {
       name: v.string(),
       character: v.string(),
       description: v.string(),
-      tokenIdentifier: v.optional(v.string()),
+      userId: v.optional(v.id('users')),
     },
     handler: (game, now, args) => {
-      Player.join(game, now, args.name, args.character, args.description, args.tokenIdentifier);
+      Player.join(game, now, args.name, args.character, args.description, args.userId);
       return null;
     },
   }),
