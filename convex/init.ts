@@ -1,10 +1,10 @@
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
-import { DatabaseReader, MutationCtx, internalMutation, mutation } from './_generated/server';
+import { DatabaseReader, MutationCtx, mutation } from './_generated/server';
 import { Descriptions } from '../data/characters';
-import * as firstmap from '../data/firstmap';
+import * as map from '../data/gentle';
 import { insertInput } from './aiTown/insertInput';
-import { Doc, Id } from './_generated/dataModel';
+import { Id } from './_generated/dataModel';
 import { createEngine } from './aiTown/main';
 import { ENGINE_ACTION_DURATION } from './constants';
 
@@ -37,13 +37,10 @@ const init = mutation({
       worldStatus.engineId,
     );
     if (shouldCreate) {
-      const toCreate =
-        args.numAgents !== undefined
-          ? Math.min(args.numAgents, Descriptions.length)
-          : Descriptions.length;
+      const toCreate = args.numAgents !== undefined ? args.numAgents : Descriptions.length;
       for (let i = 0; i < toCreate; i++) {
         await insertInput(ctx, worldStatus.worldId, 'createAgent', {
-          descriptionIndex: i,
+          descriptionIndex: i % Descriptions.length,
         });
       }
     }
@@ -81,13 +78,15 @@ async function getOrCreateDefaultWorld(ctx: MutationCtx) {
   worldStatus = (await ctx.db.get(worldStatusId))!;
   await ctx.db.insert('maps', {
     worldId,
-    width: firstmap.mapWidth,
-    height: firstmap.mapHeight,
-    tileSetUrl: firstmap.tilesetPath,
-    tileSetDim: firstmap.tileFileDim,
-    tileDim: firstmap.tileDim,
-    bgTiles: firstmap.bgTiles,
-    objectTiles: firstmap.objmap,
+    width: map.mapwidth,
+    height: map.mapheight,
+    tileSetUrl: map.tilesetpath,
+    tileSetDimX: map.tilesetpxw,
+    tileSetDimY: map.tilesetpxh,
+    tileDim: map.tiledim,
+    bgTiles: map.bgtiles,
+    objectTiles: map.objmap,
+    animatedSprites: map.animatedsprites,
   });
   await ctx.scheduler.runAfter(0, internal.aiTown.main.runStep, {
     worldId,
