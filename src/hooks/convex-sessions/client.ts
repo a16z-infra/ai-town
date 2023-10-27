@@ -17,15 +17,8 @@
  */
 import React, { useContext, useEffect, useState } from 'react';
 import { FunctionReference, OptionalRestArgs } from 'convex/server';
-import { api } from '../../convex/_generated/api';
 import { useQuery, useMutation } from 'convex/react';
 import { GenericId } from 'convex/values';
-
-export const { SessionProvider, useSessionMutation, useSessionQuery } = makeUseSessionHooks(
-  api.auth.createOrValidateSession,
-  'ai-town-session-id',
-  'localStorage',
-);
 
 export function makeUseSessionHooks<SessionId extends GenericId<any>>(
   createOrValidateSession: FunctionReference<
@@ -136,7 +129,6 @@ export function makeUseSessionHooks<SessionId extends GenericId<any>>(
   /**
    * TESTS
    */
-
   /**
    * Tests if two types are exactly the same.
    * Taken from https://github.com/Microsoft/TypeScript/issues/27024#issuecomment-421529650

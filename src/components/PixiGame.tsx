@@ -13,7 +13,7 @@ import { DebugPath } from './DebugPath.tsx';
 import { PositionIndicator } from './PositionIndicator.tsx';
 import { SHOW_DEBUG_UI } from './Game.tsx';
 import { ServerGame } from '../hooks/serverGame.ts';
-import { useSessionQuery } from '../hooks/useServerSession.ts';
+import { useSessionQuery } from '../hooks/useSession.ts';
 
 export const PixiGame = (props: {
   worldId: Id<'worlds'>;

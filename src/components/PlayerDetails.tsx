@@ -9,7 +9,7 @@ import { useSendInput } from '../hooks/sendInput';
 import { Player } from '../../convex/aiTown/player';
 import { GameId } from '../../convex/aiTown/ids';
 import { ServerGame } from '../hooks/serverGame';
-import { useSessionQuery } from '../hooks/useServerSession';
+import { useSessionQuery } from '../hooks/useSession';
 
 export default function PlayerDetails({
   worldId,

@@ -8,7 +8,7 @@ import { Id } from '../../../convex/_generated/dataModel';
 import { useCallback } from 'react';
 import { waitForInput } from '../../hooks/sendInput';
 import { useServerGame } from '../../hooks/serverGame';
-import { useSessionMutation, useSessionQuery } from '../../hooks/useServerSession';
+import { useSessionMutation, useSessionQuery } from '../../hooks/useSession';
 
 export default function InteractButton() {
   const { isAuthenticated } = useConvexAuth();

@@ -2,7 +2,7 @@ import { ConvexReactClient, useConvex } from 'convex/react';
 import { InputArgs, InputReturnValue, Inputs } from '../../convex/aiTown/inputs';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
-import { useSessionMutation } from './useServerSession';
+import { useSessionMutation } from './useSession';
 
 export async function waitForInput(convex: ConvexReactClient, inputId: Id<'inputs'>) {
   const watch = convex.watchQuery(api.aiTown.main.inputStatus, { inputId });

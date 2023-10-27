@@ -1,5 +1,5 @@
 import { api } from '../../../convex/_generated/api';
-import { useSessionMutation } from '../../hooks/useServerSession';
+import { useSessionMutation } from '../../hooks/useSession';
 
 export default function LoginButton() {
   // const logIn = useSessionMutation(api.auth.logIn);

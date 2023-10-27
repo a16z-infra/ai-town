@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { ConvexReactClient, ConvexProvider } from 'convex/react';
-import { SessionProvider } from '../hooks/useServerSession';
+import { SessionProvider } from '../hooks/useSession';
 
 /**
  * Determines the Convex deployment to use.
