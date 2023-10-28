@@ -60,6 +60,8 @@ export class Game extends AbstractGame {
 
   pendingOperations: Array<{ name: string; args: any }> = [];
 
+  numPathfinds: number;
+
   constructor(
     engine: Doc<'engines'>,
     public worldId: Id<'worlds'>,
@@ -80,6 +82,8 @@ export class Game extends AbstractGame {
     );
 
     this.historicalLocations = new Map();
+
+    this.numPathfinds = 0;
   }
 
   static async load(
@@ -167,6 +171,7 @@ export class Game extends AbstractGame {
         new HistoricalObject(locationFields, playerLocation(player)),
       );
     }
+    this.numPathfinds = 0;
   }
 
   tick(now: number) {
