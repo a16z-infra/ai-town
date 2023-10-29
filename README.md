@@ -232,7 +232,9 @@ Steps to switch to using Ollama:
 ngrok http http://localhost:11434
 ```
 
-Ngrok should output a unique url once you run this command. 3. Add Ollama endpoint to Convex
+Ngrok should output a unique url once you run this command.
+
+3. Add Ollama endpoint to Convex
 
 - run `npx convex dashboard` to bring up the convex dashboard, and add `OLLAMA_URL = [your ngrok unique url from the previous step]` under "Environment Variables"
 
