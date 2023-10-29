@@ -18,6 +18,7 @@ a simple project to play around with to a scalable, multi-player game. A seconda
 - 💻 [Stack](#stack)
 - 🧠 [Installation](#installation)
 - 👤 [Customize - run YOUR OWN simulated world](#customize-your-own-simulation)
+- 👩‍💻 [Setting up local inference](#setting-up-local-inference)
 - 🏆 [Credits](#credits)
 
 ## Stack
@@ -28,6 +29,7 @@ a simple project to play around with to a scalable, multi-player game. A seconda
 - Deployment: [Vercel](https://vercel.com/)
 - Pixel Art Generation: [Replicate](https://replicate.com/), [Fal.ai](https://serverless.fal.ai/lora)
 - Background Music Generation: [Replicate](https://replicate.com/) using [MusicGen](https://huggingface.co/spaces/facebook/MusicGen)
+- Local inference: [Ollama](https://github.com/jmorganca/ollama)
 
 ## Installation
 
@@ -214,6 +216,27 @@ You should find a sprite sheet for your character, and define sprite motion / as
 3. Update the background (environment): `data/firstmap.ts` is where the map gets loaded. The easiest way to export a tilemap is by using [Tiled](https://www.mapeditor.org/) -- Tiled exports tilemaps as a CSV and you can convert CSV to a 2d array accepted by firstmap.ts
 4. Change the background music by modifying the prompt in `convex/music.ts`
 5. Change how often to generate new music at `convex/crons.ts` by modifying the `generate new background music` job
+
+## Setting up local inference
+
+We support using [Ollama](https://github.com/jmorganca/ollama) for conversation generations, but don't yet support using a local model for generating embeddings.
+
+Steps to switch to using Ollama:
+
+1. [Install Ollama](https://github.com/jmorganca/ollama#macos)
+   When Ollama runs on your laptop, it by default uses http://localhost:11434 as an endpoint for generation. Next we need to set up a ngrok tunnel so Convex can access it:
+2. [Install Ngrok](https://ngrok.com/docs/getting-started/)
+   Once ngrok is installed and authenticated, run the following command:
+
+```
+ngrok http http://localhost:11434
+```
+
+Ngrok should output a unique url once you run this command. 3. Add Ollama endpoint to Convex
+
+- run `npx convex dashboard` to bring up the convex dashboard, and add `OLLAMA_URL = [your ngrok unique url from the previous step]` under "Environment Variables"
+
+By default, we use `llama2-7b` model on Ollama. If you want to customize which model to use, you can set `OLLAMA_MODEL` variable under Environment Variables. Ollama model options can be found [here](https://ollama.ai/library)
 
 ## Credits
 
