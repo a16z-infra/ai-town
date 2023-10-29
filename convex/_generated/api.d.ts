@@ -17,6 +17,7 @@ import type {
 import type * as agent_conversation from "../agent/conversation";
 import type * as agent_embeddingsCache from "../agent/embeddingsCache";
 import type * as agent_memory from "../agent/memory";
+import type * as agent_memoryTables from "../agent/memoryTables";
 import type * as aiTown_agent from "../aiTown/agent";
 import type * as aiTown_agentDescription from "../aiTown/agentDescription";
 import type * as aiTown_agentInputs from "../aiTown/agentInputs";
@@ -52,6 +53,7 @@ import type * as util_geometry from "../util/geometry";
 import type * as util_isSimpleObject from "../util/isSimpleObject";
 import type * as util_minheap from "../util/minheap";
 import type * as util_object from "../util/object";
+import type * as util_ollama from "../util/ollama";
 import type * as util_openai from "../util/openai";
 import type * as util_sleep from "../util/sleep";
 import type * as util_types from "../util/types";
@@ -70,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   "agent/conversation": typeof agent_conversation;
   "agent/embeddingsCache": typeof agent_embeddingsCache;
   "agent/memory": typeof agent_memory;
+  "agent/memoryTables": typeof agent_memoryTables;
   "aiTown/agent": typeof aiTown_agent;
   "aiTown/agentDescription": typeof aiTown_agentDescription;
   "aiTown/agentInputs": typeof aiTown_agentInputs;
@@ -105,6 +108,7 @@ declare const fullApi: ApiFromModules<{
   "util/isSimpleObject": typeof util_isSimpleObject;
   "util/minheap": typeof util_minheap;
   "util/object": typeof util_object;
+  "util/ollama": typeof util_ollama;
   "util/openai": typeof util_openai;
   "util/sleep": typeof util_sleep;
   "util/types": typeof util_types;

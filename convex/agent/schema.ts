@@ -1,4 +1,4 @@
-import { memoryTables } from './memory';
+import { memoryTables } from './memoryTables';
 import { embeddingsCacheTables } from './embeddingsCache';
 
 export const agentTables = {

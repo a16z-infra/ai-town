@@ -1,4 +1,3 @@
-import { defineTable } from 'convex/server';
 import { v } from 'convex/values';
 import { ActionCtx, DatabaseReader, internalMutation, internalQuery } from '../_generated/server';
 import { Doc, Id } from '../_generated/dataModel';
@@ -7,13 +6,14 @@ import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/openai';
 import { asyncMap } from '../util/asyncMap';
 import { GameId, agentId, conversationId, playerId } from '../aiTown/ids';
 import { SerializedPlayer } from '../aiTown/player';
+import { ollamaChatCompletion } from '../util/ollama';
 
 // How long to wait before updating a memory's last access time.
 export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
 // We fetch 10x the number of memories by relevance, to have more candidates
 // for sorting by relevance + recency + importance.
 const MEMORY_OVERFETCH = 10;
-
+const useOllama = process.env.OLLAMA_URL !== undefined;
 const selfInternal = internal.agent.memory;
 
 const memoryFields = {
@@ -86,13 +86,25 @@ export async function rememberConversation(
     });
   }
   llmMessages.push({ role: 'user', content: 'Summary:' });
-  const { content } = await chatCompletion({
-    messages: llmMessages,
-    max_tokens: 500,
-  });
+  let summaryResult: string;
+
+  if (useOllama) {
+    console.log('### Using Ollama for conversation summary ###');
+    const ollamaPrompt = llmMessages.map((m) => m.content).join('\n');
+    let { content } = await ollamaChatCompletion({
+      prompt: ollamaPrompt,
+    });
+    summaryResult = content;
+  } else {
+    let { content } = await chatCompletion({
+      messages: llmMessages,
+      max_tokens: 500,
+    });
+    summaryResult = content;
+  }
   const description = `Conversation with ${otherPlayer.name} at ${new Date(
     data.conversation._creationTime,
-  ).toLocaleString()}: ${content}`;
+  ).toLocaleString()}: ${summaryResult}`;
   const importance = await calculateImportance(description);
   const { embedding } = await fetchEmbedding(description);
   authors.delete(player.id as GameId<'players'>);
@@ -267,25 +279,38 @@ export const loadMessages = internalQuery({
 });
 
 async function calculateImportance(description: string) {
-  const { content: importanceRaw } = await chatCompletion({
-    messages: [
-      {
-        role: 'user',
-        content: `On the scale of 0 to 9, where 0 is purely mundane (e.g., brushing teeth, making bed) and 9 is extremely poignant (e.g., a break up, college acceptance), rate the likely poignancy of the following piece of memory.
-        Memory: ${description}
-        Answer on a scale of 0 to 9. Respond with number only, e.g. "5"`,
-      },
-    ],
-    temperature: 0.0,
-    max_tokens: 1,
-  });
+  const llmMessages: LLMMessage[] = [
+    {
+      role: 'user',
+      content: `On the scale of 0 to 9, where 0 is purely mundane (e.g., brushing teeth, making bed) and 9 is extremely poignant (e.g., a break up, college acceptance), rate the likely poignancy of the following piece of memory.
+      Memory: ${description}
+      Answer on a scale of 0 to 9. Respond with number only, e.g. "5"`,
+    },
+  ];
+  let returnedImportanceRaw: string;
 
-  let importance = parseFloat(importanceRaw);
+  if (useOllama) {
+    console.log('### Using Ollama for memory scoring ###');
+    let { content: importanceRaw } = await ollamaChatCompletion({
+      prompt: llmMessages.map((m) => m.content).join('\n'),
+    });
+    console.log('### Ollama returned: ', importanceRaw);
+    returnedImportanceRaw = importanceRaw;
+  } else {
+    let { content: importanceRaw } = await chatCompletion({
+      messages: llmMessages,
+      temperature: 0.0,
+      max_tokens: 1,
+    });
+    returnedImportanceRaw = importanceRaw;
+  }
+
+  let importance = parseFloat(returnedImportanceRaw);
   if (isNaN(importance)) {
-    importance = +(importanceRaw.match(/\d+/)?.[0] ?? NaN);
+    importance = +(returnedImportanceRaw.match(/\d+/)?.[0] ?? NaN);
   }
   if (isNaN(importance)) {
-    console.debug('Could not parse memory importance from: ', importanceRaw);
+    console.debug('Could not parse memory importance from: ', returnedImportanceRaw);
     importance = 5;
   }
   return importance;
@@ -471,18 +496,3 @@ export async function latestMemoryOfType<T extends MemoryType>(
   if (!entry) return null;
   return entry as MemoryOfType<T>;
 }
-
-export const memoryTables = {
-  memories: defineTable(memoryFields)
-    .index('embeddingId', ['embeddingId'])
-    .index('playerId_type', ['playerId', 'data.type'])
-    .index('playerId', ['playerId']),
-  memoryEmbeddings: defineTable({
-    playerId,
-    embedding: v.array(v.float64()),
-  }).vectorIndex('embedding', {
-    vectorField: 'embedding',
-    filterFields: ['playerId'],
-    dimensions: 1536,
-  }),
-};
