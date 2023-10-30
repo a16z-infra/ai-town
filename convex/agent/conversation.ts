@@ -9,7 +9,7 @@ import * as embeddingsCache from './embeddingsCache';
 import { GameId, conversationId, playerId } from '../aiTown/ids';
 
 const selfInternal = internal.agent.conversation;
-const useOllama = process.env.OLLAMA_URL !== undefined;
+const useOllama = process.env.OLLAMA_HOST !== undefined;
 
 export async function startConversationMessage(
   ctx: ActionCtx,
@@ -31,12 +31,9 @@ export async function startConversationMessage(
     ctx,
     `What do you think about ${otherPlayer.name}?`,
   );
-  let memories;
-  if (useOllama) {
-    memories = await memory.searchMemories(ctx, player.id as GameId<'players'>, embedding, 1);
-  } else {
-    memories = await memory.searchMemories(ctx, player.id as GameId<'players'>, embedding, 3);
-  }
+
+  const n = useOllama ? 1 : 3;
+  const memories = await memory.searchMemories(ctx, player.id as GameId<'players'>, embedding, n);
 
   const memoryWithOtherPlayer = memories.find(
     (m) => m.data.type === 'conversation' && m.data.playerIds.includes(otherPlayerId),
@@ -57,13 +54,12 @@ export async function startConversationMessage(
   //DEBUG
   console.log('####conversation prompt\n');
   prompt.forEach((line) => console.log(line));
-  let result: string | ChatCompletionContent;
   if (useOllama) {
     let { content } = await ollamaChatCompletion({
       prompt: prompt.join('\n'),
       stop: stopWords(otherPlayer.name, player.name),
     });
-    result = content;
+    return content;
   } else {
     let { content } = await chatCompletion({
       messages: [
@@ -76,10 +72,8 @@ export async function startConversationMessage(
       stream: true,
       stop: stopWords(otherPlayer.name, player.name),
     });
-    result = content;
+    return content;
   }
-
-  return result;
 }
 
 export async function continueConversationMessage(

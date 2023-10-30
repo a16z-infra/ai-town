@@ -10,11 +10,10 @@ export async function ollamaChatCompletion(body: any) {
     ms,
   } = await retryWithBackoff(async () => {
     console.log('#### Ollama api ####, using ', ollamaModel);
-    console.log('body', body);
 
     const ollama = new Ollama({
       model: ollamaModel,
-      baseUrl: process.env.OLLAMA_URL,
+      baseUrl: process.env.OLLAMA_HOST,
       stop: body.stop,
     });
     console.log('body.prompt', body.prompt);

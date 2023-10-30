@@ -13,7 +13,7 @@ export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
 // We fetch 10x the number of memories by relevance, to have more candidates
 // for sorting by relevance + recency + importance.
 const MEMORY_OVERFETCH = 10;
-const useOllama = process.env.OLLAMA_URL !== undefined;
+const useOllama = process.env.OLLAMA_HOST !== undefined;
 const selfInternal = internal.agent.memory;
 
 const memoryFields = {
