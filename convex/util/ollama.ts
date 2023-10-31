@@ -1,8 +1,23 @@
 import { Ollama } from 'langchain/llms/ollama';
+import { ChatCompletionContent, retryWithBackoff } from './openai';
+import { IterableReadableStream } from 'langchain/dist/util/stream';
 
 const ollamaModel = process.env.OLLAMA_MODEL || 'llama2';
 
-export async function ollamaChatCompletion(body: any) {
+type Body = {
+  prompt: string;
+  stop?: string[];
+  stream?: boolean;
+  model?: string;
+};
+
+export async function ollamaChatCompletion(
+  body: Body & { stream?: false | undefined },
+): Promise<{ content: string; retries: number; ms: number }>;
+export async function ollamaChatCompletion(
+  body: Body & { stream: true },
+): Promise<{ content: OllamaCompletionContent; retries: number; ms: number }>;
+export async function ollamaChatCompletion(body: Body) {
   body.model = body.model ?? 'llama2';
   const {
     result: content,
@@ -17,14 +32,17 @@ export async function ollamaChatCompletion(body: any) {
       stop: body.stop,
     });
     console.log('body.prompt', body.prompt);
-    const stream = await ollama.stream(body.prompt);
+    const stream = await ollama.stream(body.prompt, { stop: body.stop });
+    if (body.stream) {
+      return new OllamaCompletionContent(stream, body.stop ?? []);
+    }
     let ollamaResult = '';
     for await (const chunk of stream) {
       ollamaResult += chunk;
     }
     console.log('#### ollama result = ');
     console.log(ollamaResult);
-    return ollamaResult as any;
+    return ollamaResult;
   });
 
   return {
@@ -375,11 +393,11 @@ const suffixOverlapsPrefix = (s1: string, s2: string) => {
   return false;
 };
 
-export class ChatCompletionContent {
-  private readonly body: ReadableStream<Uint8Array>;
+export class OllamaCompletionContent {
+  private readonly body: IterableReadableStream<string>;
   private readonly stopWords: string[];
 
-  constructor(body: ReadableStream<Uint8Array>, stopWords: string[]) {
+  constructor(body: IterableReadableStream<string>, stopWords: string[]) {
     this.body = body;
     this.stopWords = stopWords;
   }
@@ -433,7 +451,7 @@ export class ChatCompletionContent {
     return allContent;
   }
 
-  async *splitStream(stream: ReadableStream<Uint8Array>) {
+  async *splitStream(stream: IterableReadableStream<string>) {
     const reader = stream.getReader();
     let lastFragment = '';
     try {
@@ -442,7 +460,7 @@ export class ChatCompletionContent {
         if (done) {
           break;
         }
-        const data = new TextDecoder().decode(value);
+        const data = value;
         let startIdx = 0;
         while (true) {
           const endIdx = data.indexOf('\n\n', startIdx);

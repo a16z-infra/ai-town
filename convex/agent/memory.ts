@@ -7,6 +7,7 @@ import { asyncMap } from '../util/asyncMap';
 import { GameId, agentId, conversationId, playerId } from '../aiTown/ids';
 import { SerializedPlayer } from '../aiTown/player';
 import { ollamaChatCompletion } from '../util/ollama';
+import { memoryFields } from './schema';
 
 // How long to wait before updating a memory's last access time.
 export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
@@ -16,32 +17,6 @@ const MEMORY_OVERFETCH = 10;
 const useOllama = process.env.OLLAMA_HOST !== undefined;
 const selfInternal = internal.agent.memory;
 
-const memoryFields = {
-  playerId,
-  description: v.string(),
-  embeddingId: v.id('memoryEmbeddings'),
-  importance: v.number(),
-  lastAccess: v.number(),
-  data: v.union(
-    // Setting up dynamics between players
-    v.object({
-      type: v.literal('relationship'),
-      // The player this memory is about, from the perspective of the player
-      // whose memory this is.
-      playerId,
-    }),
-    v.object({
-      type: v.literal('conversation'),
-      conversationId,
-      // The other player(s) in the conversation.
-      playerIds: v.array(playerId),
-    }),
-    v.object({
-      type: v.literal('reflection'),
-      relatedMemoryIds: v.array(v.id('memories')),
-    }),
-  ),
-};
 export type Memory = Doc<'memories'>;
 export type MemoryType = Memory['data']['type'];
 export type MemoryOfType<T extends MemoryType> = Omit<Memory, 'data'> & {
@@ -91,12 +66,12 @@ export async function rememberConversation(
   if (useOllama) {
     console.log('### Using Ollama for conversation summary ###');
     const ollamaPrompt = llmMessages.map((m) => m.content).join('\n');
-    let { content } = await ollamaChatCompletion({
+    const { content } = await ollamaChatCompletion({
       prompt: ollamaPrompt,
     });
     summaryResult = content;
   } else {
-    let { content } = await chatCompletion({
+    const { content } = await chatCompletion({
       messages: llmMessages,
       max_tokens: 500,
     });
@@ -291,13 +266,13 @@ async function calculateImportance(description: string) {
 
   if (useOllama) {
     console.log('### Using Ollama for memory scoring ###');
-    let { content: importanceRaw } = await ollamaChatCompletion({
+    const { content: importanceRaw } = await ollamaChatCompletion({
       prompt: llmMessages.map((m) => m.content).join('\n'),
     });
     console.log('### Ollama returned: ', importanceRaw);
     returnedImportanceRaw = importanceRaw;
   } else {
-    let { content: importanceRaw } = await chatCompletion({
+    const { content: importanceRaw } = await chatCompletion({
       messages: llmMessages,
       temperature: 0.0,
       max_tokens: 1,
