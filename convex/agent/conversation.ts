@@ -2,14 +2,13 @@ import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
 import { ActionCtx, internalQuery } from '../_generated/server';
 import { LLMMessage, chatCompletion, ChatCompletionContent } from '../util/openai';
-import { ollamaChatCompletion } from '../util/ollama';
+import { UseOllama, ollamaChatCompletion } from '../util/ollama';
 import * as memory from './memory';
 import { api, internal } from '../_generated/api';
 import * as embeddingsCache from './embeddingsCache';
 import { GameId, conversationId, playerId } from '../aiTown/ids';
 
 const selfInternal = internal.agent.conversation;
-const useOllama = process.env.OLLAMA_HOST !== undefined;
 
 export async function startConversationMessage(
   ctx: ActionCtx,
@@ -51,7 +50,7 @@ export async function startConversationMessage(
   }
   prompt.push(`${player.name}:`);
 
-  if (useOllama) {
+  if (UseOllama) {
     const { content } = await ollamaChatCompletion({
       prompt: prompt.join('\n'),
       stream: true,
@@ -123,9 +122,9 @@ export async function continueConversationMessage(
   ];
   llmMessages.push({ role: 'user', content: `${player.name}:` });
 
-  if (useOllama) {
+  if (UseOllama) {
     const { content } = await ollamaChatCompletion({
-      prompt: prompt.join('\n'),
+      messages: llmMessages,
       stream: true,
       stop: stopWords(otherPlayer.name, player.name),
     });
@@ -181,9 +180,9 @@ export async function leaveConversationMessage(
   ];
   llmMessages.push({ role: 'user', content: `${player.name}:` });
 
-  if (useOllama) {
+  if (UseOllama) {
     const { content } = await ollamaChatCompletion({
-      prompt: prompt.join('\n'),
+      messages: llmMessages,
       stream: true,
       stop: stopWords(otherPlayer.name, player.name),
     });

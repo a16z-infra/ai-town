@@ -1,15 +1,23 @@
 import { Ollama } from 'langchain/llms/ollama';
-import { ChatCompletionContent, retryWithBackoff } from './openai';
+import { ChatCompletionContent, LLMMessage, retryWithBackoff } from './openai';
 import { IterableReadableStream } from 'langchain/dist/util/stream';
 
 const ollamaModel = process.env.OLLAMA_MODEL || 'llama2';
+export const UseOllama = process.env.OLLAMA_HOST !== undefined;
 
-type Body = {
-  prompt: string;
-  stop?: string[];
-  stream?: boolean;
-  model?: string;
-};
+type Body =
+  | {
+      messages: LLMMessage[];
+      stop?: string[];
+      stream?: boolean;
+      model?: string;
+    }
+  | {
+      prompt: string;
+      stop?: string[];
+      stream?: boolean;
+      model?: string;
+    };
 
 export async function ollamaChatCompletion(
   body: Body & { stream?: false | undefined },
@@ -31,8 +39,9 @@ export async function ollamaChatCompletion(body: Body) {
       baseUrl: process.env.OLLAMA_HOST,
       stop: body.stop,
     });
-    console.log('body.prompt', body.prompt);
-    const stream = await ollama.stream(body.prompt, { stop: body.stop });
+    const prompt = 'prompt' in body ? body.prompt : body.messages.map((m) => m.content).join('\n');
+    console.log('body.prompt', prompt);
+    const stream = await ollama.stream(prompt, { stop: body.stop });
     if (body.stream) {
       return new OllamaCompletionContent(stream, body.stop ?? []);
     }

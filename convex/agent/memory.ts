@@ -6,7 +6,7 @@ import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/openai';
 import { asyncMap } from '../util/asyncMap';
 import { GameId, agentId, conversationId, playerId } from '../aiTown/ids';
 import { SerializedPlayer } from '../aiTown/player';
-import { ollamaChatCompletion } from '../util/ollama';
+import { UseOllama, ollamaChatCompletion } from '../util/ollama';
 import { memoryFields } from './schema';
 
 // How long to wait before updating a memory's last access time.
@@ -14,7 +14,6 @@ export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
 // We fetch 10x the number of memories by relevance, to have more candidates
 // for sorting by relevance + recency + importance.
 const MEMORY_OVERFETCH = 10;
-const useOllama = process.env.OLLAMA_HOST !== undefined;
 const selfInternal = internal.agent.memory;
 
 export type Memory = Doc<'memories'>;
@@ -63,7 +62,7 @@ export async function rememberConversation(
   llmMessages.push({ role: 'user', content: 'Summary:' });
   let summaryResult: string;
 
-  if (useOllama) {
+  if (UseOllama) {
     console.log('### Using Ollama for conversation summary ###');
     const ollamaPrompt = llmMessages.map((m) => m.content).join('\n');
     const { content } = await ollamaChatCompletion({
@@ -264,7 +263,7 @@ async function calculateImportance(description: string) {
   ];
   let returnedImportanceRaw: string;
 
-  if (useOllama) {
+  if (UseOllama) {
     console.log('### Using Ollama for memory scoring ###');
     const { content: importanceRaw } = await ollamaChatCompletion({
       prompt: llmMessages.map((m) => m.content).join('\n'),
