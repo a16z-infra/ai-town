@@ -44,7 +44,9 @@ export const MAX_CONVERSATION_MESSAGES = 8;
 export const INPUT_DELAY = 1000;
 
 // Timeout a request to the conversation layer after a minute.
-export const ACTION_TIMEOUT = 100 * 1000;
+export function ACTION_TIMEOUT() {
+  return Number(process.env.ACTION_TIMEOUT) || 60 * 1000;
+}
 
 // Wait for at least two seconds before sending another message.
 export const MESSAGE_COOLDOWN = 2000;
