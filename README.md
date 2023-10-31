@@ -236,7 +236,12 @@ Ngrok should output a unique url once you run this command.
 
 3. Add Ollama endpoint to Convex
 
-- run `npx convex dashboard` to bring up the convex dashboard, and add `OLLAMA_URL = [your ngrok unique url from the previous step]` under "Environment Variables"
+- run `npx convex dashboard` to bring up the convex dashboard
+- Go to Settings > Environment Variables
+- Add `OLLAMA_URL = [your ngrok unique url from the previous step]`
+- You might also want to set:
+    `ACTION_TIMEOUT` to `100000` or more, to give your model more time to run.
+    `NUM_MEMORIES_TO_SEARCH` to `1`, to reduce the size of conversation prompts.
 
 By default, we use `llama2-7b` model on Ollama. If you want to customize which model to use, you can set `OLLAMA_MODEL` variable under Environment Variables. Ollama model options can be found [here](https://ollama.ai/library)
 

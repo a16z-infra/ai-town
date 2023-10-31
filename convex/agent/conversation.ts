@@ -32,7 +32,7 @@ export async function startConversationMessage(
     `What do you think about ${otherPlayer.name}?`,
   );
 
-  const n = useOllama ? 1 : 3;
+  const n = Number(process.env.NUM_MEMORIES_TO_SEARCH) || 3;
   const memories = await memory.searchMemories(ctx, player.id as GameId<'players'>, embedding, n);
 
   const memoryWithOtherPlayer = memories.find(
