@@ -1,31 +1,36 @@
 import { Ollama } from 'langchain/llms/ollama';
-import { ChatCompletionContent, LLMMessage, retryWithBackoff } from './openai';
+import {
+  ChatCompletionContent,
+  CreateChatCompletionRequest,
+  LLMMessage,
+  retryWithBackoff,
+} from './openai';
 import { IterableReadableStream } from 'langchain/dist/util/stream';
 
 const ollamaModel = process.env.OLLAMA_MODEL || 'llama2';
 export const UseOllama = process.env.OLLAMA_HOST !== undefined;
 
-type Body =
-  | {
-      messages: LLMMessage[];
-      stop?: string[];
-      stream?: boolean;
-      model?: string;
-    }
-  | {
-      prompt: string;
-      stop?: string[];
-      stream?: boolean;
-      model?: string;
-    };
-
+// Overload for non-streaming
 export async function ollamaChatCompletion(
-  body: Body & { stream?: false | undefined },
+  body: Omit<CreateChatCompletionRequest, 'model'> & {
+    model?: string;
+  } & {
+    stream?: false | null | undefined;
+  },
 ): Promise<{ content: string; retries: number; ms: number }>;
+// Overload for streaming
 export async function ollamaChatCompletion(
-  body: Body & { stream: true },
+  body: Omit<CreateChatCompletionRequest, 'model'> & {
+    model?: string;
+  } & {
+    stream?: true;
+  },
 ): Promise<{ content: OllamaCompletionContent; retries: number; ms: number }>;
-export async function ollamaChatCompletion(body: Body) {
+export async function ollamaChatCompletion(
+  body: Omit<CreateChatCompletionRequest, 'model'> & {
+    model?: string;
+  },
+) {
   body.model = body.model ?? 'llama2';
   const {
     result: content,
@@ -34,16 +39,17 @@ export async function ollamaChatCompletion(body: Body) {
   } = await retryWithBackoff(async () => {
     console.log('#### Ollama api ####, using ', ollamaModel);
 
+    const stop = typeof body.stop === 'string' ? [body.stop] : body.stop;
     const ollama = new Ollama({
       model: ollamaModel,
       baseUrl: process.env.OLLAMA_HOST,
-      stop: body.stop,
+      stop,
     });
-    const prompt = 'prompt' in body ? body.prompt : body.messages.map((m) => m.content).join('\n');
+    const prompt = body.messages.map((m) => m.content).join('\n');
     console.log('body.prompt', prompt);
-    const stream = await ollama.stream(prompt, { stop: body.stop });
+    const stream = await ollama.stream(prompt, { stop });
     if (body.stream) {
-      return new OllamaCompletionContent(stream, body.stop ?? []);
+      return new OllamaCompletionContent(stream, stop ?? []);
     }
     let ollamaResult = '';
     for await (const chunk of stream) {

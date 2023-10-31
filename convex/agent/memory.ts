@@ -9,6 +9,8 @@ import { SerializedPlayer } from '../aiTown/player';
 import { UseOllama, ollamaChatCompletion } from '../util/ollama';
 import { memoryFields } from './schema';
 
+const completionFn = UseOllama ? ollamaChatCompletion : chatCompletion;
+
 // How long to wait before updating a memory's last access time.
 export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
 // We fetch 10x the number of memories by relevance, to have more candidates
@@ -60,25 +62,13 @@ export async function rememberConversation(
     });
   }
   llmMessages.push({ role: 'user', content: 'Summary:' });
-  let summaryResult: string;
-
-  if (UseOllama) {
-    console.log('### Using Ollama for conversation summary ###');
-    const ollamaPrompt = llmMessages.map((m) => m.content).join('\n');
-    const { content } = await ollamaChatCompletion({
-      prompt: ollamaPrompt,
-    });
-    summaryResult = content;
-  } else {
-    const { content } = await chatCompletion({
-      messages: llmMessages,
-      max_tokens: 500,
-    });
-    summaryResult = content;
-  }
+  const { content } = await completionFn({
+    messages: llmMessages,
+    max_tokens: 500,
+  });
   const description = `Conversation with ${otherPlayer.name} at ${new Date(
     data.conversation._creationTime,
-  ).toLocaleString()}: ${summaryResult}`;
+  ).toLocaleString()}: ${content}`;
   const importance = await calculateImportance(description);
   const { embedding } = await fetchEmbedding(description);
   authors.delete(player.id as GameId<'players'>);
@@ -253,38 +243,25 @@ export const loadMessages = internalQuery({
 });
 
 async function calculateImportance(description: string) {
-  const llmMessages: LLMMessage[] = [
-    {
-      role: 'user',
-      content: `On the scale of 0 to 9, where 0 is purely mundane (e.g., brushing teeth, making bed) and 9 is extremely poignant (e.g., a break up, college acceptance), rate the likely poignancy of the following piece of memory.
+  const { content: importanceRaw } = await completionFn({
+    messages: [
+      {
+        role: 'user',
+        content: `On the scale of 0 to 9, where 0 is purely mundane (e.g., brushing teeth, making bed) and 9 is extremely poignant (e.g., a break up, college acceptance), rate the likely poignancy of the following piece of memory.
       Memory: ${description}
       Answer on a scale of 0 to 9. Respond with number only, e.g. "5"`,
-    },
-  ];
-  let returnedImportanceRaw: string;
+      },
+    ],
+    temperature: 0.0,
+    max_tokens: 1,
+  });
 
-  if (UseOllama) {
-    console.log('### Using Ollama for memory scoring ###');
-    const { content: importanceRaw } = await ollamaChatCompletion({
-      prompt: llmMessages.map((m) => m.content).join('\n'),
-    });
-    console.log('### Ollama returned: ', importanceRaw);
-    returnedImportanceRaw = importanceRaw;
-  } else {
-    const { content: importanceRaw } = await chatCompletion({
-      messages: llmMessages,
-      temperature: 0.0,
-      max_tokens: 1,
-    });
-    returnedImportanceRaw = importanceRaw;
-  }
-
-  let importance = parseFloat(returnedImportanceRaw);
+  let importance = parseFloat(importanceRaw);
   if (isNaN(importance)) {
-    importance = +(returnedImportanceRaw.match(/\d+/)?.[0] ?? NaN);
+    importance = +(importanceRaw.match(/\d+/)?.[0] ?? NaN);
   }
   if (isNaN(importance)) {
-    console.debug('Could not parse memory importance from: ', returnedImportanceRaw);
+    console.debug('Could not parse memory importance from: ', importanceRaw);
     importance = 5;
   }
   return importance;
