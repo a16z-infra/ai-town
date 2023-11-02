@@ -160,6 +160,10 @@ export class Agent {
       }
       if (member.status.kind === 'participating') {
         const started = member.status.started;
+        if (conversation.getNextSpeaker() !== player.id) {
+          // Wait for our turn.
+          return;
+        }
         if (conversation.isTyping && conversation.isTyping.playerId !== player.id) {
           // Wait for the other player to finish typing.
           return;
