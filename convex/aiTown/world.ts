@@ -4,6 +4,7 @@ import { Player, serializedPlayer } from './player';
 import { Agent, serializedAgent } from './agent';
 import { GameId, parseGameId, playerId } from './ids';
 import { parseMap } from '../util/object';
+import { Id } from '../_generated/dataModel';
 
 export const historicalLocations = v.array(
   v.object({
@@ -13,6 +14,7 @@ export const historicalLocations = v.array(
 );
 
 export const serializedWorld = {
+  id: v.optional(v.id('worlds')),
   nextId: v.number(),
   conversations: v.array(v.object(serializedConversation)),
   players: v.array(v.object(serializedPlayer)),
@@ -22,6 +24,7 @@ export const serializedWorld = {
 export type SerializedWorld = ObjectType<typeof serializedWorld>;
 
 export class World {
+  id: Id<'worlds'>;
   nextId: number;
   conversations: Map<GameId<'conversations'>, Conversation>;
   players: Map<GameId<'players'>, Player>;
@@ -29,8 +32,9 @@ export class World {
   historicalLocations?: Map<GameId<'players'>, ArrayBuffer>;
 
   constructor(serialized: SerializedWorld) {
-    const { nextId, historicalLocations } = serialized;
+    const { id, nextId, historicalLocations } = serialized;
 
+    this.id = id;
     this.nextId = nextId;
     this.conversations = parseMap(serialized.conversations, Conversation, (c) => c.id);
     this.players = parseMap(serialized.players, Player, (p) => p.id);
@@ -50,6 +54,7 @@ export class World {
 
   serialize(): SerializedWorld {
     return {
+      id: this.id,
       nextId: this.nextId,
       conversations: [...this.conversations.values()].map((c) => c.serialize()),
       players: [...this.players.values()].map((p) => p.serialize()),

@@ -25,12 +25,15 @@ import { internal } from '../_generated/api';
 import { HistoricalObject } from '../engine/historicalObject';
 import { AgentDescription, serializedAgentDescription } from './agentDescription';
 import { parseMap, serializeMap } from '../util/object';
+import { stat } from 'fs';
+import { Conversation } from './conversation';
 
 const gameState = v.object({
   world: v.object(serializedWorld),
   playerDescriptions: v.array(v.object(serializedPlayerDescription)),
   agentDescriptions: v.array(v.object(serializedAgentDescription)),
   worldMap: v.object(serializedWorldMap),
+  worldStatus: v.object(serializedWorldStatus),
 });
 type GameState = Infer<typeof gameState>;
 
@@ -39,6 +42,7 @@ const gameStateDiff = v.object({
   playerDescriptions: v.optional(v.array(v.object(serializedPlayerDescription))),
   agentDescriptions: v.optional(v.array(v.object(serializedAgentDescription))),
   worldMap: v.optional(v.object(serializedWorldMap)),
+  worldStatus: v.optional(v.object(serializedWorldStatus)),
   agentOperations: v.array(v.object({ name: v.string(), args: v.any() })),
 });
 type GameStateDiff = Infer<typeof gameStateDiff>;
@@ -55,6 +59,7 @@ export class Game extends AbstractGame {
 
   descriptionsModified: boolean;
   worldMap: WorldMap;
+  worldStatus: WorldStatus;
   playerDescriptions: Map<GameId<'players'>, PlayerDescription>;
   agentDescriptions: Map<GameId<'agents'>, AgentDescription>;
 
@@ -66,12 +71,15 @@ export class Game extends AbstractGame {
     state: GameState,
   ) {
     super(engine);
-
+    console.log(`GAME CONSTRUCTOR\n WORLD STATE: ${JSON.stringify(state.world)}`);
+    console.log(`WORLD ID: ${worldId}`);
+    state.world.id = worldId;
     this.world = new World(state.world);
     delete this.world.historicalLocations;
 
     this.descriptionsModified = false;
     this.worldMap = new WorldMap(state.worldMap);
+    //this.worldStatus = state.worldStatus; // TODO make sure worldStatus is available on gamestate here
     this.agentDescriptions = parseMap(state.agentDescriptions, AgentDescription, (a) => a.agentId);
     this.playerDescriptions = parseMap(
       state.playerDescriptions,
@@ -87,6 +95,7 @@ export class Game extends AbstractGame {
     worldId: Id<'worlds'>,
     generationNumber: number,
   ): Promise<{ engine: Doc<'engines'>; gameState: GameState }> {
+    console.log(`LOAD GAME`);
     const worldDoc = await db.get(worldId);
     if (!worldDoc) {
       throw new Error(`No world found with id ${worldId}`);
@@ -116,6 +125,8 @@ export class Game extends AbstractGame {
     }
     // Discard the system fields and historicalLocations from the world state.
     const { _id, _creationTime, historicalLocations, ...world } = worldDoc;
+    console.log(`WORLD: ${JSON.stringify(world)}`);
+    world.id = worldId;
     const playerDescriptions = playerDescriptionsDocs
       // Discard player descriptions for players that no longer exist.
       .filter((d) => !!world.players.find((p) => p.id === d.playerId))
@@ -136,6 +147,7 @@ export class Game extends AbstractGame {
         playerDescriptions,
         agentDescriptions,
         worldMap,
+        worldStatus,
       },
     };
   }

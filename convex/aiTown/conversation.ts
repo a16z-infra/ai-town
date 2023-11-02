@@ -18,7 +18,6 @@ import { parseMap, serializeMap } from '../util/object';
 export class Conversation {
   id: GameId<'conversations'>;
   creator: GameId<'players'>;
-  worldId: Id<'worlds'>;
   created: number;
   isTyping?: {
     playerId: GameId<'players'>;
@@ -37,7 +36,6 @@ export class Conversation {
     const {
       id,
       creator,
-      worldId,
       created,
       isTyping,
       lastMessage,
@@ -47,7 +45,6 @@ export class Conversation {
     } = serialized;
     this.id = parseGameId('conversations', id);
     this.creator = parseGameId('players', creator);
-    this.worldId = worldId;
     this.created = created;
     this.isTyping = isTyping && {
       playerId: parseGameId('players', isTyping.playerId),
@@ -136,23 +133,29 @@ export class Conversation {
     }
   }
 
-  async getNextSpeaker(game: Game, ctx: ActionCtx): Promise<GameId<'conversations'>> {
-    const worldId = game.world.id; // TODO: add id to World type
-    const chatHistory = await ctx.runQuery(api.messages.listMessages, { worldId, conversationId });
+  getNextSpeaker(game: Game): GameId<'players'> {
+    console.log('GET NEXT SPEAKER');
+    console.log(`WORLDID: ${game.world.id}`);
+    console.log(`SPEAKING ORDER: ${this.speakingOrder}`);
+    //async getNextSpeaker(game: Game, ctx: ActionCtx): Promise<GameId<'players'>> {
+    // const worldId = game.world.id; // TODO: add id to World type
+    // const chatHistory = await ctx.runQuery(api.messages.listMessages, { worldId, conversationId });
     const playerIds = this.participants.keys();
+    console.log(`playerIds: ${JSON.stringify(playerIds)}`);
+    // if (this.speakingOrder === 'random') {
+    //   return this.participants.keys()[Math.floor(Math.random() * this.participants.size)];
+    // } else if (this.speakingOrder === 'sequential') {
 
-    if (this.speakingOrder === 'random') {
-      return this.participants.keys()[Math.floor(Math.random() * this.participants.size)];
-    } else if (this.speakingOrder === 'sequential') {
-      return;
-    } else if (this.speakingOrder === 'preference') {
-      return;
-    }
+    //   return;
+    // } else if (this.speakingOrder === 'preference') {
+    //   return;
+    // }
 
-    return;
+    return playerIds[0];
   }
 
   static startMultiplayer(game: Game, now: number, players: Player[]) {
+    console.log(`STARTMULTIPLAYER`);
     players.forEach((player) => {
       // Ensure the players still exist.
       if ([...game.world.conversations.values()].find((c) => c.participants.has(player.id))) {
@@ -160,6 +163,8 @@ export class Conversation {
         console.log(reason);
         return { error: reason };
       }
+      // Stop the player from moving.
+      stopPlayer(player);
     });
 
     const conversationId = game.allocId('conversations');
@@ -170,14 +175,13 @@ export class Conversation {
         id: conversationId,
         created: now,
         creator: players[0].id,
-        worldId: game.world.id, // TODO: add id to World type
         numMessages: 0,
         participants: players.map((player) => ({
           playerId: player.id,
           invited: now,
           status: { kind: 'participating', started: now },
         })),
-        speakingOrder: 'sequential', // TODO: make this configurable
+        speakingOrder: 'random', // TODO: make this configurable
       }),
     );
     return { conversationId };
@@ -206,13 +210,12 @@ export class Conversation {
         id: conversationId,
         created: now,
         creator: player.id,
-        worldId: game.world.id, // TODO: add id to World type
         numMessages: 0,
         participants: [
           { playerId: player.id, invited: now, status: { kind: 'walkingOver' } },
           { playerId: invitee.id, invited: now, status: { kind: 'invited' } },
         ],
-        speakingOrder: 'sequential', // TODO: make this configurable
+        speakingOrder: 'random', // TODO: make this configurable
       }),
     );
     return { conversationId };
@@ -280,7 +283,6 @@ export class Conversation {
     const {
       id,
       creator,
-      worldId,
       created,
       isTyping,
       lastMessage,
@@ -291,7 +293,6 @@ export class Conversation {
     return {
       id,
       creator,
-      worldId,
       created,
       isTyping,
       lastMessage,
@@ -305,7 +306,6 @@ export class Conversation {
 export const serializedConversation = {
   id: conversationId,
   creator: playerId,
-  worldId: v.id('worlds'),
   created: v.number(),
   isTyping: v.optional(
     v.object({

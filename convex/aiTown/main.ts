@@ -6,6 +6,7 @@ import { internal } from '../_generated/api';
 import { sleep } from '../util/sleep';
 import { Id } from '../_generated/dataModel';
 import { ENGINE_ACTION_DURATION } from '../constants';
+import { Conversation } from './conversation';
 
 export async function createEngine(ctx: MutationCtx) {
   const now = Date.now();
@@ -101,6 +102,23 @@ export const runStep = internalAction({
       const game = new Game(engine, args.worldId, gameState);
 
       let now = Date.now();
+      console.log(`RUN STEP`);
+      console.log(`World Status: ${JSON.stringify(gameState.worldStatus)}`);
+      if (!gameState?.worldStatus?.scenarioStarted) {
+        console.log('STARTING SCENARIO');
+        gameState.worldStatus.scenarioStarted = true;
+
+        const players = gameState.world.players;
+
+        console.log(`GAME STATE:`);
+        console.log(`ENGINE: ${JSON.stringify(engine)}`);
+        console.log(`# OF PLAYERS: ${players.length}`);
+
+        if (players.length > 0) {
+          const { conversationId } = Conversation.startMultiplayer(game, now, players);
+        }
+      }
+
       const deadline = now + args.maxDuration;
       while (now < deadline) {
         await game.runStep(ctx, now);

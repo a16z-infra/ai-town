@@ -74,6 +74,7 @@ async function getOrCreateDefaultWorld(ctx: MutationCtx) {
     lastViewed: now,
     status: 'running',
     worldId: worldId,
+    scenarioStarted: false,
   });
   worldStatus = (await ctx.db.get(worldStatusId))!;
   await ctx.db.insert('maps', {

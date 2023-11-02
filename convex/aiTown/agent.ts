@@ -160,7 +160,9 @@ export class Agent {
       }
       if (member.status.kind === 'participating') {
         const started = member.status.started;
-        if (conversation.getNextSpeaker() !== player.id) {
+        // console.log(`PARTICIPATING`);
+        // console.log(`GAME: ${JSON.stringify(game)}`);
+        if (conversation.getNextSpeaker(game) !== player.id) {
           // Wait for our turn.
           return;
         }
