@@ -33,7 +33,6 @@ const gameState = v.object({
   playerDescriptions: v.array(v.object(serializedPlayerDescription)),
   agentDescriptions: v.array(v.object(serializedAgentDescription)),
   worldMap: v.object(serializedWorldMap),
-  worldStatus: v.object(serializedWorldStatus),
 });
 type GameState = Infer<typeof gameState>;
 
@@ -42,7 +41,6 @@ const gameStateDiff = v.object({
   playerDescriptions: v.optional(v.array(v.object(serializedPlayerDescription))),
   agentDescriptions: v.optional(v.array(v.object(serializedAgentDescription))),
   worldMap: v.optional(v.object(serializedWorldMap)),
-  worldStatus: v.optional(v.object(serializedWorldStatus)),
   agentOperations: v.array(v.object({ name: v.string(), args: v.any() })),
 });
 type GameStateDiff = Infer<typeof gameStateDiff>;
@@ -59,7 +57,6 @@ export class Game extends AbstractGame {
 
   descriptionsModified: boolean;
   worldMap: WorldMap;
-  worldStatus: WorldStatus;
   playerDescriptions: Map<GameId<'players'>, PlayerDescription>;
   agentDescriptions: Map<GameId<'agents'>, AgentDescription>;
 
@@ -79,7 +76,6 @@ export class Game extends AbstractGame {
 
     this.descriptionsModified = false;
     this.worldMap = new WorldMap(state.worldMap);
-    //this.worldStatus = state.worldStatus; // TODO make sure worldStatus is available on gamestate here
     this.agentDescriptions = parseMap(state.agentDescriptions, AgentDescription, (a) => a.agentId);
     this.playerDescriptions = parseMap(
       state.playerDescriptions,
@@ -147,7 +143,6 @@ export class Game extends AbstractGame {
         playerDescriptions,
         agentDescriptions,
         worldMap,
-        worldStatus,
       },
     };
   }

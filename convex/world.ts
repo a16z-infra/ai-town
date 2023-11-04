@@ -51,6 +51,23 @@ export const heartbeatWorld = mutation({
   },
 });
 
+export const toggleScenario = internalMutation({
+  args: {
+    worldId: v.id('worlds'),
+  },
+  handler: async (ctx, args) => {
+    const worldStatus = await ctx.db
+      .query('worldStatus')
+      .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
+      .first();
+    if (!worldStatus) {
+      throw new Error(`Invalid world ID: ${args.worldId}`);
+    }
+
+    await ctx.db.patch(worldStatus._id, { scenarioStarted: !worldStatus.scenarioStarted });
+  },
+});
+
 export const stopInactiveWorlds = internalMutation({
   handler: async (ctx) => {
     const cutoff = Date.now() - IDLE_WORLD_TIMEOUT;

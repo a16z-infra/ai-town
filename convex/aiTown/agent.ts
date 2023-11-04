@@ -162,10 +162,10 @@ export class Agent {
         const started = member.status.started;
         // console.log(`PARTICIPATING`);
         // console.log(`GAME: ${JSON.stringify(game)}`);
-        if (conversation.getNextSpeaker(game) !== player.id) {
-          // Wait for our turn.
-          return;
-        }
+        // if (conversation.getNextSpeaker(game) !== player.id) {
+        //   // Wait for our turn.
+        //   return;
+        // }
         if (conversation.isTyping && conversation.isTyping.playerId !== player.id) {
           // Wait for the other player to finish typing.
           return;

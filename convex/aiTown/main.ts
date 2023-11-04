@@ -104,9 +104,15 @@ export const runStep = internalAction({
       let now = Date.now();
       console.log(`RUN STEP`);
       console.log(`World Status: ${JSON.stringify(gameState.worldStatus)}`);
+
       if (!gameState?.worldStatus?.scenarioStarted) {
         console.log('STARTING SCENARIO');
-        gameState.worldStatus.scenarioStarted = true;
+        await ctx.runMutation(internal.world.toggleScenario, {
+          worldId: args.worldId,
+        });
+
+        console.log(`scenarioStarted: ${gameState.worldStatus.scenarioStarted}`);
+        console.log(`statusModified: ${gameState.statusModified}`);
 
         const players = gameState.world.players;
 

@@ -64,10 +64,10 @@ export class Conversation {
     if (this.isTyping && this.isTyping.since + TYPING_TIMEOUT < now) {
       delete this.isTyping;
     }
-    if (this.participants.size !== 2) {
-      console.warn(`Conversation ${this.id} has ${this.participants.size} participants`);
-      return;
-    }
+    // if (this.participants.size !== 2) {
+    //   console.warn(`Conversation ${this.id} has ${this.participants.size} participants`);
+    //   return;
+    // }
     const [playerId1, playerId2] = [...this.participants.keys()];
     const member1 = this.participants.get(playerId1)!;
     const member2 = this.participants.get(playerId2)!;
