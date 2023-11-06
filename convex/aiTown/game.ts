@@ -9,6 +9,7 @@ import {
 } from '../_generated/server';
 import { World, serializedWorld } from './world';
 import { WorldMap, serializedWorldMap } from './worldMap';
+import { WorldStatus, serializedWorldStatus } from './worldStatus';
 import { PlayerDescription, serializedPlayerDescription } from './playerDescription';
 import { Location, locationFields, playerLocation } from './location';
 import { runAgentOperation } from './agent';
@@ -76,6 +77,7 @@ export class Game extends AbstractGame {
 
     this.descriptionsModified = false;
     this.worldMap = new WorldMap(state.worldMap);
+    this.worldStatus = new WorldStatus(state.worldStatus);
     this.agentDescriptions = parseMap(state.agentDescriptions, AgentDescription, (a) => a.agentId);
     this.playerDescriptions = parseMap(
       state.playerDescriptions,
