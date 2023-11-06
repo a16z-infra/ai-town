@@ -13,7 +13,7 @@ export const serializedWorldStatus = {
 export type SerializedWorldStatus = ObjectType<typeof serializedWorldStatus>;
 
 export class WorldStatus {
-  id: Id<'worldStatus'>;
+  id?: Id<'worldStatus'>;
   worldId: Id<'worlds'>;
   isDefault: boolean;
   engineId: Id<'engines'>;
