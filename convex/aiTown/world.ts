@@ -24,7 +24,7 @@ export const serializedWorld = {
 export type SerializedWorld = ObjectType<typeof serializedWorld>;
 
 export class World {
-  id: Id<'worlds'>;
+  id?: Id<'worlds'>;
   nextId: number;
   conversations: Map<GameId<'conversations'>, Conversation>;
   players: Map<GameId<'players'>, Player>;

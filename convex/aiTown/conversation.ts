@@ -150,8 +150,7 @@ export class Conversation {
     // } else if (this.speakingOrder === 'preference') {
     //   return;
     // }
-
-    return playerIds[0];
+    return playerIds.next().value;
   }
 
   static startMultiplayer(game: Game, now: number, players: Player[]) {

@@ -51,7 +51,7 @@ export const agentGenerateMessage = internalAction({
     playerId,
     agentId,
     conversationId,
-    otherPlayerId: playerId,
+    otherPlayerIds: v.array(v.string()),
     operationId: v.string(),
     type: v.union(v.literal('start'), v.literal('continue'), v.literal('leave')),
     messageUuid: v.string(),
@@ -76,9 +76,9 @@ export const agentGenerateMessage = internalAction({
       args.worldId,
       args.conversationId as GameId<'conversations'>,
       args.playerId as GameId<'players'>,
-      args.otherPlayerId as GameId<'players'>,
+      args.otherPlayerIds as GameId<'players'>[],
     );
-    const text = await completion.readAll();
+    const text = await completion!.readAll();
     await ctx.runMutation(internal.aiTown.agent.agentSendMessage, {
       worldId: args.worldId,
       conversationId: args.conversationId,

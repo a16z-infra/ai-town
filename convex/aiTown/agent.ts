@@ -104,10 +104,8 @@ export class Agent {
       return;
     }
     if (conversation && member) {
-      const [otherPlayerId, otherMember] = [...conversation.participants.entries()].find(
-        ([id]) => id !== player.id,
-      )!;
-      const otherPlayer = game.world.players.get(otherPlayerId)!;
+      const otherPlayerIds = [...conversation.participants.keys()].filter((id) => id !== player.id);
+      const otherPlayer = game.world.players.get(otherPlayerIds[0])!; // TODO: handle multiple players
       if (member.status.kind === 'invited') {
         // Accept a conversation with another agent with some probability and with
         // a human unconditionally.
@@ -160,8 +158,7 @@ export class Agent {
       }
       if (member.status.kind === 'participating') {
         const started = member.status.started;
-        // console.log(`PARTICIPATING`);
-        // console.log(`GAME: ${JSON.stringify(game)}`);
+        // Don't do anything if we're not the next speaker. TODO: test this
         // if (conversation.getNextSpeaker(game) !== player.id) {
         //   // Wait for our turn.
         //   return;
@@ -184,7 +181,7 @@ export class Agent {
               playerId: player.id,
               agentId: this.id,
               conversationId: conversation.id,
-              otherPlayerId: otherPlayer.id,
+              otherPlayerIds,
               messageUuid,
               type: 'start',
             });
@@ -205,7 +202,7 @@ export class Agent {
             playerId: player.id,
             agentId: this.id,
             conversationId: conversation.id,
-            otherPlayerId: otherPlayer.id,
+            otherPlayerIds,
             messageUuid,
             type: 'leave',
           });
@@ -232,7 +229,7 @@ export class Agent {
           playerId: player.id,
           agentId: this.id,
           conversationId: conversation.id,
-          otherPlayerId: otherPlayer.id,
+          otherPlayerIds,
           messageUuid,
           type: 'continue',
         });

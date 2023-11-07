@@ -105,24 +105,21 @@ export const runStep = internalAction({
       console.log(`RUN STEP`);
       console.log(`World Status: ${JSON.stringify(gameState.worldStatus)}`);
 
-      if (!gameState?.worldStatus?.scenarioStarted) {
+      const players = gameState.world.players;
+
+      if (!gameState?.worldStatus?.scenarioStarted && players.length > 0) {
         console.log('STARTING SCENARIO');
+        console.log(`PLAYERS TYPE: ${typeof players}`);
+        console.log(`PLAYERS: ${JSON.stringify(players)}`);
         await ctx.runMutation(internal.world.toggleScenario, {
           worldId: args.worldId,
         });
 
-        console.log(`scenarioStarted: ${gameState.worldStatus.scenarioStarted}`);
-        console.log(`statusModified: ${gameState.statusModified}`);
+        // console.log(`scenarioStarted: ${gameState.worldStatus.scenarioStarted}`);
+        // console.log(`statusModified: ${gameState.statusModified}`);
 
-        const players = gameState.world.players;
-
-        console.log(`GAME STATE:`);
-        console.log(`ENGINE: ${JSON.stringify(engine)}`);
-        console.log(`# OF PLAYERS: ${players.length}`);
-
-        if (players.length > 0) {
-          const { conversationId } = Conversation.startMultiplayer(game, now, players);
-        }
+        console.log(`START MULTIPLAYER:`);
+        const { conversationId } = Conversation.startMultiplayer(game, now, players);
       }
 
       const deadline = now + args.maxDuration;
