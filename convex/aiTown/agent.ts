@@ -159,10 +159,9 @@ export class Agent {
       if (member.status.kind === 'participating') {
         const started = member.status.started;
         // Don't do anything if we're not the next speaker. TODO: test this
-        // if (conversation.getNextSpeaker(game) !== player.id) {
-        //   // Wait for our turn.
-        //   return;
-        // }
+        if (conversation.nextSpeaker !== player.id) {
+          return;
+        }
         if (conversation.isTyping && conversation.isTyping.playerId !== player.id) {
           // Wait for the other player to finish typing.
           return;
@@ -176,6 +175,7 @@ export class Agent {
             console.log(`${player.id} initiating conversation with ${otherPlayer.id}.`);
             const messageUuid = crypto.randomUUID();
             conversation.setIsTyping(now, player, messageUuid);
+            conversation.setNextSpeaker();
             this.startOperation(game, now, 'agentGenerateMessage', {
               worldId: game.worldId,
               playerId: player.id,
@@ -197,6 +197,7 @@ export class Agent {
           console.log(`${player.id} leaving conversation with ${otherPlayer.id}.`);
           const messageUuid = crypto.randomUUID();
           conversation.setIsTyping(now, player, messageUuid);
+          conversation.setNextSpeaker();
           this.startOperation(game, now, 'agentGenerateMessage', {
             worldId: game.worldId,
             playerId: player.id,
@@ -224,6 +225,7 @@ export class Agent {
         console.log(`${player.id} continuing conversation with ${otherPlayer.id}.`);
         const messageUuid = crypto.randomUUID();
         conversation.setIsTyping(now, player, messageUuid);
+        conversation.setNextSpeaker();
         this.startOperation(game, now, 'agentGenerateMessage', {
           worldId: game.worldId,
           playerId: player.id,

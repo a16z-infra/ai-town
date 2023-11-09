@@ -72,8 +72,6 @@ export class Game extends AbstractGame {
     state: GameState,
   ) {
     super(engine);
-    console.log(`GAME CONSTRUCTOR\n WORLD STATE: ${JSON.stringify(state.world)}`);
-    console.log(`WORLD ID: ${worldId}`);
     state.world.id = worldId;
     this.world = new World(state.world);
     delete this.world.historicalLocations;
@@ -96,7 +94,6 @@ export class Game extends AbstractGame {
     worldId: Id<'worlds'>,
     generationNumber: number,
   ): Promise<{ engine: Doc<'engines'>; gameState: GameState }> {
-    console.log(`LOAD GAME`);
     const worldDoc = await db.get(worldId);
     if (!worldDoc) {
       throw new Error(`No world found with id ${worldId}`);
@@ -126,7 +123,6 @@ export class Game extends AbstractGame {
     }
     // Discard the system fields and historicalLocations from the world state.
     const { _id, _creationTime, historicalLocations, ...world } = worldDoc;
-    console.log(`WORLD: ${JSON.stringify(world)}`);
     world.id = worldId;
     const playerDescriptions = playerDescriptionsDocs
       // Discard player descriptions for players that no longer exist.

@@ -13,7 +13,7 @@ import { Point } from '../util/types';
 import { Game } from './game';
 import { stopPlayer, blocked, movePlayer } from './movement';
 import { ConversationMembership, serializedConversationMembership } from './conversationMembership';
-import { parseMap, serializeMap } from '../util/object';
+import { parseMap, serializeMap, parseArray } from '../util/object';
 
 export class Conversation {
   id: GameId<'conversations'>;
@@ -30,7 +30,9 @@ export class Conversation {
   };
   numMessages: number;
   participants: Map<GameId<'players'>, ConversationMembership>;
+  nextSpeaker: GameId<'players'>;
   speakingOrder: 'random' | 'sequential' | 'preference';
+  participantsArray: ConversationMembership[];
 
   constructor(serialized: SerializedConversation) {
     const {
@@ -41,6 +43,7 @@ export class Conversation {
       lastMessage,
       numMessages,
       participants,
+      nextSpeaker,
       speakingOrder,
     } = serialized;
     this.id = parseGameId('conversations', id);
@@ -57,7 +60,9 @@ export class Conversation {
     };
     this.numMessages = numMessages;
     this.participants = parseMap(participants, ConversationMembership, (m) => m.playerId);
+    this.nextSpeaker = parseGameId('players', creator);
     this.speakingOrder = speakingOrder;
+    this.participantsArray = parseArray(participants, ConversationMembership);
   }
 
   tick(game: Game, now: number) {
@@ -133,24 +138,21 @@ export class Conversation {
     }
   }
 
-  getNextSpeaker(game: Game): GameId<'players'> {
-    console.log('GET NEXT SPEAKER');
-    console.log(`WORLDID: ${game.world.id}`);
-    console.log(`SPEAKING ORDER: ${this.speakingOrder}`);
-    //async getNextSpeaker(game: Game, ctx: ActionCtx): Promise<GameId<'players'>> {
-    // const worldId = game.world.id; // TODO: add id to World type
-    // const chatHistory = await ctx.runQuery(api.messages.listMessages, { worldId, conversationId });
-    const playerIds = this.participants.keys();
-    console.log(`playerIds: ${JSON.stringify(playerIds)}`);
-    // if (this.speakingOrder === 'random') {
-    //   return this.participants.keys()[Math.floor(Math.random() * this.participants.size)];
-    // } else if (this.speakingOrder === 'sequential') {
-
-    //   return;
-    // } else if (this.speakingOrder === 'preference') {
-    //   return;
-    // }
-    return playerIds.next().value;
+  //TODO: throw error if nextSpeaker is not in participants
+  setNextSpeaker() {
+    if (this.speakingOrder === 'sequential') {
+      const index = this.participantsArray.indexOf(
+        this.participantsArray.find((p) => p.playerId === this.nextSpeaker)!,
+      );
+      if (index == this.participantsArray.length - 1) {
+        this.nextSpeaker = this.participantsArray[0].playerId;
+      } else {
+        this.nextSpeaker = this.participantsArray[index + 1].playerId;
+      }
+    } else if (this.speakingOrder === 'random') {
+      this.nextSpeaker =
+        this.participantsArray[Math.floor(Math.random() * this.participantsArray.length)].playerId;
+    }
   }
 
   static startMultiplayer(game: Game, now: number, players: Player[]) {
@@ -180,6 +182,7 @@ export class Conversation {
           invited: now,
           status: { kind: 'participating', started: now },
         })),
+        nextSpeaker: players[0].id,
         speakingOrder: 'random', // TODO: make this configurable
       }),
     );
@@ -214,6 +217,7 @@ export class Conversation {
           { playerId: player.id, invited: now, status: { kind: 'walkingOver' } },
           { playerId: invitee.id, invited: now, status: { kind: 'invited' } },
         ],
+        nextSpeaker: player.id,
         speakingOrder: 'random', // TODO: make this configurable
       }),
     );
@@ -287,6 +291,7 @@ export class Conversation {
       lastMessage,
       numMessages,
       participants,
+      nextSpeaker,
       speakingOrder,
     } = this;
     return {
@@ -297,6 +302,7 @@ export class Conversation {
       lastMessage,
       numMessages,
       participants: serializeMap(this.participants),
+      nextSpeaker,
       speakingOrder,
     };
   }
@@ -321,6 +327,7 @@ export const serializedConversation = {
   ),
   numMessages: v.number(),
   participants: v.array(v.object(serializedConversationMembership)),
+  nextSpeaker: playerId,
   speakingOrder: v.union(v.literal('random'), v.literal('sequential'), v.literal('preference')),
 };
 export type SerializedConversation = ObjectType<typeof serializedConversation>;

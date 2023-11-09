@@ -1,3 +1,10 @@
+export function parseArray<Serialized, Parsed>(
+  records: Serialized[],
+  constructor: new (r: Serialized) => Parsed,
+): Parsed[] {
+  return records.map((r) => new constructor(r));
+}
+
 export function parseMap<Id, Serialized, Parsed>(
   records: Serialized[],
   constructor: new (r: Serialized) => Parsed,
