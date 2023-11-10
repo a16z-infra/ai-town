@@ -132,8 +132,8 @@ export default function PlayerDetails({
   return (
     <>
       <div className="flex gap-4">
-        <div className="box flex-grow">
-          <h2 className="bg-brown-700 p-2 font-display text-4xl tracking-wider shadow-solid text-center">
+        <div className="box w-3/4 sm:w-full mr-auto">
+          <h2 className="bg-brown-700 p-2 font-display text-2xl sm:text-4xl tracking-wider shadow-solid text-center">
             {playerDescription?.name}
           </h2>
         </div>
@@ -142,7 +142,7 @@ export default function PlayerDetails({
           onClick={() => setSelectedElement(undefined)}
         >
           <h2 className="h-full bg-clay-700">
-            <img className="w-5 h-5" src={closeImg} />
+            <img className="w-4 h-4 sm:w-5 sm:h-5" src={closeImg} />
           </h2>
         </a>
       </div>
@@ -214,11 +214,13 @@ export default function PlayerDetails({
       )}
       {!playerConversation && player.activity && player.activity.until > Date.now() && (
         <div className="box flex-grow mt-6">
-          <h2 className="bg-brown-700 text-lg text-center">{player.activity.description}</h2>
+          <h2 className="bg-brown-700 text-base sm:text-lg text-center">
+            {player.activity.description}
+          </h2>
         </div>
       )}
       <div className="desc my-6">
-        <p className="leading-tight -m-4 bg-brown-700 text-lg">
+        <p className="leading-tight -m-4 bg-brown-700 text-base sm:text-sm">
           {!isMe && playerDescription?.description}
           {isMe && <i>This is you!</i>}
           {!isMe && inConversationWithMe && (
