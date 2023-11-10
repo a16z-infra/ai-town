@@ -55,7 +55,7 @@ export class Agent {
       throw new Error(`Invalid player ID ${this.playerId}`);
     }
     if (this.inProgressOperation) {
-      if (now < this.inProgressOperation.started + ACTION_TIMEOUT) {
+      if (now < this.inProgressOperation.started + ACTION_TIMEOUT()) {
         // Wait on the operation to finish.
         return;
       }

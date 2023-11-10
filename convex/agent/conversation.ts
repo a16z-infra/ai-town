@@ -1,13 +1,16 @@
 import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
 import { ActionCtx, internalQuery } from '../_generated/server';
-import { LLMMessage, chatCompletion } from '../util/openai';
+import { LLMMessage, chatCompletion, ChatCompletionContent } from '../util/openai';
+import { UseOllama, ollamaChatCompletion } from '../util/ollama';
 import * as memory from './memory';
 import { api, internal } from '../_generated/api';
 import * as embeddingsCache from './embeddingsCache';
 import { GameId, conversationId, playerId } from '../aiTown/ids';
+import { NUM_MEMORIES_TO_SEARCH } from '../constants';
 
 const selfInternal = internal.agent.conversation;
+const completionFn = UseOllama ? ollamaChatCompletion : chatCompletion;
 
 export async function startConversationMessage(
   ctx: ActionCtx,
@@ -29,7 +32,14 @@ export async function startConversationMessage(
     ctx,
     `What do you think about ${otherPlayer.name}?`,
   );
-  const memories = await memory.searchMemories(ctx, player.id as GameId<'players'>, embedding, 3);
+
+  const memories = await memory.searchMemories(
+    ctx,
+    player.id as GameId<'players'>,
+    embedding,
+    NUM_MEMORIES_TO_SEARCH(),
+  );
+
   const memoryWithOtherPlayer = memories.find(
     (m) => m.data.type === 'conversation' && m.data.playerIds.includes(otherPlayerId),
   );
@@ -46,7 +56,7 @@ export async function startConversationMessage(
   }
   prompt.push(`${player.name}:`);
 
-  const { content } = await chatCompletion({
+  const { content } = await completionFn({
     messages: [
       {
         role: 'user',
@@ -108,7 +118,8 @@ export async function continueConversationMessage(
     )),
   ];
   llmMessages.push({ role: 'user', content: `${player.name}:` });
-  const { content } = await chatCompletion({
+
+  const { content } = await completionFn({
     messages: llmMessages,
     max_tokens: 300,
     stream: true,
@@ -156,7 +167,8 @@ export async function leaveConversationMessage(
     )),
   ];
   llmMessages.push({ role: 'user', content: `${player.name}:` });
-  const { content } = await chatCompletion({
+
+  const { content } = await completionFn({
     messages: llmMessages,
     max_tokens: 300,
     stream: true,
