@@ -31,6 +31,7 @@ const init = mutation({
       );
       return;
     }
+
     const shouldCreate = await shouldCreateAgents(
       ctx.db,
       worldStatus.worldId,
@@ -74,9 +75,19 @@ async function getOrCreateDefaultWorld(ctx: MutationCtx) {
     lastViewed: now,
     status: 'running',
     worldId: worldId,
-    scenarioStarted: false,
+    scenarioInProgress: false,
   });
   worldStatus = (await ctx.db.get(worldStatusId))!;
+  //TODO: evaluate if this is needed
+  const scenarioId = await ctx.db.insert('scenarios', {
+    worldId: worldId,
+    type: 'debate',
+    description: 'A debate between two players',
+    scenarioSettings: {
+      rounds: 3,
+      topic: 'Is a hot dog a sandwich?',
+    },
+  });
   await ctx.db.insert('maps', {
     worldId,
     width: map.mapwidth,

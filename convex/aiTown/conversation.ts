@@ -170,23 +170,21 @@ export class Conversation {
 
     const conversationId = game.allocId('conversations');
     console.log(`Creating conversation ${conversationId}`);
-    game.world.conversations.set(
-      conversationId,
-      new Conversation({
-        id: conversationId,
-        created: now,
-        creator: players[0].id,
-        numMessages: 0,
-        participants: players.map((player) => ({
-          playerId: player.id,
-          invited: now,
-          status: { kind: 'participating', started: now },
-        })),
-        nextSpeaker: players[0].id,
-        speakingOrder: 'random', // TODO: make this configurable
-      }),
-    );
-    return { conversationId };
+    const conversation = new Conversation({
+      id: conversationId,
+      created: now,
+      creator: players[0].id,
+      numMessages: 0,
+      participants: players.map((player) => ({
+        playerId: player.id,
+        invited: now,
+        status: { kind: 'participating', started: now },
+      })),
+      nextSpeaker: players[0].id,
+      speakingOrder: 'random', // TODO: make this configurable
+    });
+    game.world.conversations.set(conversationId, conversation);
+    return conversation;
   }
 
   static start(game: Game, now: number, player: Player, invitee: Player) {

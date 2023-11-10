@@ -64,7 +64,7 @@ export const toggleScenario = internalMutation({
       throw new Error(`Invalid world ID: ${args.worldId}`);
     }
 
-    await ctx.db.patch(worldStatus._id, { scenarioStarted: !worldStatus.scenarioStarted });
+    await ctx.db.patch(worldStatus._id, { scenarioInProgress: !worldStatus.scenarioInProgress });
   },
 });
 

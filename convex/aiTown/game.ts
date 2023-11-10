@@ -27,7 +27,7 @@ import { HistoricalObject } from '../engine/historicalObject';
 import { AgentDescription, serializedAgentDescription } from './agentDescription';
 import { parseMap, serializeMap } from '../util/object';
 import { stat } from 'fs';
-import { Conversation } from './conversation';
+import { Scenario, serializedScenario } from './scenario';
 
 const gameState = v.object({
   world: v.object(serializedWorld),
@@ -35,6 +35,7 @@ const gameState = v.object({
   agentDescriptions: v.array(v.object(serializedAgentDescription)),
   worldMap: v.object(serializedWorldMap),
   worldStatus: v.object(serializedWorldStatus),
+  scenario: v.object(serializedScenario),
 });
 type GameState = Infer<typeof gameState>;
 
@@ -45,6 +46,7 @@ const gameStateDiff = v.object({
   worldMap: v.optional(v.object(serializedWorldMap)),
   worldStatus: v.optional(v.object(serializedWorldStatus)),
   agentOperations: v.array(v.object({ name: v.string(), args: v.any() })),
+  scenario: v.optional(v.object(serializedScenario)),
 });
 type GameStateDiff = Infer<typeof gameStateDiff>;
 
@@ -61,6 +63,7 @@ export class Game extends AbstractGame {
   descriptionsModified: boolean;
   worldMap: WorldMap;
   worldStatus: WorldStatus;
+  scenario?: Scenario;
   playerDescriptions: Map<GameId<'players'>, PlayerDescription>;
   agentDescriptions: Map<GameId<'agents'>, AgentDescription>;
 
@@ -79,6 +82,7 @@ export class Game extends AbstractGame {
     this.descriptionsModified = false;
     this.worldMap = new WorldMap(state.worldMap);
     this.worldStatus = new WorldStatus(state.worldStatus);
+    this.scenario = (state.scenario && new Scenario(state.scenario)) || undefined;
     this.agentDescriptions = parseMap(state.agentDescriptions, AgentDescription, (a) => a.agentId);
     this.playerDescriptions = parseMap(
       state.playerDescriptions,
@@ -105,6 +109,10 @@ export class Game extends AbstractGame {
     if (!worldStatus) {
       throw new Error(`No engine found for world ${worldId}`);
     }
+    const scenario = await db
+      .query('scenarios')
+      .withIndex('worldId', (q) => q.eq('worldId', worldId))
+      .unique();
     const engine = await loadEngine(db, worldStatus.engineId, generationNumber);
     const playerDescriptionsDocs = await db
       .query('playerDescriptions')
@@ -145,6 +153,7 @@ export class Game extends AbstractGame {
         agentDescriptions,
         worldMap,
         worldStatus,
+        scenario,
       },
     };
   }
@@ -188,11 +197,20 @@ export class Game extends AbstractGame {
     for (const player of this.world.players.values()) {
       player.tickPosition(this, now);
     }
-    for (const conversation of this.world.conversations.values()) {
-      conversation.tick(this, now);
-    }
-    for (const agent of this.world.agents.values()) {
-      agent.tick(this, now);
+
+    // if scenario running defer to scenario tick
+    if (this.worldStatus.scenarioInProgress && this.scenario) {
+      this.scenario.tick(this, now);
+    } else {
+      // console.log(`ELSE BLOCK`);
+      // console.log(`SCENARIO IN PROGRESS: ${this.worldStatus.scenarioInProgress}`);
+      // console.log(`SCENARIO: ${JSON.stringify(this.scenario)}`);
+      // for (const conversation of this.world.conversations.values()) {
+      //   conversation.tick(this, now);
+      // }
+      // for (const agent of this.world.agents.values()) {
+      //   agent.tick(this, now);
+      // }
     }
 
     // Save each player's location into the history buffer at the end of
@@ -240,6 +258,7 @@ export class Game extends AbstractGame {
     const result: GameStateDiff = {
       world: { ...this.world.serialize(), historicalLocations },
       agentOperations: this.pendingOperations,
+      worldStatus: this.worldStatus.serialize(),
     };
     this.pendingOperations = [];
     if (this.descriptionsModified) {

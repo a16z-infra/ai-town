@@ -8,11 +8,22 @@ import { serializedWorld } from './world';
 import { serializedWorldMap } from './worldMap';
 import { serializedConversation } from './conversation';
 import { conversationId, playerId } from './ids';
+import { serializedAuctionSettings, serializedDebateSettings } from './scenario';
 
 export const aiTownTables = {
   // This table has a single document that stores all players, conversations, and agents. This
   // data is small and changes regularly over time.
   worlds: defineTable({ ...serializedWorld }),
+
+  scenarios: defineTable({
+    worldId: v.id('worlds'),
+    type: v.union(v.literal('debate'), v.literal('auction')),
+    description: v.string(),
+    scenarioSettings: v.union(
+      v.object(serializedAuctionSettings),
+      v.object(serializedDebateSettings),
+    ),
+  }).index('worldId', ['worldId']),
 
   // Worlds can be started or stopped by the developer or paused for inactivity, and this
   // infrequently changing document tracks this world state.
@@ -22,7 +33,7 @@ export const aiTownTables = {
     engineId: v.id('engines'),
     lastViewed: v.number(),
     status: v.union(v.literal('running'), v.literal('stoppedByDeveloper'), v.literal('inactive')),
-    scenarioStarted: v.boolean(),
+    scenarioInProgress: v.boolean(),
   }).index('worldId', ['worldId']),
 
   // This table contains the map data for a given world. Since it's a bit larger than the player

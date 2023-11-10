@@ -158,10 +158,6 @@ export class Agent {
       }
       if (member.status.kind === 'participating') {
         const started = member.status.started;
-        // Don't do anything if we're not the next speaker. TODO: test this
-        if (conversation.nextSpeaker !== player.id) {
-          return;
-        }
         if (conversation.isTyping && conversation.isTyping.playerId !== player.id) {
           // Wait for the other player to finish typing.
           return;

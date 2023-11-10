@@ -2,11 +2,11 @@ import { ConvexError, v } from 'convex/values';
 import { DatabaseReader, MutationCtx, internalAction, mutation, query } from '../_generated/server';
 import { insertInput } from './insertInput';
 import { Game } from './game';
-import { internal } from '../_generated/api';
+import { internal, api } from '../_generated/api';
 import { sleep } from '../util/sleep';
 import { Id } from '../_generated/dataModel';
 import { ENGINE_ACTION_DURATION } from '../constants';
-import { Conversation } from './conversation';
+import { Scenario } from './scenario';
 
 export async function createEngine(ctx: MutationCtx) {
   const now = Date.now();
@@ -107,19 +107,17 @@ export const runStep = internalAction({
 
       const players = gameState.world.players;
 
-      if (!gameState?.worldStatus?.scenarioStarted && players.length > 0) {
-        console.log('STARTING SCENARIO');
-        console.log(`PLAYERS TYPE: ${typeof players}`);
-        console.log(`PLAYERS: ${JSON.stringify(players)}`);
+      if (!gameState?.worldStatus?.scenarioInProgress && players.length > 0) {
         await ctx.runMutation(internal.world.toggleScenario, {
           worldId: args.worldId,
         });
 
-        // console.log(`scenarioStarted: ${gameState.worldStatus.scenarioStarted}`);
-        // console.log(`statusModified: ${gameState.statusModified}`);
+        const worldStatus = await ctx.runQuery(api.world.defaultWorldStatus);
 
-        console.log(`START MULTIPLAYER:`);
-        const { conversationId } = Conversation.startMultiplayer(game, now, players);
+        console.log('STARTING SCENARIO');
+        console.log(`World Status: ${JSON.stringify(worldStatus)}`);
+        //Scenario.start(game, now, players);
+        game.scenario?.start(game, now, players);
       }
 
       const deadline = now + args.maxDuration;
