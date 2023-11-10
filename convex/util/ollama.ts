@@ -67,20 +67,6 @@ export async function ollamaChatCompletion(
   };
 }
 
-// Checks whether a suffix of s1 is a prefix of s2. For example,
-// ('Hello', 'Kira:') -> false
-// ('Hello Kira', 'Kira:') -> true
-const suffixOverlapsPrefix = (s1: string, s2: string) => {
-  for (let i = 1; i <= Math.min(s1.length, s2.length); i++) {
-    const suffix = s1.substring(s1.length - i);
-    const prefix = s2.substring(0, i);
-    if (suffix === prefix) {
-      return true;
-    }
-  }
-  return false;
-};
-
 export class OllamaCompletionContent {
   private readonly body: IterableReadableStream<string>;
   private readonly stopWords: string[];
@@ -90,28 +76,10 @@ export class OllamaCompletionContent {
     this.stopWords = stopWords;
   }
 
-  // stop words don't always work.
-  // So we have to truncate on our side.
   async *read() {
-    let lastFragment = '';
     for await (const data of this.splitStream(this.body)) {
-      lastFragment += data;
-      let hasOverlap = false;
-      for (const stopWord of this.stopWords) {
-        const idx = lastFragment.indexOf(stopWord);
-        if (idx >= 0) {
-          yield lastFragment.substring(0, idx);
-          return;
-        }
-        if (suffixOverlapsPrefix(lastFragment, stopWord)) {
-          hasOverlap = true;
-        }
-      }
-      if (hasOverlap) continue;
-      yield lastFragment;
-      lastFragment = '';
+      yield data;
     }
-    yield lastFragment;
   }
 
   async readAll() {
