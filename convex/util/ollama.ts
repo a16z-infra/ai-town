@@ -90,28 +90,11 @@ export class OllamaCompletionContent {
     this.stopWords = stopWords;
   }
 
-  async *readInner() {
-    for await (const data of this.splitStream(this.body)) {
-      if (data.startsWith('data: ')) {
-        try {
-          const json = JSON.parse(data.substring('data: '.length)) as {
-            choices: { delta: { content?: string } }[];
-          };
-          if (json.choices[0].delta.content) {
-            yield json.choices[0].delta.content;
-          }
-        } catch (e) {
-          // e.g. the last chunk is [DONE] which is not valid JSON.
-        }
-      }
-    }
-  }
-
-  // stop words in OpenAI api don't always work.
+  // stop words don't always work.
   // So we have to truncate on our side.
   async *read() {
     let lastFragment = '';
-    for await (const data of this.readInner()) {
+    for await (const data of this.splitStream(this.body)) {
       lastFragment += data;
       let hasOverlap = false;
       for (const stopWord of this.stopWords) {
