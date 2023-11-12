@@ -87,6 +87,17 @@ export async function stopEngine(ctx: MutationCtx, worldId: Id<'worlds'>) {
   await ctx.db.patch(engineId, { running: false });
 }
 
+export async function stopRunningEngine(ctx: MutationCtx) {
+  const engine = await ctx.db
+    .query('engines')
+    .withIndex('running', (q) => q.eq('running', true))
+    .first();
+
+  if (engine && engine._id) {
+    await ctx.db.patch(engine._id, { running: false });
+  }
+}
+
 export const runStep = internalAction({
   args: {
     worldId: v.id('worlds'),

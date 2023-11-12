@@ -52,5 +52,5 @@ export type Engine = Infer<typeof engine>;
 
 export const engineTables = {
   inputs: defineTable(input).index('byInputNumber', ['engineId', 'number']),
-  engines: defineTable(engine),
+  engines: defineTable(engine).index('running', ['running']),
 };

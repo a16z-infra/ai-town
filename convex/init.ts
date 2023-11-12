@@ -5,11 +5,12 @@ import { Descriptions } from '../data/characters';
 import * as map from '../data/gentle';
 import { insertInput } from './aiTown/insertInput';
 import { Id } from './_generated/dataModel';
-import { createEngine } from './aiTown/main';
+import { createEngine, stopRunningEngine } from './aiTown/main';
 import { ENGINE_ACTION_DURATION } from './constants';
 
 const init = mutation({
   args: {
+    newWorld: v.optional(v.boolean()),
     numAgents: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -24,7 +25,11 @@ const init = mutation({
           '/settings?var=OPENAI_API_KEY',
       );
     }
-    const { worldStatus, engine } = await getOrCreateDefaultWorld(ctx);
+    // Stop running engine before creating new world
+    if (args.newWorld) {
+      await stopRunningEngine(ctx);
+    }
+    const { worldStatus, engine } = await getOrCreateDefaultWorld(ctx, args);
     if (worldStatus.status !== 'running') {
       console.warn(
         `Engine ${engine._id} is not active! Run "npx convex run testing:resume" to restart it.`,
@@ -49,16 +54,28 @@ const init = mutation({
 });
 export default init;
 
-async function getOrCreateDefaultWorld(ctx: MutationCtx) {
+async function getOrCreateDefaultWorld(
+  ctx: MutationCtx,
+  args: {
+    newWorld?: boolean;
+  },
+) {
   const now = Date.now();
 
   let worldStatus = await ctx.db
     .query('worldStatus')
     .filter((q) => q.eq(q.field('isDefault'), true))
     .unique();
-  if (worldStatus) {
-    const engine = (await ctx.db.get(worldStatus.engineId))!;
-    return { worldStatus, engine };
+
+  if (args.newWorld && worldStatus) {
+    await ctx.db.patch(worldStatus._id, {
+      isDefault: false,
+    });
+  } else {
+    if (worldStatus) {
+      const engine = (await ctx.db.get(worldStatus.engineId))!;
+      return { worldStatus, engine };
+    }
   }
 
   const engineId = await createEngine(ctx);
