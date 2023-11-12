@@ -318,6 +318,7 @@ export const agentSendMessage = internalMutation({
   },
   handler: async (ctx, args) => {
     await ctx.db.insert('messages', {
+      worldId: args.worldId,
       conversationId: args.conversationId,
       author: args.playerId,
       text: args.text,

@@ -12,13 +12,15 @@ export default defineSchema({
   }),
 
   messages: defineTable({
+    worldId: v.id('worlds'),
     conversationId,
     messageUuid: v.string(),
     author: playerId,
     text: v.string(),
   })
     .index('conversationId', ['conversationId'])
-    .index('messageUuid', ['conversationId', 'messageUuid']),
+    .index('messageUuid', ['conversationId', 'messageUuid'])
+    .index('worldId_conversationId', ['worldId', 'conversationId']),
 
   ...agentTables,
   ...aiTownTables,
