@@ -3,7 +3,6 @@ import { Game } from './game';
 import { ObjectType, v } from 'convex/values';
 import { Player } from './player';
 import { Conversation, serializedConversation } from './conversation';
-import { ACTION_TIMEOUT, TYPING_TIMEOUT } from '../constants';
 
 export const serializedAuctionSettings = {
   rounds: v.number(),
@@ -22,10 +21,7 @@ export const serializedScenario = {
   type: v.union(v.literal('debate'), v.literal('auction')),
   description: v.string(),
   conversation: v.object(serializedConversation),
-  scenarioSettings: v.union(
-    v.object(serializedAuctionSettings),
-    v.object(serializedDebateSettings),
-  ),
+  settings: v.union(v.object(serializedAuctionSettings), v.object(serializedDebateSettings)),
 };
 export type SerializedScenario = ObjectType<typeof serializedScenario>;
 
@@ -35,7 +31,7 @@ export class Scenario {
   type: 'debate' | 'auction';
   description: string;
   conversation?: Conversation;
-  scenarioSettings: SerializedAuctionSettings | SerializedDebateSettings;
+  settings: SerializedAuctionSettings | SerializedDebateSettings;
 
   constructor(serialized: SerializedScenario) {
     this.id = serialized.id;
@@ -44,89 +40,7 @@ export class Scenario {
     this.description = serialized.description;
     this.conversation =
       (serialized.conversation && new Conversation(serialized.conversation)) || undefined;
-    this.scenarioSettings = serialized.scenarioSettings;
-  }
-
-  tick(game: Game, now: number) {
-    if (
-      this.conversation &&
-      this.conversation.isTyping &&
-      this.conversation.isTyping.since + TYPING_TIMEOUT < now
-    ) {
-      delete this.conversation.isTyping;
-    }
-    for (const agent of game.world.agents.values()) {
-      const player = game.world.players.get(agent.playerId);
-      console.log(`PLAYER: ${player!.id}`);
-      if (!player) {
-        throw new Error(`Invalid player ID: ${agent.playerId}`);
-      }
-      if (agent.inProgressOperation) {
-        if (now < agent.inProgressOperation.started + ACTION_TIMEOUT) {
-          // Wait on the operation to finish.
-          return;
-        }
-        console.log(`Timing out ${JSON.stringify(agent.inProgressOperation)}`);
-        delete agent.inProgressOperation;
-      }
-
-      const conversation = game.world.playerConversation(player);
-      const member = conversation?.participants.get(player.id);
-      //TODO: do we need to remember anything?
-      if (conversation && member) {
-        const otherPlayerIds = [...conversation.participants.keys()].filter(
-          (id) => id !== player.id,
-        );
-        if (member?.status.kind === 'participating') {
-          // if (conversation.nextSpeaker !== player.id) {
-          //   // Wait for the other player to finish speaking.
-          //   return;
-          // }
-          console.log(`NEXT SPEAKER: ${conversation.nextSpeaker}`);
-          // if (conversation.isTyping && conversation.isTyping.playerId !== player.id) {
-          //   // Wait for the other player to finish typing.
-          //   console.log(`PLAYER IS TYPING: ${conversation.isTyping.playerId}`);
-          //   return;
-          // }
-
-          // if (
-          //   conversation.numMessages >
-          //   conversation.participants.size * this.scenarioSettings.rounds
-          // ) {
-          //   console.log(`${player.id} leaving conversation.`);
-          //   const messageUuid = crypto.randomUUID();
-          //   conversation.setIsTyping(now, player, messageUuid);
-          //   conversation.setNextSpeaker();
-          //   agent.startOperation(game, now, 'agentGenerateMessage', {
-          //     worldId: game.worldId,
-          //     playerId: player.id,
-          //     agentId: agent.id,
-          //     conversationId: conversation.id,
-          //     otherPlayerIds,
-          //     messageUuid,
-          //     type: 'leave',
-          //   });
-          //   return;
-          // }
-
-          const messageUuid = crypto.randomUUID();
-          conversation.setIsTyping(now, player, messageUuid);
-          conversation.setNextSpeaker();
-          agent.startOperation(game, now, 'agentGenerateMessage', {
-            worldId: game.worldId,
-            playerId: player.id,
-            agentId: agent.id,
-            conversationId: conversation.id,
-            otherPlayerIds,
-            messageUuid,
-            type: 'continue',
-          });
-        }
-      }
-    }
-    // console.log(`SCENARIO TICK: ${JSON.stringify(this)}`);
-    // console.log(`CONVERSATIONS: ${JSON.stringify(game.world.conversations)}`);
-    // console.log(`AGENTS: ${JSON.stringify(game.world.agents)}`);
+    this.settings = serialized.settings;
   }
 
   start(game: Game, now: number, players: Player[]) {
@@ -141,7 +55,7 @@ export class Scenario {
       type: this.type,
       description: this.description,
       conversation: this.conversation,
-      scenarioSettings: this.scenarioSettings,
+      settings: this.settings,
     };
   }
 }

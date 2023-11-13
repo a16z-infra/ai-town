@@ -19,10 +19,7 @@ export const aiTownTables = {
     worldId: v.id('worlds'),
     type: v.union(v.literal('debate'), v.literal('auction')),
     description: v.string(),
-    scenarioSettings: v.union(
-      v.object(serializedAuctionSettings),
-      v.object(serializedDebateSettings),
-    ),
+    settings: v.union(v.object(serializedAuctionSettings), v.object(serializedDebateSettings)),
   }).index('worldId', ['worldId']),
 
   // Worlds can be started or stopped by the developer or paused for inactivity, and this

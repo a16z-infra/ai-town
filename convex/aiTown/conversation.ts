@@ -33,6 +33,7 @@ export class Conversation {
   nextSpeaker: GameId<'players'>;
   speakingOrder: 'random' | 'sequential' | 'preference';
   participantsArray: ConversationMembership[];
+  isScenarioConversation: boolean;
 
   constructor(serialized: SerializedConversation) {
     const {
@@ -45,6 +46,7 @@ export class Conversation {
       participants,
       nextSpeaker,
       speakingOrder,
+      isScenarioConversation,
     } = serialized;
     this.id = parseGameId('conversations', id);
     this.creator = parseGameId('players', creator);
@@ -60,9 +62,10 @@ export class Conversation {
     };
     this.numMessages = numMessages;
     this.participants = parseMap(participants, ConversationMembership, (m) => m.playerId);
-    this.nextSpeaker = parseGameId('players', creator);
+    this.nextSpeaker = parseGameId('players', nextSpeaker);
     this.speakingOrder = speakingOrder;
     this.participantsArray = parseArray(participants, ConversationMembership);
+    this.isScenarioConversation = isScenarioConversation;
   }
 
   tick(game: Game, now: number) {
@@ -181,7 +184,8 @@ export class Conversation {
         status: { kind: 'participating', started: now },
       })),
       nextSpeaker: players[0].id,
-      speakingOrder: 'random', // TODO: make this configurable
+      speakingOrder: 'sequential', // TODO: make this configurable
+      isScenarioConversation: true,
     });
     game.world.conversations.set(conversationId, conversation);
     return conversation;
@@ -216,7 +220,8 @@ export class Conversation {
           { playerId: invitee.id, invited: now, status: { kind: 'invited' } },
         ],
         nextSpeaker: player.id,
-        speakingOrder: 'random', // TODO: make this configurable
+        speakingOrder: 'sequential', // TODO: make this configurable
+        isScenarioConversation: false,
       }),
     );
     return { conversationId };
@@ -291,6 +296,7 @@ export class Conversation {
       participants,
       nextSpeaker,
       speakingOrder,
+      isScenarioConversation,
     } = this;
     return {
       id,
@@ -302,6 +308,7 @@ export class Conversation {
       participants: serializeMap(this.participants),
       nextSpeaker,
       speakingOrder,
+      isScenarioConversation,
     };
   }
 }
@@ -327,6 +334,7 @@ export const serializedConversation = {
   participants: v.array(v.object(serializedConversationMembership)),
   nextSpeaker: playerId,
   speakingOrder: v.union(v.literal('random'), v.literal('sequential'), v.literal('preference')),
+  isScenarioConversation: v.boolean(),
 };
 export type SerializedConversation = ObjectType<typeof serializedConversation>;
 

@@ -55,7 +55,6 @@ export class Game extends AbstractGame {
   stepDuration = 1000;
   maxTicksPerStep = 600;
   maxInputsPerStep = 32;
-
   world: World;
 
   historicalLocations: Map<GameId<'players'>, HistoricalObject<Location>>;
@@ -197,20 +196,11 @@ export class Game extends AbstractGame {
     for (const player of this.world.players.values()) {
       player.tickPosition(this, now);
     }
-
-    // if scenario running defer to scenario tick
-    if (this.worldStatus.scenarioInProgress && this.scenario) {
-      this.scenario.tick(this, now);
-    } else {
-      // console.log(`ELSE BLOCK`);
-      // console.log(`SCENARIO IN PROGRESS: ${this.worldStatus.scenarioInProgress}`);
-      // console.log(`SCENARIO: ${JSON.stringify(this.scenario)}`);
-      // for (const conversation of this.world.conversations.values()) {
-      //   conversation.tick(this, now);
-      // }
-      // for (const agent of this.world.agents.values()) {
-      //   agent.tick(this, now);
-      // }
+    for (const conversation of this.world.conversations.values()) {
+      conversation.tick(this, now);
+    }
+    for (const agent of this.world.agents.values()) {
+      agent.tick(this, now);
     }
 
     // Save each player's location into the history buffer at the end of

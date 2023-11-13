@@ -100,7 +100,7 @@ async function getOrCreateDefaultWorld(
     worldId: worldId,
     type: 'debate',
     description: 'A debate between two players',
-    scenarioSettings: {
+    settings: {
       rounds: 3,
       topic: 'Is a hot dog a sandwich?',
     },

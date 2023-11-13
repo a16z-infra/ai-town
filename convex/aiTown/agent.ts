@@ -64,6 +64,31 @@ export class Agent {
     }
     const conversation = game.world.playerConversation(player);
     const member = conversation?.participants.get(player.id);
+    if (game.worldStatus.scenarioInProgress) {
+      if (!conversation) {
+        throw new Error(`Error in scenario, no conversation started`);
+      }
+      if (conversation.isTyping && conversation.isTyping.playerId !== player.id) {
+        // Wait for the other player to finish typing.
+        return;
+      }
+      const otherPlayerIds = [...conversation.participants.keys()].filter((id) => id !== player.id);
+      if (conversation.nextSpeaker === player.id) {
+        const messageUuid = crypto.randomUUID();
+        conversation.setIsTyping(now, player, messageUuid);
+        conversation.setNextSpeaker();
+        this.startOperation(game, now, 'agentGenerateMessage', {
+          worldId: game.worldId,
+          playerId: player.id,
+          agentId: this.id,
+          conversationId: conversation.id,
+          otherPlayerIds,
+          messageUuid,
+          type: 'continue',
+        });
+      }
+      return;
+    }
 
     const recentlyAttemptedInvite =
       this.lastInviteAttempt && now < this.lastInviteAttempt + CONVERSATION_COOLDOWN;
@@ -166,7 +191,7 @@ export class Agent {
           const isInitiator = conversation.creator === player.id;
           const awkwardDeadline = started + AWKWARD_CONVERSATION_TIMEOUT;
           // Send the first message if we're the initiator or if we've been waiting for too long.
-          if (isInitiator || awkwardDeadline < now) {
+          if ((!conversation.isScenarioConversation && isInitiator) || awkwardDeadline < now) {
             // Grab the lock on the conversation and send a "start" message.
             console.log(`${player.id} initiating conversation with ${otherPlayer.id}.`);
             const messageUuid = crypto.randomUUID();
@@ -189,7 +214,10 @@ export class Agent {
         }
         // See if the conversation has been going on too long and decide to leave.
         const tooLongDeadline = started + MAX_CONVERSATION_DURATION;
-        if (tooLongDeadline < now || conversation.numMessages > MAX_CONVERSATION_MESSAGES) {
+        if (
+          (!conversation.isScenarioConversation && tooLongDeadline < now) ||
+          conversation.numMessages > MAX_CONVERSATION_MESSAGES
+        ) {
           console.log(`${player.id} leaving conversation with ${otherPlayer.id}.`);
           const messageUuid = crypto.randomUUID();
           conversation.setIsTyping(now, player, messageUuid);
@@ -220,17 +248,19 @@ export class Agent {
         // Grab the lock and send a message!
         console.log(`${player.id} continuing conversation with ${otherPlayer.id}.`);
         const messageUuid = crypto.randomUUID();
-        conversation.setIsTyping(now, player, messageUuid);
-        conversation.setNextSpeaker();
-        this.startOperation(game, now, 'agentGenerateMessage', {
-          worldId: game.worldId,
-          playerId: player.id,
-          agentId: this.id,
-          conversationId: conversation.id,
-          otherPlayerIds,
-          messageUuid,
-          type: 'continue',
-        });
+        if (!conversation.isScenarioConversation) {
+          conversation.setIsTyping(now, player, messageUuid);
+          conversation.setNextSpeaker();
+          this.startOperation(game, now, 'agentGenerateMessage', {
+            worldId: game.worldId,
+            playerId: player.id,
+            agentId: this.id,
+            conversationId: conversation.id,
+            otherPlayerIds,
+            messageUuid,
+            type: 'continue',
+          });
+        }
         return;
       }
     }
