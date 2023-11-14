@@ -11,7 +11,7 @@ export const listMessages = query({
   handler: async (ctx, args) => {
     const messages = await ctx.db
       .query('messages')
-      .withIndex('conversationId', (q) => q.eq('conversationId', args.conversationId))
+      .withIndex('conversationId', (q) => q.eq('worldId', args.worldId).eq('conversationId', args.conversationId))
       .collect();
     const out = [];
     for (const message of messages) {
@@ -42,6 +42,7 @@ export const writeMessage = mutation({
       author: args.playerId,
       messageUuid: args.messageUuid,
       text: args.text,
+      worldId: args.worldId,
     });
     await insertInput(ctx, args.worldId, 'finishSendingMessage', {
       conversationId: args.conversationId,

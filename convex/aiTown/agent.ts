@@ -321,6 +321,7 @@ export const agentSendMessage = internalMutation({
       author: args.playerId,
       text: args.text,
       messageUuid: args.messageUuid,
+      worldId: args.worldId,
     });
     await insertInput(ctx, args.worldId, 'agentFinishSendingMessage', {
       conversationId: args.conversationId,
