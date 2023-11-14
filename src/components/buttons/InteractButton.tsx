@@ -61,10 +61,12 @@ export default function InteractButton() {
       <SignInButton>
         <button className="button text-white shadow-solid text-2xl pointer-events-auto">
           <div className="inline-block bg-clay-700">
-            <div className="inline-flex h-full items-center gap-4">
-              <img className="w-[30px] h-[30px]" src={interactImg} />
-              Interact
-            </div>
+            <span>
+              <div className="inline-flex h-full items-center gap-4">
+                <img className="w-4 h-4 sm:w-[30px] sm:h-[30px]" src={interactImg} />
+                Interact
+              </div>
+            </span>
           </div>
         </button>
       </SignInButton>

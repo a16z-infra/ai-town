@@ -110,7 +110,7 @@ export function Messages({
   const nodes = [...messageNodes, ...membershipNodes];
   nodes.sort((a, b) => a.time - b.time);
   return (
-    <div className="chats">
+    <div className="chats text-base sm:text-sm">
       <div className="bg-brown-200 text-black p-2">
         {nodes.length > 0 && nodes.map((n) => n.node)}
         {currentlyTyping && currentlyTyping.playerId !== humanPlayerId && (

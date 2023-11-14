@@ -136,11 +136,30 @@ body {
   border-image-source: url(../assets/ui/button.svg);
   border-image-repeat: stretch;
   border-image-slice: 25%;
+  cursor: pointer;
 }
 
 .button span {
   display: inline-block;
   transform: translateY(-15%);
+}
+
+@media (max-width: 640px) {
+  .button {
+    height: 40px;
+    border-width: 0.75em;
+    font-size: 16px;
+  }
+
+  .button > div,
+  .button > span {
+    vertical-align: top;
+    line-height: 1;
+  }
+}
+
+.button:hover {
+  opacity: 0.8;
 }
 
 .button:active {
