@@ -78,7 +78,9 @@ export const agentGenerateMessage = internalAction({
       args.playerId as GameId<'players'>,
       args.otherPlayerId as GameId<'players'>,
     );
+    // TODO: stream in the text instead of reading it all at once.
     const text = await completion.readAll();
+
     await ctx.runMutation(internal.aiTown.agent.agentSendMessage, {
       worldId: args.worldId,
       conversationId: args.conversationId,
