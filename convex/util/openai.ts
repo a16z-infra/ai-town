@@ -361,38 +361,100 @@ export interface CreateChatCompletionRequest {
    * @memberof CreateChatCompletionRequest
    */
   user?: string;
-  functions?: {
-    /**
-     * The name of the function to be called. Must be a-z, A-Z, 0-9, or
-     * contain underscores and dashes, with a maximum length of 64.
-     */
-    name: string;
-    /**
-     * A description of what the function does, used by the model to choose
-     * when and how to call the function.
-     */
-    description?: string;
-    /**
-     * The parameters the functions accepts, described as a JSON Schema
-     * object. See the guide[1] for examples, and the JSON Schema reference[2]
-     * for documentation about the format.
-     * [1]: https://platform.openai.com/docs/guides/gpt/function-calling
-     * [2]: https://json-schema.org/understanding-json-schema/
-     * To describe a function that accepts no parameters, provide the value
-     * {"type": "object", "properties": {}}.
-     */
-    parameters: object;
+  tools?: {
+    // The type of the tool. Currently, only function is supported.
+    type: 'function';
+    function: {
+      /**
+       * The name of the function to be called. Must be a-z, A-Z, 0-9, or
+       * contain underscores and dashes, with a maximum length of 64.
+       */
+      name: string;
+      /**
+       * A description of what the function does, used by the model to choose
+       * when and how to call the function.
+       */
+      description?: string;
+      /**
+       * The parameters the functions accepts, described as a JSON Schema
+       * object. See the guide[1] for examples, and the JSON Schema reference[2]
+       * for documentation about the format.
+       * [1]: https://platform.openai.com/docs/guides/gpt/function-calling
+       * [2]: https://json-schema.org/understanding-json-schema/
+       * To describe a function that accepts no parameters, provide the value
+       * {"type": "object", "properties": {}}.
+       */
+      parameters: object;
+    };
   }[];
   /**
-   * Controls how the model responds to function calls. "none" means the model
-   * does not call a function, and responds to the end-user. "auto" means the
-   * model can pick between an end-user or calling a function. Specifying a
-   * particular function via {"name":\ "my_function"} forces the model to call
-   *  that function.
-   * - "none" is the default when no functions are present.
-   * - "auto" is the default if functions are present.
+   * Controls which (if any) function is called by the model. `none` means the
+   * model will not call a function and instead generates a message.
+   * `auto` means the model can pick between generating a message or calling a
+   * function. Specifying a particular function via
+   * {"type: "function", "function": {"name": "my_function"}} forces the model
+   * to call that function.
+   *
+   * `none` is the default when no functions are present.
+   * `auto` is the default if functions are present.
    */
-  function_call?: 'none' | 'auto' | { name: string };
+  tool_choice?:
+    | 'none' // none means the model will not call a function and instead generates a message.
+    | 'auto' // auto means the model can pick between generating a message or calling a function.
+    // Specifies a tool the model should use. Use to force the model to call
+    // a specific function.
+    | {
+        // The type of the tool. Currently, only function is supported.
+        type: 'function';
+        function: { name: string };
+      };
+  // Replaced by "tools"
+  // functions?: {
+  //   /**
+  //    * The name of the function to be called. Must be a-z, A-Z, 0-9, or
+  //    * contain underscores and dashes, with a maximum length of 64.
+  //    */
+  //   name: string;
+  //   /**
+  //    * A description of what the function does, used by the model to choose
+  //    * when and how to call the function.
+  //    */
+  //   description?: string;
+  //   /**
+  //    * The parameters the functions accepts, described as a JSON Schema
+  //    * object. See the guide[1] for examples, and the JSON Schema reference[2]
+  //    * for documentation about the format.
+  //    * [1]: https://platform.openai.com/docs/guides/gpt/function-calling
+  //    * [2]: https://json-schema.org/understanding-json-schema/
+  //    * To describe a function that accepts no parameters, provide the value
+  //    * {"type": "object", "properties": {}}.
+  //    */
+  //   parameters: object;
+  // }[];
+  // /**
+  //  * Controls how the model responds to function calls. "none" means the model
+  //  * does not call a function, and responds to the end-user. "auto" means the
+  //  * model can pick between an end-user or calling a function. Specifying a
+  //  * particular function via {"name":\ "my_function"} forces the model to call
+  //  *  that function.
+  //  * - "none" is the default when no functions are present.
+  //  * - "auto" is the default if functions are present.
+  //  */
+  // function_call?: 'none' | 'auto' | { name: string };
+  /**
+   * An object specifying the format that the model must output.
+   *
+   * Setting to { "type": "json_object" } enables JSON mode, which guarantees
+   * the message the model generates is valid JSON.
+   * *Important*: when using JSON mode, you must also instruct the model to
+   * produce JSON yourself via a system or user message. Without this, the model
+   * may generate an unending stream of whitespace until the generation reaches
+   * the token limit, resulting in a long-running and seemingly "stuck" request.
+   * Also note that the message content may be partially cut off if
+   * finish_reason="length", which indicates the generation exceeded max_tokens
+   * or the conversation exceeded the max context length.
+   */
+  response_format?: { type: 'text' | 'json_object' };
 }
 
 // Checks whether a suffix of s1 is a prefix of s2. For example,
