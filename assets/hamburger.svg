@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="8"
+   height="8"
+   viewBox="-1 0 8 8"
+   fill="none"
+   version="1.1"
+   id="svg6607"
+   sodipodi:docname="hamburger.svg"
+   inkscape:version="1.2.2 (b0a84865, 2022-12-01)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview6609"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="52.596186"
+     inkscape:cx="1.7301635"
+     inkscape:cy="2.614258"
+     inkscape:window-width="1440"
+     inkscape:window-height="847"
+     inkscape:window-x="-5"
+     inkscape:window-y="25"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="g6600" />
+  <g
+     clip-path="url(#clip0_26_240)"
+     id="g6600"
+     style="fill:#000000"
+     transform="scale(1.6305085,1.7990315)">
+    <rect
+       x="0.02079002"
+       y="0.19157612"
+       width="1"
+       height="1"
+       fill="white"
+       id="rect6578"
+       style="fill:#ffffff" />
+    <rect
+       x="1"
+       y="0.19023021"
+       width="1"
+       height="1"
+       fill="white"
+       id="rect6580"
+       style="fill:#ffffff" />
+    <rect
+       x="2"
+       y="0.19023021"
+       width="1"
+       height="1"
+       fill="white"
+       id="rect6582"
+       style="fill:#ffffff" />
+    <rect
+       x="3"
+       y="0.19023021"
+       width="1"
+       height="1"
+       fill="white"
+       id="rect6584"
+       style="fill:#ffffff" />
+    <rect
+       x="0.010512468"
+       y="1.6951138"
+       width="1"
+       height="1"
+       fill="white"
+       id="rect6578-1"
+       style="fill:#ffffff" />
+    <rect
+       x="0.98972243"
+       y="1.6937679"
+       width="1"
+       height="1"
+       fill="white"
+       id="rect6580-3"
+       style="fill:#ffffff" />
+    <rect
+       x="1.9897224"
+       y="1.6937679"
+       width="1"
+       height="1"
+       fill="white"
+       id="rect6582-8"
+       style="fill:#ffffff" />
+    <rect
+       x="2.9897225"
+       y="1.6937679"
+       width="1"
+       height="1"
+       fill="white"
+       id="rect6584-4"
+       style="fill:#ffffff" />
+    <rect
+       x="0.010512397"
+       y="3.2024126"
+       width="1"
+       height="1"
+       fill="white"
+       id="rect6578-8"
+       style="fill:#ffffff" />
+    <rect
+       x="0.98972255"
+       y="3.2010665"
+       width="1"
+       height="1"
+       fill="white"
+       id="rect6580-0"
+       style="fill:#ffffff" />
+    <rect
+       x="1.9897223"
+       y="3.2010665"
+       width="1"
+       height="1"
+       fill="white"
+       id="rect6582-4"
+       style="fill:#ffffff" />
+    <rect
+       x="2.9897223"
+       y="3.2010665"
+       width="1"
+       height="1"
+       fill="white"
+       id="rect6584-6"
+       style="fill:#ffffff" />
+  </g>
+  <defs
+     id="defs6605">
+    <clipPath
+       id="clip0_26_240">
+      <rect
+         width="8"
+         height="8"
+         fill="white"
+         id="rect6602" />
+    </clipPath>
+  </defs>
+</svg>
