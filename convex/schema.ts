@@ -16,8 +16,9 @@ export default defineSchema({
     messageUuid: v.string(),
     author: playerId,
     text: v.string(),
+    worldId: v.id('worlds'),
   })
-    .index('conversationId', ['conversationId'])
+    .index('conversationId', ['worldId', 'conversationId'])
     .index('messageUuid', ['conversationId', 'messageUuid']),
 
   ...agentTables,

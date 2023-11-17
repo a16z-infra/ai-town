@@ -37,7 +37,7 @@ export async function rememberConversation(
     conversationId,
   });
   const { player, otherPlayer } = data;
-  const messages = await ctx.runQuery(selfInternal.loadMessages, { conversationId });
+  const messages = await ctx.runQuery(selfInternal.loadMessages, { worldId, conversationId });
   if (!messages.length) {
     return;
   }
@@ -232,11 +232,13 @@ export const rankAndTouchMemories = internalMutation({
 });
 
 export const loadMessages = internalQuery({
-  args: { conversationId },
+  args: {
+    worldId: v.id('worlds'),
+    conversationId },
   handler: async (ctx, args): Promise<Doc<'messages'>[]> => {
     const messages = await ctx.db
       .query('messages')
-      .withIndex('conversationId', (q) => q.eq('conversationId', args.conversationId))
+      .withIndex('conversationId', (q) => q.eq('worldId', args.worldId).eq('conversationId', args.conversationId))
       .collect();
     return messages;
   },
