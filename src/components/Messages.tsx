@@ -5,6 +5,7 @@ import { api } from '../../convex/_generated/api';
 import { MessageInput } from './MessageInput';
 import { Player } from '../../convex/aiTown/player';
 import { Conversation } from '../../convex/aiTown/conversation';
+import { useEffect, useRef } from 'react';
 
 export function Messages({
   worldId,
@@ -12,6 +13,7 @@ export function Messages({
   conversation,
   inConversationWithMe,
   humanPlayer,
+  scrollViewRef,
 }: {
   worldId: Id<'worlds'>;
   engineId: Id<'engines'>;
@@ -20,6 +22,7 @@ export function Messages({
     | { kind: 'archived'; doc: Doc<'archivedConversations'> };
   inConversationWithMe: boolean;
   humanPlayer?: Player;
+  scrollViewRef: React.RefObject<HTMLDivElement>;
 }) {
   const humanPlayerId = humanPlayer?.id;
   const descriptions = useQuery(api.world.gameDescriptions, { worldId });
@@ -36,6 +39,28 @@ export function Messages({
   const currentlyTypingName =
     currentlyTyping &&
     descriptions?.playerDescriptions.find((p) => p.playerId === currentlyTyping?.playerId)?.name;
+
+  const scrollView = scrollViewRef.current;
+  const isScrolledToBottom = useRef(false);
+  useEffect(() => {
+    if (!scrollView) return undefined;
+
+    const onScroll = () => {
+      isScrolledToBottom.current = !!(
+        scrollView && scrollView.scrollHeight - scrollView.scrollTop - 50 <= scrollView.clientHeight
+      );
+    };
+    scrollView.addEventListener('scroll', onScroll);
+    return () => scrollView.removeEventListener('scroll', onScroll);
+  }, [scrollView]);
+  useEffect(() => {
+    if (isScrolledToBottom.current) {
+      scrollViewRef.current?.scrollTo({
+        top: scrollViewRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+  }, [messages, currentlyTyping]);
 
   if (messages === undefined) {
     return null;

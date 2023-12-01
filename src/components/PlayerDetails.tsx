@@ -16,12 +16,14 @@ export default function PlayerDetails({
   game,
   playerId,
   setSelectedElement,
+  scrollViewRef,
 }: {
   worldId: Id<'worlds'>;
   engineId: Id<'engines'>;
   game: ServerGame;
   playerId?: GameId<'players'>;
   setSelectedElement: SelectElement;
+  scrollViewRef: React.RefObject<HTMLDivElement>;
 }) {
   const humanTokenIdentifier = useQuery(api.world.userStatus, { worldId });
 
@@ -238,6 +240,7 @@ export default function PlayerDetails({
           inConversationWithMe={inConversationWithMe ?? false}
           conversation={{ kind: 'active', doc: playerConversation }}
           humanPlayer={humanPlayer}
+          scrollViewRef={scrollViewRef}
         />
       )}
       {!playerConversation && previousConversation && (
@@ -251,6 +254,7 @@ export default function PlayerDetails({
             inConversationWithMe={false}
             conversation={{ kind: 'archived', doc: previousConversation }}
             humanPlayer={humanPlayer}
+            scrollViewRef={scrollViewRef}
           />
         </>
       )}
