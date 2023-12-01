@@ -83,7 +83,6 @@ export const PixiGame = (props: {
   const players = [...props.game.world.players.values()];
 
   // Zoom on the user’s avatar when it is created
-  console.log({ aaa: props.game.world.players, b: humanPlayerId });
   useEffect(() => {
     if (!viewportRef.current || humanPlayerId === undefined) return;
 
