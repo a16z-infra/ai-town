@@ -1,6 +1,7 @@
+import * as PIXI from 'pixi.js';
 import { useApp } from '@pixi/react';
 import { Player, SelectElement } from './Player.tsx';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { PixiStaticMap } from './PixiStaticMap.tsx';
 import PixiViewport from './PixiViewport.tsx';
 import { Viewport } from 'pixi-viewport';
@@ -80,6 +81,18 @@ export const PixiGame = (props: {
   };
   const { width, height, tileDim } = props.game.worldMap;
   const players = [...props.game.world.players.values()];
+
+  // Zoom on the user’s avatar when it is created
+  useEffect(() => {
+    if (!viewportRef.current || humanPlayerId === undefined) return;
+
+    const humanPlayer = props.game.world.players.get(humanPlayerId)!;
+    viewportRef.current.animate({
+      position: new PIXI.Point(humanPlayer.position.x * tileDim, humanPlayer.position.y * tileDim),
+      scale: 1.5,
+    });
+  }, [humanPlayerId]);
+
   return (
     <PixiViewport
       app={pixiApp}
