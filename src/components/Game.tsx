@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import PixiGame from './PixiGame.tsx';
 
 import { useElementSize } from 'usehooks-ts';
@@ -34,6 +34,8 @@ export default function Game() {
   const worldState = useQuery(api.world.worldState, worldId ? { worldId } : 'skip');
   const { historicalTime, timeManager } = useHistoricalTime(worldState?.engine);
 
+  const scrollViewRef = useRef<HTMLDivElement>(null);
+
   if (!worldId || !engineId || !game) {
     return null;
   }
@@ -64,13 +66,17 @@ https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-5315492
           </div>
         </div>
         {/* Right column area */}
-        <div className="flex flex-col overflow-y-auto shrink-0 px-4 py-6 sm:px-6 lg:w-96 xl:pr-6 border-t-8 sm:border-t-0 sm:border-l-8 border-brown-900  bg-brown-800 text-brown-100">
+        <div
+          className="flex flex-col overflow-y-auto shrink-0 px-4 py-6 sm:px-6 lg:w-96 xl:pr-6 border-t-8 sm:border-t-0 sm:border-l-8 border-brown-900  bg-brown-800 text-brown-100"
+          ref={scrollViewRef}
+        >
           <PlayerDetails
             worldId={worldId}
             engineId={engineId}
             game={game}
             playerId={selectedElement?.id}
             setSelectedElement={setSelectedElement}
+            scrollViewRef={scrollViewRef}
           />
         </div>
       </div>
