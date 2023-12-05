@@ -74,14 +74,14 @@ export default function Home() {
           AI Town
         </h1>
 
-        <p className="max-w-xs md:max-w-xl lg:max-w-none mx-auto my-4 text-center text-base sm:text-xl md:text-2xl text-white leading-tight shadow-solid">
+        <div className="max-w-xs md:max-w-xl lg:max-w-none mx-auto my-4 text-center text-base sm:text-xl md:text-2xl text-white leading-tight shadow-solid">
           A virtual town where AI characters live, chat and socialize.
           <Unauthenticated>
             <div className="my-1.5 sm:my-0" />
             Log in to join the town
             <br className="block sm:hidden" /> and the conversation!
           </Unauthenticated>
-        </p>
+        </div>
 
         <Game />
 
