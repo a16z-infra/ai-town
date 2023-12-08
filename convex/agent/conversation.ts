@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
 import { ActionCtx, internalQuery } from '../_generated/server';
-import { LLMMessage, chatCompletion, ChatCompletionContent } from '../util/openai';
+import { LLMMessage, chatCompletion } from '../util/openai';
 import { UseOllama, ollamaChatCompletion } from '../util/ollama';
 import * as memory from './memory';
 import { api, internal } from '../_generated/api';

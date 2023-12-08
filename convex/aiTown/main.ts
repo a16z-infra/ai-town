@@ -113,7 +113,7 @@ export const runStep = internalAction({
         generationNumber: game.engine.generationNumber,
         maxDuration: args.maxDuration,
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (e instanceof ConvexError) {
         if (e.data.kind === 'engineNotRunning') {
           console.debug(`Engine is not running: ${e.message}`);
