@@ -115,18 +115,18 @@ export class Game extends AbstractGame {
       throw new Error(`No map found for world ${worldId}`);
     }
     // Discard the system fields and historicalLocations from the world state.
-    const { _id, _creationTime, historicalLocations, ...world } = worldDoc;
+    const { _id, _creationTime, historicalLocations: _, ...world } = worldDoc;
     const playerDescriptions = playerDescriptionsDocs
       // Discard player descriptions for players that no longer exist.
       .filter((d) => !!world.players.find((p) => p.id === d.playerId))
-      .map(({ _id, _creationTime, worldId, ...doc }) => doc);
+      .map(({ _id, _creationTime, worldId: _, ...doc }) => doc);
     const agentDescriptions = agentDescriptionsDocs
       .filter((a) => !!world.agents.find((p) => p.id === a.agentId))
-      .map(({ _id, _creationTime, worldId, ...doc }) => doc);
+      .map(({ _id, _creationTime, worldId: _, ...doc }) => doc);
     const {
-      _id: mapId,
-      _creationTime: mapCreationTime,
-      worldId: mapWorldId,
+      _id: _mapId,
+      _creationTime: _mapCreationTime,
+      worldId: _mapWorldId,
       ...worldMap
     } = worldMapDoc;
     return {
@@ -146,7 +146,7 @@ export class Game extends AbstractGame {
     return id;
   }
 
-  scheduleOperation(name: string, args: any) {
+  scheduleOperation(name: string, args: unknown) {
     this.pendingOperations.push({ name, args });
   }
 
@@ -158,7 +158,7 @@ export class Game extends AbstractGame {
     return handler(this, now, args as any);
   }
 
-  beginStep(now: number) {
+  beginStep(_now: number) {
     // Store the current location of all players in the history tracking buffer.
     this.historicalLocations.clear();
     for (const player of this.world.players.values()) {
