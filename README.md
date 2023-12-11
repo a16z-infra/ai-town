@@ -185,15 +185,15 @@ Before you can run the app, you will need to make sure the Convex functions are 
 1. Run `npx convex deploy` to deploy the convex functions to production
 2. Run `npx convex run init --prod`
 
-If you have existing data you want to clear, you can run `npx convex run testing:debugClearAll --prod`
+If you have existing data you want to clear, you can run `npx convex run testing:wipeAllTables --prod`
 
 ## Customize your own simulation
 
 NOTE: every time you change character data, you should re-run
-`npx convex run testing:debugClearAll` and then
+`npx convex run testing:wipeAllTables` and then
 `npm run dev` to re-upload everything to Convex.
 This is because character data is sent to Convex on the initial load.
-However, beware that `npx convex run testing:debugClearAll` WILL wipe all of your data.
+However, beware that `npx convex run testing:wipeAllTables` WILL wipe all of your data.
 
 1. Create your own characters and stories: All characters and stories, as well as their spritesheet references are stored in [characters.ts](./data/characters.ts). You can start by changing character descriptions.
 
