@@ -81,7 +81,7 @@ Environment variables for a Convex backend is configured through the dashboard:
 npx convex dashboard
 ```
 
-Go to "settings" and add the following environment variables. `CLERK_ISSUER_URL` should be the URL from the JWKS endpoint.
+Go to "settings" and add the following environment variables. `CLERK_ISSUER_URL` should be the domain in the URL from the JWKS endpoint (e.g., https://your-issuer-url.clerk.accounts.dev/).
 
 ```bash
 OPENAI_API_KEY  sk-*******
