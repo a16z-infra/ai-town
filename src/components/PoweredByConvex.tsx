@@ -1,3 +1,4 @@
+import bannerBg from '../../assets/convex-bg.webp';
 export default function PoweredByConvex() {
   return (
     <a
@@ -7,7 +8,7 @@ export default function PoweredByConvex() {
       aria-label="Powered by Convex"
     >
       <img
-        src="../../assets/convex-bg.webp"
+        src={bannerBg}
         className="absolute inset-0 scale-[1.2] -translate-x-6 group-hover:scale-[1.6] transition-transform"
         alt=""
       />
