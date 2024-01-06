@@ -58,7 +58,7 @@ async function hashText(text: string) {
   if (typeof crypto === 'undefined') {
     // Ugly, ugly hax to get ESBuild to not try to bundle this node dependency.
     const f = () => 'node:crypto';
-    const crypto: typeof import('crypto') = await import(f());
+    const crypto = (await import(f())) as typeof import('crypto');
     const hash = crypto.createHash('sha256');
     hash.update(buf);
     return hash.digest().buffer;

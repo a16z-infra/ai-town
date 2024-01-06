@@ -41,7 +41,6 @@ export async function rememberConversation(
   if (!messages.length) {
     return;
   }
-  const now = Date.now();
 
   const llmMessages: LLMMessage[] = [
     {
@@ -234,11 +233,14 @@ export const rankAndTouchMemories = internalMutation({
 export const loadMessages = internalQuery({
   args: {
     worldId: v.id('worlds'),
-    conversationId },
+    conversationId,
+  },
   handler: async (ctx, args): Promise<Doc<'messages'>[]> => {
     const messages = await ctx.db
       .query('messages')
-      .withIndex('conversationId', (q) => q.eq('worldId', args.worldId).eq('conversationId', args.conversationId))
+      .withIndex('conversationId', (q) =>
+        q.eq('worldId', args.worldId).eq('conversationId', args.conversationId),
+      )
       .collect();
     return messages;
   },
@@ -269,7 +271,7 @@ async function calculateImportance(description: string) {
   return importance;
 }
 
-const { embeddingId, ...memoryFieldsWithoutEmbeddingId } = memoryFields;
+const { embeddingId: _embeddingId, ...memoryFieldsWithoutEmbeddingId } = memoryFields;
 
 export const insertMemory = internalMutation({
   args: {
@@ -277,7 +279,7 @@ export const insertMemory = internalMutation({
     embedding: v.array(v.float64()),
     ...memoryFieldsWithoutEmbeddingId,
   },
-  handler: async (ctx, { agentId, embedding, ...memory }): Promise<void> => {
+  handler: async (ctx, { agentId: _, embedding, ...memory }): Promise<void> => {
     const embeddingId = await ctx.db.insert('memoryEmbeddings', {
       playerId: memory.playerId,
       embedding: embedding,
@@ -370,7 +372,7 @@ async function reflectOnMemories(
   });
 
   try {
-    const insights: { insight: string; statementIds: number[] }[] = JSON.parse(reflection);
+    const insights = JSON.parse(reflection) as { insight: string; statementIds: number[] }[];
     const memoriesToSave = await asyncMap(insights, async (item) => {
       const relatedMemoryIds = item.statementIds.map((idx: number) => memories[idx]._id);
       const importance = await calculateImportance(item.insight);
@@ -405,7 +407,7 @@ export const getReflectionMemories = internalQuery({
     }
     const player = world.players.find((p) => p.id === args.playerId);
     if (!player) {
-      throw new Error(`Player ${playerId} not found`);
+      throw new Error(`Player ${args.playerId} not found`);
     }
     const playerDescription = await ctx.db
       .query('playerDescriptions')

@@ -81,7 +81,7 @@ Environment variables for a Convex backend is configured through the dashboard:
 npx convex dashboard
 ```
 
-Go to "settings" and add the following environment variables. `CLERK_ISSUER_URL` should be the URL from the JWKS endpoint.
+Go to "settings" and add the following environment variables. `CLERK_ISSUER_URL` should be the domain in the URL from the JWKS endpoint (e.g., https://your-issuer-url.clerk.accounts.dev/).
 
 ```bash
 OPENAI_API_KEY  sk-*******
@@ -185,15 +185,15 @@ Before you can run the app, you will need to make sure the Convex functions are 
 1. Run `npx convex deploy` to deploy the convex functions to production
 2. Run `npx convex run init --prod`
 
-If you have existing data you want to clear, you can run `npx convex run testing:debugClearAll --prod`
+If you have existing data you want to clear, you can run `npx convex run testing:wipeAllTables --prod`
 
 ## Customize your own simulation
 
 NOTE: every time you change character data, you should re-run
-`npx convex run testing:debugClearAll` and then
+`npx convex run testing:wipeAllTables` and then
 `npm run dev` to re-upload everything to Convex.
 This is because character data is sent to Convex on the initial load.
-However, beware that `npx convex run testing:debugClearAll` WILL wipe all of your data.
+However, beware that `npx convex run testing:wipeAllTables` WILL wipe all of your data.
 
 1. Create your own characters and stories: All characters and stories, as well as their spritesheet references are stored in [characters.ts](./data/characters.ts). You can start by changing character descriptions.
 
@@ -224,27 +224,50 @@ We support using [Ollama](https://github.com/jmorganca/ollama) for conversation 
 Steps to switch to using Ollama:
 
 1. [Install Ollama](https://github.com/jmorganca/ollama#macos)
-   When Ollama runs on your laptop, it by default uses http://localhost:11434 as an endpoint for generation. Next we need to set up a ngrok tunnel so Convex can access it:
-2. [Install Ngrok](https://ngrok.com/docs/getting-started/)
+   When Ollama runs on your laptop, it by default uses http://localhost:11434 as an endpoint for generation. Next, we need to set up a tunnelmole or ngrok tunnel so Convex can access it:
+
+   **Using Tunnelmole**
+   
+   [Tunnelmole](https://github.com/robbie-cahill/tunnelmole-client) is an open source tunneling tool.
+
+   You can install Tunnelmole using one of the following options:
+   - NPM:  `npm install -g tunnelmole`
+   - Linux: `curl -s https://tunnelmole.com/sh/install-linux.sh | sudo bash`
+   - Mac:  `curl -s https://tunnelmole.com/sh/install-mac.sh --output install-mac.sh && sudo bash install-mac.sh`
+   - Windows: Install with NPM, or if you don't have NodeJS installed, download the `exe` file for Windows [here](https://tunnelmole.com/downloads/tmole.exe) and put it somewhere in your PATH.
+
+   Once Tunnelmole is installed, run the following command:
+
+   ```
+   tmole 11434
+   ```
+
+   Tunnelmole should output a unique url once you run this command.
+   
+   **Using Ngrok**
+   
+   Ngrok is a popular closed source tunneling tool.
+   
+   - [Install Ngrok](https://ngrok.com/docs/getting-started/)
+
    Once ngrok is installed and authenticated, run the following command:
 
-```
-ngrok http http://localhost:11434
-```
+   ```
+   ngrok http http://localhost:11434
+   ```
 
-Ngrok should output a unique url once you run this command.
+   Ngrok should output a unique url once you run this command.
 
 3. Add Ollama endpoint to Convex
 
 - run `npx convex dashboard` to bring up the convex dashboard
 - Go to Settings > Environment Variables
-- Add `OLLAMA_HOST = [your ngrok unique url from the previous step]`
+- Add `OLLAMA_HOST = [your tunnelmole/ngrok unique url from the previous step]`
 - You might also want to set:
-    `ACTION_TIMEOUT` to `100000` or more, to give your model more time to run.
-    `NUM_MEMORIES_TO_SEARCH` to `1`, to reduce the size of conversation prompts.
+   `ACTION_TIMEOUT` to `100000` or more, to give your model more time to run.
+   `NUM_MEMORIES_TO_SEARCH` to `1`, to reduce the size of conversation prompts.
 
-By default, we use `llama2-7b` model on Ollama. If you want to customize which model to use, you can set `OLLAMA_MODEL` variable under Environment Variables. Ollama model options can be found [here](https://ollama.ai/library)
-
+By default, we use `llama2-7b` model on Ollama. If you want to customize which model to use, you can set `OLLAMA_MODEL` variable under Environment Variables. Ollama model options can be found [here](https://ollama.ai/library).
 ## Credits
 
 - All interactions, background music and rendering on the <Game/> component in the project are powered by [PixiJS](https://pixijs.com/).

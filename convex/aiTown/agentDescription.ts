@@ -15,11 +15,7 @@ export class AgentDescription {
 
   serialize(): SerializedAgentDescription {
     const { agentId, identity, plan } = this;
-    return {
-      agentId: this.agentId,
-      identity: this.identity,
-      plan: this.plan,
-    };
+    return { agentId, identity, plan };
   }
 }
 
