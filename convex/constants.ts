@@ -73,3 +73,6 @@ export const ACTIVITIES = [
 ];
 
 export const ENGINE_ACTION_DURATION = 30000;
+
+// Bound the number of pathfinding searches we do per game step.
+export const MAX_PATHFINDS_PER_STEP = 16;
