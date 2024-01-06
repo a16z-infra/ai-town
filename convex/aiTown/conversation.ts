@@ -125,12 +125,12 @@ export class Conversation {
     }
     // Ensure the players still exist.
     if ([...game.world.conversations.values()].find((c) => c.participants.has(player.id))) {
-      const reason = `Player ${playerId} is already in a conversation`;
+      const reason = `Player ${player.id} is already in a conversation`;
       console.log(reason);
       return { error: reason };
     }
     if ([...game.world.conversations.values()].find((c) => c.participants.has(invitee.id))) {
-      const reason = `Player ${playerId} is already in a conversation`;
+      const reason = `Player ${player.id} is already in a conversation`;
       console.log(reason);
       return { error: reason };
     }
@@ -155,7 +155,7 @@ export class Conversation {
   setIsTyping(now: number, player: Player, messageUuid: string) {
     if (this.isTyping) {
       if (this.isTyping.playerId !== player.id) {
-        throw new Error(`Player ${this.isTyping.playerId} is already typing in ${conversationId}`);
+        throw new Error(`Player ${this.isTyping.playerId} is already typing in ${this.id}`);
       }
       return;
     }
@@ -205,13 +205,13 @@ export class Conversation {
   leave(game: Game, now: number, player: Player) {
     const member = this.participants.get(player.id);
     if (!member) {
-      throw new Error(`Couldn't find membership for ${conversationId}:${playerId}`);
+      throw new Error(`Couldn't find membership for ${this.id}:${player.id}`);
     }
     this.stop(game, now);
   }
 
   serialize(): SerializedConversation {
-    const { id, creator, created, isTyping, lastMessage, numMessages, participants } = this;
+    const { id, creator, created, isTyping, lastMessage, numMessages } = this;
     return {
       id,
       creator,

@@ -20,6 +20,10 @@
   font-family: 'VCR OSD Mono', 'monospace';
 }
 
+.font-system {
+  font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
@@ -174,4 +178,8 @@ body {
 p[contenteditable='true']:empty::before {
   content: attr(placeholder);
   color: #aaa;
+}
+
+.shape-top-left-corner {
+  clip-path: polygon(0 0, 100% 0, 0 100%);
 }

@@ -1,10 +1,5 @@
 import { Ollama } from 'langchain/llms/ollama';
-import {
-  ChatCompletionContent,
-  CreateChatCompletionRequest,
-  LLMMessage,
-  retryWithBackoff,
-} from './openai';
+import { CreateChatCompletionRequest, retryWithBackoff } from './openai';
 import { IterableReadableStream } from 'langchain/dist/util/stream';
 
 const ollamaModel = process.env.OLLAMA_MODEL || 'llama2';
