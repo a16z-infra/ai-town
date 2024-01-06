@@ -88,8 +88,10 @@ export const joinWorld = mutation({
     if (!identity) {
       throw new ConvexError(`Not logged in`);
     }
-    if (!identity.givenName) {
-      throw new ConvexError(`Missing givenName on ${JSON.stringify(identity)}`);
+    let name = identity.givenName || identity.nickname || (identity.email && identity.email.split('@')[0]);
+
+    if (!name) {
+      throw new ConvexError(`Missing name on ${JSON.stringify(identity)}`);
     }
     const world = await ctx.db.get(args.worldId);
     if (!world) {
@@ -97,7 +99,7 @@ export const joinWorld = mutation({
     }
     const { tokenIdentifier } = identity;
     return await insertInput(ctx, world._id, 'join', {
-      name: identity.givenName,
+      name: name,
       character: characters[Math.floor(Math.random() * characters.length)].name,
       description: `${identity.givenName} is a human player`,
       tokenIdentifier,
