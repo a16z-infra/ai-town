@@ -7,23 +7,14 @@ import { insertInput } from './aiTown/insertInput';
 import { Id } from './_generated/dataModel';
 import { createEngine } from './aiTown/main';
 import { ENGINE_ACTION_DURATION } from './constants';
+import { assertOpenAIKey } from './util/openai';
 
 const init = mutation({
   args: {
     numAgents: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    if (!process.env.OPENAI_API_KEY) {
-      const deploymentName = process.env.CONVEX_CLOUD_URL?.slice(8).replace('.convex.cloud', '');
-      throw new Error(
-        '\n  Missing OPENAI_API_KEY in environment variables.\n\n' +
-          '  Get one at https://openai.com/\n\n' +
-          '  Paste it on the Convex dashboard:\n' +
-          '  https://dashboard.convex.dev/d/' +
-          deploymentName +
-          '/settings?var=OPENAI_API_KEY',
-      );
-    }
+    assertOpenAIKey();
     const { worldStatus, engine } = await getOrCreateDefaultWorld(ctx);
     if (worldStatus.status !== 'running') {
       console.warn(

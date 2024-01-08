@@ -21,7 +21,7 @@ export async function chatCompletion(
     model?: CreateChatCompletionRequest['model'];
   },
 ) {
-  checkForAPIKey();
+  assertOpenAIKey();
 
   body.model = body.model ?? 'gpt-3.5-turbo-16k';
   const openaiApiBase = process.env.OPENAI_API_BASE || 'https://api.openai.com';
@@ -69,7 +69,7 @@ export async function chatCompletion(
 }
 
 export async function fetchEmbeddingBatch(texts: string[]) {
-  checkForAPIKey();
+  assertOpenAIKey();
   const {
     result: json,
     retries,
@@ -117,7 +117,7 @@ export async function fetchEmbedding(text: string) {
 }
 
 export async function fetchModeration(content: string) {
-  checkForAPIKey();
+  assertOpenAIKey();
   const { result: flagged } = await retryWithBackoff(async () => {
     const result = await fetch('https://api.openai.com/v1/moderations', {
       method: 'POST',
@@ -141,15 +141,19 @@ export async function fetchModeration(content: string) {
   return flagged;
 }
 
-const checkForAPIKey = () => {
+export function assertOpenAIKey() {
   if (!process.env.OPENAI_API_KEY) {
+    const deploymentName = process.env.CONVEX_CLOUD_URL?.slice(8).replace('.convex.cloud', '');
     throw new Error(
-      'Missing OPENAI_API_KEY in environment variables.\n' +
-        'Set it in the project settings in the Convex dashboard:\n' +
-        '    npx convex dashboard\n or https://dashboard.convex.dev',
+      '\n  Missing OPENAI_API_KEY in environment variables.\n\n' +
+        '  Get one at https://openai.com/\n\n' +
+        '  Paste it on the Convex dashboard:\n' +
+        '  https://dashboard.convex.dev/d/' +
+        deploymentName +
+        '/settings?var=OPENAI_API_KEY',
     );
   }
-};
+}
 
 // Retry after this much time, based on the retry number.
 const RETRY_BACKOFF = [1000, 10_000, 20_000]; // In ms

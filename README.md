@@ -44,7 +44,7 @@ npm run dev
 
 `npm run dev` will fail asking for environment variables.
 Enter them in the environment variables on your Convex dashboard to proceed.
-You can get there via `npx convex dashboard` or https://dashboard.convex.dev
+You can get there via `npx convex dashboard` or [dashboard.convex.dev](https://dashboard.convex.dev/deployment/settings/environment-variables)
 See below on how to get the various environment variables.
 
 a. **Set up Clerk**
@@ -75,13 +75,14 @@ Add the token as `REPLICATE_API_TOKEN` in your Convex environment variables.
 
 d. **Add environment variables to the Convex backend**
 
-Environment variables for a Convex backend is configured through the dashboard:
+Environment variables for a Convex backend is configured through the dashboard.
 
-```bash
-npx convex dashboard
-```
+Go to "settings" and add the following environment variables.
+`CLERK_ISSUER_URL` should be the domain in the URL from the JWKS endpoint (e.g., https://your-issuer-url.clerk.accounts.dev/).
 
-Go to "settings" and add the following environment variables. `CLERK_ISSUER_URL` should be the domain in the URL from the JWKS endpoint (e.g., https://your-issuer-url.clerk.accounts.dev/).
+This link will take you there for your most recent deployment:
+https://dashboard.convex.dev/deployment/settings/environment-variables?var=CLERK_ISSUER_URL
+
 
 ```bash
 OPENAI_API_KEY  sk-*******
@@ -227,7 +228,7 @@ Steps to switch to using Ollama:
    When Ollama runs on your laptop, it by default uses http://localhost:11434 as an endpoint for generation. Next, we need to set up a tunnelmole or ngrok tunnel so Convex can access it:
 
    **Using Tunnelmole**
-   
+
    [Tunnelmole](https://github.com/robbie-cahill/tunnelmole-client) is an open source tunneling tool.
 
    You can install Tunnelmole using one of the following options:
@@ -243,11 +244,11 @@ Steps to switch to using Ollama:
    ```
 
    Tunnelmole should output a unique url once you run this command.
-   
+
    **Using Ngrok**
-   
+
    Ngrok is a popular closed source tunneling tool.
-   
+
    - [Install Ngrok](https://ngrok.com/docs/getting-started/)
 
    Once ngrok is installed and authenticated, run the following command:
@@ -260,14 +261,15 @@ Steps to switch to using Ollama:
 
 3. Add Ollama endpoint to Convex
 
-- run `npx convex dashboard` to bring up the convex dashboard
-- Go to Settings > Environment Variables
+- Go to https://dashboard.convex.dev/deployment/settings/environment-variables?var=OLLAMA_HOST
 - Add `OLLAMA_HOST = [your tunnelmole/ngrok unique url from the previous step]`
 - You might also want to set:
    `ACTION_TIMEOUT` to `100000` or more, to give your model more time to run.
    `NUM_MEMORIES_TO_SEARCH` to `1`, to reduce the size of conversation prompts.
 
-By default, we use `llama2-7b` model on Ollama. If you want to customize which model to use, you can set `OLLAMA_MODEL` variable under Environment Variables. Ollama model options can be found [here](https://ollama.ai/library).
+By default, we use `llama2-7b` model on Ollama.
+If you want to customize which model to use, you can set [`OLLAMA_MODEL` variable under Environment Variables](https://dashboard.convex.dev/deployment/settings/environment-variables?var=OLLAMA_MODEL).
+Ollama model options can be found [here](https://ollama.ai/library).
 ## Credits
 
 - All interactions, background music and rendering on the <Game/> component in the project are powered by [PixiJS](https://pixijs.com/).
