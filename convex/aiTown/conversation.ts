@@ -17,6 +17,8 @@ import { parseMap, serializeMap, parseArray } from '../util/object';
 
 export class Conversation {
   id: GameId<'conversations'>;
+  topic?: string;
+  reference?: string;
   creator: GameId<'players'>;
   created: number;
   isTyping?: {
@@ -38,6 +40,8 @@ export class Conversation {
   constructor(serialized: SerializedConversation) {
     const {
       id,
+      topic,
+      reference,
       creator,
       created,
       isTyping,
@@ -49,6 +53,8 @@ export class Conversation {
       isScenarioConversation,
     } = serialized;
     this.id = parseGameId('conversations', id);
+    this.topic = topic ? topic : 'none';
+    this.reference = reference ? reference : 'none';
     this.creator = parseGameId('players', creator);
     this.created = created;
     this.isTyping = isTyping && {
@@ -160,6 +166,7 @@ export class Conversation {
 
   static startMultiplayer(game: Game, now: number, players: Player[]) {
     console.log(`STARTMULTIPLAYER`);
+    console.log(`PLAYERS: ${JSON.stringify(players)}`);
     players.forEach((player) => {
       // Ensure the players still exist.
       if ([...game.world.conversations.values()].find((c) => c.participants.has(player.id))) {
@@ -171,10 +178,13 @@ export class Conversation {
       stopPlayer(player);
     });
 
+    console.warn(`SCENARIO IS: ${JSON.stringify(game.scenario)}`);
     const conversationId = game.allocId('conversations');
     console.log(`Creating conversation ${conversationId}`);
     const conversation = new Conversation({
       id: conversationId,
+      topic: game.scenario?.settings.topic!,
+      reference: game.scenario?.settings.reference!,
       created: now,
       creator: players[0].id,
       numMessages: 0,
@@ -288,6 +298,8 @@ export class Conversation {
   serialize(): SerializedConversation {
     const {
       id,
+      topic,
+      reference,
       creator,
       created,
       isTyping,
@@ -300,6 +312,8 @@ export class Conversation {
     } = this;
     return {
       id,
+      topic,
+      reference,
       creator,
       created,
       isTyping,
@@ -315,6 +329,8 @@ export class Conversation {
 
 export const serializedConversation = {
   id: conversationId,
+  topic: v.optional(v.string()),
+  reference: v.optional(v.string()),
   creator: playerId,
   created: v.number(),
   isTyping: v.optional(

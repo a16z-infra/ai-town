@@ -118,18 +118,25 @@ export const runStep = internalAction({
 
       const players = gameState.world.players;
 
-      if (!gameState?.worldStatus?.scenarioInProgress && players.length > 0) {
-        await ctx.runMutation(internal.world.toggleScenario, {
-          worldId: args.worldId,
-        });
-
-        const worldStatus = await ctx.runQuery(api.world.defaultWorldStatus);
-
-        console.log('STARTING SCENARIO');
-        console.log(`World Status: ${JSON.stringify(worldStatus)}`);
-        //Scenario.start(game, now, players);
+      if (gameState.worldStatus.scenarioInProgress) {
+        console.warn('STARTING SCENARIO');
+        console.warn(`PLAYERS: ${JSON.stringify(players)}`);
         game.scenario?.start(game, now, players);
       }
+
+      // if (!gameState?.worldStatus?.scenarioInProgress && players.length > 0) {
+      //   console.warn('STARTING SCENARIO');
+      //   await ctx.runMutation(internal.world.toggleScenario, {
+      //     worldId: args.worldId,
+      //   });
+
+      //   const worldStatus = await ctx.runQuery(api.world.defaultWorldStatus);
+
+      //   console.log('STARTING SCENARIO');
+      //   console.log(`World Status: ${JSON.stringify(worldStatus)}`);
+      //   //Scenario.start(game, now, players);
+      //   game.scenario?.start(game, now, players);
+      // }
 
       const deadline = now + args.maxDuration;
       while (now < deadline) {

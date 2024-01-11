@@ -14,6 +14,10 @@
   },
   "dependencies": {
     "@clerk/clerk-react": "^4.27.0",
+    "@emotion/styled": "^11.11.0",
+    "@headlessui/react": "^1.7.18",
+    "@heroicons/react": "^2.1.1",
+    "@mui/material": "^5.15.4",
     "@pinecone-database/pinecone": "^0.1.6",
     "@pixi/react": "^7.1.0",
     "@pixi/sound": "^5.2.0",

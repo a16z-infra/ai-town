@@ -64,6 +64,7 @@ export class Agent {
     }
     const conversation = game.world.playerConversation(player);
     const member = conversation?.participants.get(player.id);
+
     if (game.worldStatus.scenarioInProgress) {
       if (!conversation) {
         throw new Error(`Error in scenario, no conversation started`);
@@ -73,10 +74,31 @@ export class Agent {
         return;
       }
       const otherPlayerIds = [...conversation.participants.keys()].filter((id) => id !== player.id);
+      if (
+        conversation.isScenarioConversation &&
+        conversation.numMessages > conversation.participants.size * game.scenario?.settings.rounds!
+      ) {
+        console.log(`${player.id} leaving conversation.`);
+        const messageUuid = crypto.randomUUID();
+        conversation.setIsTyping(now, player, messageUuid);
+        conversation.setNextSpeaker();
+        console.warn(`Generate Message (2)`);
+        this.startOperation(game, now, 'agentGenerateMessage', {
+          worldId: game.worldId,
+          playerId: player.id,
+          agentId: this.id,
+          conversationId: conversation.id,
+          otherPlayerIds,
+          messageUuid,
+          type: 'leave',
+        });
+        return;
+      }
       if (conversation.nextSpeaker === player.id) {
         const messageUuid = crypto.randomUUID();
         conversation.setIsTyping(now, player, messageUuid);
         conversation.setNextSpeaker();
+        console.warn(`Generate Message (1)`);
         this.startOperation(game, now, 'agentGenerateMessage', {
           worldId: game.worldId,
           playerId: player.id,
@@ -197,6 +219,7 @@ export class Agent {
             const messageUuid = crypto.randomUUID();
             conversation.setIsTyping(now, player, messageUuid);
             conversation.setNextSpeaker();
+            console.warn(`Generate Message (3)`);
             this.startOperation(game, now, 'agentGenerateMessage', {
               worldId: game.worldId,
               playerId: player.id,
@@ -212,6 +235,7 @@ export class Agent {
             return;
           }
         }
+
         // See if the conversation has been going on too long and decide to leave.
         const tooLongDeadline = started + MAX_CONVERSATION_DURATION;
         if (
@@ -222,6 +246,7 @@ export class Agent {
           const messageUuid = crypto.randomUUID();
           conversation.setIsTyping(now, player, messageUuid);
           conversation.setNextSpeaker();
+          console.warn(`Generate Message (4)`);
           this.startOperation(game, now, 'agentGenerateMessage', {
             worldId: game.worldId,
             playerId: player.id,
@@ -251,6 +276,7 @@ export class Agent {
         if (!conversation.isScenarioConversation) {
           conversation.setIsTyping(now, player, messageUuid);
           conversation.setNextSpeaker();
+          console.warn(`Generate Message (5)`);
           this.startOperation(game, now, 'agentGenerateMessage', {
             worldId: game.worldId,
             playerId: player.id,

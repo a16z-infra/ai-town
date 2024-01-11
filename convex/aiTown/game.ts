@@ -278,6 +278,7 @@ export class Game extends AbstractGame {
         const archivedConversation = {
           worldId,
           id: conversation.id,
+          topic: conversation.topic,
           created: conversation.created,
           creator: conversation.creator,
           ended: Date.now(),

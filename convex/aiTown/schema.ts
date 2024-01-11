@@ -8,7 +8,7 @@ import { serializedWorld } from './world';
 import { serializedWorldMap } from './worldMap';
 import { serializedConversation } from './conversation';
 import { conversationId, playerId } from './ids';
-import { serializedAuctionSettings, serializedDebateSettings } from './scenario';
+import { serializedDebateSettings } from './scenario';
 
 export const aiTownTables = {
   // This table has a single document that stores all players, conversations, and agents. This
@@ -19,7 +19,7 @@ export const aiTownTables = {
     worldId: v.id('worlds'),
     type: v.union(v.literal('debate'), v.literal('auction')),
     description: v.string(),
-    settings: v.union(v.object(serializedAuctionSettings), v.object(serializedDebateSettings)),
+    settings: v.object(serializedDebateSettings),
   }).index('worldId', ['worldId']),
 
   // Worlds can be started or stopped by the developer or paused for inactivity, and this
@@ -61,6 +61,8 @@ export const aiTownTables = {
   archivedConversations: defineTable({
     worldId: v.id('worlds'),
     id: conversationId,
+    topic: v.string(),
+    reference: v.string(),
     creator: playerId,
     created: v.number(),
     ended: v.number(),

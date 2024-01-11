@@ -94,6 +94,8 @@ export async function continueConversationMessage(
   const now = Date.now();
   const started = new Date(conversation.created);
 
+  console.warn(`TOPIC IS ${conversation.topic}`);
+
   const embedding = await embeddingsCache.fetch(
     ctx,
     `What do you think about ${otherPlayerNames.join(',')}?`,
@@ -105,11 +107,15 @@ export async function continueConversationMessage(
     )}.`,
     `The conversation started at ${started.toLocaleString()}. It's now ${now.toLocaleString()}.`,
   ];
-  prompt.push(...agentPrompts(otherPlayers, agent, otherAgents ?? null));
-  prompt.push(...relatedMemoriesPrompt(memories));
+  prompt.push(
+    `This conversation is a debate about ${conversation.topic}.`,
+    `The following is a document you can use as a reference: ${conversation.reference}`,
+  );
+  // prompt.push(...agentPrompts(otherPlayers, agent, otherAgents ?? null));
+  // prompt.push(...relatedMemoriesPrompt(memories));
   prompt.push(
     `Below is the current chat history between you and ${otherPlayerNames.join(', ')}.`,
-    `DO NOT greet them again. Do NOT use the word "Hey" too often. Your response should be brief and within 200 characters.`,
+    `Try to add something new to the conversation and try to use the included reference document. Your response should be brief and within 200 characters.`,
   );
 
   const llmMessages: LLMMessage[] = [
