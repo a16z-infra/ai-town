@@ -540,23 +540,21 @@ export class ChatCompletionContent {
       while (true) {
         const { value, done } = await reader.read();
         if (done) {
+          // Flush the last fragment now that we're done
+          if (lastFragment !== '') {
+            yield lastFragment;
+          }
           break;
         }
         const data = new TextDecoder().decode(value);
-        let startIdx = 0;
-        while (true) {
-          const endIdx = data.indexOf('\n\n', startIdx);
-          if (endIdx === -1) {
-            lastFragment += data.substring(startIdx);
-            break;
-          }
-          yield lastFragment + data.substring(startIdx, endIdx);
-          startIdx = endIdx + 2;
-          lastFragment = '';
+        lastFragment += data;
+        const parts = lastFragment.split('\n\n');
+        // Yield all except for the last part
+        for (let i = 0; i < parts.length - 1; i += 1) {
+          yield parts[i];
         }
-      }
-      if (lastFragment) {
-        yield lastFragment;
+        // Save the last part as the new last fragment
+        lastFragment = parts[parts.length - 1];
       }
     } finally {
       reader.releaseLock();
