@@ -2,9 +2,9 @@ import { ConvexError, v } from 'convex/values';
 import { internalMutation, mutation, query } from './_generated/server';
 import { characters } from '../data/characters';
 import { insertInput } from './aiTown/insertInput';
-import { IDLE_WORLD_TIMEOUT, WORLD_HEARTBEAT_INTERVAL } from './constants';
+import { ENGINE_ACTION_DURATION, IDLE_WORLD_TIMEOUT, WORLD_HEARTBEAT_INTERVAL } from './constants';
 import { playerId } from './aiTown/ids';
-import { startEngine, stopEngine } from './aiTown/main';
+import { kickEngine, startEngine, stopEngine } from './aiTown/main';
 import { engineInsertInput } from './engine/abstractGame';
 
 export const defaultWorldStatus = query({
@@ -62,6 +62,29 @@ export const stopInactiveWorlds = internalMutation({
       console.log(`Stopping inactive world ${worldStatus._id}`);
       await ctx.db.patch(worldStatus._id, { status: 'inactive' });
       await stopEngine(ctx, worldStatus.worldId);
+    }
+  },
+});
+
+export const restartDeadWorlds = internalMutation({
+  handler: async (ctx) => {
+    const now = Date.now();
+
+    // Restart an engine if it hasn't run for 2x its action duration.
+    const engineTimeout = now - ENGINE_ACTION_DURATION * 2;
+    const worlds = await ctx.db.query('worldStatus').collect();
+    for (const worldStatus of worlds) {
+      if (worldStatus.status !== 'running') {
+        continue;
+      }
+      const engine = await ctx.db.get(worldStatus.engineId);
+      if (!engine) {
+        throw new Error(`Invalid engine ID: ${worldStatus.engineId}`);
+      }
+      if (engine.currentTime && engine.currentTime < engineTimeout) {
+        console.warn(`Restarting dead engine ${engine._id}...`);
+        await kickEngine(ctx, worldStatus.worldId);
+      }
     }
   },
 });

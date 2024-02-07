@@ -7,6 +7,7 @@ import {
   PATHFINDING_BACKOFF,
   HUMAN_IDLE_TOO_LONG,
   MAX_HUMAN_PLAYERS,
+  MAX_PATHFINDS_PER_STEP,
 } from '../constants';
 import { pointsEqual, pathPosition } from '../util/geometry';
 import { Game } from './game';
@@ -110,7 +111,11 @@ export class Player {
     }
 
     // Perform pathfinding if needed.
-    if (pathfinding.state.kind === 'needsPath') {
+    if (pathfinding.state.kind === 'needsPath' && game.numPathfinds < MAX_PATHFINDS_PER_STEP) {
+      game.numPathfinds++;
+      if (game.numPathfinds === MAX_PATHFINDS_PER_STEP) {
+        console.warn(`Reached max pathfinds for this step`);
+      }
       const route = findRoute(game, now, this, pathfinding.destination);
       if (route === null) {
         console.log(`Failed to route to ${JSON.stringify(pathfinding.destination)}`);
