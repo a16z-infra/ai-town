@@ -11,8 +11,8 @@ describe('compressPath', () => {
       { position: { x: 0, y: 4 }, facing, t: 4 },
     ]);
     expect(compressed).toEqual([
-      { position: { x: 0, y: 0 }, facing, t: 0 },
-      { position: { x: 0, y: 4 }, facing, t: 4 },
+      [0, 0, 0, 1, 0],
+      [0, 4, 0, 1, 4],
     ]);
   });
 
@@ -27,9 +27,9 @@ describe('compressPath', () => {
       { position: { x: 2, y: 2 }, facing: facingRight, t: 4 },
     ]);
     expect(compressed).toEqual([
-      { position: { x: 0, y: 0 }, facing: facingUp, t: 0 },
-      { position: { x: 0, y: 2 }, facing: facingRight, t: 2 },
-      { position: { x: 2, y: 2 }, facing: facingRight, t: 4 },
+      [0, 0, 0, 1, 0],
+      [0, 2, 1, 0, 2],
+      [2, 2, 1, 0, 4],
     ]);
   });
 });
