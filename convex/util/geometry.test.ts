@@ -252,6 +252,18 @@ describe('orientationDegrees', () => {
 
 
 describe('compressPath', () => {
+  test('should not compress a path with only 2 entries', () => {
+    const facing = { dx: 0, dy: 1 };
+    const compressed = compressPath([
+      { position: { x: 0, y: 0 }, facing, t: 0 },
+      { position: { x: 0, y: 1 }, facing, t: 1 },
+    ]);
+    expect(compressed).toEqual([
+      [0, 0, 0, 1, 0],
+      [0, 1, 0, 1, 1],
+    ]);
+  });
+
   test('should compress a line', () => {
     const facing = { dx: 0, dy: 1 };
     const compressed = compressPath([
