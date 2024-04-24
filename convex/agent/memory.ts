@@ -6,10 +6,11 @@ import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/openai';
 import { asyncMap } from '../util/asyncMap';
 import { GameId, agentId, conversationId, playerId } from '../aiTown/ids';
 import { SerializedPlayer } from '../aiTown/player';
-import { UseOllama, ollamaChatCompletion } from '../util/ollama';
+import { UseOllama, ollamaChatCompletion, ollamaFetchEmbedding } from '../util/ollama';
 import { memoryFields } from './schema';
 
 const completionFn = UseOllama ? ollamaChatCompletion : chatCompletion;
+const embeddingFn = UseOllama ? ollamaFetchEmbedding : fetchEmbedding;
 
 // How long to wait before updating a memory's last access time.
 export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
@@ -69,7 +70,7 @@ export async function rememberConversation(
     data.conversation._creationTime,
   ).toLocaleString()}: ${content}`;
   const importance = await calculateImportance(description);
-  const { embedding } = await fetchEmbedding(description);
+  const embedding = await embeddingFn(description);
   authors.delete(player.id as GameId<'players'>);
   await ctx.runMutation(selfInternal.insertMemory, {
     agentId,
@@ -82,7 +83,7 @@ export async function rememberConversation(
       conversationId,
       playerIds: [...authors],
     },
-    embedding,
+    ...embedding,
   });
   await reflectOnMemories(ctx, worldId, playerId);
   return description;
@@ -161,11 +162,15 @@ export const loadConversation = internalQuery({
 export async function searchMemories(
   ctx: ActionCtx,
   playerId: GameId<'players'>,
-  searchEmbedding: number[],
+  searchEmbedding: { embedding?: number[]; ollamaEmbedding?: number[] },
   n: number = 3,
 ) {
-  const candidates = await ctx.vectorSearch('memoryEmbeddings', 'embedding', {
-    vector: searchEmbedding,
+  const [index, vector] = Object.entries(searchEmbedding).find(([_, v]) => v !== undefined) as [
+    'embedding' | 'ollamaEmbedding',
+    number[],
+  ];
+  const candidates = await ctx.vectorSearch('memoryEmbeddings', index, {
+    vector,
     filter: (q) => q.eq('playerId', playerId),
     limit: n * MEMORY_OVERFETCH,
   });
@@ -276,13 +281,15 @@ const { embeddingId: _embeddingId, ...memoryFieldsWithoutEmbeddingId } = memoryF
 export const insertMemory = internalMutation({
   args: {
     agentId,
-    embedding: v.array(v.float64()),
+    embedding: v.optional(v.array(v.float64())),
+    ollamaEmbedding: v.optional(v.array(v.float64())),
     ...memoryFieldsWithoutEmbeddingId,
   },
-  handler: async (ctx, { agentId: _, embedding, ...memory }): Promise<void> => {
+  handler: async (ctx, { agentId: _, embedding, ollamaEmbedding, ...memory }): Promise<void> => {
     const embeddingId = await ctx.db.insert('memoryEmbeddings', {
       playerId: memory.playerId,
-      embedding: embedding,
+      embedding,
+      ollamaEmbedding,
     });
     await ctx.db.insert('memories', {
       ...memory,
@@ -300,16 +307,18 @@ export const insertReflectionMemories = internalMutation({
         description: v.string(),
         relatedMemoryIds: v.array(v.id('memories')),
         importance: v.number(),
-        embedding: v.array(v.float64()),
+        embedding: v.optional(v.array(v.float64())),
+        ollamaEmbedding: v.optional(v.array(v.float64())),
       }),
     ),
   },
   handler: async (ctx, { playerId, reflections }) => {
     const lastAccess = Date.now();
-    for (const { embedding, relatedMemoryIds, ...rest } of reflections) {
+    for (const { embedding, ollamaEmbedding, relatedMemoryIds, ...rest } of reflections) {
       const embeddingId = await ctx.db.insert('memoryEmbeddings', {
         playerId,
-        embedding: embedding,
+        embedding,
+        ollamaEmbedding,
       });
       await ctx.db.insert('memories', {
         playerId,
@@ -376,11 +385,11 @@ async function reflectOnMemories(
     const memoriesToSave = await asyncMap(insights, async (item) => {
       const relatedMemoryIds = item.statementIds.map((idx: number) => memories[idx]._id);
       const importance = await calculateImportance(item.insight);
-      const { embedding } = await fetchEmbedding(item.insight);
+      const embedding = await embeddingFn(item.insight);
       console.debug('adding reflection memory...', item.insight);
       return {
         description: item.insight,
-        embedding,
+        ...embedding,
         importance,
         relatedMemoryIds,
       };

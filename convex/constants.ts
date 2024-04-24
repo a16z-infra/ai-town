@@ -76,3 +76,6 @@ export const ENGINE_ACTION_DURATION = 30000;
 
 // Bound the number of pathfinding searches we do per game step.
 export const MAX_PATHFINDS_PER_STEP = 16;
+
+export const OllamaEmbedModel = 'mxbai-embed-large';
+export const OllamaEmbedDimensions = 1024;

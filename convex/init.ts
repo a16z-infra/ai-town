@@ -8,13 +8,14 @@ import { Id } from './_generated/dataModel';
 import { createEngine } from './aiTown/main';
 import { ENGINE_ACTION_DURATION } from './constants';
 import { assertOpenAIKey } from './util/openai';
+import { UseOllama } from './util/ollama';
 
 const init = mutation({
   args: {
     numAgents: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    assertOpenAIKey();
+    if (!UseOllama) assertOpenAIKey();
     const { worldStatus, engine } = await getOrCreateDefaultWorld(ctx);
     if (worldStatus.status !== 'running') {
       console.warn(

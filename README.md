@@ -83,7 +83,6 @@ Go to "settings" and add the following environment variables.
 This link will take you there for your most recent deployment:
 https://dashboard.convex.dev/deployment/settings/environment-variables?var=CLERK_ISSUER_URL
 
-
 ```bash
 OPENAI_API_KEY  sk-*******
 CLERK_ISSUER_URL  https://****
@@ -232,9 +231,10 @@ Steps to switch to using Ollama:
    [Tunnelmole](https://github.com/robbie-cahill/tunnelmole-client) is an open source tunneling tool.
 
    You can install Tunnelmole using one of the following options:
-   - NPM:  `npm install -g tunnelmole`
+
+   - NPM: `npm install -g tunnelmole`
    - Linux: `curl -s https://tunnelmole.com/sh/install-linux.sh | sudo bash`
-   - Mac:  `curl -s https://tunnelmole.com/sh/install-mac.sh --output install-mac.sh && sudo bash install-mac.sh`
+   - Mac: `curl -s https://tunnelmole.com/sh/install-mac.sh --output install-mac.sh && sudo bash install-mac.sh`
    - Windows: Install with NPM, or if you don't have NodeJS installed, download the `exe` file for Windows [here](https://tunnelmole.com/downloads/tmole.exe) and put it somewhere in your PATH.
 
    Once Tunnelmole is installed, run the following command:
@@ -259,17 +259,18 @@ Steps to switch to using Ollama:
 
    Ngrok should output a unique url once you run this command.
 
-3. Add Ollama endpoint to Convex
+2. Add Ollama endpoint to Convex
 
 - Go to https://dashboard.convex.dev/deployment/settings/environment-variables?var=OLLAMA_HOST
 - Add `OLLAMA_HOST = [your tunnelmole/ngrok unique url from the previous step]`
 - You might also want to set:
-   `ACTION_TIMEOUT` to `100000` or more, to give your model more time to run.
-   `NUM_MEMORIES_TO_SEARCH` to `1`, to reduce the size of conversation prompts.
+  `ACTION_TIMEOUT` to `100000` or more, to give your model more time to run.
+  `NUM_MEMORIES_TO_SEARCH` to `1`, to reduce the size of conversation prompts.
 
-By default, we use `llama2-7b` model on Ollama.
+By default, we use `llama3` model.
 If you want to customize which model to use, you can set [`OLLAMA_MODEL` variable under Environment Variables](https://dashboard.convex.dev/deployment/settings/environment-variables?var=OLLAMA_MODEL).
 Ollama model options can be found [here](https://ollama.ai/library).
+
 ## Credits
 
 - All interactions, background music and rendering on the <Game/> component in the project are powered by [PixiJS](https://pixijs.com/).

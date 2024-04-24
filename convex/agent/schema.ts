@@ -1,7 +1,7 @@
-import { embeddingsCacheTables } from './embeddingsCache';
 import { v } from 'convex/values';
 import { playerId, conversationId } from '../aiTown/ids';
 import { defineTable } from 'convex/server';
+import { OllamaEmbedDimensions } from '../constants';
 
 export const memoryFields = {
   playerId,
@@ -36,15 +36,26 @@ export const memoryTables = {
     .index('playerId', ['playerId']),
   memoryEmbeddings: defineTable({
     playerId,
-    embedding: v.array(v.float64()),
-  }).vectorIndex('embedding', {
-    vectorField: 'embedding',
-    filterFields: ['playerId'],
-    dimensions: 1536,
-  }),
+    embedding: v.optional(v.array(v.float64())),
+    ollamaEmbedding: v.optional(v.array(v.float64())),
+  })
+    .vectorIndex('embedding', {
+      vectorField: 'embedding',
+      filterFields: ['playerId'],
+      dimensions: 1536,
+    })
+    .vectorIndex('ollamaEmbedding', {
+      vectorField: 'ollamaEmbedding',
+      filterFields: ['playerId'],
+      dimensions: OllamaEmbedDimensions,
+    }),
 };
 
 export const agentTables = {
   ...memoryTables,
-  ...embeddingsCacheTables,
+  embeddingsCache: defineTable({
+    textHash: v.bytes(),
+    embedding: v.optional(v.array(v.float64())),
+    ollamaEmbedding: v.optional(v.array(v.float64())),
+  }).index('text', ['textHash']),
 };

@@ -112,8 +112,8 @@ export async function fetchEmbeddingBatch(texts: string[]) {
 }
 
 export async function fetchEmbedding(text: string) {
-  const { embeddings, ...stats } = await fetchEmbeddingBatch([text]);
-  return { embedding: embeddings[0], ...stats };
+  const { embeddings, ..._stats } = await fetchEmbeddingBatch([text]);
+  return { embedding: embeddings[0] };
 }
 
 export async function fetchModeration(content: string) {
