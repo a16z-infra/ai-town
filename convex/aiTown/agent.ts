@@ -21,7 +21,7 @@ import { distance } from '../util/geometry';
 import { internal } from '../_generated/api';
 import { movePlayer } from './movement';
 import { insertInput } from './insertInput';
-import { llmConfig } from '../util/openai';
+import { LLM_CONFIG } from '../constants';
 
 export class Agent {
   id: GameId<'agents'>;
@@ -55,7 +55,7 @@ export class Agent {
       throw new Error(`Invalid player ID ${this.playerId}`);
     }
     if (this.inProgressOperation) {
-      if (now < this.inProgressOperation.started + llmConfig.actionTimeout) {
+      if (now < this.inProgressOperation.started + LLM_CONFIG.actionTimeout) {
         // Wait on the operation to finish.
         return;
       }

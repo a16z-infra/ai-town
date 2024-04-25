@@ -63,12 +63,6 @@ export const MAX_CONVERSATION_MESSAGES = 8;
 // once we can await on an input being processed.
 export const INPUT_DELAY = 1000;
 
-// How many memories to get from the agent's memory.
-// This is over-fetched by 10x so we can prioritize memories by more than relevance.
-export function NUM_MEMORIES_TO_SEARCH() {
-  return Number(process.env.NUM_MEMORIES_TO_SEARCH) || 3;
-}
-
 // Wait for at least two seconds before sending another message.
 export const MESSAGE_COOLDOWN = 2000;
 

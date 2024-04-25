@@ -36,26 +36,18 @@ export const memoryTables = {
     .index('playerId', ['playerId']),
   memoryEmbeddings: defineTable({
     playerId,
-    embedding: v.optional(v.array(v.float64())),
-    ollamaEmbedding: v.optional(v.array(v.float64())),
-  })
-    .vectorIndex('embedding', {
-      vectorField: 'embedding',
-      filterFields: ['playerId'],
-      dimensions: 1536,
-    })
-    .vectorIndex('ollamaEmbedding', {
-      vectorField: 'ollamaEmbedding',
-      filterFields: ['playerId'],
-      dimensions: LLM_CONFIG.embeddingDimension,
-    }),
+    embedding: v.array(v.float64()),
+  }).vectorIndex('embedding', {
+    vectorField: 'embedding',
+    filterFields: ['playerId'],
+    dimensions: LLM_CONFIG.embeddingDimension,
+  }),
 };
 
 export const agentTables = {
   ...memoryTables,
   embeddingsCache: defineTable({
     textHash: v.bytes(),
-    embedding: v.optional(v.array(v.float64())),
-    ollamaEmbedding: v.optional(v.array(v.float64())),
+    embedding: v.array(v.float64()),
   }).index('text', ['textHash']),
 };

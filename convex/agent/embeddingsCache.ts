@@ -1,10 +1,10 @@
-import { defineTable } from 'convex/server';
 import { v } from 'convex/values';
 import { ActionCtx, internalMutation, internalQuery } from '../_generated/server';
 import { internal } from '../_generated/api';
 import * as openai from '../util/openai';
-import { ollamaFetchEmbedding, UseOllama } from '../util/ollama';
+import { ollamaFetchEmbedding } from '../util/ollama';
 import { Id } from '../_generated/dataModel';
+import { LLM_CONFIG } from '../constants';
 
 const selfInternal = internal.agent.embeddingsCache;
 
@@ -17,12 +17,12 @@ export async function fetchBatch(ctx: ActionCtx, texts: string[]) {
   const start = Date.now();
 
   const textHashes = await Promise.all(texts.map((text) => hashText(text)));
-  const results = new Array<{ embedding?: number[]; ollamaEmbedding?: number[] }>(texts.length);
+  const results = new Array<number[]>(texts.length);
   const cacheResults = await ctx.runQuery(selfInternal.getEmbeddingsByText, {
     textHashes,
   });
-  for (const { index, embedding, ollamaEmbedding } of cacheResults) {
-    results[index] = { embedding, ollamaEmbedding };
+  for (const { index, embedding } of cacheResults) {
+    results[index] = embedding;
   }
   const toWrite = [];
   if (cacheResults.length < texts.length) {
@@ -30,30 +30,23 @@ export async function fetchBatch(ctx: ActionCtx, texts: string[]) {
     const missingTexts = missingIndexes.map((i) => texts[i]);
     const response = LLM_CONFIG.ollama
       ? {
-          ollamaEmbeddings: await Promise.all(
-            missingTexts.map(async (t) => (await ollamaFetchEmbedding(t)).ollamaEmbedding),
+          embeddings: await Promise.all(
+            missingTexts.map(async (t) => (await ollamaFetchEmbedding(t)).embedding),
           ),
-          embeddings: undefined,
         }
       : await openai.fetchEmbeddingBatch(missingTexts);
-    if ((response.embeddings ?? response.ollamaEmbeddings).length !== missingIndexes.length) {
+    if (response.embeddings.length !== missingIndexes.length) {
       throw new Error(
-        `Expected ${missingIndexes.length} embeddings, got ${
-          (response.embeddings ?? response.ollamaEmbeddings).length
-        }`,
+        `Expected ${missingIndexes.length} embeddings, got ${response.embeddings.length}`,
       );
     }
     for (let i = 0; i < missingIndexes.length; i++) {
       const resultIndex = missingIndexes[i];
-      const embedding = {
-        embedding: response.embeddings && response.embeddings[i],
-        ollamaEmbedding: 'ollamaEmbeddings' in response ? response.ollamaEmbeddings[i] : undefined,
-      };
       toWrite.push({
         textHash: textHashes[resultIndex],
-        ...embedding,
+        embedding: response.embeddings[i],
       });
-      results[resultIndex] = embedding;
+      results[resultIndex] = response.embeddings[i];
     }
   }
   if (toWrite.length > 0) {
@@ -86,14 +79,7 @@ export const getEmbeddingsByText = internalQuery({
   handler: async (
     ctx,
     args,
-  ): Promise<
-    {
-      index: number;
-      embeddingId: Id<'embeddingsCache'>;
-      embedding?: number[];
-      ollamaEmbedding?: number[];
-    }[]
-  > => {
+  ): Promise<{ index: number; embeddingId: Id<'embeddingsCache'>; embedding: number[] }[]> => {
     const out = [];
     for (let i = 0; i < args.textHashes.length; i++) {
       const textHash = args.textHashes[i];
@@ -106,7 +92,6 @@ export const getEmbeddingsByText = internalQuery({
           index: i,
           embeddingId: result._id,
           embedding: result.embedding,
-          ollamaEmbedding: result.ollamaEmbedding,
         });
       }
     }
@@ -119,8 +104,7 @@ export const writeEmbeddings = internalMutation({
     embeddings: v.array(
       v.object({
         textHash: v.bytes(),
-        embedding: v.optional(v.array(v.float64())),
-        ollamaEmbedding: v.optional(v.array(v.float64())),
+        embedding: v.array(v.float64()),
       }),
     ),
   },

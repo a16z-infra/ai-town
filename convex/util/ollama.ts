@@ -32,7 +32,7 @@ export async function ollamaFetchEmbedding(text: string) {
     }
     return (await resp.json()).embedding as number[];
   });
-  return { ollamaEmbedding: result };
+  return { embedding: result };
 }
 
 // Overload for non-streaming
