@@ -30,7 +30,7 @@ export async function startConversationMessage(
   );
   const embedding = await embeddingsCache.fetch(
     ctx,
-    `What do you think about ${otherPlayer.name}?`,
+    `${player.name} is talking to ${otherPlayer.name}`,
   );
 
   const memories = await memory.searchMemories(
