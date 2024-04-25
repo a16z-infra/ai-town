@@ -51,6 +51,7 @@ export async function chatCompletion(
   body.model =
     body.model ?? process.env.LLM_MODEL ?? process.env.OLLAMA_MODEL ?? LLM_CONFIG.chatModel;
   const stopWords = body.stop ? (typeof body.stop === 'string' ? [body.stop] : body.stop) : [];
+  if (LLM_CONFIG.ollama) stopWords.push('<|');
   const {
     result: content,
     retries,
@@ -110,6 +111,14 @@ export async function tryPullOllama(model: string, error: string) {
 }
 
 export async function fetchEmbeddingBatch(texts: string[]) {
+  if (LLM_CONFIG.ollama) {
+    return {
+      ollama: true as const,
+      embeddings: await Promise.all(
+        texts.map(async (t) => (await ollamaFetchEmbedding(t)).embedding),
+      ),
+    };
+  }
   assertOpenAIKey();
   const {
     result: json,
@@ -143,6 +152,7 @@ export async function fetchEmbeddingBatch(texts: string[]) {
   const allembeddings = json.data;
   allembeddings.sort((a, b) => a.index - b.index);
   return {
+    ollama: false as const,
     embeddings: allembeddings.map(({ embedding }) => embedding),
     usage: json.usage.total_tokens,
     retries,
@@ -600,4 +610,23 @@ export class ChatCompletionContent {
       reader.releaseLock();
     }
   }
+}
+
+export async function ollamaFetchEmbedding(text: string) {
+  const { result } = await retryWithBackoff(async () => {
+    const resp = await fetch(process.env.OLLAMA_HOST + '/api/embeddings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ model: LLM_CONFIG.embeddingModel, prompt: text }),
+    });
+    if (resp.status === 404) {
+      const error = await resp.text();
+      await tryPullOllama(LLM_CONFIG.embeddingModel, error);
+      throw new Error(`Failed to fetch embeddings: ${resp.status}`);
+    }
+    return (await resp.json()).embedding as number[];
+  });
+  return { embedding: result };
 }

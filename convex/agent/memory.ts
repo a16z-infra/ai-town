@@ -6,12 +6,10 @@ import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/openai';
 import { asyncMap } from '../util/asyncMap';
 import { GameId, agentId, conversationId, playerId } from '../aiTown/ids';
 import { SerializedPlayer } from '../aiTown/player';
-import { ollamaFetchEmbedding } from '../util/ollama';
 import { memoryFields } from './schema';
-import { LLM_CONFIG } from '../constants';
 
 const completionFn = chatCompletion;
-const embeddingFn = LLM_CONFIG.ollama ? ollamaFetchEmbedding : fetchEmbedding;
+const embeddingFn = fetchEmbedding;
 
 // How long to wait before updating a memory's last access time.
 export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
