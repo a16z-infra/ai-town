@@ -1,5 +1,5 @@
 import { Ollama } from 'langchain/llms/ollama';
-import { CreateChatCompletionRequest, retryWithBackoff } from './openai';
+import { CreateChatCompletionRequest, retryWithBackoff, tryPullOllama } from './openai';
 import { IterableReadableStream } from 'langchain/dist/util/stream';
 import { LLM_CONFIG } from '../constants';
 
@@ -14,18 +14,7 @@ export async function ollamaFetchEmbedding(text: string) {
     });
     if (resp.status === 404) {
       const error = await resp.text();
-      if (error.includes('try pulling')) {
-        console.error('Embedding model not found, pulling from Ollama');
-        const pullResp = await fetch(process.env.OLLAMA_HOST + '/api/pull', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ name: LLM_CONFIG.embeddingModel }),
-        });
-        console.log('Pull response', await pullResp.text());
-        throw { retry: true, error };
-      }
+      await tryPullOllama(LLM_CONFIG.embeddingModel, error);
       throw new Error(`Failed to fetch embeddings: ${resp.status}`);
     }
     return (await resp.json()).embedding as number[];

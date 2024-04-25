@@ -94,7 +94,7 @@ export async function chatCompletion(
   };
 }
 
-async function tryPullOllama(model: string, error: string) {
+export async function tryPullOllama(model: string, error: string) {
   if (error.includes('try pulling')) {
     console.error('Embedding model not found, pulling from Ollama');
     const pullResp = await fetch(apiUrl('/api/pull'), {
