@@ -52,24 +52,30 @@ export async function ollamaChatCompletion(
     console.log('#### Ollama api ####, using ', body.model);
 
     const stop = typeof body.stop === 'string' ? [body.stop] : body.stop;
-    const ollama = new Ollama({
-      model: body.model,
-      baseUrl: process.env.OLLAMA_HOST,
-      stop: [...(stop ?? []), '<|'],
+    stop?.push('<|');
+    const resp = await fetch(process.env.OLLAMA_HOST + '/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
     });
-    const prompt = body.messages.map((m) => m.content).join('\n');
-    console.log('body.prompt', prompt);
-    const stream = await ollama.stream(prompt, { stop });
-    if (body.stream) {
-      return new OllamaCompletionContent(stream, stop ?? []);
+    if (resp.status === 404) {
+      const error = await resp.text();
+      await tryPullOllama(LLM_CONFIG.embeddingModel, error);
+      throw new Error(`Failed to fetch embeddings: ${resp.status}`);
     }
-    let ollamaResult = '';
-    for await (const chunk of stream) {
-      ollamaResult += chunk;
+    if (body.stream) {
+      return new OllamaCompletionContent(resp.body!, stop ?? []);
+    }
+    const json = await resp.json();
+    const content = json.message?.content;
+    if (content === undefined) {
+      throw new Error('Unexpected result from Ollama: ' + JSON.stringify(json));
     }
     console.log('#### ollama result = ');
-    console.log(ollamaResult);
-    return ollamaResult;
+    console.log(content);
+    return content;
   });
 
   return {
