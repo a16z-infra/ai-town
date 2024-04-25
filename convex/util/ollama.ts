@@ -1,9 +1,7 @@
 import { Ollama } from 'langchain/llms/ollama';
 import { CreateChatCompletionRequest, retryWithBackoff } from './openai';
 import { IterableReadableStream } from 'langchain/dist/util/stream';
-import { OllamaEmbedModel } from '../constants';
-
-const ollamaModel = process.env.OLLAMA_MODEL || 'llama3';
+import { LLM_CONFIG } from '../constants';
 
 export async function ollamaFetchEmbedding(text: string) {
   const { result } = await retryWithBackoff(async () => {
@@ -12,7 +10,7 @@ export async function ollamaFetchEmbedding(text: string) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ model: OllamaEmbedModel, prompt: text }),
+      body: JSON.stringify({ model: LLM_CONFIG.embeddingModel, prompt: text }),
     });
     if (resp.status === 404) {
       const error = await resp.text();
@@ -23,7 +21,7 @@ export async function ollamaFetchEmbedding(text: string) {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ name: OllamaEmbedModel }),
+          body: JSON.stringify({ name: LLM_CONFIG.embeddingModel }),
         });
         console.log('Pull response', await pullResp.text());
         throw { retry: true, error };
@@ -56,7 +54,7 @@ export async function ollamaChatCompletion(
     model?: string;
   },
 ) {
-  body.model = body.model ?? ollamaModel;
+  body.model = body.model ?? LLM_CONFIG.chatModel;
   const {
     result: content,
     retries,
