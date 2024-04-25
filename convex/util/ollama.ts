@@ -69,7 +69,7 @@ export async function ollamaChatCompletion(
     const ollama = new Ollama({
       model: body.model,
       baseUrl: process.env.OLLAMA_HOST,
-      stop,
+      stop: [...(stop ?? []), '<|'],
     });
     const prompt = body.messages.map((m) => m.content).join('\n');
     console.log('body.prompt', prompt);
