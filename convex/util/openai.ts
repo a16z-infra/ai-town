@@ -1,7 +1,21 @@
 // That's right! No imports and no dependencies 🤯
 
-// ... except some constants
-import { LLM_CONFIG } from '../constants';
+export const LLM_CONFIG = {
+  /* good options locally: */
+  ollama: true,
+  url: 'http://127.0.0.1:11434',
+  chatModel: 'llama3' as const,
+  // embeddingModel: 'llama3',
+  // embeddingDimension: 4096,
+  embeddingModel: 'mxbai-embed-large',
+  embeddingDimension: 1024,
+  /* Good options for cloud:
+  ollama: false,
+  chatModel: 'gpt-3.5-turbo-16k' as const,
+  embeddingModel: 'text-embedding-ada-002',
+  embeddingDimension: 1536,
+  */
+};
 
 function apiUrl(path: string) {
   // OPENAI_API_BASE and OLLAMA_HOST are legacy
@@ -19,11 +33,12 @@ function apiUrl(path: string) {
   }
 }
 
-const AuthHeaders: Record<string, string> = process.env.OPENAI_API_KEY
-  ? {
-      Authorization: 'Bearer ' + process.env.OPENAI_API_KEY,
-    }
-  : {};
+const AuthHeaders = (): Record<string, string> =>
+  process.env.OPENAI_API_KEY
+    ? {
+        Authorization: 'Bearer ' + process.env.OPENAI_API_KEY,
+      }
+    : {};
 
 // Overload for non-streaming
 export async function chatCompletion(
@@ -61,7 +76,7 @@ export async function chatCompletion(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...AuthHeaders,
+        ...AuthHeaders(),
       },
 
       body: JSON.stringify(body),
@@ -129,7 +144,7 @@ export async function fetchEmbeddingBatch(texts: string[]) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...AuthHeaders,
+        ...AuthHeaders(),
       },
 
       body: JSON.stringify({
@@ -172,7 +187,7 @@ export async function fetchModeration(content: string) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...AuthHeaders,
+        ...AuthHeaders(),
       },
 
       body: JSON.stringify({

@@ -21,7 +21,7 @@ import { distance } from '../util/geometry';
 import { internal } from '../_generated/api';
 import { movePlayer } from './movement';
 import { insertInput } from './insertInput';
-import { LLM_CONFIG } from '../constants';
+import { ACTION_TIMEOUT } from '../constants';
 
 export class Agent {
   id: GameId<'agents'>;
@@ -55,7 +55,7 @@ export class Agent {
       throw new Error(`Invalid player ID ${this.playerId}`);
     }
     if (this.inProgressOperation) {
-      if (now < this.inProgressOperation.started + LLM_CONFIG.actionTimeout) {
+      if (now < this.inProgressOperation.started + ACTION_TIMEOUT) {
         // Wait on the operation to finish.
         return;
       }

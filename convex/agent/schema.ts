@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import { playerId, conversationId } from '../aiTown/ids';
 import { defineTable } from 'convex/server';
-import { LLM_CONFIG } from '../constants';
+import { LLM_CONFIG } from '../util/openai';
 
 export const memoryFields = {
   playerId,
