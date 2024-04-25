@@ -4,7 +4,6 @@ import { IterableReadableStream } from 'langchain/dist/util/stream';
 import { OllamaEmbedModel } from '../constants';
 
 const ollamaModel = process.env.OLLAMA_MODEL || 'llama3';
-export const UseOllama = process.env.OLLAMA_HOST !== undefined;
 
 export async function ollamaFetchEmbedding(text: string) {
   const { result } = await retryWithBackoff(async () => {

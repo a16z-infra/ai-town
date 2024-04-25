@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import { playerId, conversationId } from '../aiTown/ids';
 import { defineTable } from 'convex/server';
-import { OllamaEmbedDimensions } from '../constants';
+import { LLM_CONFIG } from '../constants';
 
 export const memoryFields = {
   playerId,
@@ -47,7 +47,7 @@ export const memoryTables = {
     .vectorIndex('ollamaEmbedding', {
       vectorField: 'ollamaEmbedding',
       filterFields: ['playerId'],
-      dimensions: OllamaEmbedDimensions,
+      dimensions: LLM_CONFIG.embeddingDimension,
     }),
 };
 

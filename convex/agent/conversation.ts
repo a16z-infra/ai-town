@@ -10,7 +10,7 @@ import { GameId, conversationId, playerId } from '../aiTown/ids';
 import { NUM_MEMORIES_TO_SEARCH } from '../constants';
 
 const selfInternal = internal.agent.conversation;
-const completionFn = UseOllama ? ollamaChatCompletion : chatCompletion;
+const completionFn = LLM_CONFIG.ollama ? ollamaChatCompletion : chatCompletion;
 
 export async function startConversationMessage(
   ctx: ActionCtx,

@@ -1,3 +1,23 @@
+export const LLM_CONFIG = {
+  /* good options locally: */
+  ollama: true,
+  url: 'http://127.0.0.1:11434',
+  chatModel: 'llama3' as const,
+  embeddingModel: 'llama3',
+  embeddingDimension: 4096,
+  // embeddingModel: 'mxbai-embed-large',
+  // embeddingDimension: 1024,
+  actionTimeout: 120_000, // more time locally
+
+  /* Good options for cloud:
+  ollama: false,
+  chatModel: 'gpt-3.5-turbo-16k' as const,
+  embeddingModel: 'text-embedding-ada-002',
+  embeddingDimension: 1536,
+  actionTimeout: 60_000, // normally fine
+  */
+};
+
 export const IDLE_WORLD_TIMEOUT = 5 * 60 * 1000;
 export const WORLD_HEARTBEAT_INTERVAL = 60 * 1000;
 
@@ -49,11 +69,6 @@ export function NUM_MEMORIES_TO_SEARCH() {
   return Number(process.env.NUM_MEMORIES_TO_SEARCH) || 3;
 }
 
-// Timeout a request to the conversation layer after a minute.
-export function ACTION_TIMEOUT() {
-  return Number(process.env.ACTION_TIMEOUT) || 60 * 1000;
-}
-
 // Wait for at least two seconds before sending another message.
 export const MESSAGE_COOLDOWN = 2000;
 
@@ -76,10 +91,5 @@ export const ENGINE_ACTION_DURATION = 30000;
 
 // Bound the number of pathfinding searches we do per game step.
 export const MAX_PATHFINDS_PER_STEP = 16;
-
-export const OllamaEmbedModel = 'llama3';
-export const OllamaEmbedDimensions = 4096;
-// export const OllamaEmbedModel = 'mxbai-embed-large';
-// export const OllamaEmbedDimensions = 1024;
 
 export const DEFAULT_NAME = 'Me';

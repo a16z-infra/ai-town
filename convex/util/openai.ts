@@ -1,5 +1,30 @@
 // That's right! No imports and no dependencies 🤯
 
+// ... except some constants
+import { LLM_CONFIG } from '../constants';
+
+function apiUrl(path: string) {
+  // OPENAI_API_BASE and OLLAMA_HOST are legacy
+  const host =
+    process.env.LLM_API_URL ??
+    process.env.OLLAMA_HOST ??
+    process.env.OPENAI_API_BASE ??
+    LLM_CONFIG.url;
+  if (host.endsWith('/') && path.startsWith('/')) {
+    return host + path.slice(1);
+  } else if (!host.endsWith('/') && !path.startsWith('/')) {
+    return host + '/' + path;
+  } else {
+    return host + path;
+  }
+}
+
+const AuthHeaders: Record<string, string> = process.env.OPENAI_API_KEY
+  ? {
+      Authorization: 'Bearer ' + process.env.OPENAI_API_KEY,
+    }
+  : {};
+
 // Overload for non-streaming
 export async function chatCompletion(
   body: Omit<CreateChatCompletionRequest, 'model'> & {
@@ -22,31 +47,32 @@ export async function chatCompletion(
   },
 ) {
   assertOpenAIKey();
-
-  body.model = body.model ?? 'gpt-3.5-turbo-16k';
-  const openaiApiBase = process.env.OPENAI_API_BASE || 'https://api.openai.com';
+  // OLLAMA_MODEL is legacy
+  body.model =
+    body.model ?? process.env.LLM_MODEL ?? process.env.OLLAMA_MODEL ?? LLM_CONFIG.chatModel;
   const stopWords = body.stop ? (typeof body.stop === 'string' ? [body.stop] : body.stop) : [];
   const {
     result: content,
     retries,
     ms,
   } = await retryWithBackoff(async () => {
-    const apiUrl = openaiApiBase + '/v1/chat/completions';
-    const result = await fetch(apiUrl, {
+    const result = await fetch(apiUrl('/v1/chat/completions'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + process.env.OPENAI_API_KEY,
+        ...AuthHeaders,
       },
 
       body: JSON.stringify(body),
     });
     if (!result.ok) {
+      const error = await result.text();
+      if (result.status === 404 && LLM_CONFIG.ollama) {
+        await tryPullOllama(body.model!, error);
+      }
       throw {
         retry: result.status === 429 || result.status >= 500,
-        error: new Error(
-          `Chat completion failed with code ${result.status}: ${await result.text()}`,
-        ),
+        error: new Error(`Chat completion failed with code ${result.status}: ${error}`),
       };
     }
     if (body.stream) {
@@ -68,6 +94,21 @@ export async function chatCompletion(
   };
 }
 
+async function tryPullOllama(model: string, error: string) {
+  if (error.includes('try pulling')) {
+    console.error('Embedding model not found, pulling from Ollama');
+    const pullResp = await fetch(apiUrl('/api/pull'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name: model }),
+    });
+    console.log('Pull response', await pullResp.text());
+    throw { retry: true, error: `Dynamically pulled model. Original error: ${error}` };
+  }
+}
+
 export async function fetchEmbeddingBatch(texts: string[]) {
   assertOpenAIKey();
   const {
@@ -75,17 +116,15 @@ export async function fetchEmbeddingBatch(texts: string[]) {
     retries,
     ms,
   } = await retryWithBackoff(async () => {
-    const openaiApiBase = process.env.OPENAI_API_BASE || 'https://api.openai.com';
-    const apiUrl = openaiApiBase + '/v1/embeddings';
-    const result = await fetch(apiUrl, {
+    const result = await fetch(apiUrl('/v1/embeddings'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + process.env.OPENAI_API_KEY,
+        ...AuthHeaders,
       },
 
       body: JSON.stringify({
-        model: 'text-embedding-ada-002',
+        model: LLM_CONFIG.embeddingModel,
         input: texts.map((text) => text.replace(/\n/g, ' ')),
       }),
     });
@@ -112,18 +151,18 @@ export async function fetchEmbeddingBatch(texts: string[]) {
 }
 
 export async function fetchEmbedding(text: string) {
-  const { embeddings, ..._stats } = await fetchEmbeddingBatch([text]);
-  return { embedding: embeddings[0] };
+  const { embeddings, ...stats } = await fetchEmbeddingBatch([text]);
+  return { embedding: embeddings[0], ...stats };
 }
 
 export async function fetchModeration(content: string) {
   assertOpenAIKey();
   const { result: flagged } = await retryWithBackoff(async () => {
-    const result = await fetch('https://api.openai.com/v1/moderations', {
+    const result = await fetch(apiUrl('/v1/moderations'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + process.env.OPENAI_API_KEY,
+        ...AuthHeaders,
       },
 
       body: JSON.stringify({
@@ -142,7 +181,7 @@ export async function fetchModeration(content: string) {
 }
 
 export function assertOpenAIKey() {
-  if (!process.env.OPENAI_API_KEY) {
+  if (!LLM_CONFIG.ollama && !process.env.OPENAI_API_KEY) {
     const deploymentName = process.env.CONVEX_CLOUD_URL?.slice(8).replace('.convex.cloud', '');
     throw new Error(
       '\n  Missing OPENAI_API_KEY in environment variables.\n\n' +
@@ -273,6 +312,7 @@ export interface CreateChatCompletionRequest {
    * @memberof CreateChatCompletionRequest
    */
   model:
+    | string
     | 'gpt-4'
     | 'gpt-4-0613'
     | 'gpt-4-32k'

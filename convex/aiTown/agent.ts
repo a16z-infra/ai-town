@@ -4,7 +4,6 @@ import { agentId, conversationId, playerId } from './ids';
 import { serializedPlayer } from './player';
 import { Game } from './game';
 import {
-  ACTION_TIMEOUT,
   AWKWARD_CONVERSATION_TIMEOUT,
   CONVERSATION_COOLDOWN,
   CONVERSATION_DISTANCE,
@@ -22,6 +21,7 @@ import { distance } from '../util/geometry';
 import { internal } from '../_generated/api';
 import { movePlayer } from './movement';
 import { insertInput } from './insertInput';
+import { llmConfig } from '../util/openai';
 
 export class Agent {
   id: GameId<'agents'>;
@@ -55,7 +55,7 @@ export class Agent {
       throw new Error(`Invalid player ID ${this.playerId}`);
     }
     if (this.inProgressOperation) {
-      if (now < this.inProgressOperation.started + ACTION_TIMEOUT()) {
+      if (now < this.inProgressOperation.started + llmConfig.actionTimeout) {
         // Wait on the operation to finish.
         return;
       }

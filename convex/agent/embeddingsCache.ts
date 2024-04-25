@@ -28,7 +28,7 @@ export async function fetchBatch(ctx: ActionCtx, texts: string[]) {
   if (cacheResults.length < texts.length) {
     const missingIndexes = [...results.keys()].filter((i) => !results[i]);
     const missingTexts = missingIndexes.map((i) => texts[i]);
-    const response = UseOllama
+    const response = LLM_CONFIG.ollama
       ? {
           ollamaEmbeddings: await Promise.all(
             missingTexts.map(async (t) => (await ollamaFetchEmbedding(t)).ollamaEmbedding),
