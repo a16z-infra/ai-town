@@ -30,11 +30,11 @@ export const INVITE_ACCEPT_PROBABILITY = 0.8;
 // Wait for 1m for invites to be accepted.
 export const INVITE_TIMEOUT = 60000;
 
-// Wait for 20s for another player to say something before jumping in.
-export const AWKWARD_CONVERSATION_TIMEOUT = 20000;
+// Wait for another player to say something before jumping in.
+export const AWKWARD_CONVERSATION_TIMEOUT = 60_000;
 
-// Leave a conversation after 2m of participating.
-export const MAX_CONVERSATION_DURATION = 120 * 1000;
+// Leave a conversation after participating too long.
+export const MAX_CONVERSATION_DURATION = 10 * 60_000;
 
 // Leave a conversation if it has more than 8 messages;
 export const MAX_CONVERSATION_MESSAGES = 8;
@@ -77,5 +77,9 @@ export const ENGINE_ACTION_DURATION = 30000;
 // Bound the number of pathfinding searches we do per game step.
 export const MAX_PATHFINDS_PER_STEP = 16;
 
-export const OllamaEmbedModel = 'mxbai-embed-large';
-export const OllamaEmbedDimensions = 1024;
+export const OllamaEmbedModel = 'llama3';
+export const OllamaEmbedDimensions = 4096;
+// export const OllamaEmbedModel = 'mxbai-embed-large';
+// export const OllamaEmbedDimensions = 1024;
+
+export const DEFAULT_NAME = 'Me';

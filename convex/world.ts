@@ -2,7 +2,12 @@ import { ConvexError, v } from 'convex/values';
 import { internalMutation, mutation, query } from './_generated/server';
 import { characters } from '../data/characters';
 import { insertInput } from './aiTown/insertInput';
-import { ENGINE_ACTION_DURATION, IDLE_WORLD_TIMEOUT, WORLD_HEARTBEAT_INTERVAL } from './constants';
+import {
+  DEFAULT_NAME,
+  ENGINE_ACTION_DURATION,
+  IDLE_WORLD_TIMEOUT,
+  WORLD_HEARTBEAT_INTERVAL,
+} from './constants';
 import { playerId } from './aiTown/ids';
 import { kickEngine, startEngine, stopEngine } from './aiTown/main';
 import { engineInsertInput } from './engine/abstractGame';
@@ -99,7 +104,7 @@ export const userStatus = query({
     //   return null;
     // }
     // return identity.tokenIdentifier;
-    return 'Testing';
+    return DEFAULT_NAME;
   },
 });
 
@@ -114,7 +119,7 @@ export const joinWorld = mutation({
     // }
     // const name =
     //   identity.givenName || identity.nickname || (identity.email && identity.email.split('@')[0]);
-    const name = 'Testing';
+    const name = DEFAULT_NAME;
 
     // if (!name) {
     //   throw new ConvexError(`Missing name on ${JSON.stringify(identity)}`);
@@ -127,9 +132,9 @@ export const joinWorld = mutation({
     return await insertInput(ctx, world._id, 'join', {
       name,
       character: characters[Math.floor(Math.random() * characters.length)].name,
-      description: `Testing is a human player`,
+      description: `${DEFAULT_NAME} is a human player`,
       // description: `${identity.givenName} is a human player`,
-      tokenIdentifier: 'Testing',
+      tokenIdentifier: DEFAULT_NAME,
     });
   },
 });
@@ -149,7 +154,7 @@ export const leaveWorld = mutation({
       throw new Error(`Invalid world ID: ${args.worldId}`);
     }
     // const existingPlayer = world.players.find((p) => p.human === tokenIdentifier);
-    const existingPlayer = world.players.find((p) => p.human === 'Testing');
+    const existingPlayer = world.players.find((p) => p.human === DEFAULT_NAME);
     if (!existingPlayer) {
       return;
     }
