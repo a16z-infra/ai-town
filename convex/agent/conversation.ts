@@ -2,15 +2,13 @@ import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
 import { ActionCtx, internalQuery } from '../_generated/server';
 import { LLMMessage, chatCompletion } from '../util/openai';
-import { ollamaChatCompletion } from '../util/ollama';
 import * as memory from './memory';
 import { api, internal } from '../_generated/api';
 import * as embeddingsCache from './embeddingsCache';
 import { GameId, conversationId, playerId } from '../aiTown/ids';
-import { LLM_CONFIG } from '../constants';
 
 const selfInternal = internal.agent.conversation;
-const completionFn = LLM_CONFIG.ollama ? ollamaChatCompletion : chatCompletion;
+const completionFn = chatCompletion;
 
 export async function startConversationMessage(
   ctx: ActionCtx,
