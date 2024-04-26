@@ -209,7 +209,18 @@ export const characters = [
 
 You should find a sprite sheet for your character, and define sprite motion / assets in the corresponding file (in the above example, `f1SpritesheetData` was defined in f1.ts)
 
-3. Update the background (environment): `data/firstmap.ts` is where the map gets loaded. The easiest way to export a tilemap is by using [Tiled](https://www.mapeditor.org/) -- Tiled exports tilemaps as a CSV and you can convert CSV to a 2d array accepted by firstmap.ts
+3. Update the Background (Environment): The map gets loaded in `convex/init.ts` from `data/gentle.js`. To update the map, follow these steps:
+
+   - Use [Tiled](https://www.mapeditor.org/) to export tilemaps as a JSON file (2 layers named bgtiles and objmap)
+   - Use the `convertMap.js` script to convert the JSON to a format that the engine can use.
+```console
+node data/convertMap.js <mapDataPath> <assetPath> <tilesetpxw> <tilesetpxh>
+```
+- `<mapDataPath>`: Path to the Tiled JSON file.
+- `<assetPath>`: Path to tileset images.
+- `<tilesetpxw>`: Tileset width in pixels.
+- `<tilesetpxh>`: Tileset height in pixels.
+Generates `converted-map.js` that you can use like `gentle.js`
 4. Change the background music by modifying the prompt in `convex/music.ts`
 5. Change how often to generate new music at `convex/crons.ts` by modifying the `generate new background music` job
 
