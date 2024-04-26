@@ -216,7 +216,7 @@ You should find a sprite sheet for your character, and define sprite motion / as
 
 3. Update the Background (Environment): The map gets loaded in `convex/init.ts` from `data/gentle.js`. To update the map, follow these steps:
 
-   - Use [Tiled](https://www.mapeditor.org/) to export tilemaps as a JSON file.
+   - Use [Tiled](https://www.mapeditor.org/) to export tilemaps as a JSON file (2 layers named bgtiles and objmap)
    - Use the `convertMap.js` script to convert the JSON to a format that the engine can use.
 ```console
 node data/convertMap.js <mapDataPath> <assetPath> <tilesetpxw> <tilesetpxh>
