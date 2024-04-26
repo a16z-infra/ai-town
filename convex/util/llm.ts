@@ -1,20 +1,31 @@
 // That's right! No imports and no dependencies 🤯
 
 export const LLM_CONFIG = {
-  /* good options locally: */
+  /* Ollama (local) config:
+   */
   ollama: true,
   url: 'http://127.0.0.1:11434',
-  chatModel: 'llama3' as const,
-  // embeddingModel: 'llama3',
-  // embeddingDimension: 4096,
+  chatModel: 'llama2' as const,
   embeddingModel: 'mxbai-embed-large',
   embeddingDimension: 1024,
-  /* Good options for cloud:
+  // embeddingModel: 'llama3',
+  // embeddingDimension: 4096,
+
+  /* Together.ai config:
   ollama: false,
-  chatModel: 'gpt-3.5-turbo-16k' as const,
+  url: 'https://api.together.xyz',
+  chatModel: 'meta-llama/Llama-3-8b-chat-hf',
+  embeddingModel: 'togethercomputer/m2-bert-80M-8k-retrieval',
+  embeddingDimension: 1536,
+   */
+
+  /* OpenAI config:
+  ollama: false,
+  url: 'https://api.openai.com',
+  chatModel: 'gpt-3.5-turbo-16k',
   embeddingModel: 'text-embedding-ada-002',
   embeddingDimension: 1536,
-  */
+   */
 };
 
 function apiUrl(path: string) {
@@ -33,10 +44,14 @@ function apiUrl(path: string) {
   }
 }
 
+function apiKey() {
+  return process.env.LLM_API_KEY ?? process.env.OPENAI_API_KEY;
+}
+
 const AuthHeaders = (): Record<string, string> =>
-  process.env.OPENAI_API_KEY
+  apiKey()
     ? {
-        Authorization: 'Bearer ' + process.env.OPENAI_API_KEY,
+        Authorization: 'Bearer ' + apiKey(),
       }
     : {};
 
@@ -61,7 +76,7 @@ export async function chatCompletion(
     model?: CreateChatCompletionRequest['model'];
   },
 ) {
-  assertOpenAIKey();
+  assertApiKey();
   // OLLAMA_MODEL is legacy
   body.model =
     body.model ?? process.env.LLM_MODEL ?? process.env.OLLAMA_MODEL ?? LLM_CONFIG.chatModel;
@@ -137,7 +152,7 @@ export async function fetchEmbeddingBatch(texts: string[]) {
       ),
     };
   }
-  assertOpenAIKey();
+  assertApiKey();
   const {
     result: json,
     retries,
@@ -172,7 +187,7 @@ export async function fetchEmbeddingBatch(texts: string[]) {
   return {
     ollama: false as const,
     embeddings: allembeddings.map(({ embedding }) => embedding),
-    usage: json.usage.total_tokens,
+    usage: json.usage?.total_tokens,
     retries,
     ms,
   };
@@ -184,7 +199,7 @@ export async function fetchEmbedding(text: string) {
 }
 
 export async function fetchModeration(content: string) {
-  assertOpenAIKey();
+  assertApiKey();
   const { result: flagged } = await retryWithBackoff(async () => {
     const result = await fetch(apiUrl('/v1/moderations'), {
       method: 'POST',
@@ -208,16 +223,12 @@ export async function fetchModeration(content: string) {
   return flagged;
 }
 
-export function assertOpenAIKey() {
-  if (!LLM_CONFIG.ollama && !process.env.OPENAI_API_KEY) {
-    const deploymentName = process.env.CONVEX_CLOUD_URL?.slice(8).replace('.convex.cloud', '');
+export function assertApiKey() {
+  if (!LLM_CONFIG.ollama && !apiKey()) {
     throw new Error(
-      '\n  Missing OPENAI_API_KEY in environment variables.\n\n' +
-        '  Get one at https://openai.com/\n\n' +
-        '  Paste it on the Convex dashboard:\n' +
-        '  https://dashboard.convex.dev/d/' +
-        deploymentName +
-        '/settings?var=OPENAI_API_KEY',
+      '\n  Missing LLM_API_KEY in environment variables.\n\n' +
+        (LLM_CONFIG.ollama ? 'just' : 'npx') +
+        " convex env set LLM_API_KEY 'your-key'",
     );
   }
 }
@@ -339,16 +350,15 @@ export interface CreateChatCompletionRequest {
    * @type {string}
    * @memberof CreateChatCompletionRequest
    */
-  model:
-    | string
-    | 'gpt-4'
-    | 'gpt-4-0613'
-    | 'gpt-4-32k'
-    | 'gpt-4-32k-0613'
-    | 'gpt-3.5-turbo'
-    | 'gpt-3.5-turbo-0613'
-    | 'gpt-3.5-turbo-16k' // <- our default
-    | 'gpt-3.5-turbo-16k-0613';
+  model: string;
+  // | 'gpt-4'
+  // | 'gpt-4-0613'
+  // | 'gpt-4-32k'
+  // | 'gpt-4-32k-0613'
+  // | 'gpt-3.5-turbo'
+  // | 'gpt-3.5-turbo-0613'
+  // | 'gpt-3.5-turbo-16k' // <- our default
+  // | 'gpt-3.5-turbo-16k-0613';
   /**
    * The messages to generate chat completions for, in the chat format:
    * https://platform.openai.com/docs/guides/chat/introduction
@@ -632,7 +642,7 @@ export class ChatCompletionContent {
 
 export async function ollamaFetchEmbedding(text: string) {
   const { result } = await retryWithBackoff(async () => {
-    const resp = await fetch(process.env.OLLAMA_HOST + '/api/embeddings', {
+    const resp = await fetch(apiUrl('/api/embeddings'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

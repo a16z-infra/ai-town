@@ -8,10 +8,15 @@
 
 AI Town is a virtual town where AI characters live, chat and socialize.
 
-This project is a deployable starter kit for easily building and customizing your own version of AI town. Inspired by the research paper [_Generative Agents: Interactive Simulacra of Human Behavior_](https://arxiv.org/pdf/2304.03442.pdf).
+This project is a deployable starter kit for easily building and customizing your own version of AI town.
+Inspired by the research paper [_Generative Agents: Interactive Simulacra of Human Behavior_](https://arxiv.org/pdf/2304.03442.pdf).
 
-The primary goal of this project, beyond just being a lot of fun to work on, is to provide a platform with a strong foundation that is meant to be extended. The back-end natively supports shared global state, transactions, and a simulation engine and should be suitable from everything from
-a simple project to play around with to a scalable, multi-player game. A secondary goal is to make a JS/TS framework available as most simulators in this space (including the original paper above) are written in Python.
+The primary goal of this project, beyond just being a lot of fun to work on,
+is to provide a platform with a strong foundation that is meant to be extended.
+The back-end natively supports shared global state, transactions, and a simulation engine
+and should be suitable from everything from a simple project to play around with to a scalable, multi-player game.
+A secondary goal is to make a JS/TS framework available as most simulators in this space
+(including the original paper above) are written in Python.
 
 ## Overview
 
@@ -27,7 +32,9 @@ a simple project to play around with to a scalable, multi-player game. A seconda
 - Auth (Optional): [Clerk](https://clerk.com/)
 - Default chat model is `llama3` and embeddings with `mxbai-embed-large`.
 - Local inference: [Ollama](https://github.com/jmorganca/ollama)
-- Configurable for [Hugging Face](https://huggingface.co/), [Replicate](https://replicate.com/) or [OpenAI](https://openai.com/)
+- Configurable for other cloud LLMs: [Together.ai](https://together.ai/) or antying
+  that speaks the [OpenAI API](https://platform.openai.com/).
+  PRs welcome to add more cloud provider support.
 - Pixel Art Generation: [Replicate](https://replicate.com/), [Fal.ai](https://serverless.fal.ai/lora)
 - Background Music Generation: [Replicate](https://replicate.com/) using [MusicGen](https://huggingface.co/spaces/facebook/MusicGen)
 
@@ -70,8 +77,8 @@ npm install
    to use `convex ...` instead of `just convex ...`.
 
 3. To run a local LLM, download and run [Ollama](https://ollama.com/).
-   If you are running the Ollama app, `ollama serve` will warn you it's already running,
-   otherwise you can leave it running.
+   You can leave the app running or run `ollama serve`.
+   `ollama serve` will warn you if the app is already running.
    Run `ollama pull llama3` to have it download `llama3`.
    Test it out with `ollama run llama3`.
    If you want to customize which model to use, adjust convex/util/llm.ts or set
@@ -219,6 +226,11 @@ npx convex env set LLM_MODEL # model
 The embeddings model config needs to be changed [in code](./convex/util/llm.ts),
 since you need to specify the embeddings dimension.
 
+### Keys
+
+For Together.ai, visit https://api.together.xyz/settings/api-keys
+For OpenAI, visit https://platform.openai.com/account/api-keys
+
 ## Using hosted Convex
 
 You can run your Convex backend in the cloud by just running
@@ -233,19 +245,6 @@ change `just convex ...` to `convex ...`.
 You'll then need to set any environment variables you had locally in the cloud
 environment with `npx convex env set` or on the dashboard:
 https://dashboard.convex.dev/deployment/settings/environment-variables
-
-### OpenAI
-
-In addition to the above,
-
-```sh
-# Local Convex
-just convex env set OPENAI_API_KEY # key`
-# Cloud Convex
-npx convex env set OPENAI_API_KEY # key`
-```
-
-Visit https://platform.openai.com/account/api-keys to get your OpenAI API key.
 
 ## Deploy the app
 
