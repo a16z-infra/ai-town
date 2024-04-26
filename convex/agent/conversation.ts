@@ -8,7 +8,6 @@ import * as embeddingsCache from './embeddingsCache';
 import { GameId, conversationId, playerId } from '../aiTown/ids';
 
 const selfInternal = internal.agent.conversation;
-const completionFn = chatCompletion;
 
 export async function startConversationMessage(
   ctx: ActionCtx,
@@ -54,7 +53,7 @@ export async function startConversationMessage(
   }
   prompt.push(`${player.name}:`);
 
-  const { content } = await completionFn({
+  const { content } = await chatCompletion({
     messages: [
       {
         role: 'user',
@@ -117,7 +116,7 @@ export async function continueConversationMessage(
   ];
   llmMessages.push({ role: 'user', content: `${player.name}:` });
 
-  const { content } = await completionFn({
+  const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 300,
     stream: true,
@@ -166,7 +165,7 @@ export async function leaveConversationMessage(
   ];
   llmMessages.push({ role: 'user', content: `${player.name}:` });
 
-  const { content } = await completionFn({
+  const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 300,
     stream: true,

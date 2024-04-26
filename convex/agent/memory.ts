@@ -8,9 +8,6 @@ import { GameId, agentId, conversationId, playerId } from '../aiTown/ids';
 import { SerializedPlayer } from '../aiTown/player';
 import { memoryFields } from './schema';
 
-const completionFn = chatCompletion;
-const embeddingFn = fetchEmbedding;
-
 // How long to wait before updating a memory's last access time.
 export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
 // We fetch 10x the number of memories by relevance, to have more candidates
@@ -61,7 +58,7 @@ export async function rememberConversation(
     });
   }
   llmMessages.push({ role: 'user', content: 'Summary:' });
-  const { content } = await completionFn({
+  const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 500,
   });
@@ -247,7 +244,7 @@ export const loadMessages = internalQuery({
 });
 
 async function calculateImportance(description: string) {
-  const { content: importanceRaw } = await completionFn({
+  const { content: importanceRaw } = await chatCompletion({
     messages: [
       {
         role: 'user',
@@ -376,7 +373,7 @@ async function reflectOnMemories(
     const memoriesToSave = await asyncMap(insights, async (item) => {
       const relatedMemoryIds = item.statementIds.map((idx: number) => memories[idx]._id);
       const importance = await calculateImportance(item.insight);
-      const { embedding } = await embeddingFn(item.insight);
+      const { embedding } = await fetchEmbedding(item.insight);
       console.debug('adding reflection memory...', item.insight);
       return {
         description: item.insight,
