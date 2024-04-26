@@ -16,7 +16,7 @@ export const LLM_CONFIG = {
   url: 'https://api.together.xyz',
   chatModel: 'meta-llama/Llama-3-8b-chat-hf',
   embeddingModel: 'togethercomputer/m2-bert-80M-8k-retrieval',
-  embeddingDimension: 1536,
+  embeddingDimension: 768,
    */
 
   /* OpenAI config:
