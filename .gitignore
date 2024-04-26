@@ -40,3 +40,5 @@ next-env.d.ts
 
 # Vite build
 dist
+convex-local-backend*
+convex_local_storage

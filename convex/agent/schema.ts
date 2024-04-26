@@ -1,7 +1,7 @@
-import { embeddingsCacheTables } from './embeddingsCache';
 import { v } from 'convex/values';
 import { playerId, conversationId } from '../aiTown/ids';
 import { defineTable } from 'convex/server';
+import { LLM_CONFIG } from '../util/llm';
 
 export const memoryFields = {
   playerId,
@@ -40,11 +40,14 @@ export const memoryTables = {
   }).vectorIndex('embedding', {
     vectorField: 'embedding',
     filterFields: ['playerId'],
-    dimensions: 1536,
+    dimensions: LLM_CONFIG.embeddingDimension,
   }),
 };
 
 export const agentTables = {
   ...memoryTables,
-  ...embeddingsCacheTables,
+  embeddingsCache: defineTable({
+    textHash: v.bytes(),
+    embedding: v.array(v.float64()),
+  }).index('text', ['textHash']),
 };

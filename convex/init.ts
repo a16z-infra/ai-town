@@ -7,14 +7,14 @@ import { insertInput } from './aiTown/insertInput';
 import { Id } from './_generated/dataModel';
 import { createEngine } from './aiTown/main';
 import { ENGINE_ACTION_DURATION } from './constants';
-import { assertOpenAIKey } from './util/openai';
+import { assertApiKey } from './util/llm';
 
 const init = mutation({
   args: {
     numAgents: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    assertOpenAIKey();
+    assertApiKey();
     const { worldStatus, engine } = await getOrCreateDefaultWorld(ctx);
     if (worldStatus.status !== 'running') {
       console.warn(

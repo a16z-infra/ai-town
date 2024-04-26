@@ -2,14 +2,11 @@ import { v } from 'convex/values';
 import { ActionCtx, DatabaseReader, internalMutation, internalQuery } from '../_generated/server';
 import { Doc, Id } from '../_generated/dataModel';
 import { internal } from '../_generated/api';
-import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/openai';
+import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/llm';
 import { asyncMap } from '../util/asyncMap';
 import { GameId, agentId, conversationId, playerId } from '../aiTown/ids';
 import { SerializedPlayer } from '../aiTown/player';
-import { UseOllama, ollamaChatCompletion } from '../util/ollama';
 import { memoryFields } from './schema';
-
-const completionFn = UseOllama ? ollamaChatCompletion : chatCompletion;
 
 // How long to wait before updating a memory's last access time.
 export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
@@ -61,7 +58,7 @@ export async function rememberConversation(
     });
   }
   llmMessages.push({ role: 'user', content: 'Summary:' });
-  const { content } = await completionFn({
+  const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 500,
   });
@@ -247,7 +244,7 @@ export const loadMessages = internalQuery({
 });
 
 async function calculateImportance(description: string) {
-  const { content: importanceRaw } = await completionFn({
+  const { content: importanceRaw } = await chatCompletion({
     messages: [
       {
         role: 'user',
@@ -282,7 +279,7 @@ export const insertMemory = internalMutation({
   handler: async (ctx, { agentId: _, embedding, ...memory }): Promise<void> => {
     const embeddingId = await ctx.db.insert('memoryEmbeddings', {
       playerId: memory.playerId,
-      embedding: embedding,
+      embedding,
     });
     await ctx.db.insert('memories', {
       ...memory,
@@ -309,7 +306,7 @@ export const insertReflectionMemories = internalMutation({
     for (const { embedding, relatedMemoryIds, ...rest } of reflections) {
       const embeddingId = await ctx.db.insert('memoryEmbeddings', {
         playerId,
-        embedding: embedding,
+        embedding,
       });
       await ctx.db.insert('memories', {
         playerId,

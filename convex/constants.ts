@@ -1,3 +1,6 @@
+export const ACTION_TIMEOUT = 120_000; // more time for local dev
+// export const ACTION_TIMEOUT = 60_000;// normally fine
+
 export const IDLE_WORLD_TIMEOUT = 5 * 60 * 1000;
 export const WORLD_HEARTBEAT_INTERVAL = 60 * 1000;
 
@@ -30,11 +33,13 @@ export const INVITE_ACCEPT_PROBABILITY = 0.8;
 // Wait for 1m for invites to be accepted.
 export const INVITE_TIMEOUT = 60000;
 
-// Wait for 20s for another player to say something before jumping in.
-export const AWKWARD_CONVERSATION_TIMEOUT = 20000;
+// Wait for another player to say something before jumping in.
+export const AWKWARD_CONVERSATION_TIMEOUT = 60_000; // more time locally
+// export const AWKWARD_CONVERSATION_TIMEOUT = 20_000;
 
-// Leave a conversation after 2m of participating.
-export const MAX_CONVERSATION_DURATION = 120 * 1000;
+// Leave a conversation after participating too long.
+export const MAX_CONVERSATION_DURATION = 10 * 60_000; // more time locally
+// export const MAX_CONVERSATION_DURATION = 2 * 60_000;
 
 // Leave a conversation if it has more than 8 messages;
 export const MAX_CONVERSATION_MESSAGES = 8;
@@ -45,14 +50,7 @@ export const INPUT_DELAY = 1000;
 
 // How many memories to get from the agent's memory.
 // This is over-fetched by 10x so we can prioritize memories by more than relevance.
-export function NUM_MEMORIES_TO_SEARCH() {
-  return Number(process.env.NUM_MEMORIES_TO_SEARCH) || 3;
-}
-
-// Timeout a request to the conversation layer after a minute.
-export function ACTION_TIMEOUT() {
-  return Number(process.env.ACTION_TIMEOUT) || 60 * 1000;
-}
+export const NUM_MEMORIES_TO_SEARCH = 3;
 
 // Wait for at least two seconds before sending another message.
 export const MESSAGE_COOLDOWN = 2000;
@@ -76,3 +74,5 @@ export const ENGINE_ACTION_DURATION = 30000;
 
 // Bound the number of pathfinding searches we do per game step.
 export const MAX_PATHFINDS_PER_STEP = 16;
+
+export const DEFAULT_NAME = 'Me';

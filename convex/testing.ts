@@ -1,11 +1,21 @@
-import { TableNames } from './_generated/dataModel';
+import { Id, TableNames } from './_generated/dataModel';
 import { internal } from './_generated/api';
-import { DatabaseReader, internalMutation, mutation, query } from './_generated/server';
+import {
+  DatabaseReader,
+  internalAction,
+  internalMutation,
+  mutation,
+  query,
+} from './_generated/server';
 import { v } from 'convex/values';
 import schema from './schema';
 import { DELETE_BATCH_SIZE } from './constants';
 import { kickEngine, startEngine, stopEngine } from './aiTown/main';
 import { insertInput } from './aiTown/insertInput';
+import { fetchEmbedding, LLM_CONFIG } from './util/llm';
+import { chatCompletion } from './util/llm';
+import { startConversationMessage } from './agent/conversation';
+import { GameId } from './aiTown/ids';
 
 // Clear all of the tables except for the embeddings cache.
 const excludedTables: Array<TableNames> = ['embeddingsCache'];
@@ -155,5 +165,38 @@ export const randomPositions = internalMutation({
         },
       });
     }
+  },
+});
+
+export const testEmbedding = internalAction({
+  args: { input: v.string() },
+  handler: async (_ctx, args) => {
+    return await fetchEmbedding(args.input);
+  },
+});
+
+export const testCompletion = internalAction({
+  args: {},
+  handler: async (ctx, args) => {
+    return await chatCompletion({
+      messages: [
+        { content: 'You are helpful', role: 'system' },
+        { content: 'Where is pizza?', role: 'user' },
+      ],
+    });
+  },
+});
+
+export const testConvo = internalAction({
+  args: {},
+  handler: async (ctx, args) => {
+    const a: any = (await startConversationMessage(
+      ctx,
+      'm1707m46wmefpejw1k50rqz7856qw3ew' as Id<'worlds'>,
+      'c:115' as GameId<'conversations'>,
+      'p:0' as GameId<'players'>,
+      'p:6' as GameId<'players'>,
+    )) as any;
+    return await a.readAll();
   },
 });
