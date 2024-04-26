@@ -40,7 +40,7 @@ A secondary goal is to make a JS/TS framework available as most simulators in th
 
 ## Installation
 
-1.  Clone repo and Install packages
+### 1. Clone repo and Install packages
 
 ```bash
 git clone https://github.com/a16z-infra/ai-town.git
@@ -48,50 +48,53 @@ cd ai-town
 npm install
 ```
 
-2. To develop locally with [Convex](https://convex.dev), either
-   [download a pre-built binary(recommended)](https://github.com/get-convex/convex-backend/releases),
-   or [build it from source and run it](https://stack.convex.dev/building-the-oss-backend).
+### 2. To develop locally with [Convex](https://convex.dev):
 
-   ```sh
-   # For new Macs:
-   curl  -L -O https://github.com/get-convex/convex-backend/releases/latest/download/convex-local-backend-aarch64-apple-darwin.zip
-   unzip convex-local-backend-aarch64-apple-darwin.zip
+Either
+[download a pre-built binary(recommended)](https://github.com/get-convex/convex-backend/releases),
+or [build it from source and run it](https://stack.convex.dev/building-the-oss-backend).
 
-   brew install just
+```sh
+# For new Macs:
+curl  -L -O https://github.com/get-convex/convex-backend/releases/latest/download/convex-local-backend-aarch64-apple-darwin.zip
+unzip convex-local-backend-aarch64-apple-darwin.zip
 
-   # Runs the server
-   ./convex-local-backend
-   ```
+brew install just
 
-   This also [installs `just`](https://github.com/casey/just?tab=readme-ov-file#installation)
-   (e.g. `brew install just` or `cargo install just`).
-   We use `just` like `make` to add extra params, so you run `just convex ...`
-   instead of `npx convex ...` for local development.
+# Runs the server
+./convex-local-backend
+```
 
-   If you're running the pre-built binary on Mac and there's an Apple warning,
-   go to the folder it's in and right-click it and select "Open" to bypass.
-   From then on you can run it from the commandline.
-   Or you can compile it from source and run it (see above).
+This also [installs `just`](https://github.com/casey/just?tab=readme-ov-file#installation)
+(e.g. `brew install just` or `cargo install just`).
+We use `just` like `make` to add extra params, so you run `just convex ...`
+instead of `npx convex ...` for local development.
 
-   To develop against the cloud-hosted version, change the package.json scripts
-   to use `convex ...` instead of `just convex ...`.
+If you're running the pre-built binary on Mac and there's an Apple warning,
+go to the folder it's in and right-click it and select "Open" to bypass.
+From then on you can run it from the commandline.
+Or you can compile it from source and run it (see above).
 
-3. To run a local LLM, download and run [Ollama](https://ollama.com/).
-   You can leave the app running or run `ollama serve`.
-   `ollama serve` will warn you if the app is already running.
-   Run `ollama pull llama3` to have it download `llama3`.
-   Test it out with `ollama run llama3`.
-   If you want to customize which model to use, adjust convex/util/llm.ts or set
-   `just convex env set OLLAMA_MODEL # model`.
-   Ollama model options can be found [here](https://ollama.ai/library).
+To develop against the cloud-hosted version, change the package.json scripts
+to use `convex ...` instead of `just convex ...`.
 
-   You might want to set `NUM_MEMORIES_TO_SEARCH` to `1` in constants.ts,
-   to reduce the size of conversation prompts, if you see slowness.
+### 3. To run a local LLM, download and run [Ollama](https://ollama.com/).
 
-   Check out `convex/config.ts` to configure which models to offer to the UI,
-   or to set it up to talk to a cloud-hosted LLM.
+You can leave the app running or run `ollama serve`.
+`ollama serve` will warn you if the app is already running.
+Run `ollama pull llama3` to have it download `llama3`.
+Test it out with `ollama run llama3`.
+If you want to customize which model to use, adjust convex/util/llm.ts or set
+`just convex env set OLLAMA_MODEL # model`.
+Ollama model options can be found [here](https://ollama.ai/library).
 
-4. Adding background music with Replicate (Optional)
+You might want to set `NUM_MEMORIES_TO_SEARCH` to `1` in constants.ts,
+to reduce the size of conversation prompts, if you see slowness.
+
+Check out `convex/config.ts` to configure which models to offer to the UI,
+or to set it up to talk to a cloud-hosted LLM.
+
+### 4. Adding background music with Replicate (Optional)
 
 For Daily background music generation, create a
 [Replicate](https://replicate.com/) account and create a token in your Profile's
@@ -99,7 +102,7 @@ For Daily background music generation, create a
 `npx convex env set REPLICATE_API_TOKEN # token`
 Specify `just` instead of `npx` if you're doing local development.
 
-5. Run the code
+### 5. Run the code
 
 To run both the front and and back end:
 
@@ -117,7 +120,7 @@ npm run dev:frontend
 npm run dev:backend
 ```
 
-See package.json for details, but dev:backend runs `npx convex dev`
+See package.json for details, but dev:backend runs `just convex dev`
 
 **Note**: The simulation will pause after 5 minutes if the window is idle.
 Loading the page will unpause it.
@@ -133,19 +136,19 @@ This will stop running the engine and agents. You can still run queries and
 run functions to debug.
 
 ```bash
-npx convex run testing:stop
+just convex run testing:stop
 ```
 
 **To restart the back end after stopping it**
 
 ```bash
-npx convex run testing:resume
+just convex run testing:resume
 ```
 
 **To kick the engine in case the game engine or agents aren't running**
 
 ```bash
-npx convex run testing:kick
+just convex run testing:kick
 ```
 
 **To archive the world**
@@ -153,7 +156,7 @@ npx convex run testing:kick
 If you'd like to reset the world and start from scratch, you can archive the current world:
 
 ```bash
-npx convex run testing:archive
+just convex run testing:archive
 ```
 
 Then, you can still look at the world's data in the dashboard, but the engine and agents will
@@ -162,7 +165,7 @@ no longer run.
 You can then create a fresh world with `init`.
 
 ```bash
-npx convex run init
+just convex run init
 ```
 
 **To clear all databases**
@@ -170,7 +173,7 @@ npx convex run init
 You can wipe all tables with the `wipeAllTables` testing function.
 
 ```bash
-npx convex run testing:wipeAllTables
+just convex run testing:wipeAllTables
 ```
 
 **To pause your backend deployment**
@@ -183,10 +186,10 @@ there are gentler ways of stopping above. Once you
 ## Customize your own simulation
 
 NOTE: every time you change character data, you should re-run
-`npx convex run testing:wipeAllTables` and then
+`just convex run testing:wipeAllTables` and then
 `npm run dev` to re-upload everything to Convex.
 This is because character data is sent to Convex on the initial load.
-However, beware that `npx convex run testing:wipeAllTables` WILL wipe all of your data.
+However, beware that `just convex run testing:wipeAllTables` WILL wipe all of your data.
 
 1. Create your own characters and stories: All characters and stories, as well as their spritesheet references are stored in [characters.ts](./data/characters.ts). You can start by changing character descriptions.
 
@@ -246,6 +249,8 @@ You'll then need to set any environment variables you had locally in the cloud
 environment with `npx convex env set` or on the dashboard:
 https://dashboard.convex.dev/deployment/settings/environment-variables
 
+To run commands, use `npx convex ...` where you used to run `just convex ...`.
+
 ## Deploy the app
 
 ### Deploy Convex functions to prod environment
@@ -259,7 +264,7 @@ If you have existing data you want to clear, you can run `npx convex run testing
 
 ### Adding Auth (Optional)
 
-You can add clerk auth back in with `git revert d399afd`.
+You can add clerk auth back in with `git revert b44a436`.
 Or just look at that diff for what changed to remove it.
 
 **Make a Clerk account**
