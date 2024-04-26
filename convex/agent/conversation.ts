@@ -6,6 +6,7 @@ import * as memory from './memory';
 import { api, internal } from '../_generated/api';
 import * as embeddingsCache from './embeddingsCache';
 import { GameId, conversationId, playerId } from '../aiTown/ids';
+import { NUM_MEMORIES_TO_SEARCH } from '../constants';
 
 const selfInternal = internal.agent.conversation;
 
@@ -34,7 +35,7 @@ export async function startConversationMessage(
     ctx,
     player.id as GameId<'players'>,
     embedding,
-    Number(process.env.NUM_MEMORIES_TO_SEARCH) || 3,
+    Number(process.env.NUM_MEMORIES_TO_SEARCH) || NUM_MEMORIES_TO_SEARCH,
   );
 
   const memoryWithOtherPlayer = memories.find(
