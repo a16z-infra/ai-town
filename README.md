@@ -18,7 +18,7 @@ a simple project to play around with to a scalable, multi-player game. A seconda
 - 💻 [Stack](#stack)
 - 🧠 [Installation](#installation)
 - 👤 [Customize - run YOUR OWN simulated world](#customize-your-own-simulation)
-- 👩‍💻 [Setting up local inference](#setting-up-local-inference)
+- 👩‍💻 [Deploying](#deploy-the-app)
 - 🏆 [Credits](#credits)
 
 ## Stack
