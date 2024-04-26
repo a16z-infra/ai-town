@@ -7,7 +7,7 @@
     "build": "tsc && vite build",
     "lint": "eslint .",
     "predev": "just convex dev --run init --until-success",
-    "dev:backend": "just convex dev",
+    "dev:backend": "just convex dev --tail-logs",
     "dev:frontend": "vite",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --verbose",
     "le": "vite src/editor/"

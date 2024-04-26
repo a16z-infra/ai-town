@@ -85,7 +85,7 @@ You can leave the app running or run `ollama serve`.
 Run `ollama pull llama3` to have it download `llama3`.
 Test it out with `ollama run llama3`.
 If you want to customize which model to use, adjust convex/util/llm.ts or set
-`just convex env set OLLAMA_MODEL # model`.
+`just convex env set LLM_MODEL # model`.
 Ollama model options can be found [here](https://ollama.ai/library).
 
 You might want to set `NUM_MEMORIES_TO_SEARCH` to `1` in constants.ts,
