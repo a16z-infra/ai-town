@@ -66,7 +66,8 @@ export async function chatCompletion(
   body.model =
     body.model ?? process.env.LLM_MODEL ?? process.env.OLLAMA_MODEL ?? LLM_CONFIG.chatModel;
   const stopWords = body.stop ? (typeof body.stop === 'string' ? [body.stop] : body.stop) : [];
-  if (LLM_CONFIG.ollama) stopWords.push('<|');
+  if (LLM_CONFIG.ollama) stopWords.push('<|eot_id|>');
+  console.log(body);
   const {
     result: content,
     retries,
@@ -83,6 +84,7 @@ export async function chatCompletion(
     });
     if (!result.ok) {
       const error = await result.text();
+      console.error({ error });
       if (result.status === 404 && LLM_CONFIG.ollama) {
         await tryPullOllama(body.model!, error);
       }
@@ -99,6 +101,7 @@ export async function chatCompletion(
       if (content === undefined) {
         throw new Error('Unexpected result from OpenAI: ' + JSON.stringify(json));
       }
+      console.log(content);
       return content;
     }
   });
