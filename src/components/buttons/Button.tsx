@@ -12,7 +12,7 @@ export default function Button(props: {
   return (
     <a
       className={clsx(
-        'button text-white shadow-solid text-2xl pointer-events-auto',
+        'button text-white shadow-solid text-sm pointer-events-auto',
         props.className,
       )}
       href={props.href}
@@ -22,7 +22,6 @@ export default function Button(props: {
       <div className="inline-block bg-clay-700">
         <span>
           <div className="inline-flex h-full items-center gap-4">
-            <img className="w-4 h-4 sm:w-[30px] sm:h-[30px]" src={props.imgUrl} />
             {props.children}
           </div>
         </span>
