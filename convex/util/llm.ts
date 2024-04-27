@@ -81,10 +81,12 @@ export async function chatCompletion(
   // OLLAMA_MODEL is legacy
   body.model =
     body.model ?? process.env.LLM_MODEL ?? process.env.OLLAMA_MODEL ?? LLM_CONFIG.chatModel;
+    console.log("process.env", "LLM_MODEL", process.env.LLM_MODEL, "OLLAMA_MODEL", process.env.OLLAMA_MODEL)
   console.log("body.model = ", body.model)
+
+
   const stopWords = body.stop ? (typeof body.stop === 'string' ? [body.stop] : body.stop) : [];
   if (LLM_CONFIG.ollama) stopWords.push('<|eot_id|>');
-  console.log(body);
   const {
     result: content,
     retries,
@@ -99,7 +101,6 @@ export async function chatCompletion(
 
       body: JSON.stringify(body),
     });
-    console.log("result", result)
     if (!result.ok) {
       const error = await result.text();
       console.error({ error });
