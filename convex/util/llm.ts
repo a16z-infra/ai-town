@@ -35,6 +35,7 @@ function apiUrl(path: string) {
     process.env.OLLAMA_HOST ??
     process.env.OPENAI_API_BASE ??
     LLM_CONFIG.url;
+  console.log("host", host)
   if (host.endsWith('/') && path.startsWith('/')) {
     return host + path.slice(1);
   } else if (!host.endsWith('/') && !path.startsWith('/')) {
@@ -80,6 +81,7 @@ export async function chatCompletion(
   // OLLAMA_MODEL is legacy
   body.model =
     body.model ?? process.env.LLM_MODEL ?? process.env.OLLAMA_MODEL ?? LLM_CONFIG.chatModel;
+  console.log("base.model = ", base.model)
   const stopWords = body.stop ? (typeof body.stop === 'string' ? [body.stop] : body.stop) : [];
   if (LLM_CONFIG.ollama) stopWords.push('<|eot_id|>');
   console.log(body);
@@ -97,6 +99,7 @@ export async function chatCompletion(
 
       body: JSON.stringify(body),
     });
+    console.log("result", result)
     if (!result.ok) {
       const error = await result.text();
       console.error({ error });
@@ -129,6 +132,7 @@ export async function chatCompletion(
 }
 
 export async function tryPullOllama(model: string, error: string) {
+  console.log("tryPullOllama", model)
   if (error.includes('try pulling')) {
     console.error('Embedding model not found, pulling from Ollama');
     const pullResp = await fetch(apiUrl('/api/pull'), {
