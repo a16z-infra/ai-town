@@ -35,6 +35,7 @@ function apiUrl(path: string) {
     process.env.OLLAMA_HOST ??
     process.env.OPENAI_API_BASE ??
     LLM_CONFIG.url;
+  console.log("host", host)
   if (host.endsWith('/') && path.startsWith('/')) {
     return host + path.slice(1);
   } else if (!host.endsWith('/') && !path.startsWith('/')) {
@@ -81,8 +82,10 @@ export async function chatCompletion(
   body.model =
     body.model ?? process.env.LLM_MODEL ?? process.env.OLLAMA_MODEL ?? LLM_CONFIG.chatModel;
 
+
   const stopWords = body.stop ? (typeof body.stop === 'string' ? [body.stop] : body.stop) : [];
   if (LLM_CONFIG.ollama) stopWords.push('<|eot_id|>');
+  console.log(body);
   const {
     result: content,
     retries,
@@ -99,6 +102,7 @@ export async function chatCompletion(
     });
     if (!result.ok) {
       const error = await result.text();
+      console.error({ error });
       if (result.status === 404 && LLM_CONFIG.ollama) {
         await tryPullOllama(body.model!, error);
       }
@@ -137,6 +141,7 @@ export async function tryPullOllama(model: string, error: string) {
       },
       body: JSON.stringify({ name: model }),
     });
+    console.log('Pull response', await pullResp.text());
     throw { retry: true, error: `Dynamically pulled model. Original error: ${error}` };
   }
 }
