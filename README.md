@@ -40,6 +40,10 @@ A secondary goal is to make a JS/TS framework available as most simulators in th
 
 ## Installation
 
+**Note**: There is a one-click install of a fork of this project on
+[Pinokio](https://pinokio.computer/item?uri=https://github.com/cocktailpeanutlabs/aitown)
+for anyone interested in running but not modifying it 😎
+
 ### 1. Clone repo and Install packages
 
 ```bash
@@ -213,14 +217,17 @@ You should find a sprite sheet for your character, and define sprite motion / as
 
    - Use [Tiled](https://www.mapeditor.org/) to export tilemaps as a JSON file (2 layers named bgtiles and objmap)
    - Use the `convertMap.js` script to convert the JSON to a format that the engine can use.
+
 ```console
 node data/convertMap.js <mapDataPath> <assetPath> <tilesetpxw> <tilesetpxh>
 ```
+
 - `<mapDataPath>`: Path to the Tiled JSON file.
 - `<assetPath>`: Path to tileset images.
 - `<tilesetpxw>`: Tileset width in pixels.
 - `<tilesetpxh>`: Tileset height in pixels.
-Generates `converted-map.js` that you can use like `gentle.js`
+  Generates `converted-map.js` that you can use like `gentle.js`
+
 4. Change the background music by modifying the prompt in `convex/music.ts`
 5. Change how often to generate new music at `convex/crons.ts` by modifying the `generate new background music` job
 
