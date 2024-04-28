@@ -35,7 +35,6 @@ function apiUrl(path: string) {
     process.env.OLLAMA_HOST ??
     process.env.OPENAI_API_BASE ??
     LLM_CONFIG.url;
-  console.log("host", host)
   if (host.endsWith('/') && path.startsWith('/')) {
     return host + path.slice(1);
   } else if (!host.endsWith('/') && !path.startsWith('/')) {
