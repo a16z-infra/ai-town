@@ -5,7 +5,6 @@ export const LLM_CONFIG = {
    */
   ollama: true,
   url: 'http://127.0.0.1:11434',
-  //chatModel: 'llama2' as const,
   chatModel: 'llama3' as const,
   embeddingModel: 'mxbai-embed-large',
   embeddingDimension: 1024,
@@ -82,9 +81,6 @@ export async function chatCompletion(
   // OLLAMA_MODEL is legacy
   body.model =
     body.model ?? process.env.LLM_MODEL ?? process.env.OLLAMA_MODEL ?? LLM_CONFIG.chatModel;
-    console.log("process.env", "LLM_MODEL", process.env.LLM_MODEL, "OLLAMA_MODEL", process.env.OLLAMA_MODEL)
-  console.log("body.model = ", body.model)
-
 
   const stopWords = body.stop ? (typeof body.stop === 'string' ? [body.stop] : body.stop) : [];
   if (LLM_CONFIG.ollama) stopWords.push('<|eot_id|>');
@@ -104,7 +100,6 @@ export async function chatCompletion(
     });
     if (!result.ok) {
       const error = await result.text();
-      console.error({ error });
       if (result.status === 404 && LLM_CONFIG.ollama) {
         await tryPullOllama(body.model!, error);
       }
@@ -134,7 +129,6 @@ export async function chatCompletion(
 }
 
 export async function tryPullOllama(model: string, error: string) {
-  console.log("tryPullOllama", model)
   if (error.includes('try pulling')) {
     console.error('Embedding model not found, pulling from Ollama');
     const pullResp = await fetch(apiUrl('/api/pull'), {
@@ -144,7 +138,6 @@ export async function tryPullOllama(model: string, error: string) {
       },
       body: JSON.stringify({ name: model }),
     });
-    console.log('Pull response', await pullResp.text());
     throw { retry: true, error: `Dynamically pulled model. Original error: ${error}` };
   }
 }
