@@ -32,7 +32,7 @@ A secondary goal is to make a JS/TS framework available as most simulators in th
 - Auth (Optional): [Clerk](https://clerk.com/)
 - Default chat model is `llama3` and embeddings with `mxbai-embed-large`.
 - Local inference: [Ollama](https://github.com/jmorganca/ollama)
-- Configurable for other cloud LLMs: [Together.ai](https://together.ai/) or antying
+- Configurable for other cloud LLMs: [Together.ai](https://together.ai/) or anything
   that speaks the [OpenAI API](https://platform.openai.com/).
   PRs welcome to add more cloud provider support.
 - Pixel Art Generation: [Replicate](https://replicate.com/), [Fal.ai](https://serverless.fal.ai/lora)
