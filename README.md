@@ -114,6 +114,8 @@ To run both the front and and back end:
 npm run dev
 ```
 
+**Note**: If you encounter a node version error on the convex server upon application startup, please use node version 18, which is the most stable. One way to do this is by [installing nvm](https://nodejs.org/en/download/package-manager) and running `nvm install 18` or `nvm use 18`. Do this before both the `npm run dev` above and the `./convex-local-backend` in Step 2.
+
 You can now visit http://localhost:5173.
 
 If you'd rather run the frontend in a separate terminal from Convex (which syncs
