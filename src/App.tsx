@@ -72,8 +72,8 @@ export default function Home() {
         </Unauthenticated>
       </div> */}
 
-      <div className="w-full min-h-screen relative isolate overflow-hidden p-3 lg:p-8 shadow-2xl flex flex-col justify-start">
-        <h1 className="mx-auto text-4xl sm:text-8xl lg:text-9xl font-bold font-display leading-none tracking-wide game-title w-full text-left sm:text-center sm:w-auto">
+      <div className="w-full lg:h-screen min-h-screen relative isolate overflow-hidden lg:p-8 shadow-2xl flex flex-col justify-start">
+        <h1 className="mx-auto text-4xl p-3 sm:text-8xl lg:text-9xl font-bold font-display leading-none tracking-wide game-title w-full text-left sm:text-center sm:w-auto">
           AI Town
         </h1>
 
@@ -88,7 +88,7 @@ export default function Home() {
 
         <Game />
 
-        <footer className="absolute bottom-0 left-0 w-full flex items-center mt-4 gap-3 p-6 flex-wrap pointer-events-none">
+        <footer className="justify-end bottom-0 left-0 w-full flex items-center mt-4 gap-3 p-6 flex-wrap pointer-events-none">
           <div className="flex gap-4 flex-grow pointer-events-none">
             <FreezeButton />
             <MusicButton />
