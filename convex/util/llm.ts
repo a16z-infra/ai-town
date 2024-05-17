@@ -8,6 +8,7 @@ export const LLM_CONFIG = {
   chatModel: 'llama3' as const,
   embeddingModel: 'mxbai-embed-large',
   embeddingDimension: 1024,
+  stopWords: ['<|eot_id|>'],
   // embeddingModel: 'llama3',
   // embeddingDimension: 4096,
 
@@ -17,6 +18,7 @@ export const LLM_CONFIG = {
   chatModel: 'meta-llama/Llama-3-8b-chat-hf',
   embeddingModel: 'togethercomputer/m2-bert-80M-8k-retrieval',
   embeddingDimension: 768,
+  stopWords: ['<|eot_id|>'],
    */
 
   /* OpenAI config:
@@ -81,7 +83,7 @@ export async function chatCompletion(
   body.model =
     body.model ?? process.env.LLM_MODEL ?? process.env.OLLAMA_MODEL ?? LLM_CONFIG.chatModel;
   const stopWords = body.stop ? (typeof body.stop === 'string' ? [body.stop] : body.stop) : [];
-  if (LLM_CONFIG.ollama) stopWords.push('<|eot_id|>');
+  if (LLM_CONFIG.stopWords) stopWords.push(...LLM_CONFIG.stopWords);
   console.log(body);
   const {
     result: content,
