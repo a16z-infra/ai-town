@@ -2,7 +2,7 @@ import bannerBg from '../../assets/convex-bg.webp';
 export default function PoweredByConvex() {
   return (
     <a
-      href="https://convex.dev"
+      href="https://convex.dev/c/ai-town"
       target="_blank"
       className="group absolute top-0 left-0 w-64 h-64 md:block z-10 hidden shape-top-left-corner overflow-hidden"
       aria-label="Powered by Convex"
