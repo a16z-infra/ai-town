@@ -79,9 +79,6 @@ go to the folder it's in and right-click it and select "Open" to bypass.
 From then on you can run it from the commandline.
 Or you can compile it from source and run it (see above).
 
-To develop against the cloud-hosted version, change the package.json scripts
-to use `convex ...` instead of `just convex ...`.
-
 ### 3. To run a local LLM, download and run [Ollama](https://ollama.com/).
 
 You can leave the app running or run `ollama serve`.
@@ -103,8 +100,7 @@ or to set it up to talk to a cloud-hosted LLM.
 For Daily background music generation, create a
 [Replicate](https://replicate.com/) account and create a token in your Profile's
 [API Token page](https://replicate.com/account/api-tokens).
-`npx convex env set REPLICATE_API_TOKEN # token`
-Specify `just` instead of `npx` if you're doing local development.
+`just convex env set REPLICATE_API_TOKEN # token`
 
 ### 5. Run the code
 
@@ -238,12 +234,8 @@ node data/convertMap.js <mapDataPath> <assetPath> <tilesetpxw> <tilesetpxh>
 Configure `convex/util/llm.ts` or set these env variables:
 
 ```sh
-# Local Convex
 just convex env set LLM_API_HOST # url
 just convex env set LLM_MODEL # model
-# Cloud Convex
-npx convex env set LLM_API_HOST # url
-npx convex env set LLM_MODEL # model
 ```
 
 The embeddings model config needs to be changed [in code](./convex/util/llm.ts),
@@ -259,7 +251,7 @@ For OpenAI, visit https://platform.openai.com/account/api-keys
 You can run your Convex backend in the cloud by just running
 
 ```sh
-npx convex dev --once --configure
+npx convex dev --until-success --configure
 ```
 
 And updating the `package.json` scripts to remove `just`:
@@ -268,8 +260,6 @@ change `just convex ...` to `convex ...`.
 You'll then need to set any environment variables you had locally in the cloud
 environment with `npx convex env set` or on the dashboard:
 https://dashboard.convex.dev/deployment/settings/environment-variables
-
-To run commands, use `npx convex ...` where you used to run `just convex ...`.
 
 ## Deploy the app
 
@@ -303,7 +293,7 @@ CLERK_SECRET_KEY=sk_***
 - Copy the JWKS endpoint URL for use below.
 
 ```sh
-npx convex env set CLERK_ISSUER_URL # e.g. https://your-issuer-url.clerk.accounts.dev/
+just convex env set CLERK_ISSUER_URL # e.g. https://your-issuer-url.clerk.accounts.dev/
 ```
 
 ### Deploy to Vercel
@@ -353,7 +343,7 @@ Ngrok should output a unique url once you run this command.
 **Add Ollama endpoint to Convex**
 
 ```sh
-npx convex env set OLLAMA_HOST # your tunnelmole/ngrok unique url from the previous step
+just convex env set OLLAMA_HOST # your tunnelmole/ngrok unique url from the previous step
 ```
 
 **Update Ollama domains**
