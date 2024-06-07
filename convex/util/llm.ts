@@ -2,7 +2,6 @@
 
 export const LLM_CONFIG = {
   /* Ollama (local) config:
-   */
   ollama: true,
   url: 'http://127.0.0.1:11434',
   chatModel: 'llama3' as const,
@@ -11,6 +10,7 @@ export const LLM_CONFIG = {
   stopWords: ['<|eot_id|>'],
   // embeddingModel: 'llama3',
   // embeddingDimension: 4096,
+   */
 
   /* Together.ai config:
   ollama: false,
@@ -22,12 +22,13 @@ export const LLM_CONFIG = {
    */
 
   /* OpenAI config:
+   */
   ollama: false,
   url: 'https://api.openai.com',
   chatModel: 'gpt-3.5-turbo',
   embeddingModel: 'text-embedding-ada-002',
   embeddingDimension: 1536,
-   */
+  stopWords: [],
 };
 
 function apiUrl(path: string) {
