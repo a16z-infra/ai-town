@@ -1,5 +1,5 @@
-export const ACTION_TIMEOUT = 120_000; // more time for local dev
-// export const ACTION_TIMEOUT = 60_000;// normally fine
+// export const ACTION_TIMEOUT = 120_000; // more time for local dev
+export const ACTION_TIMEOUT = 60_000; // normally fine
 
 export const IDLE_WORLD_TIMEOUT = 5 * 60 * 1000;
 export const WORLD_HEARTBEAT_INTERVAL = 60 * 1000;
@@ -34,12 +34,12 @@ export const INVITE_ACCEPT_PROBABILITY = 0.8;
 export const INVITE_TIMEOUT = 60000;
 
 // Wait for another player to say something before jumping in.
-export const AWKWARD_CONVERSATION_TIMEOUT = 60_000; // more time locally
-// export const AWKWARD_CONVERSATION_TIMEOUT = 20_000;
+// export const AWKWARD_CONVERSATION_TIMEOUT = 60_000; // more time locally
+export const AWKWARD_CONVERSATION_TIMEOUT = 20_000;
 
 // Leave a conversation after participating too long.
-export const MAX_CONVERSATION_DURATION = 10 * 60_000; // more time locally
-// export const MAX_CONVERSATION_DURATION = 2 * 60_000;
+// export const MAX_CONVERSATION_DURATION = 10 * 60_000; // more time locally
+export const MAX_CONVERSATION_DURATION = 2 * 60_000;
 
 // Leave a conversation if it has more than 8 messages;
 export const MAX_CONVERSATION_MESSAGES = 8;
