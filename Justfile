@@ -23,7 +23,13 @@ set positional-arguments
 # running locally.
 # (*) Run convex CLI commands like `convex dev` against local backend from `just run-local-backend`.
 convex *ARGS:
-  cd {{invocation_directory()}}; npx convex "$@" --admin-key 0135d8598650f8f5cb0f30c34ec2e2bb62793bc28717c8eb6fb577996d50be5f4281b59181095065c5d0f86a2c31ddbe9b597ec62b47ded69782cd --url "http://127.0.0.1:3210"
+  #!/usr/bin/env sh
+  set -e
+  if [ -n "$(grep -E '^\s*VITE_CONVEX_URL\s*=\s*https://.*\.convex\.cloud' .env.local)" ]; then
+    npx convex "$@"
+  else
+    npx convex "$@" --admin-key 0135d8598650f8f5cb0f30c34ec2e2bb62793bc28717c8eb6fb577996d50be5f4281b59181095065c5d0f86a2c31ddbe9b597ec62b47ded69782cd --url "http://127.0.0.1:3210"
+  fi
 
 # Clears any data or stored files from the local backend.
 reset-local-backend:

@@ -24,7 +24,7 @@ export const LLM_CONFIG = {
   /* OpenAI config:
   ollama: false,
   url: 'https://api.openai.com',
-  chatModel: 'gpt-3.5-turbo-16k',
+  chatModel: 'gpt-3.5-turbo',
   embeddingModel: 'text-embedding-ada-002',
   embeddingDimension: 1536,
    */
@@ -357,10 +357,7 @@ export interface CreateChatCompletionRequest {
   // | 'gpt-4-0613'
   // | 'gpt-4-32k'
   // | 'gpt-4-32k-0613'
-  // | 'gpt-3.5-turbo'
-  // | 'gpt-3.5-turbo-0613'
-  // | 'gpt-3.5-turbo-16k' // <- our default
-  // | 'gpt-3.5-turbo-16k-0613';
+  // | 'gpt-3.5-turbo'; // <- our default
   /**
    * The messages to generate chat completions for, in the chat format:
    * https://platform.openai.com/docs/guides/chat/introduction
