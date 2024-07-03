@@ -22,6 +22,8 @@ A secondary goal is to make a JS/TS framework available as most simulators in th
 
 - 💻 [Stack](#stack)
 - 🧠 [Installation](#installation)
+- 🐳 [Docker Installation](#docker-installation)
+- 💻️ [Windows Installation](#windows-installation)
 - 👤 [Customize - run YOUR OWN simulated world](#customize-your-own-simulation)
 - 👩‍💻 [Deploying](#deploy-the-app)
 - 🏆 [Credits](#credits)
@@ -184,6 +186,251 @@ You can go to the [dashboard](https://dashboard.convex.dev) to your deployment
 settings to pause and un-pause your deployment. This will stop all functions, whether invoked
 from the client, scheduled, or as a cron job. See this as a last resort, as
 there are gentler ways of stopping above. Once you
+
+## Docker Installation
+
+### Before Launching Docker
+
+Modify your `package.json` file to add the `--host` option to your front-end server (Vite):
+
+```json
+{
+  "name": "ai-town",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm-run-all --parallel dev:frontend dev:backend",
+    "build": "tsc && vite build",
+    "lint": "eslint .",
+    "predev": "just convex dev --run init --until-success",
+    "dev:backend": "just convex dev --tail-logs",
+    "dev:frontend": "vite --host", // <------------------------------------------ modify this line
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --verbose",
+    "le": "vite src/editor/"
+  }
+}
+```
+
+### Launching Docker Compose
+
+Run the following command to launch Docker Compose:
+```sh
+docker-compose up --build
+```
+
+Once completed, you can close the terminal.
+
+### Launching an Interactive Docker Terminal
+
+In another terminal, still in the `aitown` directory, launch an interactive Docker terminal:
+```bash
+docker-compose exec ai-town /bin/bash
+```
+
+### Running Locally
+
+1. Download and unzip the local Convex backend:
+    ```bash
+    curl -L -O https://github.com/get-convex/convex-backend/releases/download/precompiled-2024-06-28-91981ab/convex-local-backend-x86_64-unknown-linux-gnu.zip
+    unzip convex-local-backend-x86_64-unknown-linux-gnu.zip
+    ```
+   
+2. Verify the `convex-local-backend` file is in the directory, then remove the zip file:
+    ```bash
+    rm convex-local-backend-x86_64-unknown-linux-gnu.zip
+    ```
+
+3. Make the file executable:
+    ```bash
+    chmod +x /usr/src/app/convex-local-backend
+    ```
+
+4. Launch the Convex backend server:
+    ```bash
+    ./convex-local-backend
+    ```
+
+### Relaunching an Interactive Docker Terminal for aitown server
+
+In another terminal, in the `aitown` directory, relaunch:
+```sh
+docker-compose exec ai-town /bin/bash
+```
+
+### Configuring Socat
+
+Configure `socat` with the host's IP address:
+
+```sh
+HOST_IP=YOUR-HOST-IP  # Use your host's IP address (not the Docker IP)
+socat TCP-LISTEN:11434,fork TCP:$HOST_IP:11434 &
+```
+
+### Testing the Connection
+
+Test the connection:
+```bash
+curl http://localhost:11434/
+```
+
+If it says "Ollama is running", it's good!
+
+### Starting Services
+
+Make sure Convex knows where to find Ollama (to skip a random mysterious bug ...):
+```bash
+just convex env set OLLAMA_HOST http://localhost:11434
+```
+
+Update the browser list:
+```bash
+npx update-browserslist-db@latest
+```
+
+Launch AI Town:
+```bash
+npm run dev
+```
+
+### For relaunching
+launch container then 
+Simply open two terminal in your AI-town folder with docker-compose exec ai-town /bin/bash
+
+Launch the Convex backend server:
+    ```bash
+    ./convex-local-backend
+    ```
+And in the second terminal simply Configuring Socat, Launch AI Town.
+
+## Windows Installation
+
+### Prerequisites
+
+1. **Windows 10/11 with WSL2 installed**
+2. **Internet connection**
+
+### 1. Install WSL2
+
+First, you need to install WSL2. Follow [this guide](https://docs.microsoft.com/en-us/windows/wsl/install) to set up WSL2 on your Windows machine. We recommend using Ubuntu as your Linux distribution.
+
+### 2. Update Packages
+
+Open your WSL terminal (Ubuntu) and update your packages:
+
+    sudo apt update
+
+### 3. Install NVM and Node.js
+
+NVM (Node Version Manager) helps manage multiple versions of Node.js. Install NVM and Node.js 18 (the stable version):
+
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
+    export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    source ~/.bashrc
+    nvm install 18
+    nvm use 18
+
+### 4. Install Python and Pip
+
+Python is required for some dependencies. Install Python and Pip:
+
+    sudo apt-get install python3 python3-pip
+    sudo ln -s /usr/bin/python3 /usr/bin/python
+
+### 5. Install Additional Tools
+
+Install `unzip` and `socat`:
+
+    sudo apt install unzip socat
+
+### 6. Install Rust and Cargo
+
+Cargo is the Rust package manager. Install Rust and Cargo:
+
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+    source $HOME/.cargo/env
+
+### 7. Install `just` with Cargo
+
+`just` is used to run commands. Install it with Cargo:
+
+    cargo install just
+    export PATH="$HOME/.cargo/bin:$PATH"
+    just --version
+
+### 8. Configure `socat` to Bridge Ports for Ollama
+
+Run the following command to bridge ports, allowing communication between Convex and Ollama:
+
+    socat TCP-LISTEN:11434,fork TCP:$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}'):11434 &
+
+Test if it's working:
+
+    curl http://127.0.0.1:11434
+
+If it responds OK, the Ollama API is accessible.
+
+### 9. Clone the AI Town Repository
+
+Clone the AI Town repository from GitHub:
+
+    git clone https://github.com/a16z-infra/ai-town.git
+    cd ai-town
+
+### 10. Install NPM Packages
+
+Install the necessary npm packages:
+
+    npm install
+
+### 11. Install Precompiled Convex
+
+Download and install the precompiled version of Convex:
+
+    curl -L -O https://github.com/get-convex/convex-backend/releases/download/precompiled-2024-06-28-91981ab/convex-local-backend-x86_64-unknown-linux-gnu.zip
+    unzip convex-local-backend-x86_64-unknown-linux-gnu.zip
+    rm convex-local-backend-x86_64-unknown-linux-gnu.zip
+    chmod +x convex-local-backend
+
+### 12. Launch Convex
+
+In a separate terminal, launch Convex:
+
+    ./convex-local-backend
+
+### 13. Configure Convex to Use Ollama
+
+Set the Ollama host in Convex:
+
+    just convex env set OLLAMA_HOST http://localhost:11434
+
+### 14. Launch AI Town
+
+Finally, launch AI Town:
+
+    npm run dev
+
+Visit `http://localhost:5173` in your browser to see AI Town in action.
+
+### Relaunching AI Town on windows WSL : 
+
+If you need to restart the services:
+
+1. Ensure `socat` is running:
+
+    socat TCP-LISTEN:11434,fork TCP:$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}'):11434 &
+
+2. Launch Convex:
+
+    ./convex-local-backend
+
+In another terminal : 
+3. Launch AI Town:
+
+    npm run dev
+
+
+
 
 ## Customize your own simulation
 
