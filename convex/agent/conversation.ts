@@ -16,7 +16,7 @@ export async function startConversationMessage(
   conversationId: GameId<'conversations'>,
   playerId: GameId<'players'>,
   otherPlayerId: GameId<'players'>,
-): Promise<ChatCompletionContent> {
+): Promise<string> {
   const { player, otherPlayer, agent, otherAgent, lastConversation } = await ctx.runQuery(
     selfInternal.queryPromptData,
     {
@@ -62,7 +62,6 @@ export async function startConversationMessage(
       },
     ],
     max_tokens: 300,
-    stream: true,
     stop: stopWords(otherPlayer.name, player.name),
   });
   return content;
@@ -74,7 +73,7 @@ export async function continueConversationMessage(
   conversationId: GameId<'conversations'>,
   playerId: GameId<'players'>,
   otherPlayerId: GameId<'players'>,
-): Promise<ChatCompletionContent> {
+): Promise<string> {
   const { player, otherPlayer, conversation, agent, otherAgent } = await ctx.runQuery(
     selfInternal.queryPromptData,
     {
@@ -120,7 +119,6 @@ export async function continueConversationMessage(
   const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 300,
-    stream: true,
     stop: stopWords(otherPlayer.name, player.name),
   });
   return content;
@@ -132,7 +130,7 @@ export async function leaveConversationMessage(
   conversationId: GameId<'conversations'>,
   playerId: GameId<'players'>,
   otherPlayerId: GameId<'players'>,
-) {
+): Promise<string> {
   const { player, otherPlayer, conversation, agent, otherAgent } = await ctx.runQuery(
     selfInternal.queryPromptData,
     {
@@ -169,7 +167,6 @@ export async function leaveConversationMessage(
   const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 300,
-    stream: true,
     stop: stopWords(otherPlayer.name, player.name),
   });
   return content;
