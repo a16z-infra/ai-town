@@ -8,6 +8,7 @@ export const LLM_CONFIG = {
   embeddingModel: 'mxbai-embed-large',
   embeddingDimension: 1024,
   stopWords: ['<|eot_id|>'],
+  apiKey: () => undefined,
   // embeddingModel: 'llama3',
   // embeddingDimension: 4096,
    */
@@ -19,16 +20,18 @@ export const LLM_CONFIG = {
   embeddingModel: 'togethercomputer/m2-bert-80M-8k-retrieval',
   embeddingDimension: 768,
   stopWords: ['<|eot_id|>'],
+  apiKey: () => process.env.TOGETHER_API_KEY ?? process.env.LLM_API_KEY,
    */
 
   /* OpenAI config:
    */
   ollama: false,
   url: 'https://api.openai.com',
-  chatModel: 'gpt-3.5-turbo',
+  chatModel: 'gpt-4o-mini',
   embeddingModel: 'text-embedding-ada-002',
   embeddingDimension: 1536,
   stopWords: [],
+  apiKey: () => process.env.OPENAI_API_KEY ?? process.env.LLM_API_KEY,
 };
 
 function apiUrl(path: string) {
@@ -47,14 +50,10 @@ function apiUrl(path: string) {
   }
 }
 
-function apiKey() {
-  return process.env.LLM_API_KEY ?? process.env.OPENAI_API_KEY;
-}
-
 const AuthHeaders = (): Record<string, string> =>
-  apiKey()
+  LLM_CONFIG.apiKey()
     ? {
-        Authorization: 'Bearer ' + apiKey(),
+        Authorization: 'Bearer ' + LLM_CONFIG.apiKey(),
       }
     : {};
 
@@ -227,7 +226,7 @@ export async function fetchModeration(content: string) {
 }
 
 export function assertApiKey() {
-  if (!LLM_CONFIG.ollama && !apiKey()) {
+  if (!LLM_CONFIG.ollama && !LLM_CONFIG.apiKey()) {
     throw new Error(
       '\n  Missing LLM_API_KEY in environment variables.\n\n' +
         (LLM_CONFIG.ollama ? 'just' : 'npx') +

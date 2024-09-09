@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  ai-town:
+    build: .
+    ports:
+      - "5173:5173"
+      - "3210:3210"  # WebSocket port ... In mysterious ways, this port make the magic happen !
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+      - ./data:/usr/src/app/data
+    networks:
+      - ai-town-network
+
+networks:
+  ai-town-network:
+    driver: bridge

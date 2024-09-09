@@ -1,52 +1,54 @@
-# syntax = docker/dockerfile:1
+# Use an Ubuntu base image
+FROM ubuntu:22.04
 
-# Adjust NODE_VERSION as desired
-ARG NODE_VERSION=19.8.1
-FROM node:${NODE_VERSION}-slim as base
+# Install dependencies
+RUN apt-get update && \
+    apt-get install -y \
+    curl \
+    python3 \
+    python3-pip \
+    unzip \
+    socat \
+    build-essential \
+    libssl-dev \
+    iproute2 \
+    && rm -rf /var/lib/apt/lists/*
 
-LABEL fly_launch_runtime="Next.js"
+# Install NVM, Node.js, and npm
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash && \
+    export NVM_DIR="$HOME/.nvm" && \
+    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && \
+    nvm install 18 && \
+    nvm use 18
 
-# Next.js app lives here
-WORKDIR /app
+# Add NVM to PATH
+ENV NVM_DIR /root/.nvm
+ENV NODE_VERSION 18.0.0
+RUN . $NVM_DIR/nvm.sh && nvm install $NODE_VERSION
+ENV NODE_PATH $NVM_DIR/versions/node/v$NODE_VERSION/lib/node_modules
+ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 
-# Set production environment
-ENV NODE_ENV=production
+# Install Rust and Cargo
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
+    . "$HOME/.cargo/env"
 
+# Install just
+RUN . "$HOME/.cargo/env" && cargo install just
 
-# Throw-away build stage to reduce size of final image
-FROM base as build
+# Set the working directory
+WORKDIR /usr/src/app
 
-# Install packages needed to build node modules
-RUN apt-get update -qq && \
-    apt-get install -y python-is-python3 pkg-config build-essential 
+# Copy dependency files
+COPY package*.json ./
 
-# Install node modules
-COPY --link package-lock.json package.json ./
-RUN npm ci --include=dev
+# Install npm dependencies
+RUN npm install
 
-# Copy application code
-COPY --link . .
+# Copy application files
+COPY . .
 
-ARG NEXT_PUBLIC_CLERK_SIGN_IN_URL
-ARG NEXT_PUBLIC_CLERK_SIGN_UP_URL
-ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL
-ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL
-ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-ARG NEXT_PUBLIC_CONVEX_URL
+# Expose necessary ports
+EXPOSE 5173
 
-# Build application
-RUN npm run build
-
-# Remove development dependencies
-RUN npm prune --omit=dev
-
-
-# Final stage for app image
-FROM base
-
-# Copy built application
-COPY --from=build /app /app
-
-# Start the server by default, this can be overwritten at runtime
-EXPOSE 3000
-CMD [ "npm", "run", "start" ]
+# Set the entry point to keep the container active
+CMD ["tail", "-f", "/dev/null"]

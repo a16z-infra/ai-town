@@ -16,7 +16,7 @@ export async function startConversationMessage(
   conversationId: GameId<'conversations'>,
   playerId: GameId<'players'>,
   otherPlayerId: GameId<'players'>,
-) {
+): Promise<string> {
   const { player, otherPlayer, agent, otherAgent, lastConversation } = await ctx.runQuery(
     selfInternal.queryPromptData,
     {
@@ -52,19 +52,26 @@ export async function startConversationMessage(
       `Be sure to include some detail or question about a previous conversation in your greeting.`,
     );
   }
-  prompt.push(`${player.name}:`);
+  const lastPrompt = `${player.name} to ${otherPlayer.name}:`;
+  prompt.push(lastPrompt);
 
   const { content } = await chatCompletion({
     messages: [
       {
-        role: 'user',
+        role: 'system',
         content: prompt.join('\n'),
       },
     ],
     max_tokens: 300,
-    stream: true,
     stop: stopWords(otherPlayer.name, player.name),
   });
+  return trimContentPrefx(content, lastPrompt);
+}
+
+function trimContentPrefx(content: string, prompt: string) {
+  if (content.startsWith(prompt)) {
+    return content.slice(prompt.length).trim();
+  }
   return content;
 }
 
@@ -74,7 +81,7 @@ export async function continueConversationMessage(
   conversationId: GameId<'conversations'>,
   playerId: GameId<'players'>,
   otherPlayerId: GameId<'players'>,
-) {
+): Promise<string> {
   const { player, otherPlayer, conversation, agent, otherAgent } = await ctx.runQuery(
     selfInternal.queryPromptData,
     {
@@ -104,7 +111,7 @@ export async function continueConversationMessage(
 
   const llmMessages: LLMMessage[] = [
     {
-      role: 'user',
+      role: 'system',
       content: prompt.join('\n'),
     },
     ...(await previousMessages(
@@ -115,15 +122,15 @@ export async function continueConversationMessage(
       conversation.id as GameId<'conversations'>,
     )),
   ];
-  llmMessages.push({ role: 'user', content: `${player.name}:` });
+  const lastPrompt = `${player.name} to ${otherPlayer.name}:`;
+  llmMessages.push({ role: 'user', content: lastPrompt });
 
   const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 300,
-    stream: true,
     stop: stopWords(otherPlayer.name, player.name),
   });
-  return content;
+  return trimContentPrefx(content, lastPrompt);
 }
 
 export async function leaveConversationMessage(
@@ -132,7 +139,7 @@ export async function leaveConversationMessage(
   conversationId: GameId<'conversations'>,
   playerId: GameId<'players'>,
   otherPlayerId: GameId<'players'>,
-) {
+): Promise<string> {
   const { player, otherPlayer, conversation, agent, otherAgent } = await ctx.runQuery(
     selfInternal.queryPromptData,
     {
@@ -153,7 +160,7 @@ export async function leaveConversationMessage(
   );
   const llmMessages: LLMMessage[] = [
     {
-      role: 'user',
+      role: 'system',
       content: prompt.join('\n'),
     },
     ...(await previousMessages(
@@ -164,15 +171,15 @@ export async function leaveConversationMessage(
       conversation.id as GameId<'conversations'>,
     )),
   ];
-  llmMessages.push({ role: 'user', content: `${player.name}:` });
+  const lastPrompt = `${player.name} to ${otherPlayer.name}:`;
+  llmMessages.push({ role: 'user', content: lastPrompt });
 
   const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 300,
-    stream: true,
     stop: stopWords(otherPlayer.name, player.name),
   });
-  return content;
+  return trimContentPrefx(content, lastPrompt);
 }
 
 function agentPrompts(
