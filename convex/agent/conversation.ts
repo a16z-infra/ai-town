@@ -57,7 +57,7 @@ export async function startConversationMessage(
   const { content } = await chatCompletion({
     messages: [
       {
-        role: 'user',
+        role: 'system',
         content: prompt.join('\n'),
       },
     ],
@@ -103,7 +103,7 @@ export async function continueConversationMessage(
 
   const llmMessages: LLMMessage[] = [
     {
-      role: 'user',
+      role: 'system',
       content: prompt.join('\n'),
     },
     ...(await previousMessages(
@@ -151,7 +151,7 @@ export async function leaveConversationMessage(
   );
   const llmMessages: LLMMessage[] = [
     {
-      role: 'user',
+      role: 'system',
       content: prompt.join('\n'),
     },
     ...(await previousMessages(
