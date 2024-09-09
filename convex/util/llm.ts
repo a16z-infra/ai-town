@@ -26,7 +26,7 @@ export const LLM_CONFIG = {
   /* OpenAI config:
   ollama: false,
   url: 'https://api.openai.com',
-  chatModel: 'gpt-3.5-turbo',
+  chatModel: 'gpt-4o-mini',
   embeddingModel: 'text-embedding-ada-002',
   embeddingDimension: 1536,
   stopWords: [],
