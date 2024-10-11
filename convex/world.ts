@@ -211,7 +211,8 @@ export const gameDescriptions = query({
     const playerDescriptions = await ctx.db
       .query('playerDescriptions')
       .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
-      .collect();
+      .order('desc')
+      .take(100);
     const agentDescriptions = await ctx.db
       .query('agentDescriptions')
       .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
