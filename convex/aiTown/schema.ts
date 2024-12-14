@@ -12,7 +12,20 @@ import { conversationId, playerId } from './ids';
 export const aiTownTables = {
   // This table has a single document that stores all players, conversations, and agents. This
   // data is small and changes regularly over time.
-  worlds: defineTable({ ...serializedWorld }),
+  worlds: defineTable({
+    nextId: v.number(),
+    conversations: v.array(v.object(serializedConversation)),
+    players: v.array(v.object(serializedPlayer)),
+    agents: v.array(v.object(serializedAgent)),
+    historicalLocations: v.optional(
+      v.array(
+        v.object({
+          playerId: v.string(),
+          location: v.bytes(),
+        }),
+      ),
+    ),
+  }),
 
   // Worlds can be started or stopped by the developer or paused for inactivity, and this
   // infrequently changing document tracks this world state.
@@ -40,6 +53,18 @@ export const aiTownTables = {
     worldId: v.id('worlds'),
     ...serializedAgentDescription,
   }).index('worldId', ['worldId', 'agentId']),
+
+  // Character configs store the visual appearance data for characters
+  characterConfigs: defineTable({
+    worldId: v.id('worlds'),
+    id: v.string(),
+    config: v.object({
+      name: v.string(),
+      textureUrl: v.string(),
+      spritesheetData: v.any(),
+      speed: v.optional(v.number()),
+    }),
+  }).index('worldId', ['worldId', 'id']),
 
   //The game engine doesn't want to track players that have left or conversations that are over, since
   // it wants to keep its managed state small. However, we may want to look at old conversations in the

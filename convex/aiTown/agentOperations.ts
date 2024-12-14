@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { internalAction } from '../_generated/server';
+import { internalAction, internalMutation } from '../_generated/server';
 import { WorldMap, serializedWorldMap } from './worldMap';
 import { rememberConversation } from '../agent/memory';
 import { GameId, agentId, conversationId, playerId } from './ids';
@@ -176,3 +176,28 @@ function wanderDestination(worldMap: WorldMap) {
     y: 1 + Math.floor(Math.random() * (worldMap.height - 2)),
   };
 }
+export const saveCharacterConfig = internalMutation({
+  args: {
+    worldId: v.id('worlds'),
+    id: v.string(),
+    config: v.object({
+      name: v.string(),
+      textureUrl: v.string(),
+      spritesheetData: v.any(),
+      speed: v.optional(v.number()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    // Save to characterConfigs table
+    await ctx.db.insert('characterConfigs', {
+      worldId: args.worldId,
+      id: args.id,
+      config: args.config,
+    });
+
+    console.log('Saved character config to database:', {
+      id: args.id,
+      config: args.config,
+    });
+  },
+});

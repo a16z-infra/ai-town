@@ -119,32 +119,63 @@ export const agentInputs = {
   createAgent: inputHandler({
     args: {
       name: v.string(),
-      character: v.string(),
+      character: v.object({
+        textureUrl: v.string(),
+        spritesheetData: v.any(),
+        speed: v.optional(v.number()),
+      }),
       identity: v.string(),
       plan: v.string(),
     },
     handler: (game, now, args) => {
-      const playerId = Player.join(game, now, args.name, args.character, args.identity);
+      // Create a player for this agent
       const agentId = game.allocId('agents');
-      game.world.agents.set(
+      console.log('Creating agent:', {
         agentId,
-        new Agent({
-          id: agentId,
-          playerId: playerId,
-          inProgressOperation: undefined,
-          lastConversation: undefined,
-          lastInviteAttempt: undefined,
-          toRemember: undefined,
-        }),
-      );
+        name: args.name,
+        character: args.character,
+      });
+
+      // Create player first
+      const playerId = Player.join(game, now, args.name, args.character, args.identity);
+      console.log('Created player for agent:', {
+        playerId,
+        agentId,
+        hasPlayer: game.world.players.has(playerId),
+        numPlayers: game.world.players.size,
+      });
+
+      // Create agent
+      const agent = new Agent({
+        id: agentId,
+        playerId,
+      });
+      game.world.agents.set(agentId, agent);
+
+      // Create agent description
       game.agentDescriptions.set(
         agentId,
         new AgentDescription({
-          agentId: agentId,
+          agentId,
           identity: args.identity,
           plan: args.plan,
         }),
       );
+
+      // Force descriptions to be saved
+      game.descriptionsModified = true;
+
+      // Verify state
+      console.log('Final state:', {
+        numPlayers: game.world.players.size,
+        numAgents: game.world.agents.size,
+        hasPlayerDescription: game.playerDescriptions.has(playerId),
+        hasAgentDescription: game.agentDescriptions.has(agentId),
+        descriptionsModified: game.descriptionsModified,
+        player: game.world.players.get(playerId)?.serialize(),
+        agent: game.world.agents.get(agentId)?.serialize(),
+      });
+
       return { agentId };
     },
   }),

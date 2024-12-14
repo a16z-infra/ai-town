@@ -2,6 +2,7 @@ import { Infer, ObjectType, v } from 'convex/values';
 import { Point, Vector, path, point, vector } from '../util/types';
 import { GameId, parseGameId } from './ids';
 import { playerId } from './ids';
+import { Id } from '../_generated/dataModel';
 import {
   PATHFINDING_TIMEOUT,
   PATHFINDING_BACKOFF,
@@ -169,10 +170,13 @@ export class Player {
     game: Game,
     now: number,
     name: string,
-    character: string,
+    character: { textureUrl: string; spritesheetData: any; speed?: number },
     description: string,
     tokenIdentifier?: string,
-  ) {
+  ): GameId<'players'> {
+    console.log('Starting join process:', { name, tokenIdentifier });
+
+    // Check for existing players and limits
     if (tokenIdentifier) {
       let numHumans = 0;
       for (const player of game.world.players.values()) {
@@ -187,6 +191,8 @@ export class Player {
         throw new Error(`Only ${MAX_HUMAN_PLAYERS} human players allowed at once.`);
       }
     }
+
+    // Find a valid spawn position
     let position;
     for (let attempt = 0; attempt < 10; attempt++) {
       const candidate = {
@@ -202,6 +208,8 @@ export class Player {
     if (!position) {
       throw new Error(`Failed to find a free position!`);
     }
+
+    // Set random facing direction
     const facingOptions = [
       { dx: 1, dy: 0 },
       { dx: -1, dy: 0 },
@@ -209,31 +217,79 @@ export class Player {
       { dx: 0, dy: -1 },
     ];
     const facing = facingOptions[Math.floor(Math.random() * facingOptions.length)];
-    if (!characters.find((c) => c.name === character)) {
-      throw new Error(`Invalid character: ${character}`);
-    }
+
     const playerId = game.allocId('players');
-    game.world.players.set(
+    const characterId = `characterConfigs:${game.nextId++}` as Id<'characterConfigs'>;
+
+    console.log('Generated IDs:', {
       playerId,
-      new Player({
-        id: playerId,
-        human: tokenIdentifier,
-        lastInput: now,
-        position,
-        facing,
-        speed: 0,
-      }),
-    );
-    game.playerDescriptions.set(
+      characterId,
+      nextId: game.nextId,
+    });
+
+    console.log('Joining player:', {
       playerId,
-      new PlayerDescription({
-        playerId,
-        character,
-        description,
-        name,
-      }),
-    );
+      characterId,
+      name,
+      tokenIdentifier,
+      textureUrl: character.textureUrl,
+      existingDescriptions: Array.from(game.playerDescriptions.entries()).map(([id, desc]) => ({
+        id,
+        character: desc.character,
+        textureUrl: desc.textureUrl,
+      })),
+    });
+
+    // Save character config to database
+    game.characterConfigs = game.characterConfigs || new Map();
+    game.characterConfigs.set(characterId, {
+      name: name,
+      textureUrl: character.textureUrl,
+      spritesheetData: character.spritesheetData,
+      speed: character.speed,
+    });
+
+    // Create player with found position
+    const player = new Player({
+      id: playerId,
+      human: tokenIdentifier,
+      lastInput: now,
+      position,
+      facing,
+      speed: 0,
+      pathfinding: undefined,
+      activity: undefined,
+    });
+    game.world.players.set(playerId, player);
+
+    // Create player description
+    const playerDescription = new PlayerDescription({
+      playerId,
+      character: characterId,
+      description,
+      name,
+      textureUrl: character.textureUrl,
+    });
+    game.playerDescriptions.set(playerId, playerDescription);
+
+    console.log('Created player:', {
+      playerId,
+      playerDescription: {
+        playerId: playerDescription.playerId,
+        character: playerDescription.character,
+        textureUrl: playerDescription.textureUrl,
+      },
+      hasDescription: game.playerDescriptions.has(playerId),
+      allDescriptions: Array.from(game.playerDescriptions.entries()).map(([id, desc]) => ({
+        id,
+        character: desc.character,
+        textureUrl: desc.textureUrl,
+      })),
+    });
+
+    // Mark descriptions as modified so they get saved
     game.descriptionsModified = true;
+
     return playerId;
   }
 
@@ -267,7 +323,11 @@ export const playerInputs = {
   join: inputHandler({
     args: {
       name: v.string(),
-      character: v.string(),
+      character: v.object({
+        textureUrl: v.string(),
+        spritesheetData: v.any(),
+        speed: v.optional(v.number()),
+      }),
       description: v.string(),
       tokenIdentifier: v.optional(v.string()),
     },

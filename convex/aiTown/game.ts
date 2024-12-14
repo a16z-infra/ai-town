@@ -31,6 +31,17 @@ const gameState = v.object({
   playerDescriptions: v.array(v.object(serializedPlayerDescription)),
   agentDescriptions: v.array(v.object(serializedAgentDescription)),
   worldMap: v.object(serializedWorldMap),
+  characterConfigs: v.array(
+    v.object({
+      id: v.string(),
+      config: v.object({
+        name: v.string(),
+        textureUrl: v.string(),
+        spritesheetData: v.any(),
+        speed: v.optional(v.number()),
+      }),
+    }),
+  ),
 });
 type GameState = Infer<typeof gameState>;
 
@@ -39,6 +50,19 @@ const gameStateDiff = v.object({
   playerDescriptions: v.optional(v.array(v.object(serializedPlayerDescription))),
   agentDescriptions: v.optional(v.array(v.object(serializedAgentDescription))),
   worldMap: v.optional(v.object(serializedWorldMap)),
+  characterConfigs: v.optional(
+    v.array(
+      v.object({
+        id: v.string(),
+        config: v.object({
+          name: v.string(),
+          textureUrl: v.string(),
+          spritesheetData: v.any(),
+          speed: v.optional(v.number()),
+        }),
+      }),
+    ),
+  ),
   agentOperations: v.array(v.object({ name: v.string(), args: v.any() })),
 });
 type GameStateDiff = Infer<typeof gameStateDiff>;
@@ -50,6 +74,15 @@ export class Game extends AbstractGame {
   maxInputsPerStep = 32;
 
   world: World;
+  characterConfigs?: Map<
+    string,
+    {
+      name: string;
+      textureUrl: string;
+      spritesheetData: any;
+      speed?: number;
+    }
+  >;
 
   historicalLocations: Map<GameId<'players'>, HistoricalObject<Location>>;
 
@@ -57,6 +90,7 @@ export class Game extends AbstractGame {
   worldMap: WorldMap;
   playerDescriptions: Map<GameId<'players'>, PlayerDescription>;
   agentDescriptions: Map<GameId<'agents'>, AgentDescription>;
+  nextId: number;
 
   pendingOperations: Array<{ name: string; args: any }> = [];
 
@@ -69,6 +103,13 @@ export class Game extends AbstractGame {
   ) {
     super(engine);
 
+    console.log('Initializing game state:', {
+      hasCharacterConfigs: !!state.characterConfigs,
+      numCharacterConfigs: state.characterConfigs?.length ?? 0,
+      numPlayerDescriptions: state.playerDescriptions.length,
+      players: state.world.players.map((p) => p.id),
+    });
+
     this.world = new World(state.world);
     delete this.world.historicalLocations;
 
@@ -80,8 +121,21 @@ export class Game extends AbstractGame {
       PlayerDescription,
       (p) => p.playerId,
     );
+    this.nextId = state.world.nextId || 0;
 
     this.historicalLocations = new Map();
+
+    // Initialize character configs from state
+    this.characterConfigs = new Map(
+      state.characterConfigs?.map(({ id, config }) => [id, config]) ?? [],
+    );
+
+    console.log('After game state initialization:', {
+      hasCharacterConfigs: !!this.characterConfigs,
+      numCharacterConfigs: this.characterConfigs?.size ?? 0,
+      numPlayerDescriptions: this.playerDescriptions.size,
+      players: Array.from(this.world.players.keys()),
+    });
 
     this.numPathfinds = 0;
   }
@@ -118,8 +172,17 @@ export class Game extends AbstractGame {
     if (!worldMapDoc) {
       throw new Error(`No map found for world ${worldId}`);
     }
-    // Discard the system fields and historicalLocations from the world state.
-    const { _id, _creationTime, historicalLocations: _, ...world } = worldDoc;
+
+    // Load character configs
+    const characterConfigDocs = await db
+      .query('characterConfigs')
+      .withIndex('worldId', (q) => q.eq('worldId', worldId))
+      .collect();
+
+    // Properly deserialize the world state
+    const { _id, _creationTime, ...worldData } = worldDoc;
+    const world = new World(worldData).serialize();
+
     const playerDescriptions = playerDescriptionsDocs
       // Discard player descriptions for players that no longer exist.
       .filter((d) => !!world.players.find((p) => p.id === d.playerId))
@@ -133,6 +196,15 @@ export class Game extends AbstractGame {
       worldId: _mapWorldId,
       ...worldMap
     } = worldMapDoc;
+
+    // Map character configs to the expected format
+    const characterConfigs = characterConfigDocs.map(
+      ({ _id, _creationTime, worldId: _, ...doc }) => ({
+        id: doc.id,
+        config: doc.config,
+      }),
+    );
+
     return {
       engine,
       gameState: {
@@ -140,6 +212,7 @@ export class Game extends AbstractGame {
         playerDescriptions,
         agentDescriptions,
         worldMap,
+        characterConfigs,
       },
     };
   }
@@ -233,113 +306,165 @@ export class Game extends AbstractGame {
     }
     this.historicalLocations.clear();
 
+    console.log('Taking game state diff:', {
+      descriptionsModified: this.descriptionsModified,
+      numPlayers: this.world.players.size,
+      numPlayerDescriptions: this.playerDescriptions.size,
+      numCharacterConfigs: this.characterConfigs?.size ?? 0,
+      characterConfigs: Array.from(this.characterConfigs?.entries() ?? []).map(([id, config]) => ({
+        id,
+        textureUrl: config.textureUrl,
+      })),
+    });
+
     const result: GameStateDiff = {
-      world: { ...this.world.serialize(), historicalLocations },
+      world: {
+        ...this.world.serialize(),
+        players: Array.from(this.world.players.values()).map((p) => p.serialize()),
+        agents: Array.from(this.world.agents.values()).map((a) => a.serialize()),
+      },
       agentOperations: this.pendingOperations,
     };
     this.pendingOperations = [];
-    if (this.descriptionsModified) {
-      result.playerDescriptions = serializeMap(this.playerDescriptions);
-      result.agentDescriptions = serializeMap(this.agentDescriptions);
+
+    // Always include descriptions and configs if they exist
+    const hasCharacterConfigs = this.characterConfigs && this.characterConfigs.size > 0;
+    const hasDescriptions = this.playerDescriptions.size > 0 || this.agentDescriptions.size > 0;
+
+    if (hasCharacterConfigs || hasDescriptions || this.descriptionsModified) {
+      result.playerDescriptions = Array.from(this.playerDescriptions.values()).map((desc) =>
+        desc.serialize(),
+      );
+      result.agentDescriptions = Array.from(this.agentDescriptions.values()).map((desc) =>
+        desc.serialize(),
+      );
       result.worldMap = this.worldMap.serialize();
-      this.descriptionsModified = false;
+      result.characterConfigs = Array.from(this.characterConfigs?.entries() ?? []).map(
+        ([id, config]) => ({
+          id,
+          config,
+        }),
+      );
     }
+
+    console.log('Game state diff result:', {
+      hasPlayerDescriptions: !!result.playerDescriptions,
+      numPlayerDescriptions: result.playerDescriptions?.length ?? 0,
+      playerDescriptions: result.playerDescriptions?.map((desc) => ({
+        playerId: desc.playerId,
+        character: desc.character,
+        textureUrl: desc.textureUrl,
+      })),
+      hasCharacterConfigs: !!result.characterConfigs,
+      numCharacterConfigs: result.characterConfigs?.length ?? 0,
+      characterConfigIds: result.characterConfigs?.map((c) => c.id) ?? [],
+    });
+
+    // Only reset the flag after we've included the descriptions in the diff
+    this.descriptionsModified = false;
+
     return result;
   }
 
   static async saveDiff(ctx: MutationCtx, worldId: Id<'worlds'>, diff: GameStateDiff) {
-    const existingWorld = await ctx.db.get(worldId);
-    if (!existingWorld) {
-      throw new Error(`No world found with id ${worldId}`);
-    }
-    const newWorld = diff.world;
-    // Archive newly deleted players, conversations, and agents.
-    for (const player of existingWorld.players) {
-      if (!newWorld.players.some((p) => p.id === player.id)) {
-        await ctx.db.insert('archivedPlayers', { worldId, ...player });
-      }
-    }
-    for (const conversation of existingWorld.conversations) {
-      if (!newWorld.conversations.some((c) => c.id === conversation.id)) {
-        const participants = conversation.participants.map((p) => p.playerId);
-        const archivedConversation = {
-          worldId,
-          id: conversation.id,
-          created: conversation.created,
-          creator: conversation.creator,
-          ended: Date.now(),
-          lastMessage: conversation.lastMessage,
-          numMessages: conversation.numMessages,
-          participants,
-        };
-        await ctx.db.insert('archivedConversations', archivedConversation);
-        for (let i = 0; i < participants.length; i++) {
-          for (let j = 0; j < participants.length; j++) {
-            if (i == j) {
-              continue;
-            }
-            const player1 = participants[i];
-            const player2 = participants[j];
-            await ctx.db.insert('participatedTogether', {
-              worldId,
-              conversationId: conversation.id,
-              player1,
-              player2,
-              ended: Date.now(),
-            });
-          }
-        }
-      }
-    }
-    for (const conversation of existingWorld.agents) {
-      if (!newWorld.agents.some((a) => a.id === conversation.id)) {
-        await ctx.db.insert('archivedAgents', { worldId, ...conversation });
-      }
-    }
-    // Update the world state.
-    await ctx.db.replace(worldId, newWorld);
+    const { world, playerDescriptions, agentDescriptions, characterConfigs } = diff;
 
-    // Update the larger description tables if they changed.
-    const { playerDescriptions, agentDescriptions, worldMap } = diff;
+    console.log('Saving game diff:', {
+      hasWorld: !!world,
+      numPlayerDescriptions: playerDescriptions?.length ?? 0,
+      playerDescriptions: playerDescriptions?.map((desc) => ({
+        playerId: desc.playerId,
+        character: desc.character,
+      })),
+      numAgentDescriptions: agentDescriptions?.length ?? 0,
+      numCharacterConfigs: characterConfigs?.length ?? 0,
+      characterConfigIds: characterConfigs?.map((c) => c.id) ?? [],
+    });
+
+    if (world) {
+      await ctx.db.patch(worldId, world);
+    }
+
     if (playerDescriptions) {
+      // Delete old player descriptions
+      const oldDescriptions = await ctx.db
+        .query('playerDescriptions')
+        .withIndex('worldId', (q) => q.eq('worldId', worldId))
+        .collect();
+      for (const doc of oldDescriptions) {
+        await ctx.db.delete(doc._id);
+      }
+
+      // Insert new player descriptions
       for (const description of playerDescriptions) {
-        const existing = await ctx.db
-          .query('playerDescriptions')
-          .withIndex('worldId', (q) =>
-            q.eq('worldId', worldId).eq('playerId', description.playerId),
-          )
-          .unique();
-        if (existing) {
-          await ctx.db.replace(existing._id, { worldId, ...description });
-        } else {
-          await ctx.db.insert('playerDescriptions', { worldId, ...description });
-        }
+        console.log('Saving player description:', {
+          worldId,
+          playerId: description.playerId,
+          character: description.character,
+        });
+        await ctx.db.insert('playerDescriptions', {
+          worldId,
+          ...description,
+        });
       }
     }
+
     if (agentDescriptions) {
+      // Delete old agent descriptions
+      const oldDescriptions = await ctx.db
+        .query('agentDescriptions')
+        .withIndex('worldId', (q) => q.eq('worldId', worldId))
+        .collect();
+      for (const doc of oldDescriptions) {
+        await ctx.db.delete(doc._id);
+      }
+
+      // Insert new agent descriptions
       for (const description of agentDescriptions) {
-        const existing = await ctx.db
-          .query('agentDescriptions')
-          .withIndex('worldId', (q) => q.eq('worldId', worldId).eq('agentId', description.agentId))
-          .unique();
-        if (existing) {
-          await ctx.db.replace(existing._id, { worldId, ...description });
-        } else {
-          await ctx.db.insert('agentDescriptions', { worldId, ...description });
-        }
+        console.log('Saving agent description:', {
+          worldId,
+          agentId: description.agentId,
+        });
+        await ctx.db.insert('agentDescriptions', {
+          worldId,
+          ...description,
+        });
       }
     }
-    if (worldMap) {
+
+    if (diff.worldMap) {
       const existing = await ctx.db
         .query('maps')
         .withIndex('worldId', (q) => q.eq('worldId', worldId))
         .unique();
       if (existing) {
-        await ctx.db.replace(existing._id, { worldId, ...worldMap });
+        await ctx.db.replace(existing._id, { worldId, ...diff.worldMap });
       } else {
-        await ctx.db.insert('maps', { worldId, ...worldMap });
+        await ctx.db.insert('maps', { worldId, ...diff.worldMap });
       }
     }
+
+    if (characterConfigs) {
+      // Delete old character configs
+      const oldConfigs = await ctx.db
+        .query('characterConfigs')
+        .withIndex('worldId', (q) => q.eq('worldId', worldId))
+        .collect();
+      for (const doc of oldConfigs) {
+        await ctx.db.delete(doc._id);
+      }
+
+      // Insert new character configs
+      for (const { id, config } of characterConfigs) {
+        console.log('Saving character config:', {
+          worldId,
+          id,
+          textureUrl: config.textureUrl,
+        });
+        await ctx.db.insert('characterConfigs', { worldId, id, config });
+      }
+    }
+
     // Start the desired agent operations.
     for (const operation of diff.agentOperations) {
       await runAgentOperation(ctx, operation.name, operation.args);

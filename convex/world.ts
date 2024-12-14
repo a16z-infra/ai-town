@@ -11,6 +11,7 @@ import {
 import { playerId } from './aiTown/ids';
 import { kickEngine, startEngine, stopEngine } from './aiTown/main';
 import { engineInsertInput } from './engine/abstractGame';
+import { data as hugoSpritesheetData } from '../data/spritesheets/f1';
 
 export const defaultWorldStatus = query({
   handler: async (ctx) => {
@@ -113,27 +114,23 @@ export const joinWorld = mutation({
     worldId: v.id('worlds'),
   },
   handler: async (ctx, args) => {
-    // const identity = await ctx.auth.getUserIdentity();
-    // if (!identity) {
-    //   throw new ConvexError(`Not logged in`);
-    // }
-    // const name =
-    //   identity.givenName || identity.nickname || (identity.email && identity.email.split('@')[0]);
     const name = DEFAULT_NAME;
-
-    // if (!name) {
-    //   throw new ConvexError(`Missing name on ${JSON.stringify(identity)}`);
-    // }
     const world = await ctx.db.get(args.worldId);
     if (!world) {
       throw new ConvexError(`Invalid world ID: ${args.worldId}`);
     }
-    // const { tokenIdentifier } = identity;
+
+    // Create a default character config for human players
+    const defaultCharacter = {
+      textureUrl: '/assets/hugo.png',
+      spritesheetData: hugoSpritesheetData,
+      speed: 0.1,
+    };
+
     return await insertInput(ctx, world._id, 'join', {
       name,
-      character: characters[Math.floor(Math.random() * characters.length)].name,
+      character: defaultCharacter,
       description: `${DEFAULT_NAME} is a human player`,
-      // description: `${identity.givenName} is a human player`,
       tokenIdentifier: DEFAULT_NAME,
     });
   },
@@ -212,6 +209,17 @@ export const gameDescriptions = query({
       .query('playerDescriptions')
       .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
       .collect();
+
+    console.log('Loading game descriptions:', {
+      worldId: args.worldId,
+      numPlayerDescriptions: playerDescriptions.length,
+      playerDescriptions: playerDescriptions.map((desc) => ({
+        playerId: desc.playerId,
+        character: desc.character,
+        textureUrl: desc.textureUrl,
+      })),
+    });
+
     const agentDescriptions = await ctx.db
       .query('agentDescriptions')
       .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
@@ -223,7 +231,22 @@ export const gameDescriptions = query({
     if (!worldMap) {
       throw new Error(`No map for world: ${args.worldId}`);
     }
-    return { worldMap, playerDescriptions, agentDescriptions };
+
+    // Load character configs
+    const characterConfigs = await ctx.db
+      .query('characterConfigs')
+      .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
+      .collect();
+
+    return {
+      worldMap,
+      playerDescriptions,
+      agentDescriptions,
+      characterConfigs: characterConfigs.map(({ _id, _creationTime, worldId: _, ...doc }) => ({
+        id: doc.id,
+        config: doc.config,
+      })),
+    };
   },
 });
 

@@ -16,6 +16,7 @@ import { fetchEmbedding, LLM_CONFIG } from './util/llm';
 import { chatCompletion } from './util/llm';
 import { startConversationMessage } from './agent/conversation';
 import { GameId } from './aiTown/ids';
+import { data as hugoSpritesheetData } from '../data/spritesheets/f1';
 
 // Clear all of the tables except for the embeddings cache.
 const excludedTables: Array<TableNames> = ['embeddingsCache'];
@@ -136,7 +137,11 @@ export const debugCreatePlayers = internalMutation({
       const inputId = await insertInput(ctx, worldStatus.worldId, 'join', {
         name: `Robot${i}`,
         description: `This player is a robot.`,
-        character: `f${1 + (i % 8)}`,
+        character: {
+          textureUrl: '/assets/hugo.png',
+          spritesheetData: hugoSpritesheetData,
+          speed: 0.1,
+        },
       });
     }
   },
