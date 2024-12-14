@@ -1,11 +1,4 @@
-import { data as f1SpritesheetData } from './spritesheets/f1';
-import { data as f2SpritesheetData } from './spritesheets/f2';
-import { data as f3SpritesheetData } from './spritesheets/f3';
-import { data as f4SpritesheetData } from './spritesheets/f4';
-import { data as f5SpritesheetData } from './spritesheets/f5';
-import { data as f6SpritesheetData } from './spritesheets/f6';
-import { data as f7SpritesheetData } from './spritesheets/f7';
-import { data as f8SpritesheetData } from './spritesheets/f8';
+import { data as hugoSpritesheetData } from './spritesheets/f1';
 
 export const Descriptions = [
   // {
@@ -69,50 +62,50 @@ export const Descriptions = [
 export const characters = [
   {
     name: 'f1',
-    textureUrl: '/ai-town/assets/32x32folk.png',
-    spritesheetData: f1SpritesheetData,
+    textureUrl: '/assets/hugo.png',
+    spritesheetData: hugoSpritesheetData,
     speed: 0.1,
   },
   {
     name: 'f2',
-    textureUrl: '/ai-town/assets/32x32folk.png',
-    spritesheetData: f2SpritesheetData,
+    textureUrl: '/assets/hugo.png',
+    spritesheetData: hugoSpritesheetData,
     speed: 0.1,
   },
   {
     name: 'f3',
-    textureUrl: '/ai-town/assets/32x32folk.png',
-    spritesheetData: f3SpritesheetData,
+    textureUrl: '/assets/hugo.png',
+    spritesheetData: hugoSpritesheetData,
     speed: 0.1,
   },
   {
     name: 'f4',
-    textureUrl: '/ai-town/assets/32x32folk.png',
-    spritesheetData: f4SpritesheetData,
+    textureUrl: '/assets/hugo.png',
+    spritesheetData: hugoSpritesheetData,
     speed: 0.1,
   },
   {
     name: 'f5',
-    textureUrl: '/ai-town/assets/32x32folk.png',
-    spritesheetData: f5SpritesheetData,
+    textureUrl: '/assets/hugo.png',
+    spritesheetData: hugoSpritesheetData,
     speed: 0.1,
   },
   {
     name: 'f6',
-    textureUrl: '/ai-town/assets/32x32folk.png',
-    spritesheetData: f6SpritesheetData,
+    textureUrl: '/assets/hugo.png',
+    spritesheetData: hugoSpritesheetData,
     speed: 0.1,
   },
   {
     name: 'f7',
-    textureUrl: '/ai-town/assets/32x32folk.png',
-    spritesheetData: f7SpritesheetData,
+    textureUrl: '/assets/hugo.png',
+    spritesheetData: hugoSpritesheetData,
     speed: 0.1,
   },
   {
     name: 'f8',
-    textureUrl: '/ai-town/assets/32x32folk.png',
-    spritesheetData: f8SpritesheetData,
+    textureUrl: '/assets/hugo.png',
+    spritesheetData: hugoSpritesheetData,
     speed: 0.1,
   },
 ];

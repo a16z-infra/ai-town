@@ -3,25 +3,26 @@
 @tailwind utilities;
 
 @font-face {
-  font-family: 'Upheaval Pro';
-  src: url(/assets/fonts/upheaval_pro.ttf);
+  font-family: 'Super Pixel';
+  src: url(/assets/fonts/super_pixel.ttf);
 }
 
 @font-face {
-  font-family: 'VCR OSD Mono';
-  src: url(/assets/fonts/vcr_osd_mono.ttf);
+  font-family: 'Pixel Craft';
+  src: url(/assets/fonts/pixel_craft.ttf);
 }
 
 .font-display {
-  font-family: 'Upheaval Pro', 'sans-serif';
+  font-family: 'Super Pixel', monospace;
 }
 
 .font-body {
-  font-family: 'VCR OSD Mono', 'monospace';
+  font-family: 'Pixel Craft', monospace;
 }
 
 .font-system {
-  font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol';
 }
 
 :root {
@@ -39,6 +40,8 @@
 }
 
 body {
+  margin: 0;
+  font-family: 'Pixel Craft', 'sans-serif';
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(to bottom, transparent, rgb(var(--background-end-rgb)))
     rgb(var(--background-start-rgb));
@@ -46,7 +49,7 @@ body {
 
 .game-background {
   background: linear-gradient(rgba(41, 41, 41, 0.8), rgba(41, 41, 41, 0.8)),
-    url(../assets/background.webp);
+    url(../assets/background.png);
   background-blend-mode: hard-light;
   background-position: center;
   background-repeat: no-repeat;
@@ -60,6 +63,7 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(0px 0.08em 0px #6e2146);
+  color: #eeff99;
 }
 
 .game-frame {
@@ -182,4 +186,18 @@ p[contenteditable='true']:empty::before {
 
 .shape-top-left-corner {
   clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.rest-background {
+  background: linear-gradient(rgba(41, 41, 41, 0.8), rgba(41, 41, 41, 0.8)),
+    url(../assets/rest_background.png);
+  background-blend-mode: hard-light;
+  background-position: top center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  min-height: 100%;
+}
+
+.font-numbers {
+  font-family: monospace, 'Super Pixel', 'Pixel Craft';
 }
