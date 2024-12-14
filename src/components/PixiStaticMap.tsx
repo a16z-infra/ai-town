@@ -6,6 +6,9 @@ import * as gentlesparkle from '../../data/animations/gentlesparkle.json';
 import * as gentlewaterfall from '../../data/animations/gentlewaterfall.json';
 import * as gentlesplash from '../../data/animations/gentlesplash.json';
 import * as windmill from '../../data/animations/windmill.json';
+import { Container, Sprite } from '@pixi/react';
+import { Texture } from 'pixi.js';
+import { useEffect, useState } from 'react';
 
 const animations = {
   'campfire.json': { spritesheet: campfire, url: '/assets/spritesheets/campfire.png' },
@@ -24,8 +27,21 @@ const animations = {
   },
 };
 
+interface MapProps {
+  map: WorldMap;
+  [key: string]: unknown;
+}
+
+interface AnimationSheet {
+  [key: string]: Texture;
+}
+
+interface Animations {
+  [key: string]: AnimationSheet;
+}
+
 export const PixiStaticMap = PixiComponent('StaticMap', {
-  create: (props: { map: WorldMap; [k: string]: any }) => {
+  create: (props: MapProps) => {
     const map = props.map;
     const numxtiles = Math.floor(map.tileSetDimX / map.tileDim);
     const numytiles = Math.floor(map.tileSetDimY / map.tileDim);

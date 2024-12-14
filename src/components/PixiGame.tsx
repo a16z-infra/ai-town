@@ -14,6 +14,7 @@ import { DebugPath } from './DebugPath.tsx';
 import { PositionIndicator } from './PositionIndicator.tsx';
 import { SHOW_DEBUG_UI } from './Game.tsx';
 import { ServerGame } from '../hooks/serverGame.ts';
+import { FederatedPointerEvent } from 'pixi.js';
 
 export const PixiGame = (props: {
   worldId: Id<'worlds'>;
@@ -37,8 +38,7 @@ export const PixiGame = (props: {
 
   // Interaction for clicking on the world to navigate.
   const dragStart = useRef<{ screenX: number; screenY: number } | null>(null);
-  const onMapPointerDown = (e: any) => {
-    // https://pixijs.download/dev/docs/PIXI.FederatedPointerEvent.html
+  const onMapPointerDown = (e: FederatedPointerEvent) => {
     dragStart.current = { screenX: e.screenX, screenY: e.screenY };
   };
 
@@ -47,7 +47,8 @@ export const PixiGame = (props: {
     y: number;
     t: number;
   } | null>(null);
-  const onMapPointerUp = async (e: any) => {
+
+  const onMapPointerUp = async (e: FederatedPointerEvent) => {
     if (dragStart.current) {
       const { screenX, screenY } = dragStart.current;
       dragStart.current = null;
@@ -79,10 +80,11 @@ export const PixiGame = (props: {
     console.log(`Moving to ${JSON.stringify(roundedTiles)}`);
     await toastOnError(moveTo({ playerId: humanPlayerId, destination: roundedTiles }));
   };
+
   const { width, height, tileDim } = props.game.worldMap;
   const players = [...props.game.world.players.values()];
 
-  // Zoom on the user’s avatar when it is created
+  // Zoom on the user's avatar when it is created
   useEffect(() => {
     if (!viewportRef.current || humanPlayerId === undefined) return;
 

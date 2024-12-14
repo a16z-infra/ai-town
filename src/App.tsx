@@ -19,6 +19,7 @@ import ActionButton from './components/buttons/ActionButton.tsx';
 import LeaderboardTable from './components/LeaderboardTable.tsx';
 import RoadmapCard from './components/RoadmapCard.tsx';
 import bushSprite from '../assets/bush_sprite.png';
+import spritesExample from '../assets/sprites_example.png';
 
 export default function Home() {
   const [helpModalOpen, setHelpModalOpen] = useState(false);
@@ -120,11 +121,7 @@ export default function Home() {
         <section className="w-full flex flex-col items-center pt-48 pb-32">
           <div className="flex flex-col lg:flex-row items-center justify-between max-w-7xl w-full gap-12 px-8">
             <div className="lg:w-1/2">
-              <img
-                src="../assets/sprites_example.png"
-                alt="Character Sprites"
-                className="w-full object-contain"
-              />
+              <img src={spritesExample} alt="Character Sprites" className="w-full object-contain" />
             </div>
 
             <div className="lg:w-1/2 text-white">

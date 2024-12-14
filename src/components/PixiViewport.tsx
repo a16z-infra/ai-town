@@ -22,7 +22,7 @@ export default PixiComponent('Viewport', {
   create(props: ViewportProps) {
     const { app, children, viewportRef, ...viewportProps } = props;
     const viewport = new Viewport({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      // @ts-expect-error events is required for pixi-viewport but not typed in IViewportOptions
       events: app.renderer.events,
       passiveWheel: false,
       ...viewportProps,
