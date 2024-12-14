@@ -36,11 +36,11 @@ export default function Create() {
 
   useEffect(() => {
     let mounted = true;
+    let pollInterval: number;
 
     const checkBalance = async () => {
       if (connected && publicKey) {
         const balance = await checkTokenBalance();
-        // Only update state if component is still mounted
         if (mounted) {
           setHasEnoughTokens(balance > 0);
         }
@@ -49,9 +49,11 @@ export default function Create() {
 
     checkBalance();
 
-    // Cleanup function
     return () => {
       mounted = false;
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
     };
   }, [connected, publicKey]);
 
@@ -109,7 +111,7 @@ export default function Create() {
       const signature = await signMessage(messageBytes);
       const signatureString = bs58.encode(signature);
 
-      // Call the API
+      // Initial request
       const response = await fetch(API_URL + '/api/generate', {
         method: 'POST',
         headers: {
@@ -129,8 +131,33 @@ export default function Create() {
         throw new Error('Generation failed');
       }
 
-      const data = await response.json();
-      setImageData(data.url);
+      const { predictionId } = await response.json();
+
+      // Modified polling with cleanup
+      let isPolling = true;
+      while (isPolling) {
+        const statusRes = await fetch(
+          `${API_URL}/api/generate?predictionId=${predictionId}&wallet=${publicKey.toBase58()}&prompt=${encodeURIComponent(formData.character)}&name=${encodeURIComponent(formData.name)}&identity=${encodeURIComponent(formData.identity)}&signature=${signatureString}`,
+        );
+
+        if (!statusRes.ok) {
+          isPolling = false;
+          throw new Error('Status check failed');
+        }
+
+        const result = await statusRes.json();
+
+        if (result.status === 'complete') {
+          setImageData(result.url);
+          isPolling = false;
+          break;
+        } else if (result.status === 'failed') {
+          isPolling = false;
+          throw new Error('Generation failed during processing');
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
     } catch (error) {
       console.error('Generation error:', error);
       setErrors((prev) => ({ ...prev, token: 'Generation failed' }));
