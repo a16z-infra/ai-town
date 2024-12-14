@@ -12,9 +12,11 @@ const TOWN_TOKEN_ADDRESS = new PublicKey('9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQ
 const API_URL = import.meta.env.VITE_API_ROUTE_URL;
 const RPC_URL = import.meta.env.VITE_RPC_URL;
 
+// Move connection outside component to avoid recreating it on every render
+const connection = new Connection(RPC_URL, 'confirmed');
+
 export default function Create() {
   const { connected, publicKey, signMessage } = useWallet();
-  const connection = new Connection(RPC_URL, 'confirmed');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -33,23 +35,38 @@ export default function Create() {
   const [hasEnoughTokens, setHasEnoughTokens] = useState(false);
 
   useEffect(() => {
-    if (connected) {
-      checkTokenBalance().then((balance) => {
-        setHasEnoughTokens(balance > 0);
-      });
-    } else {
-      setHasEnoughTokens(false);
-    }
+    let mounted = true;
+
+    const checkBalance = async () => {
+      if (connected && publicKey) {
+        const balance = await checkTokenBalance();
+        // Only update state if component is still mounted
+        if (mounted) {
+          setHasEnoughTokens(balance > 0);
+        }
+      }
+    };
+
+    checkBalance();
+
+    // Cleanup function
+    return () => {
+      mounted = false;
+    };
   }, [connected, publicKey]);
 
   const checkTokenBalance = async () => {
     if (!publicKey) return 0;
+
     try {
       const tokenAccount = await getAssociatedTokenAddress(TOWN_TOKEN_ADDRESS, publicKey);
-
       const balance = await connection.getTokenAccountBalance(tokenAccount);
       return Number(balance.value.amount);
     } catch (error) {
+      // Handle case where token account doesn't exist
+      if ((error as any)?.message?.includes('could not find account')) {
+        return 0;
+      }
       console.error('Error checking token balance:', error);
       return 0;
     }
