@@ -3,13 +3,17 @@ import { ReactNode } from 'react';
 interface ActionButtonProps {
   children: ReactNode;
   onClick?: () => void;
+  disabled?: boolean;
 }
 
-export default function ActionButton({ children, onClick }: ActionButtonProps) {
+export default function ActionButton({ children, onClick, disabled }: ActionButtonProps) {
   return (
     <button
       onClick={onClick}
-      className="bg-[#ff4444] hover:bg-[#ff6666] text-white font-display px-12 py-3 text-xl uppercase transition-colors"
+      disabled={disabled}
+      className={`bg-[#ff4444] text-white font-display px-12 py-3 text-xl uppercase transition-colors ${
+        disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#ff6666]'
+      }`}
     >
       {children}
     </button>
