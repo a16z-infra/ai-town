@@ -21,7 +21,10 @@ import { GameId } from './aiTown/ids';
 const excludedTables: Array<TableNames> = ['embeddingsCache'];
 
 export const wipeAllTables = internalMutation({
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
+    if (process.env.STOP_NOT_ALLOWED && !args.iKnowWhatIAmDoing) {
+      throw new Error('You cannot wipe all tables on this instance');
+    }
     for (const tableName of Object.keys(schema.tables)) {
       if (excludedTables.includes(tableName as TableNames)) {
         continue;
