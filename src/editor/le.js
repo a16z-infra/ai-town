@@ -795,6 +795,11 @@ function centerCompositePane(x, y){
     compositepane.scrollTop  = y - (CONFIG.htmlCompositePaneH/2);
 }
 
+function getOldTileValue(layer, x, y) {
+    let levelIndex = level_index_from_px(x, y);
+    return layer.sprites[levelIndex] ? layer.sprites[levelIndex].index : -1;
+}
+
 function centerLayerPanes(x, y){
     // TODO remove magic number pulled from index.html
     g_ctx.g_layers.map((l) => {
@@ -941,10 +946,7 @@ function levelPlaceNoVariable(layer, e) {
     centerCompositePane(xorig, yorig);
 
     if (g_ctx.dkey || g_ctx.selected_tiles.length == 0) {
-        // Get the old value before placing new tile
-        let levelIndex = level_index_from_px(e.data.global.x, e.data.global.y);
-        let oldValue = layer.sprites[levelIndex] ? layer.sprites[levelIndex].index : -1;
-        
+        let oldValue = getOldTileValue(layer, e.data.global.x, e.data.global.y);
         let ti = layer.addTileLevelPx(e.data.global.x, e.data.global.y, g_ctx.tile_index);
         UNDO.undo_add_single_index_as_task(layer, ti, oldValue);
     } else {
@@ -953,8 +955,7 @@ function levelPlaceNoVariable(layer, e) {
             // Calculate position and get old value
             let x = xorig + index[0] * g_ctx.tiledimx;
             let y = yorig + index[1] * g_ctx.tiledimx;
-            let levelIndex = level_index_from_px(x, y);
-            let oldValue = layer.sprites[levelIndex] ? layer.sprites[levelIndex].index : -1;
+            let oldValue = getOldTileValue(layer, x, y);
             
             let ti = layer.addTileLevelPx(x, y, index[2]);
             UNDO.undo_add_index_to_task(ti, oldValue);
@@ -1076,8 +1077,7 @@ function onLevelDragEnd(layer, e)
             for (let j = starttiley; j <= endtiley; j++) {
                 let x = i * g_ctx.tiledimx;
                 let y = j * g_ctx.tiledimx;
-                let levelIndex = level_index_from_px(x, y);
-                let oldValue = layer.sprites[levelIndex] ? layer.sprites[levelIndex].index : -1;
+                let oldValue = getOldTileValue(layer, x, y);
                 let ti = layer.addTileLevelPx(x, y, g_ctx.tile_index);
                 UNDO.undo_add_index_to_task(ti, oldValue);
             }
@@ -1110,8 +1110,7 @@ function onLevelDragEnd(layer, e)
                 // Get the old value before placing new tile
                 let x = i * g_ctx.tiledimx;
                 let y = j * g_ctx.tiledimx;
-                let levelIndex = level_index_from_px(x, y);
-                let oldValue = layer.sprites[levelIndex] ? layer.sprites[levelIndex].index : -1;
+                let oldValue = getOldTileValue(layer, x, y);
 
                 if (j === starttiley) { // first row 
                     if (i === starttilex) { // top left corner
