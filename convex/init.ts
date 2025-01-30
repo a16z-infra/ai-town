@@ -2,20 +2,30 @@ import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { DatabaseReader, MutationCtx, mutation } from './_generated/server';
 import { Descriptions } from '../data/characters';
-import * as map from '../data/gentle';
+// import * as map from '../data/maps/serene';
+// import * as map from '../data/maps/mage3';
+// import * as map from '../data/maps/gentleanim';
+// import * as map from '../data/maps/gentle';
+// import * as map from '../data/maps/phatasy2';
 import { insertInput } from './aiTown/insertInput';
 import { Id } from './_generated/dataModel';
 import { createEngine } from './aiTown/main';
 import { ENGINE_ACTION_DURATION } from './constants';
 import { assertApiKey } from './util/llm';
+import { loadAvailableMaps,loadSelectedMapData } from './mapLoader';
 
 const init = mutation({
   args: {
     numAgents: v.optional(v.number()),
+    mapId:v.optional(v.string())
   },
   handler: async (ctx, args) => {
     assertApiKey();
-    const { worldStatus, engine } = await getOrCreateDefaultWorld(ctx);
+    const mapConfigObj = loadAvailableMaps();
+    const chosenId = args.mapId||mapConfigObj.defaultMap;
+    const mapdata = await loadSelectedMapData(chosenId);
+
+    const { worldStatus, engine } = await getOrCreateDefaultWorld(ctx,mapdata);
     if (worldStatus.status !== 'running') {
       console.warn(
         `Engine ${engine._id} is not active! Run "npx convex run testing:resume" to restart it.`,
@@ -39,7 +49,7 @@ const init = mutation({
 });
 export default init;
 
-async function getOrCreateDefaultWorld(ctx: MutationCtx) {
+async function getOrCreateDefaultWorld(ctx: MutationCtx,mapdata:any) {
   const now = Date.now();
 
   let worldStatus = await ctx.db
@@ -67,17 +77,29 @@ async function getOrCreateDefaultWorld(ctx: MutationCtx) {
     worldId: worldId,
   });
   worldStatus = (await ctx.db.get(worldStatusId))!;
+  // await ctx.db.insert('maps', {
+  //   worldId,
+  //   width: map.mapwidth,
+  //   height: map.mapheight,
+  //   tileSetUrl: map.tilesetpath,
+  //   tileSetDimX: map.tilesetpxw,
+  //   tileSetDimY: map.tilesetpxh,
+  //   tileDim: map.tiledim,
+  //   bgTiles: map.bgtiles,
+  //   objectTiles: map.objmap,
+  //   animatedSprites: map.animatedsprites,
+  // });
   await ctx.db.insert('maps', {
     worldId,
-    width: map.mapwidth,
-    height: map.mapheight,
-    tileSetUrl: map.tilesetpath,
-    tileSetDimX: map.tilesetpxw,
-    tileSetDimY: map.tilesetpxh,
-    tileDim: map.tiledim,
-    bgTiles: map.bgtiles,
-    objectTiles: map.objmap,
-    animatedSprites: map.animatedsprites,
+    width: mapdata.mapwidth,
+    height: mapdata.mapheight,
+    tileSetUrl: mapdata.tilesetpath,
+    tileSetDimX: mapdata.tilesetpxw,
+    tileSetDimY: mapdata.tilesetpxh,
+    tileDim: mapdata.tiledim,
+    bgTiles: mapdata.bgtiles,
+    objectTiles: mapdata.objmap,
+    animatedSprites: mapdata.animatedsprites,
   });
   await ctx.scheduler.runAfter(0, internal.aiTown.main.runStep, {
     worldId,
