@@ -16,6 +16,56 @@ import { fetchEmbedding, LLM_CONFIG } from './util/llm';
 import { chatCompletion } from './util/llm';
 import { startConversationMessage } from './agent/conversation';
 import { GameId } from './aiTown/ids';
+import { action } from "./_generated/server";
+
+
+// worte a testing for open ai connection
+export const testOpenAI = action({
+  handler: async (ctx) => {
+    console.log("Starting OpenAI diagnostic test...");
+    
+    // First test the chat API
+    console.log("Testing chat completion...");
+    try {
+      const chatResult = await chatCompletion({
+        messages: [{
+          role: "user",
+          content: "Say exactly these words: OpenAI test successful"
+        }],
+        temperature: 0
+      });
+      console.log("Chat completion successful!", {
+        response: chatResult.content
+      });
+    } catch (error) {
+      console.error("Chat completion failed:", {
+        error: error.message,
+        cause: error.cause
+      });
+    }
+
+    // testing the embedding API
+    console.log("\nTesting embedding...");
+    try {
+      const embeddingResult = await fetchEmbedding("OpenAI test text");
+      console.log("Embedding successful!", {
+        dimensions: embeddingResult.embedding.length,
+        usage: embeddingResult.usage
+      });
+      if (Array.isArray(embeddingResult.embedding) && embeddingResult.embedding.length > 0) {
+        console.log("Embedding test passed. Dimensions:", embeddingResult.embedding.length);
+      } else {
+        console.error("Embedding result is invalid or empty.");
+      }
+    } catch (error) {
+      console.error("Embedding failed:", {
+        error: error.message,
+        cause: error.cause
+      });
+    }
+  }
+});
+
 
 // Clear all of the tables except for the embeddings cache.
 const excludedTables: Array<TableNames> = ['embeddingsCache'];
@@ -28,6 +78,7 @@ export const wipeAllTables = internalMutation({
       }
       await ctx.scheduler.runAfter(0, internal.testing.deletePage, { tableName, cursor: null });
     }
+    console.log(`Table has been cleared....`)
   },
 });
 
@@ -79,6 +130,7 @@ export const stop = mutation({
     console.log(`Stopping engine ${engine._id}...`);
     await ctx.db.patch(worldStatus._id, { status: 'stoppedByDeveloper' });
     await stopEngine(ctx, worldStatus.worldId);
+    console.log(`world has stopped...`)
   },
 });
 
@@ -199,4 +251,41 @@ export const testConvo = internalAction({
     )) as any;
     return await a.readAll();
   },
+});
+
+//wipe previous embeddings when switch to a different LLM
+export const wipeEmbeddings = internalMutation({
+  handler: async (ctx) => {
+    const memoryEmbeddings = await ctx.db.query("memoryEmbeddings").collect();
+    for (const embedding of memoryEmbeddings) {
+      await ctx.db.delete(embedding._id);
+    }
+
+    const embeddingsCache = await ctx.db.query("embeddingsCache").collect();
+    for (const embedding of embeddingsCache) {
+      await ctx.db.delete(embedding._id);
+    }
+    console.log("All embeddings wiped");
+  },
+});
+
+export const resetWorldForNewMap = mutation({
+  handler: async (ctx) => {
+    console.log(`start to resetWorld for map...`)
+    // Find the default world
+    const worldStatus = await ctx.db
+      .query('worldStatus')
+      .filter((q) => q.eq(q.field('isDefault'), true))
+      .first();
+      
+    if (!worldStatus) {
+      // No world to reset, that's fine
+      return;
+    }
+    
+    // Stop the engine
+    await ctx.db.patch(worldStatus._id, { status: 'stoppedByDeveloper' });
+    // Archive the world so init can create a new one
+    await ctx.db.patch(worldStatus._id, { isDefault: false });
+  }
 });

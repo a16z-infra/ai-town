@@ -20,11 +20,15 @@ const init = mutation({
     mapId:v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    console.log(`start to init the world...`)
     assertApiKey();
+
+    //get the mapdata from the mapId
     const mapConfigObj = loadAvailableMaps();
     const chosenId = args.mapId||mapConfigObj.defaultMap;
     const mapdata = await loadSelectedMapData(chosenId);
-
+    console.log(`${chosenId} was selected as the new map...`)
+    
     const { worldStatus, engine } = await getOrCreateDefaultWorld(ctx,mapdata);
     if (worldStatus.status !== 'running') {
       console.warn(
@@ -50,18 +54,22 @@ const init = mutation({
 export default init;
 
 async function getOrCreateDefaultWorld(ctx: MutationCtx,mapdata:any) {
+  console.log('getOrCreateDefaultWorld is called')
   const now = Date.now();
 
   let worldStatus = await ctx.db
     .query('worldStatus')
     .filter((q) => q.eq(q.field('isDefault'), true))
     .unique();
+    
   if (worldStatus) {
     const engine = (await ctx.db.get(worldStatus.engineId))!;
+    console.log(`world has already exist: engine: ${engine._id},worldStatus: ${worldStatus._id}`)
     return { worldStatus, engine };
   }
 
   const engineId = await createEngine(ctx);
+  console.log(`engineId is ${engineId}`)
   const engine = (await ctx.db.get(engineId))!;
   const worldId = await ctx.db.insert('worlds', {
     nextId: 0,
@@ -69,6 +77,7 @@ async function getOrCreateDefaultWorld(ctx: MutationCtx,mapdata:any) {
     conversations: [],
     players: [],
   });
+  console.log(`worldId is ${worldId}`)
   const worldStatusId = await ctx.db.insert('worldStatus', {
     engineId: engineId,
     isDefault: true,
@@ -76,6 +85,7 @@ async function getOrCreateDefaultWorld(ctx: MutationCtx,mapdata:any) {
     status: 'running',
     worldId: worldId,
   });
+  console.log(`worldStatusId is ${worldStatusId}`)
   worldStatus = (await ctx.db.get(worldStatusId))!;
   // await ctx.db.insert('maps', {
   //   worldId,
@@ -101,11 +111,13 @@ async function getOrCreateDefaultWorld(ctx: MutationCtx,mapdata:any) {
     objectTiles: mapdata.objmap,
     animatedSprites: mapdata.animatedsprites,
   });
+  
   await ctx.scheduler.runAfter(0, internal.aiTown.main.runStep, {
     worldId,
     generationNumber: engine.generationNumber,
     maxDuration: ENGINE_ACTION_DURATION,
   });
+  console.log("getorcreatedefault world is completed");
   return { worldStatus, engine };
 }
 
