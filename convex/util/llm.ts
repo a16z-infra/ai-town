@@ -3,13 +3,13 @@
 export const LLM_CONFIG = {
   /* Ollama (local) config:
    */
-  ollama: true,
-  url: 'http://127.0.0.1:11434',
-  chatModel: 'llama3' as const,
-  embeddingModel: 'mxbai-embed-large',
-  embeddingDimension: 1024,
-  stopWords: ['<|eot_id|>'],
-  apiKey: () => undefined,
+  // ollama: true,
+  // url: 'http://127.0.0.1:11434',
+  // chatModel: 'llama3' as const,
+  // embeddingModel: 'mxbai-embed-large',
+  // embeddingDimension: 1024,
+  // stopWords: ['<|eot_id|>'],
+  // apiKey: () => undefined,
   // embeddingModel: 'llama3',
   // embeddingDimension: 4096,
 
@@ -23,7 +23,7 @@ export const LLM_CONFIG = {
   apiKey: () => process.env.TOGETHER_API_KEY ?? process.env.LLM_API_KEY,
    */
 
-  /* OpenAI config:
+  /* OpenAI config:*/
   ollama: false,
   url: 'https://api.openai.com',
   chatModel: 'gpt-4o-mini',
@@ -31,7 +31,7 @@ export const LLM_CONFIG = {
   embeddingDimension: 1536,
   stopWords: [],
   apiKey: () => process.env.OPENAI_API_KEY ?? process.env.LLM_API_KEY,
-   */
+   
 };
 
 function apiUrl(path: string) {

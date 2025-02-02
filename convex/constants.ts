@@ -4,19 +4,29 @@ export const ACTION_TIMEOUT = 120_000; // more time for local dev
 export const IDLE_WORLD_TIMEOUT = 5 * 60 * 1000;
 export const WORLD_HEARTBEAT_INTERVAL = 60 * 1000;
 
-export const MAX_STEP = 10 * 60 * 1000;
-export const TICK = 16;
-export const STEP_INTERVAL = 1000;
+// export const MAX_STEP = 10 * 60 * 1000;
+// export const TICK = 16;
+// export const STEP_INTERVAL = 1000;
+export const MAX_STEP = 5 * 60 * 1000;  // Reduced from 10 mins to 5 mins
+export const TICK = 32;  // Increased from 16 to reduce computation frequency
+export const STEP_INTERVAL = 2000;  // Increased from 1000 to give more processing time
 
-export const PATHFINDING_TIMEOUT = 60 * 1000;
-export const PATHFINDING_BACKOFF = 1000;
+
+// export const PATHFINDING_TIMEOUT = 60 * 1000;
+// export const PATHFINDING_BACKOFF = 1000;
+export const PATHFINDING_TIMEOUT = 30 * 1000;  // Reduced from 60s
+export const PATHFINDING_BACKOFF = 2000;  // Increased from 1000
+
+
 export const CONVERSATION_DISTANCE = 1.3;
 export const MIDPOINT_THRESHOLD = 4;
 export const TYPING_TIMEOUT = 15 * 1000;
 export const COLLISION_THRESHOLD = 0.75;
 
 // How many human players can be in a world at once.
-export const MAX_HUMAN_PLAYERS = 8;
+// export const MAX_HUMAN_PLAYERS = 8;
+export const MAX_HUMAN_PLAYERS = 4;  // Reduced from 8
+
 
 // Don't talk to anyone for 15s after having a conversation.
 export const CONVERSATION_COOLDOWN = 15000;
@@ -50,7 +60,7 @@ export const INPUT_DELAY = 1000;
 
 // How many memories to get from the agent's memory.
 // This is over-fetched by 10x so we can prioritize memories by more than relevance.
-export const NUM_MEMORIES_TO_SEARCH = 3;
+export const NUM_MEMORIES_TO_SEARCH = 1;
 
 // Wait for at least two seconds before sending another message.
 export const MESSAGE_COOLDOWN = 2000;
@@ -70,9 +80,11 @@ export const ACTIVITIES = [
   { description: 'gardening', emoji: '🥕', duration: 60_000 },
 ];
 
-export const ENGINE_ACTION_DURATION = 30000;
+// export const ENGINE_ACTION_DURATION = 30000;
+export const ENGINE_ACTION_DURATION = 60000;  // Increased from 30000
 
-// Bound the number of pathfinding searches we do per game step.
-export const MAX_PATHFINDS_PER_STEP = 16;
+// // Bound the number of pathfinding searches we do per game step.
+// export const MAX_PATHFINDS_PER_STEP = 16;
+export const MAX_PATHFINDS_PER_STEP = 4;  // Reduced from 16
 
 export const DEFAULT_NAME = 'Me';

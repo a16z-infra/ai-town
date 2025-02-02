@@ -94,6 +94,8 @@ export const restartDeadWorlds = internalMutation({
   },
 });
 
+
+
 export const userStatus = query({
   args: {
     worldId: v.id('worlds'),

@@ -279,7 +279,7 @@ export const resetWorldForNewMap = mutation({
       .first();
       
     if (!worldStatus) {
-      // No world to reset, that's fine
+      // No world to reset
       return;
     }
     

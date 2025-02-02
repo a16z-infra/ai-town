@@ -14,6 +14,7 @@ import { ACTIVITIES, ACTIVITY_COOLDOWN, CONVERSATION_COOLDOWN } from '../constan
 import { api, internal } from '../_generated/api';
 import { sleep } from '../util/sleep';
 import { serializedPlayer } from './player';
+import { chatCompletion } from '../util/llm';
 
 export const agentRememberConversation = internalAction({
   args: {
@@ -55,6 +56,7 @@ export const agentGenerateMessage = internalAction({
     messageUuid: v.string(),
   },
   handler: async (ctx, args) => {
+    console.log("agentGenerateMessage called with type:", args.type);
     let completionFn;
     switch (args.type) {
       case 'start':
@@ -87,8 +89,9 @@ export const agentGenerateMessage = internalAction({
       leaveConversation: args.type === 'leave',
       operationId: args.operationId,
     });
-  },
+  },   
 });
+
 
 export const agentDoSomething = internalAction({
   args: {
@@ -176,3 +179,14 @@ function wanderDestination(worldMap: WorldMap) {
     y: 1 + Math.floor(Math.random() * (worldMap.height - 2)),
   };
 }
+
+export const testOpenAI = internalAction({
+  handler: async (ctx) => {
+    const response = await chatCompletion({
+      messages: [{ role: 'user', content: 'Say hello' }],
+      max_tokens: 10,
+    });
+    console.log('OpenAI response:', response);
+    return response;
+  },
+});

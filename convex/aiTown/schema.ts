@@ -8,6 +8,7 @@ import { serializedWorld } from './world';
 import { serializedWorldMap } from './worldMap';
 import { serializedConversation } from './conversation';
 import { conversationId, playerId } from './ids';
+import { animatedSprites } from '../../data/maps/mage3';
 
 export const aiTownTables = {
   // This table has a single document that stores all players, conversations, and agents. This

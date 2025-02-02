@@ -50,6 +50,7 @@ export class Agent {
   }
 
   tick(game: Game, now: number) {
+   
     const player = game.world.players.get(this.playerId);
     if (!player) {
       throw new Error(`Invalid player ID ${this.playerId}`);

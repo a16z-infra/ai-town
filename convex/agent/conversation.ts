@@ -26,6 +26,8 @@ export async function startConversationMessage(
       conversationId,
     },
   );
+  console.log('Retrieved player data:', { player, otherPlayer }); // Debug log
+
   const embedding = await embeddingsCache.fetch(
     ctx,
     `${player.name} is talking to ${otherPlayer.name}`,
@@ -55,6 +57,17 @@ export async function startConversationMessage(
   const lastPrompt = `${player.name} to ${otherPlayer.name}:`;
   prompt.push(lastPrompt);
 
+  console.log("About to call chatCompletion with:", {
+    messages: [
+      {
+        role: 'system',
+        content: prompt.join('\n'),
+      },
+    ],
+    max_tokens: 300,
+    stop: stopWords(otherPlayer.name, player.name),
+  });
+
   const { content } = await chatCompletion({
     messages: [
       {
@@ -65,6 +78,8 @@ export async function startConversationMessage(
     max_tokens: 300,
     stop: stopWords(otherPlayer.name, player.name),
   });
+
+  console.log('Received response:', content); // Debug log
   return trimContentPrefx(content, lastPrompt);
 }
 
@@ -124,6 +139,18 @@ export async function continueConversationMessage(
   ];
   const lastPrompt = `${player.name} to ${otherPlayer.name}:`;
   llmMessages.push({ role: 'user', content: lastPrompt });
+
+  console.log("About to call chatCompletion with:", {
+    messages: [
+      {
+        role: 'system',
+        content: prompt.join('\n'),
+      },
+    ],
+    max_tokens: 300,
+    stop: stopWords(otherPlayer.name, player.name),
+  });
+
 
   const { content } = await chatCompletion({
     messages: llmMessages,
