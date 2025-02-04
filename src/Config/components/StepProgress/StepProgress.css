@@ -1,0 +1,83 @@
+.pixel-progress {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    position: relative;
+    padding: 16px;
+    background-color: var(--dialog-bg);
+    border: var(--pixel-size) solid var(--border-color);
+  }
+  
+  .pixel-progress::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: var(--pixel-size);
+    background-color: var(--border-color);
+    z-index: 1;
+  }
+  
+  .pixel-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+    flex: 1;
+  }
+  
+  .pixel-step-number {
+    width: 24px;
+    height: 24px;
+    background-color: var(--dialog-bg);
+    color: var(--text-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 12px;
+    position: relative;
+    border: 0;
+  }
+  
+  .pixel-step-number::before {
+    content: "";
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border: var(--pixel-size) solid var(--border-color);
+  }
+  
+  .pixel-step-label {
+    font-size: 8px;
+    text-align: center;
+    white-space: nowrap;
+    color: var(--text-color);
+    letter-spacing: 0;
+  }
+  
+  .pixel-step.completed .pixel-step-number {
+    background-color: var(--highlight-color);
+    color: var(--dialog-bg);
+  }
+  
+  .pixel-step.active .pixel-step-number {
+    background-color: var(--highlight-color);
+    color: var(--dialog-bg);
+  }
+  
+  .pixel-step.active .pixel-step-label {
+    color: var(--highlight-color);
+  }
+  
+  @media (max-width: 768px) {
+    .pixel-step-label {
+      font-size: 6px;
+    }
+  }
+  
+  

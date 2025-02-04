@@ -1,0 +1,45 @@
+.pixel-list {
+    width: 100%;
+    overflow-y: auto;
+    max-height: 60vh;
+  }
+  
+  .pixel-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    cursor: pointer;
+    margin-bottom: 8px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 0;
+    position: relative;
+    transition: all 0.2s steps(2);
+  }
+  
+  .pixel-item::before {
+    content: "►";
+    position: absolute;
+    left: -16px;
+    opacity: 0;
+    color: var(--highlight-color);
+    transition: all 0.2s steps(2);
+  }
+  
+  .pixel-item:hover::before {
+    opacity: 1;
+    left: 4px;
+  }
+  
+  .pixel-item.selected {
+    background-color: var(--highlight-color);
+    color: var(--dialog-bg);
+    padding-left: 24px;
+  }
+  
+  .pixel-item.selected::before {
+    opacity: 1;
+    left: 4px;
+    color: var(--dialog-bg);
+  }
+  
+  

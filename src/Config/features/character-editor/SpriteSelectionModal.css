@@ -1,0 +1,39 @@
+.sprite-selection-modal {
+    max-width: 600px;
+    width: 90%;
+    padding: 30px;
+  }
+  
+  .sprite-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+  
+  .sprite-button {
+    background: none;
+    border: var(--pixel-size) solid var(--border-color);
+    cursor: pointer;
+    padding: 10px;
+    transition: all 0.2s steps(2);
+  }
+  
+  .sprite-button:hover {
+    border-color: var(--highlight-color);
+  }
+  
+  .sprite-image {
+    width: 100%;
+    height: auto;
+    max-width: 100px;
+    max-height: 100px;
+    image-rendering: pixelated;
+  }
+  
+  .close-btn {
+    display: block;
+    margin: 0 auto;
+  }
+  
+  

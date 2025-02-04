@@ -1,0 +1,203 @@
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+
+:root {
+  --title-gradient-1: #ffb938;
+  --title-gradient-2: #ff9b38;
+  --bg-color: #1e3b3b;
+  --frame-color: #8b4513;
+  --dialog-bg: #3a2833;
+  --text-color: #ffffff;
+  --border-color: #5c4b51;
+  --highlight-color: #ffb938;
+  --pixel-size: 2px;
+}
+
+body {
+  font-family: "Press Start 2P", cursive;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  image-rendering: pixelated;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+.pixel-app {
+  max-width: 1024px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.pixel-container {
+  background-color: var(--dialog-bg);
+  border: var(--pixel-size) solid var(--frame-color);
+  padding: 16px;
+  margin-bottom: 16px;
+  image-rendering: pixelated;
+  position: relative;
+}
+
+.pixel-container::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 4px;
+  height: 4px;
+  background-color: var(--frame-color);
+}
+
+.pixel-title {
+  font-size: 24px;
+  margin: 16px 0;
+  text-align: center;
+  color: var(--title-gradient-1);
+  text-shadow: 2px 2px 0 #000, 4px 4px 0 rgba(0, 0, 0, 0.5);
+  letter-spacing: 2px;
+}
+
+.pixel-content {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background-color: var(--dialog-bg);
+  border: var(--pixel-size) solid var(--border-color);
+  image-rendering: pixelated;
+}
+
+.pixel-btn {
+  padding: 8px 16px;
+  font-family: "Press Start 2P", cursive;
+  font-size: 12px;
+  cursor: pointer;
+  background-color: var(--highlight-color);
+  color: var(--dialog-bg);
+  border: 0;
+  position: relative;
+  margin-top: 16px;
+  text-transform: uppercase;
+  image-rendering: pixelated;
+}
+
+.pixel-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--frame-color);
+  z-index: -1;
+  transform: translate(4px, 4px);
+}
+
+.pixel-btn:hover {
+  transform: translate(2px, 2px);
+}
+
+.pixel-btn:active {
+  transform: translate(4px, 4px);
+}
+
+.pixel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pixel-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 16px;
+  background-color: var(--dialog-bg);
+  border: var(--pixel-size) solid var(--border-color);
+}
+
+.pixel-progress {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  position: relative;
+  padding: 16px;
+  background-color: var(--dialog-bg);
+  border: var(--pixel-size) solid var(--border-color);
+}
+
+.pixel-progress::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: var(--pixel-size);
+  background-color: var(--border-color);
+  z-index: 1;
+}
+
+.pixel-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  flex: 1;
+}
+
+.pixel-step-number {
+  width: 24px;
+  height: 24px;
+  background-color: var(--dialog-bg);
+  color: var(--text-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+  position: relative;
+  border: 0;
+}
+
+.pixel-step-number::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: var(--pixel-size) solid var(--border-color);
+}
+
+.pixel-step-label {
+  font-size: 8px;
+  text-align: center;
+  white-space: nowrap;
+  color: var(--text-color);
+  letter-spacing: 0;
+}
+
+.pixel-step.completed .pixel-step-number {
+  background-color: var(--highlight-color);
+  color: var(--dialog-bg);
+}
+
+.pixel-step.active .pixel-step-number {
+  background-color: var(--highlight-color);
+  color: var(--dialog-bg);
+}
+
+.pixel-step.active .pixel-step-label {
+  color: var(--highlight-color);
+}
+
+@media (max-width: 768px) {
+  .pixel-content {
+    flex-direction: column;
+  }
+
+  .pixel-step-label {
+    font-size: 6px;
+  }
+}

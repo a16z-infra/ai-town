@@ -25,6 +25,7 @@
     "dotenv": "^16.1.4",
     "eslint": "8.42.0",
     "hnswlib-node": "^1.4.2",
+    "lucide-react": "^0.474.0",
     "pixi-viewport": "^5.0.1",
     "pixi.js": "^7.2.4",
     "react": "18.2.0",

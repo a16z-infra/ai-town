@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import GamePage from './GamePage';
-import ConfigPage from './pages/ConfigPage';
+import ConfigPage from './Config/ConfigPage';
 import ConvexClientProvider from './components/ConvexClientProvider';
 
  export default function App() {

@@ -1,0 +1,87 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .modal-content {
+    background-color: var(--dialog-bg);
+    border: var(--pixel-size) solid var(--border-color);
+    padding: 16px;
+    max-width: 80%;
+    max-height: 80%;
+    overflow-y: auto;
+  }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  
+  .close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-color);
+  }
+  
+  .character-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  
+  .character-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border: var(--pixel-size) solid var(--border-color);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s steps(2);
+  }
+  
+  .character-card.selected {
+    background-color: var(--highlight-color);
+    color: var(--dialog-bg);
+  }
+  
+  .character-avatar {
+    width: 80px;
+    height: 80px;
+    image-rendering: pixelated;
+    border: var(--pixel-size) solid var(--border-color);
+    margin-bottom: 8px;
+  }
+  
+  .character-card .character-name {
+    font-size: 12px;
+    text-align: center;
+  }
+  
+  .check-icon {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    color: var(--dialog-bg);
+  }
+  
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+  }
+  
+  
