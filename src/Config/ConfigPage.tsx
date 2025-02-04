@@ -68,20 +68,35 @@ function ConfigPage() {
   const resumeWorld = useMutation(api.testing.resume);
   
   //handle save now only handles map selection. Add more handler for character and music
-  const handleSave= async () => {  
-      try{
-        await resetWorld()
-        await initWorld({
-          numAgents:undefined,
-          mapId:selectedMap
-        })
-        setSelectedMap(selectedMap)
-        alert("Save successful: Map selection updated")
-      }catch(error){
-        console.error("Failed to save map selection", error)
-        alert('Failed to save map' + error)
+  const handleSave = async () => {
+    try {
+      await resetWorld();
+      await initWorld({
+        numAgents: undefined,
+        mapId: selectedMap
+      });
+  
+      setSelectedMap(selectedMap);
+  
+      if (selectedMusic !== null) {
+        // Store selected music in localStorage
+        const storedMusic = {
+          id: selectedMusic,
+          file: `/assets/music${selectedMusic}.mp3`,
+        };
+  
+        localStorage.setItem("selectedMusic", JSON.stringify(storedMusic));
+  
+        alert(`Save successful: Map and Music updated.\nMusic: music${selectedMusic}.mp3`);
+      } else {
+        alert("Save successful: Map updated. No music selected.");
       }
-  }
+    } catch (error) {
+      console.error("Failed to save selection", error);
+      alert(`Failed to save: ${error}`);
+    }
+  };
+  
   
 
   const getCurrentStep = () => {
