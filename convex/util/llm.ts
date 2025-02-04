@@ -2,7 +2,6 @@
 
 export const LLM_CONFIG = {
   /* Ollama (local) config:
-   */
   // ollama: true,
   // url: 'http://127.0.0.1:11434',
   // chatModel: 'llama3' as const,
@@ -24,6 +23,7 @@ export const LLM_CONFIG = {
    */
 
   /* OpenAI config:*/
+  
   ollama: false,
   url: 'https://api.openai.com',
   chatModel: 'gpt-4o-mini',

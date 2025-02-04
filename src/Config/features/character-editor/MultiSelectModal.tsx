@@ -3,15 +3,15 @@ import { Check, X } from "lucide-react"
 import "./MultiSelectModal.css"
 
 type Character = {
-  id: number
+  id: string
   name: string
   preview: string
 }
 
 type MultiSelectModalProps = {
   characters: Character[]
-  selectedCharacters: number[]
-  onSelect: (id: number) => void
+  selectedCharacters: string[]
+  onSelect: (id: string) => void
   onClose: () => void
   onSave: () => void
 }

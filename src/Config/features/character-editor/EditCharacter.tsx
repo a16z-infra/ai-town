@@ -4,57 +4,30 @@ import { Upload, X } from "lucide-react"
 import "./EditCharacter.css"
 import { MultiSelectModal } from "./MultiSelectModal"
 import { SpriteSelectionModal } from "./SpriteSelectionModal"
+import { updateDescriptions } from "../../../../data/characters";
+
 
 // Note: In a real application, you would import API functions from a separate file
 // import { fetchCharacters, createCharacter, updateCharacter, deleteCharacter } from '../api/characters'
 
 type Character = {
-  id: number
-  name: string
-  description: string
-  goals: string
-  preview: string
-  isCustom?: boolean
+  id: string //convex db id must be string
+  name: string //name is name
+  description: string //actually identity in db
+  goals: string //hmmm.. =plans for backend!
+  preview: string //not my thing but returns f*. Change ticked
+  isCustom?: boolean //not my thing
 }
 
-// Note: This is mock data. In a real application, this data would come from the backend API.
-const predefinedCharacters: Character[] = [
-  {
-    id: 1,
-    name: "Predefine 1",
-    description: "A brave adventurer who likes math and solving puzzles.",
-    goals: "To become the greatest mathematician in the realm",
-    preview: "/placeholder.svg?height=200&width=200",
-  },
-  {
-    id: 2,
-    name: "Predefine 2",
-    description: "A mysterious wanderer with a passion for science.",
-    goals: "To discover new magical formulas",
-    preview: "/placeholder.svg?height=200&width=200",
-  },
-  {
-    id: 3,
-    name: "Predefine 3",
-    description: "A curious explorer who loves learning.",
-    goals: "To build the biggest library in the world",
-    preview: "/placeholder.svg?height=200&width=200",
-  },
-  {
-    id: 4,
-    name: "Bob",
-    description: "A friendly mathematician who likes solving complex problems.",
-    goals: "To teach math to everyone in the kingdom",
-    preview: "/placeholder.svg?height=200&width=200",
-  },
-]
-
 type EditCharacterProps = {
-  selectedCharacter: number | null
-  setSelectedCharacter: (id: number) => void
+  selectedCharacter: string | null
+  setSelectedCharacter: (id: string) => void
   onBack: () => void
   onNext: () => void
 }
+
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
 
 export const EditCharacter: React.FC<EditCharacterProps> = ({
   selectedCharacter,
@@ -62,11 +35,23 @@ export const EditCharacter: React.FC<EditCharacterProps> = ({
   onBack,
   onNext,
 }) => {
+
+  const agentDocs = useQuery(api["customizeAgents/queries"].getAgents) ?? []; //must do this. Convex thing. hate it.
+  const predefinedCharacters = agentDocs.map((doc) => ({
+  id: doc._id.id,
+  name: doc.name,
+  description: doc.identity,
+  goals: doc.plan,
+  preview: doc.character
+    ? `/sprites/${doc.character}.png`
+    : "/placeholder.svg?height=200&width=200",
+  isCustom: true,
+  }));
   const [isCreating, setIsCreating] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null)
   const [showMultiSelectModal, setShowMultiSelectModal] = useState(false)
-  const [selectedCharacters, setSelectedCharacters] = useState<number[]>([])
+  const [selectedCharacters, setSelectedCharacters] = useState<string[]>([])
   const [showSpriteModal, setShowSpriteModal] = useState(false)
 
   // Note: In a real application, you would fetch characters from the backend when the component mounts
@@ -92,27 +77,44 @@ export const EditCharacter: React.FC<EditCharacterProps> = ({
     setShowSpriteModal(false)
   }
 
-  const handleSave = () => {
-    if (editingCharacter) {
-      // Note: In a real application, you would call the backend API here
-      // if (editingCharacter.id) {
-      //   await updateCharacter(editingCharacter)
-      // } else {
-      //   const newCharacter = await createCharacter(editingCharacter)
-      //   setSelectedCharacter(newCharacter.id)
-      // }
-
-      const index = predefinedCharacters.findIndex((c) => c.id === editingCharacter.id)
-      if (index !== -1) {
-        predefinedCharacters[index] = editingCharacter
-      } else {
-        predefinedCharacters.push(editingCharacter)
-      }
-      setSelectedCharacter(editingCharacter.id)
-      setIsEditing(false)
-      setIsCreating(false)
+  const createAgentMutation = useMutation(api["customizeAgents/mutations"].createAgent); //I want to mutate too. Damn.
+  const updateAgentMutation = useMutation(api["customizeAgents/mutations"].updateAgent); //doesn't like my docker environment. Hate it more.
+  
+  const handleSave = async () => {
+    if (!editingCharacter) return;
+  
+    //判断新建还是eedit
+    const existing = agentDocs.find((doc) => doc._id.id === editingCharacter.id);
+    if (!existing) {
+      // 新建
+      await createAgentMutation({
+        name: editingCharacter.name,
+        //  还原成 "f*"()，目前用的predefined spritesheet template，改的粗
+        character: editingCharacter.preview
+          .replace("/sprites/", "")
+          .replace(".png", ""),
+        identity: editingCharacter.description,
+        plan: editingCharacter.goals,
+      });
+    } else {
+      // edit
+      await updateAgentMutation({
+        id: { tableName: "agents", id: editingCharacter.id },
+        name: editingCharacter.name,
+        character: editingCharacter.preview
+          .replace("/sprites/", "")
+          .replace(".png", ""),
+        identity: editingCharacter.description,
+        plan: editingCharacter.goals,
+      });
     }
-  }
+  
+    setIsEditing(false);
+    setIsCreating(false);
+    setEditingCharacter(null);
+    // await updateDescriptions();
+  };
+  
 
   const handleCancel = () => {
     setIsEditing(false)
@@ -229,20 +231,21 @@ export const EditCharacter: React.FC<EditCharacterProps> = ({
           className="pixel-btn"
           onClick={() => {
             setEditingCharacter({
-              id: Math.max(...predefinedCharacters.map((c) => c.id)) + 1,
+              id: "temp-new-" + Date.now(), //placeholder id. yikes.
               name: "",
               description: "",
               goals: "",
               preview: "/placeholder.svg?height=200&width=200",
               isCustom: true,
-            })
-            setIsCreating(true)
+            });
+            setIsCreating(true);
           }}
+          
         >
           Create Agent
         </button>
         <button className="pixel-btn" onClick={() => setShowMultiSelectModal(true)}>
-          Multi Select
+          Add to World
         </button>
       </div>
       <div className="character-list">
@@ -256,9 +259,11 @@ export const EditCharacter: React.FC<EditCharacterProps> = ({
             <span>{character.name}</span>
             {character.isCustom && <span className="custom-badge">Custom</span>}
           </div>
+          
         ))}
       </div>
     </div>
+    
   )
 
   const renderSelectedCharactersThumbnails = () => (

@@ -23,6 +23,11 @@ const init = mutation({
     console.log(`start to init the world...`)
     assertApiKey();
 
+    //get agents from db
+    const selectedAgents = await ctx.db
+    .query("agents")
+    .collect();
+
     //get the mapdata from the mapId
     const mapConfigObj = loadAvailableMaps();
     const chosenId = args.mapId||mapConfigObj.defaultMap;
@@ -42,10 +47,16 @@ const init = mutation({
       worldStatus.engineId,
     );
     if (shouldCreate) {
-      const toCreate = args.numAgents !== undefined ? args.numAgents : Descriptions.length;
-      for (let i = 0; i < toCreate; i++) {
+      for (const agent of selectedAgents) {
+        console.log('Creating agent:', agent.name);
+        
         await insertInput(ctx, worldStatus.worldId, 'createAgent', {
-          descriptionIndex: i % Descriptions.length,
+          agent: {
+            name: agent.name,
+            character: agent.character,
+            identity: agent.identity,
+            plan: agent.plan
+          }
         });
       }
     }
@@ -133,15 +144,15 @@ async function shouldCreateAgents(
   if (world.agents.length > 0) {
     return false;
   }
-  const unactionedJoinInputs = await db
-    .query('inputs')
-    .withIndex('byInputNumber', (q) => q.eq('engineId', engineId))
-    .order('asc')
-    .filter((q) => q.eq(q.field('name'), 'createAgent'))
-    .filter((q) => q.eq(q.field('returnValue'), undefined))
-    .collect();
-  if (unactionedJoinInputs.length > 0) {
-    return false;
-  }
+  // const unactionedJoinInputs = await db
+  //   .query('inputs')
+  //   .withIndex('byInputNumber', (q) => q.eq('engineId', engineId))
+  //   .order('asc')
+  //   .filter((q) => q.eq(q.field('name'), 'createAgent'))
+  //   .filter((q) => q.eq(q.field('returnValue'), undefined))
+  //   .collect();
+  // if (unactionedJoinInputs.length > 0) {
+  //   return false;
+  // }
   return true;
 }

@@ -8,7 +8,7 @@
     "lint": "eslint .",
     "predev": "just convex dev --run init --until-success && convex dashboard",
     "dev:backend": "just convex dev --tail-logs",
-    "dev:frontend": "vite",
+    "dev:frontend": "vite --host",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --verbose",
     "le": "vite src/editor/"
   },
