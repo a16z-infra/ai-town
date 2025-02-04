@@ -1,19 +1,17 @@
 import type React from "react"
+import { useState } from "react"
 import "./SelectMusic.css"
 
-// Note: In a real application, you would import API functions from a separate file
-// import { fetchSongs } from '../../api/music'
-
-// Note: This is mock data. In a real application, this data would come from the backend API.
 const songs: Song[] = [
-  { id: 1, name: "Adventure Theme" },
-  { id: 2, name: "Mysterious Forest" },
-  { id: 3, name: "Epic Battle" },
+  { id: 1, name: "Calming Piano ", file: "music1.mp3" },
+  { id: 2, name: "Ready for Battle", file: "music2.mp3" },
+  { id: 3, name: "Happy Adventure", file: "music3.mp3" },
 ]
 
 type Song = {
   id: number
   name: string
+  file: string
 }
 
 type SelectMusicProps = {
@@ -24,14 +22,22 @@ type SelectMusicProps = {
 }
 
 export const SelectMusic: React.FC<SelectMusicProps> = ({ selectedMusic, setSelectedMusic, onBack, onSave }) => {
-  // Note: In a real application, you would fetch songs from the backend when the component mounts
-  // useEffect(() => {
-  //   const loadSongs = async () => {
-  //     const fetchedSongs = await fetchSongs()
-  //     // Update the state with fetched songs
-  //   }
-  //   loadSongs()
-  // }, [])
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null)
+
+  const handleMusicClick = (song: Song) => {
+    setSelectedMusic(song.id)
+
+    // Stop the current audio if playing
+    if (audio) {
+      audio.pause()
+      audio.currentTime = 0
+    }
+
+    // Create and play new audio from /public/assets/
+    const newAudio = new Audio(`/assets/${song.file}`)
+    newAudio.play()
+    setAudio(newAudio)
+  }
 
   return (
     <div className="pixel-container">
@@ -42,7 +48,7 @@ export const SelectMusic: React.FC<SelectMusicProps> = ({ selectedMusic, setSele
             <div
               key={song.id}
               className={`pixel-item ${selectedMusic === song.id ? "selected" : ""}`}
-              onClick={() => setSelectedMusic(song.id)}
+              onClick={() => handleMusicClick(song)}
             >
               <span>{song.name}</span>
             </div>
@@ -60,4 +66,3 @@ export const SelectMusic: React.FC<SelectMusicProps> = ({ selectedMusic, setSele
     </div>
   )
 }
-
