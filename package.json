@@ -6,10 +6,11 @@
     "dev": "npm-run-all --parallel dev:frontend dev:backend",
     "build": "tsc && vite build",
     "lint": "eslint .",
-    "predev": "just convex dev --run init --until-success && convex dashboard",
-    "dev:backend": "just convex dev --tail-logs",
+    "predev": "convex dev --run init --until-success && convex dashboard",
+    "dev:backend": "convex dev --tail-logs",
     "dev:frontend": "vite",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --verbose",
+    "level-editor": "vite src/editor/",
     "le": "vite src/editor/"
   },
   "dependencies": {
