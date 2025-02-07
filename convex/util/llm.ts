@@ -4,25 +4,31 @@ const OPENAI_EMBEDDING_DIMENSION = 1536;
 const TOGETHER_EMBEDDING_DIMENSION = 768;
 const OLLAMA_EMBEDDING_DIMENSION = 1024;
 
-export const EMBEDDING_DIMENSION: number = OPENAI_EMBEDDING_DIMENSION;
+export const EMBEDDING_DIMENSION: number = OLLAMA_EMBEDDING_DIMENSION;
 
 export function detectMismatchedLLMProvider() {
   switch (EMBEDDING_DIMENSION) {
     case OPENAI_EMBEDDING_DIMENSION:
       if (!process.env.OPENAI_API_KEY) {
-        throw new Error("Are you trying to use OpenAI? If so, run: npx convex env set OPENAI_API_KEY 'your-key'")
+        throw new Error(
+          "Are you trying to use OpenAI? If so, run: npx convex env set OPENAI_API_KEY 'your-key'",
+        );
       }
       break;
     case TOGETHER_EMBEDDING_DIMENSION:
       if (!process.env.TOGETHER_API_KEY) {
-        throw new Error("Are you trying to use Together.ai? If so, run: npx convex env set TOGETHER_API_KEY 'your-key'")
+        throw new Error(
+          "Are you trying to use Together.ai? If so, run: npx convex env set TOGETHER_API_KEY 'your-key'",
+        );
       }
       break;
     case OLLAMA_EMBEDDING_DIMENSION:
       break;
     default:
       if (!process.env.LLM_API_URL) {
-        throw new Error("Are you trying to use a custom cloud-hosted LLM? If so, run: npx convex env set LLM_API_URL 'your-url'")
+        throw new Error(
+          "Are you trying to use a custom cloud-hosted LLM? If so, run: npx convex env set LLM_API_URL 'your-url'",
+        );
       }
       break;
   }
@@ -50,7 +56,7 @@ export function getLLMConfig(): LLMConfig {
       embeddingModel: process.env.OPENAI_EMBEDDING_MODEL ?? 'text-embedding-ada-002',
       stopWords: [],
       apiKey: process.env.OPENAI_API_KEY,
-    }
+    };
   }
   if (process.env.TOGETHER_API_KEY) {
     if (EMBEDDING_DIMENSION !== TOGETHER_EMBEDDING_DIMENSION) {
@@ -60,18 +66,19 @@ export function getLLMConfig(): LLMConfig {
       provider: 'together',
       url: 'https://api.together.xyz',
       chatModel: process.env.TOGETHER_CHAT_MODEL ?? 'meta-llama/Llama-3-8b-chat-hf',
-      embeddingModel: process.env.TOGETHER_EMBEDDING_MODEL ?? 'togethercomputer/m2-bert-80M-8k-retrieval',
+      embeddingModel:
+        process.env.TOGETHER_EMBEDDING_MODEL ?? 'togethercomputer/m2-bert-80M-8k-retrieval',
       stopWords: ['<|eot_id|>'],
       apiKey: process.env.TOGETHER_API_KEY,
-    }
+    };
   }
   if (process.env.LLM_API_URL) {
     const apiKey = process.env.LLM_API_KEY;
     const url = process.env.LLM_API_URL;
     const chatModel = process.env.LLM_MODEL;
-    if (!chatModel) throw new Error("LLM_MODEL is required");
+    if (!chatModel) throw new Error('LLM_MODEL is required');
     const embeddingModel = process.env.LLM_EMBEDDING_MODEL;
-    if (!embeddingModel) throw new Error("LLM_EMBEDDING_MODEL is required");
+    if (!embeddingModel) throw new Error('LLM_EMBEDDING_MODEL is required');
     return {
       provider: 'custom',
       url,
@@ -79,13 +86,14 @@ export function getLLMConfig(): LLMConfig {
       embeddingModel,
       stopWords: [],
       apiKey,
-    }
+    };
   }
   // Assume Ollama
   if (EMBEDDING_DIMENSION !== OLLAMA_EMBEDDING_DIMENSION) {
     detectMismatchedLLMProvider();
-    throw new Error(`Unknown EMBEDDING_DIMENSION ${EMBEDDING_DIMENSION} found` +
-      `. See convex/util/llm.ts for details.`
+    throw new Error(
+      `Unknown EMBEDDING_DIMENSION ${EMBEDDING_DIMENSION} found` +
+        `. See convex/util/llm.ts for details.`,
     );
   }
   // Alternative embedding model:
@@ -96,12 +104,13 @@ export function getLLMConfig(): LLMConfig {
     url: process.env.OLLAMA_HOST ?? 'http://127.0.0.1:11434',
     chatModel: process.env.OLLAMA_MODEL ?? 'llama3',
     embeddingModel: process.env.OLLAMA_EMBEDDING_MODEL ?? 'mxbai-embed-large',
-    stopWords: ["<|eot_id|>"],
+    stopWords: ['<|eot_id|>'],
     apiKey: undefined,
-  }
+  };
 }
 
-const AuthHeaders = (): Record<string, string> => getLLMConfig().apiKey
+const AuthHeaders = (): Record<string, string> =>
+  getLLMConfig().apiKey
     ? {
         Authorization: 'Bearer ' + getLLMConfig().apiKey,
       }
@@ -129,8 +138,7 @@ export async function chatCompletion(
   },
 ) {
   const config = getLLMConfig();
-  body.model =
-    body.model ?? config.chatModel;
+  body.model = body.model ?? config.chatModel;
   const stopWords = body.stop ? (typeof body.stop === 'string' ? [body.stop] : body.stop) : [];
   if (config.stopWords) stopWords.push(...config.stopWords);
   console.log(body);
