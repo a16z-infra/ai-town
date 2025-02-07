@@ -22,12 +22,12 @@ above) are written in Python.
 ## Overview
 
 - 💻 [Stack](#stack)
-- 🧠 [Installation](#installation)
-- 🐳 [Docker Installation](#docker-installation)
-- 💻️ [Windows Installation](#windows-installation)
-- 👤 [Customize - run YOUR OWN simulated world](#customize-your-own-simulation)
-- 👩‍💻 [Deploying](#deploy-the-app)
-- 🏆 [Credits](#credits)
+- 🧠 [Installation](#installation) (cloud, local, Docker, self-host, Fly.io, ...)
+- 💻️ [Windows Pre-requisites](#windows-installation)
+- 🤖 [Configure your LLM of choice](#connect-an-llm) (Ollama, OpenAI, Together.ai, ...)
+- 👤 [Customize - YOUR OWN simulated world](#customize-your-own-simulation)
+- 👩‍💻 [Deploying to production](#deploy-the-app-to-production)
+- 🐛 [Troubleshooting](#troubleshooting)
 
 ## Stack
 
@@ -59,89 +59,8 @@ Other credits:
 
 The overall steps are:
 
-1. [Pick an LLM Provider](#pick-an-llm-provider)
-2. [Build and Deploy](#build-and-deploy)
-
-## Pick an LLM Provider
-
-Note: If you want to run the backend in the cloud, you can either use a cloud-based LLM API, like
-OpenAI or Together.ai or you can proxy the traffic from the cloud to your local Ollama. See
-[below](#using-local-inference-from-a-cloud-deployment) for instructions.
-
-### OpenAI
-
-- Change the `EMBEDDING_DIMENSION` in `convex/util/llm.ts`:
-  `export const EMBEDDING_DIMENSION = OPENAI_EMBEDDING_DIMENSION;`
-- Set the `OPENAI_API_KEY` environment variable. Visit https://platform.openai.com/account/api-keys
-  if you don't have one.
-
-```sh
-npx convex env set OPENAI_API_KEY 'your-key'
-```
-
-Optional: choose models with `OPENAI_CHAT_MODEL` and `OPENAI_EMBEDDING_MODEL`.
-
-### Together.ai
-
-To use Together.ai, you need to:
-
-- Change the `EMBEDDING_DIMENSION` in `convex/util/llm.ts`:
-  `export const EMBEDDING_DIMENSION = TOGETHER_EMBEDDING_DIMENSION;`
-- Set the `TOGETHER_API_KEY` environment variable. Visit https://api.together.xyz/settings/api-keys
-  if you don't have one.
-
-```sh
-npx convex env set TOGETHER_API_KEY 'your-key'
-```
-
-Optional: choose models via `TOGETHER_CHAT_MODEL`, `TOGETHER_EMBEDDING_MODEL`. The embedding model's
-dimension must match `EMBEDDING_DIMENSION`.
-
-### Other OpenAI-compatible API
-
-You can use any OpenAI-compatible API, such as Anthropic, Groq, or Azure.
-
-- Change the `EMBEDDING_DIMENSION` in `convex/util/llm.ts` to match the dimension of your embedding
-  model.
-- Edit `getLLMConfig` in `llm.ts` or set environment variables:
-
-```sh
-npx convex env set LLM_API_URL 'your-url'
-npx convex env set LLM_API_KEY 'your-key'
-npx convex env set LLM_MODEL 'your-chat-model'
-npx convex env set LLM_EMBEDDING_MODEL 'your-embedding-model'
-```
-
-Note: if `LLM_API_KEY` is not required, don't set it.
-
-### Ollama (default)
-
-By default, the app tries to use Ollama to run it entirely locally.
-
-1. Download and install [Ollama](https://ollama.com/).
-2. Open the app or run `ollama serve` in a terminal. `ollama serve` will warn you if the app is
-   already running.
-3. Run `ollama pull llama3` to have it download `llama3`.
-4. Test it out with `ollama run llama3`.
-
-Ollama model options can be found [here](https://ollama.ai/library).
-
-If you want to customize which model to use, adjust convex/util/llm.ts or set
-`npx convex env set OLLAMA_MODEL # model`. If you want to edit the embedding model:
-
-1. Change the `OLLAMA_EMBEDDING_DIMENSION` in `convex/util/llm.ts` and ensure:
-   `export const EMBEDDING_DIMENSION = OLLAMA_EMBEDDING_DIMENSION;`
-2. Set `npx convex env set OLLAMA_EMBEDDING_MODEL # model`.
-
-Note: You might want to set `NUM_MEMORIES_TO_SEARCH` to `1` in constants.ts, to reduce the size of
-conversation prompts, if you see slowness.
-
-### Note on changing the LLM provider or embedding model:
-
-If you change the LLM provider or embedding model, you should delete your data and start over. The
-embeddings used for memory are based on the embedding model you choose, and the dimension of the
-vector database must match the embedding model's dimension. See
-[below](#wiping-the-database-and-starting-over) for how to do that.
+1. [Build and deploy](#build-and-deploy)
+2. [Connect it to an LLM](#connect-an-llm)
 
 ## Build and Deploy
 
@@ -154,7 +73,7 @@ There are a few ways to run the app on top of Convex (the backend).
 3. There's a community fork of this project offering a one-click install on
    [Pinokio](https://pinokio.computer/item?uri=https://github.com/cocktailpeanutlabs/aitown) for
    anyone interested in running but not modifying it 😎.
-4. You can also deploy it to [Fly.io](https://fly.io/). See [./fly](./fly)
+4. You can also deploy it to [Fly.io](https://fly.io/). See [./fly](./fly) for instructions.
 
 ### Standard Setup
 
@@ -198,9 +117,9 @@ docker compose up --build -d
 The container will keep running in the background if you pass `-d`. After you've done it once, you
 can `stop` and `start` services.
 
-- The frontend will be running on localhost port 5173.
-- The backend will be running on localhost port 3210 (3211 for the http api).
-- The dashboard will be running on localhost port 6791.
+- The frontend will be running on http://localhost:5173.
+- The backend will be running on http://localhost:3210 (3211 for the http api).
+- The dashboard will be running on http://localhost:6791.
 
 To log into the dashboard and deploy from the convex CLI, you will need to generate an admin key.
 
@@ -212,15 +131,15 @@ Add it to your `.env.local` file. Note: If you run `down` and `up`, you'll have 
 again and update the `.env.local` file.
 
 ```sh
+# .env.local
 CONVEX_SELF_HOST_ADMIN_KEY="<admin-key>" # Ensure there are quotes around it
 CONVEX_SELF_HOST_URL="http://127.0.0.1:3210"
 ```
 
-Then set up the Convex backend:
+Then set up the Convex backend (one time):
 
 ```sh
 npx convex self-host dev --run init --until-success
-
 ```
 
 To continuously deploy new code to the backend and print logs:
@@ -229,28 +148,114 @@ To continuously deploy new code to the backend and print logs:
 npx convex self-host dev --tail-logs
 ```
 
-### Configuring Docker for Ollama:
+To see the dashboard, visit `http://localhost:6791` and provide the admin key you generated earlier.
+
+### Configuring Docker for Ollama
+
+If you'll be using Ollama for local inference, you'll need to configure Docker to connect to it.
 
 ```sh
 npx convex self-host env set OLLAMA_HOST http://host.docker.internal:11434
 ```
 
-To test the connection:
+To test the connection (after you [have it running](#ollama-default)):
 
 ```sh
 docker compose exec backend /bin/bash
 curl http://host.docker.internal:11434
 ```
 
-If it says "Ollama is running", it's good!
+If it says "Ollama is running", it's good! Otherwise, check out the
+[Troubleshooting](#troubleshooting) section.
 
-### Launching an Interactive Docker Terminal
+## Connect an LLM
 
-If you wan to investigate inside the container, you can launch an interactive Docker terminal:
+Note: If you want to run the backend in the cloud, you can either use a cloud-based LLM API, like
+OpenAI or Together.ai or you can proxy the traffic from the cloud to your local Ollama. See
+[below](#using-local-inference-from-a-cloud-deployment) for instructions.
 
-```bash
-docker compose exec frontend /bin/bash
+### Ollama (default)
+
+By default, the app tries to use Ollama to run it entirely locally.
+
+1. Download and install [Ollama](https://ollama.com/).
+2. Open the app or run `ollama serve` in a terminal. `ollama serve` will warn you if the app is
+   already running.
+3. Run `ollama pull llama3` to have it download `llama3`.
+4. Test it out with `ollama run llama3`.
+
+Ollama model options can be found [here](https://ollama.ai/library).
+
+If you want to customize which model to use, adjust convex/util/llm.ts or set
+`npx convex env set OLLAMA_MODEL # model`. If you want to edit the embedding model:
+
+1. Change the `OLLAMA_EMBEDDING_DIMENSION` in `convex/util/llm.ts` and ensure:
+   `export const EMBEDDING_DIMENSION = OLLAMA_EMBEDDING_DIMENSION;`
+2. Set `npx convex env set OLLAMA_EMBEDDING_MODEL # model`.
+
+Note: You might want to set `NUM_MEMORIES_TO_SEARCH` to `1` in constants.ts, to reduce the size of
+conversation prompts, if you see slowness.
+
+### OpenAI
+
+To use OpenAI, you need to:
+
+```ts
+// In convex/util/llm.ts change the following line:
+export const EMBEDDING_DIMENSION = OPENAI_EMBEDDING_DIMENSION;
 ```
+
+Set the `OPENAI_API_KEY` environment variable. Visit https://platform.openai.com/account/api-keys if
+you don't have one.
+
+```sh
+npx convex env set OPENAI_API_KEY 'your-key'
+```
+
+Optional: choose models with `OPENAI_CHAT_MODEL` and `OPENAI_EMBEDDING_MODEL`.
+
+### Together.ai
+
+To use Together.ai, you need to:
+
+```ts
+// In convex/util/llm.ts change the following line:
+export const EMBEDDING_DIMENSION = TOGETHER_EMBEDDING_DIMENSION;
+```
+
+Set the `TOGETHER_API_KEY` environment variable. Visit https://api.together.xyz/settings/api-keys if
+you don't have one.
+
+```sh
+npx convex env set TOGETHER_API_KEY 'your-key'
+```
+
+Optional: choose models via `TOGETHER_CHAT_MODEL`, `TOGETHER_EMBEDDING_MODEL`. The embedding model's
+dimension must match `EMBEDDING_DIMENSION`.
+
+### Other OpenAI-compatible API
+
+You can use any OpenAI-compatible API, such as Anthropic, Groq, or Azure.
+
+- Change the `EMBEDDING_DIMENSION` in `convex/util/llm.ts` to match the dimension of your embedding
+  model.
+- Edit `getLLMConfig` in `llm.ts` or set environment variables:
+
+```sh
+npx convex env set LLM_API_URL 'your-url'
+npx convex env set LLM_API_KEY 'your-key'
+npx convex env set LLM_MODEL 'your-chat-model'
+npx convex env set LLM_EMBEDDING_MODEL 'your-embedding-model'
+```
+
+Note: if `LLM_API_KEY` is not required, don't set it.
+
+### Note on changing the LLM provider or embedding model:
+
+If you change the LLM provider or embedding model, you should delete your data and start over. The
+embeddings used for memory are based on the embedding model you choose, and the dimension of the
+vector database must match the embedding model's dimension. See
+[below](#wiping-the-database-and-starting-over) for how to do that.
 
 ## Customize your own simulation
 
@@ -508,7 +513,7 @@ ngrok http http://localhost:11434
 
 Ngrok should output a unique url once you run this command.
 
-## Troubleshooting setup
+## Troubleshooting
 
 ### Wiping the database and starting over
 
@@ -533,7 +538,14 @@ version 18, which is the most stable. One way to do this is by
 
 ### Reaching Ollama
 
-If you're having trouble with the backend communicating with Ollama, you can run
+If you're having trouble with the backend communicating with Ollama, it depends on your setup how to
+debug:
+
+1. If you're running directly on Windows, see
+   [Windows Ollama connection issues](#windows-ollama-connection-issues).
+2. If you're using **Docker**, see
+   [Docker to Ollama connection issues](#docker-to-ollama-connection-issues).
+3. If you're running locally, you can try the following:
 
 ```sh
 npx convex env set OLLAMA_HOST http://localhost:11434
@@ -542,18 +554,16 @@ npx convex env set OLLAMA_HOST http://localhost:11434
 By default, the host is set to `http://127.0.0.1:11434`. Some systems prefer `localhost`
 ¯\_(ツ)\_/¯.
 
-If you're using **Docker**, configure the host to:
-
-```sh
-npx convex env set OLLAMA_HOST http://host.docker.internal:11434
-```
-
 ### Windows Ollama connection issues
 
 If the above didn't work after following the [windows](#windows-installation) and regular
 [installation](#installation) instructions, you can try the following, assuming you're **not** using
-Docker. See the [next section](#configuring-socat-for-connecting-docker-to-local-ollama) for Docker
-instructions.
+Docker.
+
+If you're using Docker, see the [next section](#docker-to-ollama-connection-issues) for Docker
+troubleshooting.
+
+For running directly on Windows, you can try the following:
 
 1. Install `unzip` and `socat`:
 
@@ -563,7 +573,7 @@ instructions.
 
 2. Configure `socat` to Bridge Ports for Ollama
 
-   Run the following command to bridge ports, allowing communication between Docker and Ollama:
+   Run the following command to bridge ports:
 
    ```sh
    socat TCP-LISTEN:11434,fork TCP:$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}'):11434 &
@@ -575,19 +585,34 @@ instructions.
    curl http://127.0.0.1:11434
    ```
 
-   If it responds OK, the Ollama API is accessible.
+   If it responds OK, the Ollama API should be accessible.
 
-### Configuring Socat for connecting Docker to local Ollama:
+### Docker to Ollama connection issues
 
-If you're having trouble with the backend communicating with Ollama, you can use `socat` to bridge
-the connection.
+If you're having trouble with the backend communicating with Ollama, there's a couple things to
+check:
+
+1. Is Docker at least verion 18.03 ? That allows you to use the `host.docker.internal` hostname to
+   connect to the host from inside the container.
+
+2. Is Ollama running? You can check this by running `curl http://localhost:11434` from outside the
+   container.
+
+3. Is Ollama accessible from inside the container? You can check this by running
+   `docker compose exec backend curl http://host.docker.internal:11434`.
+
+If 1 & 2 work, but 3 does not, you can use `socat` to bridge the traffic from inside the container
+to Ollama running on the host.
 
 1. Configure `socat` with the host's IP address (not the Docker IP).
 
    ```sh
    docker compose exec backend /bin/bash
-   HOST_IP=YOUR-HOST-IP socat TCP-LISTEN:11434,fork TCP:$HOST_IP:11434 &
+   HOST_IP=YOUR-HOST-IP
+   socat TCP-LISTEN:11434,fork TCP:$HOST_IP:11434
    ```
+
+   Keep this running.
 
 2. Then from outside of the container:
 
@@ -603,7 +628,16 @@ the connection.
    ```
 
    If it responds OK, the Ollama API is accessible. Otherwise, try changing the previous two to
-   `http://127.0.0.1:11434` or `http://host.docker.internal:11434`.
+   `http://127.0.0.1:11434`.
+
+### Launching an Interactive Docker Terminal
+
+If you wan to investigate inside the container, you can launch an interactive Docker terminal, for
+the `frontend`, `backend` or `dashboard` service:
+
+```bash
+docker compose exec frontend /bin/bash
+```
 
 ### Updating the browser list
 
