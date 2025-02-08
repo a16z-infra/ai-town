@@ -10,7 +10,6 @@ services:
       - /usr/src/app/node_modules
     environment:
       - VITE_CONVEX_URL=http://127.0.0.1:${PORT:-3210}
-    command: ['npx', 'vite', '--host']
     networks:
       - ai-town-network
   backend:

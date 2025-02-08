@@ -45,5 +45,4 @@ COPY . .
 # Expose necessary ports
 EXPOSE 5173
 
-# Set the entry point to keep the container active
-CMD ["tail", "-f", "/dev/null"]
+CMD ["npx", "vite", "--host"]
