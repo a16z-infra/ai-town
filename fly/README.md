@@ -19,7 +19,7 @@ git clone https://github.com/ai-town/ai-town.git
 2. Deploy a Convex backend
 
    These instructions will use the Convex cloud hosting (free tier available). If you want to
-   self-host the Convex backend on Fly.io as well, see [below](#self-hosting-convex).
+   self-host the Convex backend on Fly.io as well, see [below](#self-hosting-convex-on-flyio).
 
    ```sh
    npm i
