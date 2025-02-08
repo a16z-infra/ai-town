@@ -3,12 +3,13 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "npm-run-all --parallel dev:frontend dev:backend",
+    "dev": "npm-run-all --parallel dev:backend dev:frontend",
     "build": "tsc && vite build",
     "lint": "eslint .",
-    "predev": "convex dev --run init --until-success && convex dashboard",
+    "predev": "convex dev --run init --until-success",
     "dev:backend": "convex dev --tail-logs",
     "dev:frontend": "vite",
+    "dashboard": "convex dashboard",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --verbose",
     "level-editor": "vite src/editor/",
     "le": "vite src/editor/"
