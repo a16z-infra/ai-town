@@ -1,0 +1,28 @@
+# fly.toml app configuration file generated for self-hosted-dashboard-hidden-log-3936 on 2025-02-07T17:06:14-08:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'self-hosted-dashboard-hidden-log-3936'
+primary_region = 'sjc'
+
+[build]
+  image = 'ghcr.io/get-convex/self-hosted-dashboard:latest'
+
+[[services]]
+  protocol = 'tcp'
+  internal_port = 6791
+
+  [[services.ports]]
+    port = 80
+    handlers = ['http']
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ['tls', 'http']
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
