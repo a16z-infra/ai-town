@@ -23,5 +23,7 @@ networks:
   ai-town-network:
     driver: bridge
 
+
+
 volumes:
   convex_data:

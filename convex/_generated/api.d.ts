@@ -15,6 +15,7 @@ import type {
 } from "convex/server";
 import type * as agent_conversation from "../agent/conversation.js";
 import type * as agent_embeddingsCache from "../agent/embeddingsCache.js";
+import type * as agent_impression from "../agent/impression.js";
 import type * as agent_memory from "../agent/memory.js";
 import type * as aiTown_agent from "../aiTown/agent.js";
 import type * as aiTown_agentDescription from "../aiTown/agentDescription.js";
@@ -71,6 +72,7 @@ import type * as world from "../world.js";
 declare const fullApi: ApiFromModules<{
   "agent/conversation": typeof agent_conversation;
   "agent/embeddingsCache": typeof agent_embeddingsCache;
+  "agent/impression": typeof agent_impression;
   "agent/memory": typeof agent_memory;
   "aiTown/agent": typeof aiTown_agent;
   "aiTown/agentDescription": typeof aiTown_agentDescription;

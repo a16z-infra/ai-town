@@ -1,0 +1,17 @@
+.delete-confirmation-modal {
+    max-width: 450px;
+    width: 90%;
+    padding: 20px;
+  }
+  
+  .delete-confirmation-modal p {
+    margin-bottom: 30px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }

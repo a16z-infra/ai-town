@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { DatabaseReader, MutationCtx, mutation } from './_generated/server';
-import { Descriptions } from '../data/characters';
+// import { Descriptions } from '../data/characters';
 // import * as map from '../data/maps/serene';
 // import * as map from '../data/maps/mage3';
 // import * as map from '../data/maps/gentleanim';
@@ -14,21 +14,77 @@ import { ENGINE_ACTION_DURATION } from './constants';
 import { assertApiKey } from './util/llm';
 import { loadAvailableMaps,loadSelectedMapData } from './mapLoader';
 
+// const init = mutation({
+//   args: {
+//     numAgents: v.optional(v.number()),
+//     mapId:v.optional(v.string())
+//   },
+//   handler: async (ctx, args) => {
+//     console.log(`start to init the world...`)
+//     assertApiKey();
+
+//     //get agents from db
+//     const selectedAgentDoc = await ctx.db
+//     .query("selectedAgents")
+//     .order("desc")
+//     .first();
+  
+//   if (!selectedAgentDoc || !selectedAgentDoc.agentIds.length) {
+//     console.log("No agents selected for world initialization");
+//     return;
+//   }
+
+//   const selectedAgents = await Promise.all(
+//     selectedAgentDoc.agentIds.map(async (id: Id<"agents">) => {
+//       const agent = await ctx.db.get(id);
+//       if (!agent) {
+//         throw new Error(`Selected agent ${id} not found`);
+//       }
+//       return agent;
+//     })
+//   );
+
+//     //get the mapdata from the mapId
+//     const mapConfigObj = loadAvailableMaps();
+//     const chosenId = args.mapId||mapConfigObj.defaultMap;
+//     const mapdata = await loadSelectedMapData(chosenId);
+//     console.log(`${chosenId} was selected as the new map...`)
+    
+//     const { worldStatus, engine } = await getOrCreateDefaultWorld(ctx,mapdata);
+//     if (worldStatus.status !== 'running') {
+//       console.warn(
+//         `Engine ${engine._id} is not active! Run "npx convex run testing:resume" to restart it.`,
+//       );
+//       return;
+//     }
+//     const shouldCreate = await shouldCreateAgents(
+//       ctx.db,
+//       worldStatus.worldId,
+//       worldStatus.engineId,
+//     );
+//     if (shouldCreate) {
+//       for (const agent of selectedAgents) {
+//         console.log('Creating agent:', agent.name);
+        
+//         await insertInput(ctx, worldStatus.worldId, 'createAgent', {
+//           agent: {
+//             name: agent.name,
+//             character: agent.character,
+//             identity: agent.identity,
+//             plan: agent.plan
+//           }
+//         });
+//       }
+//     }
+//   },
+// });
+
 const init = mutation({
-  args: {
-    numAgents: v.optional(v.number()),
-    mapId:v.optional(v.string())
-  },
   handler: async (ctx, args) => {
     console.log(`start to init the world...`)
     assertApiKey();
 
-    //get agents from db
-    const selectedAgents = await ctx.db
-    .query("agents")
-    .collect();
-
-    //get the mapdata from the mapId
+    // 1. 先创建世界和加载地图
     const mapConfigObj = loadAvailableMaps();
     const chosenId = args.mapId||mapConfigObj.defaultMap;
     const mapdata = await loadSelectedMapData(chosenId);
@@ -36,20 +92,47 @@ const init = mutation({
     
     const { worldStatus, engine } = await getOrCreateDefaultWorld(ctx,mapdata);
     if (worldStatus.status !== 'running') {
-      console.warn(
-        `Engine ${engine._id} is not active! Run "npx convex run testing:resume" to restart it.`,
-      );
+      console.warn(`Engine ${engine._id} is not active!`);
       return;
     }
+
+    // 2. 然后再处理 agents
     const shouldCreate = await shouldCreateAgents(
       ctx.db,
       worldStatus.worldId,
       worldStatus.engineId,
     );
+
     if (shouldCreate) {
+      // 3. 获取选中的 agents
+      const selectedAgentDoc = await ctx.db
+        .query("selectedAgents")
+        .order("desc")
+        .first();
+      
+        console.log("Selected agents doc:", selectedAgentDoc); 
+
+      if (!selectedAgentDoc || !selectedAgentDoc.agentIds.length) {
+        console.log("No agents selected, creating empty world");
+        return;
+      }
+
+      console.log("Selected agent IDs:", selectedAgentDoc.agentIds);
+
+      const selectedAgents = await Promise.all(
+        selectedAgentDoc.agentIds.map(async (id: Id<"agents">) => {
+          const agent = await ctx.db.get(id);
+          console.log("Found agent for ID:", id, agent); 
+          if (!agent) {
+            throw new Error(`Selected agent ${id} not found`);
+          }
+          return agent;
+        })
+      );
+
+      // 4. 创建选中的 agents
       for (const agent of selectedAgents) {
         console.log('Creating agent:', agent.name);
-        
         await insertInput(ctx, worldStatus.worldId, 'createAgent', {
           agent: {
             name: agent.name,
