@@ -131,7 +131,7 @@ Add it to your `.env.local` file. Note: If you run `down` and `up`, you'll have 
 again and update the `.env.local` file.
 
 ```sh
-# .env.local
+# in .env.local
 CONVEX_SELF_HOST_ADMIN_KEY="<admin-key>" # Ensure there are quotes around it
 CONVEX_SELF_HOST_URL="http://127.0.0.1:3210"
 ```
@@ -161,8 +161,7 @@ npx convex self-host env set OLLAMA_HOST http://host.docker.internal:11434
 To test the connection (after you [have it running](#ollama-default)):
 
 ```sh
-docker compose exec backend /bin/bash
-curl http://host.docker.internal:11434
+docker compose exec backend /bin/bash curl http://host.docker.internal:11434
 ```
 
 If it says "Ollama is running", it's good! Otherwise, check out the
@@ -623,8 +622,7 @@ to Ollama running on the host.
 3. Test if it's working:
 
    ```sh
-   docker compose exec backend /bin/bash
-   curl http://localhost:11434
+   docker compose exec backend curl http://localhost:11434
    ```
 
    If it responds OK, the Ollama API is accessible. Otherwise, try changing the previous two to
@@ -639,11 +637,12 @@ the `frontend`, `backend` or `dashboard` service:
 docker compose exec frontend /bin/bash
 ```
 
+To exit the container, run `exit`.
+
 ### Updating the browser list
 
 ```bash
-docker compose exec frontend /bin/bash
-npx update-browserslist-db@latest
+docker compose exec frontend npx update-browserslist-db@latest
 ```
 
 # 🧑‍🏫 What is Convex?
