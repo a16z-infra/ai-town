@@ -139,13 +139,13 @@ CONVEX_SELF_HOST_URL="http://127.0.0.1:3210"
 Then set up the Convex backend (one time):
 
 ```sh
-npx convex self-host dev --run init --until-success
+npm run predev
 ```
 
 To continuously deploy new code to the backend and print logs:
 
 ```sh
-npx convex self-host dev --tail-logs
+npm run dev:backend
 ```
 
 To see the dashboard, visit `http://localhost:6791` and provide the admin key you generated earlier.
@@ -155,7 +155,7 @@ To see the dashboard, visit `http://localhost:6791` and provide the admin key yo
 If you'll be using Ollama for local inference, you'll need to configure Docker to connect to it.
 
 ```sh
-npx convex self-host env set OLLAMA_HOST http://host.docker.internal:11434
+npx convex env set OLLAMA_HOST http://host.docker.internal:11434
 ```
 
 To test the connection (after you [have it running](#ollama-default)):

@@ -107,13 +107,13 @@ If you want to self-host the Convex backend on Fly.io, you can follow these step
    To deploy the AI Town functions to the backend and start the game engine:
 
    ```sh
-   npx convex self-host dev --run init --until-success
+   npx convex dev --run init --once
    ```
 
    To continuously deploy code for development:
 
    ```sh
-   npx convex self-host dev
+   npx convex dev
    ```
 
 6. Deploy the frontend app to Fly.io from the root directory. See [above](#setup) for details.
