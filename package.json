@@ -23,7 +23,7 @@
     "@types/react": "18.2.8",
     "@types/react-dom": "18.2.4",
     "clsx": "^2.0.0",
-    "convex": "^1.18.3-alpha.5",
+    "convex": "^1.19.0",
     "dotenv": "^16.1.4",
     "eslint": "8.42.0",
     "hnswlib-node": "^1.4.2",
