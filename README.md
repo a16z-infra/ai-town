@@ -132,8 +132,8 @@ again and update the `.env.local` file.
 
 ```sh
 # in .env.local
-CONVEX_SELF_HOST_ADMIN_KEY="<admin-key>" # Ensure there are quotes around it
-CONVEX_SELF_HOST_URL="http://127.0.0.1:3210"
+CONVEX_SELF_HOSTED_ADMIN_KEY="<admin-key>" # Ensure there are quotes around it
+CONVEX_SELF_HOSTED_URL="http://127.0.0.1:3210"
 ```
 
 Then set up the Convex backend (one time):

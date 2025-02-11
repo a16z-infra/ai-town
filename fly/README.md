@@ -98,8 +98,8 @@ If you want to self-host the Convex backend on Fly.io, you can follow these step
    following variables:
 
    ```sh
-   CONVEX_SELF_HOST_URL="<fly-backend-url>"
-   CONVEX_SELF_HOST_ADMIN_KEY="<your-admin-key>"
+   CONVEX_SELF_HOSTED_URL="<fly-backend-url>"
+   CONVEX_SELF_HOSTED_ADMIN_KEY="<your-admin-key>"
    ```
 
 5. Deploy your Convex functions to the backend using the `convex` CLI from the project root.
