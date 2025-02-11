@@ -39,49 +39,56 @@ export async function rememberConversation(
     return;
   }
 
-  // const llmMessages: LLMMessage[] = [
-  //   {
-  //     role: 'user',
-  //     content: `You are ${player.name}, and you just finished a conversation with ${otherPlayer.name}. I would
-  //     like you to summarize the conversation from ${player.name}'s perspective, using first-person pronouns like
-  //     "I," and add if you liked or disliked this interaction.`,
-  //   },
-  // ];
-
-  //with impression score,, agent identity and plan.
-
-  
-  // const { player, otherPlayer, agent } = data;
-  console.log("Agent check:", { 
-    hasAgent: !!agent, 
-    agentType: typeof agent,
-    agentContent: agent
-  });
-  const prompt = [
-    `You are ${player.name}.`,
-  ];
-  if (agent && typeof agent.identity === 'string') {
-    prompt.push(`About you: ${agent.identity}`);
-    prompt.push(`Your goals: ${agent.plan}`);
-  } else {
-    console.log("Agent identity check failed:", { agent });
-  }
-  // if (otherAgent) {
-  //   prompt.push(`About ${otherPlayer.name}: ${otherAgent.identity}`);
-  // }
-  prompt.push(
-    `I would like you to summarize your conversation with ${otherPlayer.name} from your perspective, 
-    using first-person pronouns like "I." Make sure your summary reflects your identity and goals. 
-    Also include how this interaction affected your impression of them, rating from -100 to 100.
-    End your response with the impression score on a new line.`
-  );
-
   const llmMessages: LLMMessage[] = [
     {
       role: 'user',
-      content: prompt.join('\n'),
+      content: `You are ${player.name}, and you just finished a conversation with ${otherPlayer.name}. I would
+      like you to summarize the conversation from ${player.name}'s perspective, using first-person pronouns like
+      "I," and add if you liked or disliked this interaction.`,
     },
   ];
+
+  //with impression score,, agent identity and plan.
+  //can't do this. player doesn't have properties we need, and memory can't do internal query to get agents.
+  // console.log("Agent check:", { 
+  //   hasAgent: !!agent, 
+  //   agentType: typeof agent,
+  //   agentContent: agent
+  // });
+  // console.log("DEBUG player object:", {
+  //   fullPlayer: player,
+  //   properties: Object.keys(player),
+  //   hasName: !!player.name,
+  //   name: player.name,
+  //   hasIdentity: !!player.identity,
+  //   identity: player.identity,
+  // });
+  
+  // const prompt = [
+  //   `You are ${player.name}.`,
+  // ];
+  // if (agent && typeof agent.identity === 'string') {
+  //   prompt.push(`About you: ${agent.identity}`);
+  //   prompt.push(`Your goals: ${agent.plan}`);
+  // } else {
+  //   console.log("Agent identity check failed:", { agent });
+  // }
+  // // if (otherAgent) {
+  // //   prompt.push(`About ${otherPlayer.name}: ${otherAgent.identity}`);
+  // // }
+  // prompt.push(
+  //   `I would like you to summarize your conversation with ${otherPlayer.name} from your perspective, 
+  //   using first-person pronouns like "I." Make sure your summary reflects your identity and goals. 
+  //   Also include how this interaction affected your impression of them, rating from -100 to 100.
+  //   End your response with the impression score on a new line.`
+  // );
+
+  // const llmMessages: LLMMessage[] = [
+  //   {
+  //     role: 'user',
+  //     content: prompt.join('\n'),
+  //   },
+  // ];
 
 
   const authors = new Set<GameId<'players'>>();
