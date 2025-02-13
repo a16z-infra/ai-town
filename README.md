@@ -55,7 +55,7 @@ Other credits:
 - The UI is based on original assets by
   [Mounir Tohami](https://mounirtohami.itch.io/pixel-art-gui-elements)
 
-## Installation
+# Installation
 
 The overall steps are:
 
