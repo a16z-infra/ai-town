@@ -13,7 +13,7 @@ services:
     networks:
       - ai-town-network
   backend:
-    image: ghcr.io/get-convex/self-hosted-backend:latest
+    image: ghcr.io/get-convex/convex-backend:latest
     ports:
       - '${PORT:-3210}:3210'
       - '${SITE_PROXY_PORT:-3211}:3211'
@@ -36,7 +36,7 @@ services:
       - ai-town-network
 
   dashboard:
-    image: ghcr.io/get-convex/self-hosted-dashboard:latest
+    image: ghcr.io/get-convex/convex-dashboard:latest
     ports:
       - '${DASHBOARD_PORT:-6791}:6791'
     environment:

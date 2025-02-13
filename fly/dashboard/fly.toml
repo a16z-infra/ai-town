@@ -1,28 +1,28 @@
-# fly.toml app configuration file generated for self-hosted-dashboard-hidden-log-3936 on 2025-02-07T17:06:14-08:00
+# fly.toml app configuration file generated for convex-dashboard on 2025-02-12T15:24:01-08:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'self-hosted-dashboard-hidden-log-3936'
-primary_region = 'sjc'
+app = 'convex-dashboard'
+primary_region = 'iad'
 
 [build]
-  image = 'ghcr.io/get-convex/self-hosted-dashboard:latest'
+image = 'ghcr.io/get-convex/convex-dashboard:4499dd4fd7f2148687a7774599c613d052950f46'
 
 [[services]]
-  protocol = 'tcp'
-  internal_port = 6791
+protocol = 'tcp'
+internal_port = 6791
 
-  [[services.ports]]
-    port = 80
-    handlers = ['http']
-    force_https = true
+[[services.ports]]
+port = 80
+handlers = ['http']
+force_https = true
 
-  [[services.ports]]
-    port = 443
-    handlers = ['tls', 'http']
+[[services.ports]]
+port = 443
+handlers = ['tls', 'http']
 
 [[vm]]
-  memory = '1gb'
-  cpu_kind = 'shared'
-  cpus = 1
+memory = '1gb'
+cpu_kind = 'shared'
+cpus = 1

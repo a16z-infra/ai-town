@@ -130,7 +130,7 @@ If you want to self-host the Convex backend on Fly.io, you can follow these step
    **Running the dashboard locally:**
 
    ```sh
-   docker run -e 'NEXT_PUBLIC_DEPLOYMENT_URL=<fly-backend-url>' -p '6791:6791' 'ghcr.io/get-convex/self-hosted-dashboard:latest'
+   docker run -e 'NEXT_PUBLIC_DEPLOYMENT_URL=<fly-backend-url>' -p '6791:6791' 'ghcr.io/get-convex/convex-dashboard:latest'
    ```
 
    You should now see the dashboard running at `http://localhost:6791`.
