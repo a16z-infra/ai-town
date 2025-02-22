@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import PixiGame from './PixiGame.tsx';
 
 import { useElementSize } from 'usehooks-ts';
@@ -11,6 +11,7 @@ import { useHistoricalTime } from '../hooks/useHistoricalTime.ts';
 import { DebugTimeManager } from './DebugTimeManager.tsx';
 import { GameId } from '../../convex/aiTown/ids.ts';
 import { useServerGame } from '../hooks/serverGame.ts';
+import LoadingSpinner from './LoadingSpinner';
 
 export const SHOW_DEBUG_UI = !!import.meta.env.VITE_SHOW_DEBUG_UI;
 
@@ -36,13 +37,21 @@ export default function Game() {
 
   const scrollViewRef = useRef<HTMLDivElement>(null);
 
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (worldId && engineId && game) {
+      setIsLoading(false);
+    }
+  }, [worldId, engineId, game]);
+
   if (!worldId || !engineId || !game) {
-    return null;
+    return <LoadingSpinner />;
   }
   return (
     <>
       {SHOW_DEBUG_UI && <DebugTimeManager timeManager={timeManager} width={200} height={100} />}
-      <div className="mx-auto w-full max-w grid grid-rows-[240px_1fr] lg:grid-rows-[1fr] lg:grid-cols-[1fr_auto] lg:grow max-w-[1400px] min-h-[480px] game-frame">
+      <div className="mx-auto w-full h-full grid grid-rows-[1fr] lg:grid-cols-[1fr_auto] game-frame">
         {/* Game area */}
         <div className="relative overflow-hidden bg-brown-900" ref={gameWrapperRef}>
           <div className="absolute inset-0">
@@ -67,7 +76,7 @@ https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-5315492
         </div>
         {/* Right column area */}
         <div
-          className="flex flex-col overflow-y-auto shrink-0 px-4 py-6 sm:px-6 lg:w-96 xl:pr-6 border-t-8 sm:border-t-0 sm:border-l-8 border-brown-900  bg-brown-800 text-brown-100"
+          className="flex flex-col overflow-y-auto shrink-0 px-4 py-6 sm:px-6 lg:w-80 xl:w-96 xl:pr-6 border-t-8 sm:border-t-0 sm:border-l-8 border-brown-900 bg-brown-800 text-brown-100"
           ref={scrollViewRef}
         >
           <PlayerDetails

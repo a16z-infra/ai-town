@@ -46,7 +46,7 @@ body {
 
 .game-background {
   background: linear-gradient(rgba(41, 41, 41, 0.8), rgba(41, 41, 41, 0.8)),
-    url(../assets/background.webp);
+    url(/assets/background.webp);
   background-blend-mode: hard-light;
   background-position: center;
   background-repeat: no-repeat;
@@ -64,7 +64,7 @@ body {
 
 .game-frame {
   border-width: 36px;
-  border-image-source: url(../assets/ui/frame.svg);
+  border-image-source: url(/assets/ui/frame.svg);
   border-image-repeat: stretch;
   border-image-slice: 25%;
 }
@@ -98,49 +98,59 @@ body {
 
 .bubble {
   border-width: 30px;
-  border-image-source: url(../assets/ui/bubble-left.svg);
+  border-image-source: url(/assets/ui/bubble-left.svg);
   border-image-repeat: stretch;
   border-image-slice: 20%;
 }
 
 .bubble-mine {
-  border-image-source: url(../assets/ui/bubble-right.svg);
+  border-image-source: url(/assets/ui/bubble-right.svg);
 }
 
 .box {
   border-width: 12px;
-  border-image-source: url(../assets/ui/box.svg);
+  border-image-source: url(/assets/ui/box.svg);
   border-image-repeat: stretch;
   border-image-slice: 12.5%;
 }
 
 .desc {
   border-width: 56px;
-  border-image-source: url(../assets/ui/desc.svg);
+  border-image-source: url(/assets/ui/desc.svg);
   border-image-repeat: stretch;
   border-image-slice: 28%;
 }
 
 .chats {
   border-width: 24px;
-  border-image-source: url(../assets/ui/chats.svg);
+  border-image-source: url(/assets/ui/chats.svg);
   border-image-repeat: stretch;
   border-image-slice: 40%;
 }
 
 .login-prompt {
   border-width: 48px;
-  border-image-source: url(../assets/ui/jewel_box.svg);
+  border-image-source: url(/assets/ui/jewel_box.svg);
   border-image-repeat: stretch;
   border-image-slice: 40%;
 }
 
 .button {
   border-width: 1em;
-  border-image-source: url(../assets/ui/button.svg);
+  border-image-source: url(/assets/ui/button.svg);
   border-image-repeat: stretch;
   border-image-slice: 25%;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25em 0.5em;
+  background-color: transparent;
+}
+
+.button > div {
+  width: 100%;
+  height: 100%;
+  background-color: #3a4466;
 }
 
 .button span {
