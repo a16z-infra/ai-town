@@ -72,7 +72,7 @@ export default function Home() {
         </Unauthenticated>
       </div> */}
 
-      <div className="w-full lg:h-screen min-h-screen relative isolate overflow-hidden lg:p-8 shadow-2xl flex flex-col justify-start">
+      <div className="relative w-full h-full z-10 lg:p-8 shadow-2xl flex flex-col justify-start">
         <h1 className="mx-auto text-2xl p-3 sm:text-4xl lg:text-5xl font-bold font-display leading-none tracking-wide game-title w-full text-left sm:text-center sm:w-auto">
           Cozy Cafe
         </h1>
@@ -86,7 +86,7 @@ export default function Home() {
           </Unauthenticated> */}
         </div>
 
-        <div className="flex-1 w-full relative overflow-visible">
+        <div className="absolute inset-0 z-0">
           <Game />
         </div>
 
