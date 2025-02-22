@@ -89,23 +89,23 @@ export default function Home() {
         <div className="flex-grow relative">
           <Game />
           <footer className="absolute justify-end bottom-0 left-0 w-full flex items-center gap-3 p-6 flex-wrap pointer-events-none">
-          <div className="flex gap-4 flex-grow pointer-events-none">
-            <FreezeButton />
-            <MusicButton />
-            <Button href="https://github.com/a16z-infra/cozy-cafe" imgUrl={starImg}>
-              Star
-            </Button>
-            <InteractButton />
-            <Button imgUrl={helpImg} onClick={() => setHelpModalOpen(true)}>
-              Help
-            </Button>
-          </div>
-          <a href="https://a16z.com">
-            <img className="w-8 h-8 pointer-events-auto" src={a16zImg} alt="a16z" />
-          </a>
-          {/* Removed Convex logo */}
-        </footer>
-        <ToastContainer position="bottom-right" autoClose={2000} closeOnClick theme="dark" />
+            <div className="flex gap-4 flex-grow pointer-events-none">
+              <FreezeButton />
+              <MusicButton />
+              <Button href="https://github.com/a16z-infra/cozy-cafe" imgUrl={starImg}>
+                Star
+              </Button>
+              <InteractButton />
+              <Button imgUrl={helpImg} onClick={() => setHelpModalOpen(true)}>
+                Help
+              </Button>
+            </div>
+            <a href="https://a16z.com">
+              <img className="w-8 h-8 pointer-events-auto" src={a16zImg} alt="a16z" />
+            </a>
+            {/* Removed Convex logo */}
+          </footer>
+          <ToastContainer position="bottom-right" autoClose={2000} closeOnClick theme="dark" />
       </div>
     </main>
   );
