@@ -106,6 +106,7 @@ export default function Home() {
             {/* Removed Convex logo */}
           </footer>
           <ToastContainer position="bottom-right" autoClose={2000} closeOnClick theme="dark" />
+        </div>
       </div>
     </main>
   );
