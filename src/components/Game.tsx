@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import PixiGame from './PixiGame.tsx';
 
 import { useElementSize } from 'usehooks-ts';
@@ -11,6 +11,7 @@ import { useHistoricalTime } from '../hooks/useHistoricalTime.ts';
 import { DebugTimeManager } from './DebugTimeManager.tsx';
 import { GameId } from '../../convex/aiTown/ids.ts';
 import { useServerGame } from '../hooks/serverGame.ts';
+import LoadingSpinner from './LoadingSpinner';
 
 export const SHOW_DEBUG_UI = !!import.meta.env.VITE_SHOW_DEBUG_UI;
 
@@ -36,8 +37,16 @@ export default function Game() {
 
   const scrollViewRef = useRef<HTMLDivElement>(null);
 
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (worldId && engineId && game) {
+      setIsLoading(false);
+    }
+  }, [worldId, engineId, game]);
+
   if (!worldId || !engineId || !game) {
-    return null;
+    return <LoadingSpinner />;
   }
   return (
     <>
