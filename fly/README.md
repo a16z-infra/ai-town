@@ -1,4 +1,4 @@
-# Hosting AI Town on Fly.io
+# Hosting Cozy Cafe on Fly.io
 
 Fly.io makes it easy to deploy containers to the cloud.
 
@@ -26,7 +26,7 @@ git clone https://github.com/ai-town/ai-town.git
    npx convex deploy
    ```
 
-3. Deploy the AI Town frontend and point it to the Convex backend.
+3. Deploy the Cozy Cafe frontend and point it to the Convex backend.
 
    You can get the convex url from the output of the `npx convex deploy` command. Or you can get it
    from the [Convex dashboard](https://dashboard.convex.dev/deployment/settings) listed as
@@ -94,8 +94,8 @@ If you want to self-host the Convex backend on Fly.io, you can follow these step
 
    This admin key will be used to authorize the CLI and access the dashboard.
 
-4. In the root directory of the AI Town repository (`cd ../..`), create a `.env.local` file with the
-   following variables:
+4. In the root directory of the Cozy Cafe repository (`cd ../..`), create a `.env.local` file with
+   the following variables:
 
    ```sh
    CONVEX_SELF_HOSTED_URL="<fly-backend-url>"
@@ -104,7 +104,7 @@ If you want to self-host the Convex backend on Fly.io, you can follow these step
 
 5. Deploy your Convex functions to the backend using the `convex` CLI from the project root.
 
-   To deploy the AI Town functions to the backend and start the game engine:
+   To deploy the Cozy Cafe functions to the backend and start the game engine:
 
    ```sh
    npx convex dev --run init --once

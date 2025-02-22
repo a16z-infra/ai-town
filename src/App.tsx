@@ -57,7 +57,7 @@ export default function Home() {
             in the messages panel.
           </p>
           <p className="mt-4">
-            AI town only supports {MAX_HUMAN_PLAYERS} humans at a time. If you're idle for five
+            Cozy Cafe only supports {MAX_HUMAN_PLAYERS} humans at a time. If you're idle for five
             minutes, you'll be automatically removed from the simulation.
           </p>
         </div>
