@@ -88,9 +88,7 @@ export default function Home() {
 
         <div className="flex-grow relative">
           <Game />
-        </div>
-
-        <footer className="justify-end bottom-0 left-0 w-full flex items-center mt-4 gap-3 p-6 flex-wrap pointer-events-none">
+          <footer className="absolute justify-end bottom-0 left-0 w-full flex items-center gap-3 p-6 flex-wrap pointer-events-none">
           <div className="flex gap-4 flex-grow pointer-events-none">
             <FreezeButton />
             <MusicButton />

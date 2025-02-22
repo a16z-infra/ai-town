@@ -144,6 +144,13 @@ body {
   display: inline-flex;
   align-items: center;
   padding: 0.25em 0.5em;
+  background-color: transparent;
+}
+
+.button > div {
+  width: 100%;
+  height: 100%;
+  background-color: #3a4466;
 }
 
 .button span {
