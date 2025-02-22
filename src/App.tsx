@@ -1,12 +1,9 @@
 import Game from './components/Game.tsx';
 
 import { ToastContainer } from 'react-toastify';
-import a16zImg from '../assets/a16z.png';
-// Removed convex image import
 import starImg from '../assets/star.svg';
 import helpImg from '../assets/help.svg';
 // import { UserButton } from '@clerk/clerk-react';
-// import { Authenticated, Unauthenticated } from 'convex/react';
 // import LoginButton from './components/buttons/LoginButton.tsx';
 import { useState } from 'react';
 import ReactModal from 'react-modal';
@@ -15,14 +12,11 @@ import Button from './components/buttons/Button.tsx';
 import InteractButton from './components/buttons/InteractButton.tsx';
 import FreezeButton from './components/FreezeButton.tsx';
 import { MAX_HUMAN_PLAYERS } from '../convex/constants.ts';
-// Removed PoweredByConvex import
 
 export default function Home() {
   const [helpModalOpen, setHelpModalOpen] = useState(false);
   return (
     <main className="relative flex h-screen flex-col items-center justify-between font-body game-background">
-      {/* Removed PoweredByConvex component */}
-
       <ReactModal
         isOpen={helpModalOpen}
         onRequestClose={() => setHelpModalOpen(false)}
@@ -78,7 +72,7 @@ export default function Home() {
         </h1>
 
         <div className="max-w-xs md:max-w-xl lg:max-w-none mx-auto mb-2 text-center text-base sm:text-xl md:text-2xl text-white leading-tight shadow-solid">
-          A virtual town where AI characters live, chat and socialize.
+          A virtual cafe where AI characters work and socialize.
           {/* <Unauthenticated>
             <div className="my-1.5 sm:my-0" />
             Log in to join the town
@@ -100,10 +94,6 @@ export default function Home() {
                 Help
               </Button>
             </div>
-            <a href="https://a16z.com">
-              <img className="w-8 h-8 pointer-events-auto" src={a16zImg} alt="a16z" />
-            </a>
-            {/* Removed Convex logo */}
           </footer>
           <ToastContainer position="bottom-right" autoClose={2000} closeOnClick theme="dark" />
         </div>

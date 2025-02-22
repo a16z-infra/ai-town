@@ -21,7 +21,9 @@
 }
 
 .font-system {
-  font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-family:
+    system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol';
 }
 
 :root {
@@ -45,8 +47,8 @@ body {
 }
 
 .game-background {
-  background: linear-gradient(rgba(41, 41, 41, 0.8), rgba(41, 41, 41, 0.8)),
-    url(/assets/background.webp);
+  background:
+    linear-gradient(rgba(41, 41, 41, 0.8), rgba(41, 41, 41, 0.8)), url(/assets/background.jpeg);
   background-blend-mode: hard-light;
   background-position: center;
   background-repeat: no-repeat;
@@ -143,7 +145,6 @@ body {
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  padding: 0.25em 0.5em;
   background-color: transparent;
 }
 
