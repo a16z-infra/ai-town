@@ -20,7 +20,7 @@ import { MAX_HUMAN_PLAYERS } from '../convex/constants.ts';
 export default function Home() {
   const [helpModalOpen, setHelpModalOpen] = useState(false);
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-between font-body game-background">
+    <main className="relative flex h-screen flex-col items-center justify-between font-body game-background">
       {/* Removed PoweredByConvex component */}
 
       <ReactModal
@@ -86,7 +86,7 @@ export default function Home() {
           </Unauthenticated> */}
         </div>
 
-        <div className="flex-1 w-full relative">
+        <div className="flex-1 w-full relative overflow-hidden">
           <Game />
         </div>
 
