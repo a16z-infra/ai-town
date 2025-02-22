@@ -137,10 +137,13 @@ body {
 
 .button {
   border-width: 1em;
-  border-image-source: url(../assets/ui/button.svg);
+  border-image-source: url(/assets/ui/button.svg);
   border-image-repeat: stretch;
   border-image-slice: 25%;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25em 0.5em;
 }
 
 .button span {
