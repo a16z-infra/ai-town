@@ -11,6 +11,9 @@ importers:
       '@clerk/clerk-react':
         specifier: ^4.27.0
         version: 4.32.4(react@18.2.0)
+      '@pixi/events':
+        specifier: ^7.4.2
+        version: 7.4.2(@pixi/core@7.4.2)(@pixi/display@7.4.2(@pixi/core@7.4.2))
       '@pixi/react':
         specifier: ^7.1.0
         version: 7.1.2(kltdv4apd3oy5t3us26nzojpju)
