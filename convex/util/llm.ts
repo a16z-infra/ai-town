@@ -217,7 +217,8 @@ export async function fetchEmbeddingBatch(texts: string[]) {
     retries,
     ms,
   } = await retryWithBackoff(async () => {
-    const result = await fetch(config.url + '/v1/embeddings', {
+    // const result = await fetch(config.url + '/v1/embeddings', {
+      const result = await fetch(config.url + '/v1/embed', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -688,7 +689,8 @@ export class ChatCompletionContent {
 export async function ollamaFetchEmbedding(text: string) {
   const config = getLLMConfig();
   const { result } = await retryWithBackoff(async () => {
-    const resp = await fetch(config.url + '/api/embeddings', {
+    // const resp = await fetch(config.url + '/api/embeddings', {
+      const resp = await fetch(config.url + '/api/embed', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
