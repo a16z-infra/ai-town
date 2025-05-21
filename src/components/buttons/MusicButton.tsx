@@ -1,9 +1,16 @@
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import volumeImg from '../../../assets/volume.svg';
-import { sound } from '@pixi/sound';
+// import { sound } from '@pixi/sound'; // Removed Pixi Sound
 import Button from './Button';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
+
+// Placeholder for a new audio solution if needed
+const mockSound = {
+  add: (id: string, url: string) => ({ loop: false, id, url }),
+  play: async (id: string) => console.log(`Mock play sound: ${id}`),
+  stop: (id: string) => console.log(`Mock stop sound: ${id}`),
+};
 
 export default function MusicButton() {
   const musicUrl = useQuery(api.music.getBackgroundMusic);
@@ -11,26 +18,27 @@ export default function MusicButton() {
 
   useEffect(() => {
     if (musicUrl) {
-      sound.add('background', musicUrl).loop = true;
+      mockSound.add('background', musicUrl).loop = true; // Using mockSound
+      console.log('Music URL loaded:', musicUrl);
     }
   }, [musicUrl]);
 
   const flipSwitch = async () => {
     if (isPlaying) {
-      sound.stop('background');
+      mockSound.stop('background'); // Using mockSound
     } else {
-      await sound.play('background');
+      await mockSound.play('background'); // Using mockSound
     }
     setPlaying(!isPlaying);
   };
 
   const handleKeyPress = useCallback(
-    (event: { key: string }) => {
+    (event: KeyboardEvent) => { // Changed to KeyboardEvent for better type safety
       if (event.key === 'm' || event.key === 'M') {
         void flipSwitch();
       }
     },
-    [flipSwitch],
+    [flipSwitch, isPlaying], // Added isPlaying to dependencies as flipSwitch depends on it.
   );
 
   useEffect(() => {

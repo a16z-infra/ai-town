@@ -8,9 +8,10 @@ import helpImg from '../assets/help.svg';
 // import { UserButton } from '@clerk/clerk-react';
 // import { Authenticated, Unauthenticated } from 'convex/react';
 // import LoginButton from './components/buttons/LoginButton.tsx';
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // Added useEffect
 import ReactModal from 'react-modal';
 import MusicButton from './components/buttons/MusicButton.tsx';
+import { seedInitialDataIfNeeded } from './dbUtils'; // Import the seeder function
 import Button from './components/buttons/Button.tsx';
 import InteractButton from './components/buttons/InteractButton.tsx';
 import FreezeButton from './components/FreezeButton.tsx';
@@ -19,6 +20,15 @@ import PoweredByConvex from './components/PoweredByConvex.tsx';
 
 export default function Home() {
   const [helpModalOpen, setHelpModalOpen] = useState(false);
+
+  // Seed initial data
+  useEffect(() => {
+    const initializeDatabase = async () => {
+      await seedInitialDataIfNeeded();
+    };
+    void initializeDatabase();
+  }, []); // Empty dependency array ensures this runs once on mount
+
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-between font-body game-background">
       <PoweredByConvex />

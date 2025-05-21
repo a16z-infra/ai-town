@@ -1,36 +1,20 @@
-import { Graphics } from '@pixi/react';
-import { Graphics as PixiGraphics } from 'pixi.js';
-import { useCallback } from 'react';
-import { Doc } from '../../convex/_generated/dataModel';
+import React from 'react';
 import { Player } from '../../convex/aiTown/player';
-import { unpackPathComponent } from '../../convex/util/types';
 
-export function DebugPath({ player, tileDim }: { player: Player; tileDim: number }) {
-  const path = player.pathfinding?.state.kind == 'moving' && player.pathfinding.state.path;
-  const draw = useCallback(
-    (g: PixiGraphics) => {
-      g.clear();
-      if (!path) {
-        return;
-      }
-      let first = true;
-      for (const p of path) {
-        const { position } = unpackPathComponent(p as any);
-        const x = position.x * tileDim + tileDim / 2;
-        const y = position.y * tileDim + tileDim / 2;
-        if (first) {
-          g.moveTo(x, y);
-          g.lineStyle(2, debugColor(player.id), 0.5);
-          first = false;
-        } else {
-          g.lineTo(x, y);
-        }
-      }
-    },
-    [path],
+// Placeholder for DebugPath component
+// TODO: Implement with Three.js or other debugging tools if necessary
+export const DebugPath: React.FC<{ player: Player; tileDim: number }> = (props) => {
+  console.log('DebugPath props:', props);
+  // const path = props.player.pathfinding?.state.kind === 'moving' && props.player.pathfinding.state.path;
+  // if (!path) return null;
+
+  return (
+    <div style={{ opacity: 0.5, color: 'cyan', fontSize: '10px' }}>
+      {/* Placeholder for path visualization */}
+      {/* Path: {path.map(p => `(${p.x},${p.y})`).join('->')} */}
+      Debug Path for: {props.player.id}
+    </div>
   );
-  return path ? <Graphics draw={draw} /> : null;
-}
-function debugColor(_id: string) {
-  return { h: 0, s: 50, l: 90 };
-}
+};
+
+export default DebugPath;
