@@ -13,6 +13,7 @@ import { GameId } from '../../convex/aiTown/ids.ts'; // This is okay, just a typ
 import { db } from '../db'; // Import Dexie db instance
 import { useLiveQuery } from 'dexie-react-hooks';
 import { defaultEngineId, defaultWorldId } from '../data/defaultGameData.ts'; // For fallback
+import { useClientGame, ClientGame } from '../hooks/useClientGame'; // Import useClientGame
 
 export const SHOW_DEBUG_UI = !!import.meta.env.VITE_SHOW_DEBUG_UI;
 
@@ -31,11 +32,11 @@ export default function Game() {
     undefined // Initial value
   );
 
-  const worldId = worldStatusFromDb?.worldId ?? defaultWorldId; // Fallback to default if undefined
+  const worldIdFromStatus = worldStatusFromDb?.worldId ?? defaultWorldId; // Fallback to default if undefined
   const engineId = worldStatusFromDb?.engineId ?? defaultEngineId; // Fallback
 
-  // const game = useServerGame(worldId); // Removed Convex-dependent hook
-  const game = undefined; // Placeholder, as useServerGame was removed
+  // Use the useClientGame hook to get the game state
+  const game = useClientGame(worldIdFromStatus);
 
   // useWorldHeartbeat(); // Removed Convex-dependent hook
 
@@ -51,16 +52,14 @@ export default function Game() {
 
   const scrollViewRef = useRef<HTMLDivElement>(null);
 
-  // Updated loading condition: wait for worldStatusFromDb and engineStatusFromDb to be resolved from Dexie
-  // Checking for worldId and engineId (which have fallbacks) is not enough.
-  // We need to ensure the live queries have had a chance to run.
-  if (!worldStatusFromDb || !engineStatusFromDb) {
-     console.log("Game component waiting for Dexie data...", { worldStatusFromDb, engineStatusFromDb });
-    return <div>Loading game data from local database...</div>; // Or a more sophisticated loading screen
+  // Updated loading condition: wait for worldStatusFromDb, engineStatusFromDb, and game object
+  if (!worldStatusFromDb || !engineStatusFromDb || !game) {
+    console.log("Game component waiting for data...", { worldStatusFromDb, engineStatusFromDb, game });
+    return <div>Loading game data...</div>; // Or a more sophisticated loading screen
   }
   
-  // If we reached here, worldStatusFromDb and engineStatusFromDb should be populated.
-  // worldId and engineId will be derived from them, or fallbacks if initial load is too fast.
+  // worldId from game object is preferred once game is loaded
+  const currentWorldId = game.worldId;
 
   return (
     <>
@@ -69,7 +68,8 @@ export default function Game() {
         {/* Game area */}
         <div className="relative overflow-hidden bg-brown-900" ref={gameWrapperRef}>
           <div className="absolute inset-0">
-            { width > 0 && height > 0 && <ThreeScene width={width} height={height} /> }
+            {/* Pass the game object to ThreeScene */}
+            { width > 0 && height > 0 && <ThreeScene width={width} height={height} game={game} /> }
           </div>
         </div>
         {/* Right column area */}
@@ -78,9 +78,9 @@ export default function Game() {
           ref={scrollViewRef}
         >
           <PlayerDetails
-            worldId={worldId} // From Dexie or fallback
-            engineId={engineId} // From Dexie or fallback
-            game={game} // Currently undefined
+            worldId={currentWorldId} // Use worldId from the game object
+            engineId={engineId} // engineId from worldStatusFromDb is still fine
+            game={game} // Pass the whole game object
             playerId={selectedElement?.id}
             setSelectedElement={setSelectedElement}
             scrollViewRef={scrollViewRef}

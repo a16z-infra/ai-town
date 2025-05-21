@@ -1,68 +1,94 @@
-import { useQuery } from 'convex/react';
-import { api } from '../../convex/_generated/api';
-import { Id } from '../../convex/_generated/dataModel';
+// Removed Convex imports
+// import { useQuery } from 'convex/react';
+// import { api } from '../../convex/_generated/api';
+// import { Id } from '../../convex/_generated/dataModel';
 import closeImg from '../../assets/close.svg';
-import { SelectElement } from './Player';
+import { SelectElement } from './Player'; // This is likely a type, should be fine or moved.
 import { Messages } from './Messages';
-import { toastOnError } from '../toasts';
-import { useSendInput } from '../hooks/sendInput';
-import { Player } from '../../convex/aiTown/player';
-import { GameId } from '../../convex/aiTown/ids';
-import { ServerGame } from '../hooks/serverGame';
+// import { toastOnError } from '../toasts'; // Keep if used by non-Convex logic
+// import { useSendInput } from '../hooks/sendInput'; // Removed
+// import { Player } from '../../convex/aiTown/player'; // Use Player from dataModels
+import { GameId, PlayerId } from '../dataModels/ids'; // Use GameId from dataModels
+// import { ServerGame } from '../hooks/serverGame'; // Removed, use ClientGame
+import { ClientGame } from '../hooks/useClientGame'; // Import ClientGame
+import { Player } from '../dataModels/player'; // Import Player class from dataModels
 
 export default function PlayerDetails({
-  worldId,
-  engineId,
+  // worldId, // Now part of game object
+  // engineId, // Now part of game object
   game,
-  playerId,
+  playerId, // This is the selected player's ID
   setSelectedElement,
   scrollViewRef,
 }: {
-  worldId: Id<'worlds'>;
-  engineId: Id<'engines'>;
-  game: ServerGame;
+  // worldId: Id<'worlds'>; // Replaced by game prop
+  // engineId: Id<'engines'>; // Replaced by game prop
+  game?: ClientGame; // Changed ServerGame to ClientGame, make it optional for loading state
   playerId?: GameId<'players'>;
   setSelectedElement: SelectElement;
   scrollViewRef: React.RefObject<HTMLDivElement>;
 }) {
-  const humanTokenIdentifier = useQuery(api.world.userStatus, { worldId });
+  // const humanTokenIdentifier = useQuery(api.world.userStatus, { worldId }); // Removed
 
-  const players = [...game.world.players.values()];
-  const humanPlayer = players.find((p) => p.human === humanTokenIdentifier);
-  const humanConversation = humanPlayer ? game.world.playerConversation(humanPlayer) : undefined;
-  // Always select the other player if we're in a conversation with them.
+  // --- Human Player Identification (Simplified) ---
+  // For now, assume a fixed human player ID or that 'human' field is set in DB.
+  // This needs a proper mechanism later (e.g. Clerk auth, or a way to set human player in DB)
+  const humanPlayerId: PlayerId | undefined = 'p:0' as PlayerId; // Placeholder for "player1" or first player
+  // const humanPlayer = game?.world?.players.get(humanPlayerId);
+
+  // A more robust way to find a human player if the 'human' field is populated:
+  let humanPlayer: Player | undefined;
+  if (game?.world?.players) {
+    for (const p of game.world.players.values()) {
+      if (p.human) { // Assuming 'human' field on Player object indicates it's a human-controlled player
+        humanPlayer = p;
+        break;
+      }
+    }
+    // If no player has a 'human' field, fallback to the placeholder for testing.
+    if (!humanPlayer && humanPlayerId) {
+        humanPlayer = game.world.players.get(humanPlayerId);
+    }
+  }
+
+  const humanConversation = humanPlayer && game?.world ? game.world.playerConversation(humanPlayer) : undefined;
+
+  // Auto-select other player if human is in conversation (logic retained)
+  let activePlayerId = playerId;
   if (humanPlayer && humanConversation) {
     const otherPlayerIds = [...humanConversation.participants.keys()].filter(
       (p) => p !== humanPlayer.id,
     );
-    playerId = otherPlayerIds[0];
+    if (otherPlayerIds.length > 0) {
+      activePlayerId = otherPlayerIds[0];
+    }
   }
 
-  const player = playerId && game.world.players.get(playerId);
-  const playerConversation = player && game.world.playerConversation(player);
+  const player = activePlayerId && game?.world?.players.get(activePlayerId);
+  const playerConversation = player && game?.world ? game.world.playerConversation(player) : undefined;
 
-  const previousConversation = useQuery(
-    api.world.previousConversation,
-    playerId ? { worldId, playerId } : 'skip',
-  );
+  // const previousConversation = useQuery( api.world.previousConversation, ...); // Removed
+  const previousConversation = undefined; // Simplified for now
 
-  const playerDescription = playerId && game.playerDescriptions.get(playerId);
+  const playerDescription = activePlayerId && game?.playerDescriptions.get(activePlayerId);
 
-  const startConversation = useSendInput(engineId, 'startConversation');
-  const acceptInvite = useSendInput(engineId, 'acceptInvite');
-  const rejectInvite = useSendInput(engineId, 'rejectInvite');
-  const leaveConversation = useSendInput(engineId, 'leaveConversation');
+  // const startConversation = useSendInput(engineId, 'startConversation'); // Removed
+  // const acceptInvite = useSendInput(engineId, 'acceptInvite'); // Removed
+  // const rejectInvite = useSendInput(engineId, 'rejectInvite'); // Removed
+  // const leaveConversation = useSendInput(engineId, 'leaveConversation'); // Removed
 
-  if (!playerId) {
+  if (!game || !activePlayerId) { // Check for game object
     return (
       <div className="h-full text-xl flex text-center items-center p-4">
-        Click on an agent on the map to see chat history.
+        { game ? "Click on an agent on the map to see chat history." : "Loading game details..."}
       </div>
     );
   }
   if (!player) {
-    return null;
+     console.log("Player not found for ID:", activePlayerId, "Available players:", Array.from(game.world.players.keys()));
+    return <div>Player not found.</div>; // Or some other handling
   }
+
   const isMe = humanPlayer && player.id === humanPlayer.id;
   const canInvite = !isMe && !playerConversation && humanPlayer && !humanConversation;
   const sameConversation =
@@ -74,11 +100,11 @@ export default function PlayerDetails({
 
   const humanStatus =
     humanPlayer && humanConversation && humanConversation.participants.get(humanPlayer.id)?.status;
-  const playerStatus = playerConversation && playerConversation.participants.get(playerId)?.status;
+  const playerStatus = playerConversation && playerConversation.participants.get(activePlayerId)?.status;
 
   const haveInvite = sameConversation && humanStatus?.kind === 'invited';
   const waitingForAccept =
-    sameConversation && playerConversation.participants.get(playerId)?.status.kind === 'invited';
+    sameConversation && playerConversation.participants.get(activePlayerId)?.status.kind === 'invited';
   const waitingForNearby =
     sameConversation && playerStatus?.kind === 'walkingOver' && humanStatus?.kind === 'walkingOver';
 
@@ -88,49 +114,27 @@ export default function PlayerDetails({
     humanStatus?.kind === 'participating';
 
   const onStartConversation = async () => {
-    if (!humanPlayer || !playerId) {
-      return;
-    }
-    console.log(`Starting conversation`);
-    await toastOnError(startConversation({ playerId: humanPlayer.id, invitee: playerId }));
+    console.log("Attempting to start conversation (currently disabled)");
+    // if (!humanPlayer || !activePlayerId) return;
+    // await toastOnError(startConversation({ playerId: humanPlayer.id, invitee: activePlayerId }));
   };
   const onAcceptInvite = async () => {
-    if (!humanPlayer || !humanConversation || !playerId) {
-      return;
-    }
-    await toastOnError(
-      acceptInvite({
-        playerId: humanPlayer.id,
-        conversationId: humanConversation.id,
-      }),
-    );
+    console.log("Attempting to accept invite (currently disabled)");
+    // if (!humanPlayer || !humanConversation || !activePlayerId) return;
+    // await toastOnError(acceptInvite({ playerId: humanPlayer.id, conversationId: humanConversation.id }));
   };
   const onRejectInvite = async () => {
-    if (!humanPlayer || !humanConversation) {
-      return;
-    }
-    await toastOnError(
-      rejectInvite({
-        playerId: humanPlayer.id,
-        conversationId: humanConversation.id,
-      }),
-    );
+    console.log("Attempting to reject invite (currently disabled)");
+    // if (!humanPlayer || !humanConversation) return;
+    // await toastOnError(rejectInvite({ playerId: humanPlayer.id, conversationId: humanConversation.id }));
   };
   const onLeaveConversation = async () => {
-    if (!humanPlayer || !inConversationWithMe || !humanConversation) {
-      return;
-    }
-    await toastOnError(
-      leaveConversation({
-        playerId: humanPlayer.id,
-        conversationId: humanConversation.id,
-      }),
-    );
+    console.log("Attempting to leave conversation (currently disabled)");
+    // if (!humanPlayer || !inConversationWithMe || !humanConversation) return;
+    // await toastOnError(leaveConversation({ playerId: humanPlayer.id, conversationId: humanConversation.id }));
   };
-  // const pendingSuffix = (inputName: string) =>
-  //   [...inflightInputs.values()].find((i) => i.name === inputName) ? ' opacity-50' : '';
 
-  const pendingSuffix = (s: string) => '';
+  const pendingSuffix = (s: string) => ''; // Placeholder for pending state styling
   return (
     <>
       <div className="flex gap-4">

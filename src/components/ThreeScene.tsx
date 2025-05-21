@@ -1,28 +1,23 @@
 import React, { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
-import { createCharacterMesh, CharacterData } from './ThreeCharacter'; // Import character utils
+import { createCharacterMesh, CharacterData } from './ThreeCharacter';
+import type { ClientGame } from '../hooks/useClientGame'; // Import ClientGame type
 
 interface ThreeSceneProps {
   width: number;
   height: number;
+  game?: ClientGame; // Accept game object as a prop
 }
 
-const ThreeScene: React.FC<ThreeSceneProps> = ({ width, height }) => {
+const ThreeScene: React.FC<ThreeSceneProps> = ({ width, height, game }) => {
   const mountRef = useRef<HTMLDivElement>(null);
-  const [tilemapData, setTilemapData] = useState<any>(null);
-  const [tilesetTexture, setTilesetTexture] = useState<THREE.Texture | null>(null);
+  const [tilemapData, setTilemapData] = useState<any>(null); // Still used for map for now
+  const [tilesetTexture, setTilesetTexture] = useState<THREE.Texture | null>(null); // Still used for map
   const [tilemapAssets, setTilemapAssets] = useState<THREE.Group | null>(null);
-  const [characterGroup, setCharacterGroup] = useState<THREE.Group | null>(null); // For character meshes
+  const [characterGroup, setCharacterGroup] = useState<THREE.Group | null>(null);
 
-  // Mock character data
-  const mockCharacters: CharacterData[] = [
-    { id: 'player1', position: { x: 0, y: 0, z: 0 }, type: 'player', name: 'Hero' },
-    { id: 'npc1', position: { x: 2, y: 0, z: 2 }, type: 'npc', name: 'Guide' },
-    { id: 'monster1', position: { x: -3, y: 0, z: -3 }, type: 'monster', name: 'Goblin' },
-    { id: 'player2', position: { x: 5, y: 0, z: -2 }, type: 'player', name: 'Sidekick' },
-  ];
-
-  // 1. Load Assets
+  // 1. Load Map Assets (Tilemap.json, Tileset.png) - Kept for now
+  // Optional: This could be replaced by using game.worldMap if it's fully populated
   useEffect(() => {
     const loadAssets = async () => {
       try {
@@ -177,19 +172,79 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({ width, height }) => {
   }, [tilemapData, tilesetTexture, width, height]); // Re-run if these change
 
 
-  // 3. Create Character Meshes
+  // 3. Create Character Meshes from Game Data
   useEffect(() => {
-    // This effect creates the character meshes once mockCharacters are defined.
-    // It doesn't depend on tilemapData or tilesetTexture.
+    if (!game || !game.world || !game.playerDescriptions || !game.agentDescriptions) {
+      // Clear existing characters if game data is not available
+      if (characterGroup) {
+        characterGroup.traverse((object) => {
+          if (object instanceof THREE.Mesh) {
+            object.geometry.dispose();
+            if (Array.isArray(object.material)) {
+              object.material.forEach(mat => mat.dispose());
+            } else {
+              object.material.dispose();
+            }
+          }
+        });
+        characterGroup.clear();
+        setCharacterGroup(null);
+      }
+      return;
+    }
+
     const newCharacterGroup = new THREE.Group();
     newCharacterGroup.name = "CharacterGroup";
 
-    mockCharacters.forEach(charData => {
-      const charMesh = createCharacterMesh(charData);
+    // Process players
+    for (const player of game.world.players.values()) {
+      const playerDesc = game.playerDescriptions.get(player.id);
+      const characterData: CharacterData = {
+        id: player.id,
+        // Map 2D position (player.position.x, player.position.y) to 3D (x, 0, z)
+        // y=0 is ground level. createCharacterMesh handles height offset of geometry.
+        position: { x: player.position.x, y: 0, z: player.position.y },
+        type: 'player', // Player type
+        name: playerDesc?.name || player.id,
+      };
+      const charMesh = createCharacterMesh(characterData);
       newCharacterGroup.add(charMesh);
-    });
+    }
+
+    // Process agents (as NPCs)
+    for (const agent of game.world.agents.values()) {
+      const agentPlayer = game.world.players.get(agent.playerId); // Get underlying player object for position
+      if (agentPlayer) {
+        const agentDesc = game.agentDescriptions.get(agent.id);
+        const characterData: CharacterData = {
+          id: agent.id,
+          position: { x: agentPlayer.position.x, y: 0, z: agentPlayer.position.y },
+          type: 'npc', // Agents are NPCs
+          name: agentDesc?.name || agent.id,
+        };
+        const charMesh = createCharacterMesh(characterData);
+        newCharacterGroup.add(charMesh);
+      }
+    }
+    
+    // Clean up old group before setting new one
+    if (characterGroup) {
+        characterGroup.traverse((object) => {
+        if (object instanceof THREE.Mesh) {
+          object.geometry.dispose();
+          if (Array.isArray(object.material)) {
+            object.material.forEach(mat => mat.dispose());
+          } else {
+            object.material.dispose();
+          }
+        }
+      });
+      characterGroup.clear();
+    }
+
     setCharacterGroup(newCharacterGroup);
 
+    // Cleanup function for when the effect re-runs or component unmounts
     return () => {
       newCharacterGroup.traverse((object) => {
         if (object instanceof THREE.Mesh) {
@@ -201,11 +256,10 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({ width, height }) => {
           }
         }
       });
-      newCharacterGroup.clear(); // Remove all children
+      newCharacterGroup.clear();
       setCharacterGroup(null);
     };
-    // mockCharacters is stable, so this runs once. If it were dynamic, add it to dependencies.
-  }, []); 
+  }, [game]); // Re-run when game object changes
 
 
   // 4. Setup Scene, Camera, Renderer, and Render Loop

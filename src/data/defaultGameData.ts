@@ -1,4 +1,9 @@
 import { WorldStatus, Engine, World, MapData, PlayerDescription, AgentDescription } from '../db';
+// Import Serialized types for default empty arrays
+import type { SerializedPlayer } from '../dataModels/player';
+import type { SerializedAgent } from '../dataModels/agent';
+import type { SerializedConversation } from '../dataModels/conversation';
+
 
 export const defaultWorldId = "defaultWorld";
 export const defaultEngineId = "defaultEngine";
@@ -47,9 +52,15 @@ export const defaultMaps: MapData[] = [
     width: 40, // In tiles
     height: 40, // In tiles
     tileSetUrl: 'assets/rpg-tileset.png', // Path to the tileset image
+    tileSetDimX: 1600, // Example: If tileset is 100 tiles wide * 16px/tile
+    tileSetDimY: 1600, // Example: If tileset is 100 tiles high * 16px/tile
     tileDim: 16, // Dimension of a single tile in pixels
-    bgTiles: [], // For simplicity, keeping these empty. Could be populated from tilemap.json later.
-    objectTiles: [],
+    // bgTiles and objectTiles are number[][], which is a single layer.
+    // The WorldMap class expects TileLayer[] (number[][][]).
+    // For default data, an empty single layer is fine.
+    // The transformation to number[][][] will happen in useClientGame if needed.
+    bgTiles: Array(40).fill(null).map(() => Array(40).fill(0)), // Example empty layer
+    objectTiles: Array(40).fill(null).map(() => Array(40).fill(0)), // Example empty layer
     animatedSprites: [],
   }
 ];
@@ -58,17 +69,18 @@ export const defaultPlayerDescriptions: PlayerDescription[] = [
   {
     playerDescriptionId: "playerdesc1",
     worldId: defaultWorldId,
-    playerId: "player1",
+    playerId: "player1", // This should match a playerId in defaultPlayers if any
     name: "Adventurer Alice",
     description: "A brave explorer ready to chart the unknown.",
-    // 'character' field from prompt is not in db.ts PlayerDescription interface.
+    character: "f1", // Example character sprite name
   },
   {
     playerDescriptionId: "playerdesc2",
     worldId: defaultWorldId,
-    playerId: "player2",
+    playerId: "player2", // This should match a playerId in defaultPlayers if any
     name: "Sorcerer Bob",
     description: "A wise mage searching for ancient secrets.",
+    character: "m1", // Example character sprite name
   }
 ];
 
@@ -97,3 +109,41 @@ export const defaultAgentDescriptions: AgentDescription[] = [
 // This ensures all tables are created by Dexie even if not explicitly seeded here.
 // However, bulkAdd with an empty array is a no-op.
 // Dexie creates tables based on version().stores(), not on whether they are seeded.
+
+// Default empty arrays for new tables
+export const defaultPlayers: SerializedPlayer[] = [
+  // Example player (ensure format matches SerializedPlayer from dataModels/player.ts)
+  // {
+  //   id: "p:1" as any, // PlayerId from dataModels/ids.ts
+  //   human: undefined, // Optional: tokenIdentifier for human players
+  //   pathfinding: undefined,
+  //   activity: { description: "Wandering", emoji: "🤔", until: Date.now() + 60000 },
+  //   lastInput: Date.now(),
+  //   position: { x: 20, y: 20 }, // Example position
+  //   facing: { dx: 0, dy: 1 },   // Example facing direction
+  //   speed: 0,
+  //   worldId: defaultWorldId, // Not part of SerializedPlayer, but needed for DB query if table uses it
+  //   playerId: "p:1" // Redundant with 'id' but added to table for indexing
+  // }
+  // For seeding, ensure 'playerId' matches 'id' if both are stored.
+  // The table schema for 'players' in db.ts is:
+  // players!: Table<SerializedPlayer & { id?: number; worldId: string; playerId: string }, number>;
+  // So, the object should be SerializedPlayer, and worldId/playerId are for indexing/querying.
+  // We can add players here if we want them to exist by default.
+  // For now, let's seed it empty, players will be created via UI or other logic.
+];
+
+export const defaultAgents: SerializedAgent[] = [
+  // Example agent (ensure format matches SerializedAgent from dataModels/agent.ts)
+  // {
+  //   id: "a:1" as any, // AgentId
+  //   playerId: "p:agentPlayer1" as any, // Underlying PlayerId for this agent
+  //   worldId: defaultWorldId, // Not part of SerializedAgent, but for DB query
+  //   agentId: "a:1" // Redundant with 'id'
+  // }
+  // Seed empty for now. Agents are often tied to AgentDescriptions.
+];
+
+export const defaultConversations: SerializedConversation[] = [
+  // Seed empty for now. Conversations are dynamic.
+];

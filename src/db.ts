@@ -30,7 +30,9 @@ export interface MapData {
   width: number;
   height: number;
   tileSetUrl: string;
-  tileSetDim: number;
+  // tileSetDim: number; // Replaced by tileSetDimX and tileSetDimY
+  tileSetDimX: number; // Width of the tileset image in pixels
+  tileSetDimY: number; // Height of the tileset image in pixels
   tileDim: number;
   bgTiles: number[][];
   objectTiles: number[][];
@@ -45,6 +47,7 @@ export interface PlayerDescription {
   playerId: string; // Original Convex v.id('players')
   description: string;
   name: string;
+  character: string; // Added character field
 }
 
 export interface AgentDescription {
@@ -152,12 +155,26 @@ export interface Music {
 
 // Define the database class
 export class MyGameDatabase extends Dexie {
+// Import Serialized types from dataModels for table definitions
+import type { SerializedPlayer } from '../dataModels/player';
+import type { SerializedAgent } from '../dataModels/agent';
+import type { SerializedConversation } from '../dataModels/conversation';
+
+
+// Define the database class
+export class MyGameDatabase extends Dexie {
   // Declare tables
   worlds!: Table<World, number>;
   worldStatus!: Table<WorldStatus, number>;
   maps!: Table<MapData, number>;
   playerDescriptions!: Table<PlayerDescription, number>;
   agentDescriptions!: Table<AgentDescription, number>;
+
+  // New tables for game state
+  players!: Table<SerializedPlayer & { id?: number; worldId: string; playerId: string }, number>; // Store SerializedPlayer, add worldId for indexing
+  agents!: Table<SerializedAgent & { id?: number; worldId: string; agentId: string }, number>;     // Store SerializedAgent, add worldId for indexing
+  conversations!: Table<SerializedConversation & { id?: number; worldId: string; conversationId: string }, number>; // Store SerializedConversation, add worldId
+
   memories!: Table<Memory, number>;
   memoryEmbeddings!: Table<MemoryEmbedding, number>;
   embeddingsCache!: Table<EmbeddingsCache, number>;
@@ -174,10 +191,20 @@ export class MyGameDatabase extends Dexie {
     super('MyGameDatabase');
     this.version(1).stores({
       worlds: '++id, &worldId, mapId, engineId', // worldId should be unique
-      worldStatus: '++id, &worldId, engineId, isDefault', // worldId should be unique
-      maps: '++id, &mapId, worldId', // mapId should be unique
-      playerDescriptions: '++id, &playerDescriptionId, worldId, playerId',
+  worldStatus: '++id, &worldId, engineId, isDefault',
+  maps: '++id, &mapId, worldId',
+  playerDescriptions: '++id, &playerDescriptionId, worldId, playerId', // Added 'character' to interface, schema fine
       agentDescriptions: '++id, &agentDescriptionId, worldId, agentId',
+  
+  // Schema for new tables
+  // For players, agents, conversations, we store the Serialized form.
+  // The primary key 'id' is Dexie's auto-increment.
+  // 'playerId', 'agentId', 'conversationId' are the game's unique string IDs.
+  // 'worldId' is added for partitioning data by world.
+  players: '++id, &playerId, worldId, human', // Index on playerId, worldId, and human status
+  agents: '++id, &agentId, worldId, playerId',    // Index on agentId, worldId, and underlying playerId
+  conversations: '++id, &conversationId, worldId, created', // Index on conversationId, worldId, and creation time
+
       memories: '++id, &memoryId, playerId, embeddingId, importance, lastAccess, &[playerId+data.type]',
       memoryEmbeddings: '++id, &embeddingId, playerId',
       embeddingsCache: '++id, &textHash', // textHash must be unique
