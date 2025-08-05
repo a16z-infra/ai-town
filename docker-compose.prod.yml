@@ -2,16 +2,22 @@ version: '3.8'
 
 services:
   frontend:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        - VITE_LANGUAGE=${VITE_LANGUAGE:-en}
+        - OLLAMA_HOST=${OLLAMA_HOST:-http://host.docker.internal:11434}
+        - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3}
+        - OLLAMA_EMBEDDING_MODEL=${OLLAMA_EMBEDDING_MODEL:-mxbai-embed-large}
     ports:
-      - '5173:5173'
-    volumes:
-      - .:/usr/src/app
-      - /usr/src/app/node_modules
-    environment:
-      - VITE_CONVEX_URL=http://127.0.0.1:${PORT:-3210}
+      - '${FRONTEND_PORT:-80}:80'
     networks:
       - ai-town-network
+    depends_on:
+      backend:
+        condition: service_healthy
+
   backend:
     image: ghcr.io/get-convex/convex-backend:latest
     ports:
@@ -43,6 +49,8 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    networks:
+      - ai-town-network
 
 volumes:
   data:

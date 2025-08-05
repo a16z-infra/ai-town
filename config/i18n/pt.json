@@ -1,0 +1,40 @@
+{
+  "ui": {
+    "title": "Cidade IA",
+    "description": "Uma cidade virtual onde personagens IA vivem, conversam e socializam",
+    "buttons": {
+      "login": "Entrar na Cidade",
+      "interact": "Interagir",
+      "freeze": "Congelar",
+      "unfreeze": "Descongelar",
+      "music": "Música",
+      "mute": "Mudo",
+      "help": "Ajuda",
+      "star": "Estrela"
+    },
+    "status": {
+      "connecting": "Conectando...",
+      "loading": "Carregando...",
+      "frozen": "O mundo está congelado",
+      "running": "O mundo está funcionando"
+    },
+    "messages": {
+      "enterName": "Digite seu nome",
+      "typeMessage": "Digite uma mensagem...",
+      "noMessages": "Nenhuma mensagem ainda",
+      "clickToInteract": "Clique em um personagem para interagir"
+    },
+    "help": {
+      "title": "Ajuda",
+      "welcome": "Bem-vindo à Cidade IA. A Cidade IA oferece suporte tanto para espectadores anônimos quanto para interatividade com login.",
+      "spectating": "Observando",
+      "spectatingDesc": "Clique e arraste para se mover pela cidade, e role para dentro e para fora para fazer zoom. Você pode clicar em um personagem individual para ver seu histórico de chat.",
+      "interactivity": "Interatividade",
+      "interactivityDesc": "Se você fizer login, poderá participar da simulação e falar diretamente com diferentes agentes! Após fazer login, clique no botão \"Interagir\", e seu personagem aparecerá em algum lugar no mapa com um círculo destacado embaixo de você.",
+      "controls": "Controles:",
+      "clickNavigate": "Clique para navegar.",
+      "talkAgent": "Para falar com um agente, clique nele e depois clique em \"Iniciar conversa\", o que pedirá para ele começar a caminhar em sua direção. Uma vez que estejam próximos, a conversa começará, e vocês poderão falar um com o outro. Você pode sair a qualquer momento fechando o painel de conversa ou se afastando. Eles podem propor uma conversa para você - você verá um botão para aceitar no painel de mensagens.",
+      "maxPlayers": "A Cidade IA suporta apenas {maxPlayers} humanos por vez. Se você ficar inativo por cinco minutos, será automaticamente removido da simulação."
+    }
+  }
+}

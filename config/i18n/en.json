@@ -1,0 +1,40 @@
+{
+  "ui": {
+    "title": "AI Town",
+    "description": "A virtual town where AI characters live, chat and socialize",
+    "buttons": {
+      "login": "Enter Town",
+      "interact": "Interact",
+      "freeze": "Freeze",
+      "unfreeze": "Unfreeze",
+      "music": "Music",
+      "mute": "Mute",
+      "help": "Help",
+      "star": "Star"
+    },
+    "status": {
+      "connecting": "Connecting...",
+      "loading": "Loading...",
+      "frozen": "World is frozen",
+      "running": "World is running"
+    },
+    "messages": {
+      "enterName": "Enter your name",
+      "typeMessage": "Type a message...",
+      "noMessages": "No messages yet",
+      "clickToInteract": "Click on a character to interact"
+    },
+    "help": {
+      "title": "Help",
+      "welcome": "Welcome to AI town. AI town supports both anonymous spectators and logged in interactivity.",
+      "spectating": "Spectating",
+      "spectatingDesc": "Click and drag to move around the town, and scroll in and out to zoom. You can click on an individual character to view its chat history.",
+      "interactivity": "Interactivity",
+      "interactivityDesc": "If you log in, you can join the simulation and directly talk to different agents! After logging in, click the \"Interact\" button, and your character will appear somewhere on the map with a highlighted circle underneath you.",
+      "controls": "Controls:",
+      "clickNavigate": "Click to navigate around.",
+      "talkAgent": "To talk to an agent, click on them and then click \"Start conversation,\" which will ask them to start walking towards you. Once they're nearby, the conversation will start, and you can speak to each other. You can leave at any time by closing the conversation pane or moving away. They may propose a conversation to you - you'll see a button to accept in the messages panel.",
+      "maxPlayers": "AI town only supports {maxPlayers} humans at a time. If you're idle for five minutes, you'll be automatically removed from the simulation."
+    }
+  }
+}

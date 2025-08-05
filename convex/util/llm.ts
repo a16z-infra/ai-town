@@ -3,15 +3,17 @@
 const OPENAI_EMBEDDING_DIMENSION = 1536;
 const TOGETHER_EMBEDDING_DIMENSION = 768;
 const OLLAMA_EMBEDDING_DIMENSION = 1024;
+const OPENROUTER_EMBEDDING_DIMENSION = 1536; // Most OpenRouter models use OpenAI-compatible embeddings
 
-export const EMBEDDING_DIMENSION: number = OLLAMA_EMBEDDING_DIMENSION;
+// Dynamic embedding dimension based on provider
+export const EMBEDDING_DIMENSION: number = OPENROUTER_EMBEDDING_DIMENSION;
 
 export function detectMismatchedLLMProvider() {
   switch (EMBEDDING_DIMENSION) {
     case OPENAI_EMBEDDING_DIMENSION:
-      if (!process.env.OPENAI_API_KEY) {
+      if (!process.env.OPENAI_API_KEY && !process.env.OPENROUTER_API_KEY) {
         throw new Error(
-          "Are you trying to use OpenAI? If so, run: npx convex env set OPENAI_API_KEY 'your-key'",
+          "Are you trying to use OpenAI or OpenRouter? If so, run: npx convex env set OPENAI_API_KEY 'your-key' or npx convex env set OPENROUTER_API_KEY 'your-key'",
         );
       }
       break;
@@ -24,6 +26,13 @@ export function detectMismatchedLLMProvider() {
       break;
     case OLLAMA_EMBEDDING_DIMENSION:
       break;
+    case OPENROUTER_EMBEDDING_DIMENSION:
+      if (!process.env.OPENROUTER_API_KEY) {
+        throw new Error(
+          "Are you trying to use OpenRouter? If so, run: npx convex env set OPENROUTER_API_KEY 'your-key'",
+        );
+      }
+      break;
     default:
       if (!process.env.LLM_API_URL) {
         throw new Error(
@@ -35,7 +44,7 @@ export function detectMismatchedLLMProvider() {
 }
 
 export interface LLMConfig {
-  provider: 'openai' | 'together' | 'ollama' | 'custom';
+  provider: 'openai' | 'together' | 'ollama' | 'openrouter' | 'custom';
   url: string; // Should not have a trailing slash
   chatModel: string;
   embeddingModel: string;
@@ -45,6 +54,22 @@ export interface LLMConfig {
 
 export function getLLMConfig(): LLMConfig {
   let provider = process.env.LLM_PROVIDER;
+  
+  // Check for OpenRouter first
+  if (provider === 'openrouter' || process.env.OPENROUTER_API_KEY) {
+    if (EMBEDDING_DIMENSION !== OPENROUTER_EMBEDDING_DIMENSION) {
+      throw new Error('EMBEDDING_DIMENSION must be 1536 for OpenRouter');
+    }
+    return {
+      provider: 'openrouter',
+      url: 'https://openrouter.ai/api',
+      chatModel: process.env.OPENROUTER_CHAT_MODEL ?? 'anthropic/claude-3.5-sonnet',
+      embeddingModel: process.env.OPENROUTER_EMBEDDING_MODEL ?? 'text-embedding-ada-002',
+      stopWords: [],
+      apiKey: process.env.OPENROUTER_API_KEY,
+    };
+  }
+  
   if (provider ? provider === 'openai' : process.env.OPENAI_API_KEY) {
     if (EMBEDDING_DIMENSION !== OPENAI_EMBEDDING_DIMENSION) {
       throw new Error('EMBEDDING_DIMENSION must be 1536 for OpenAI');
@@ -109,12 +134,22 @@ export function getLLMConfig(): LLMConfig {
   };
 }
 
-const AuthHeaders = (): Record<string, string> =>
-  getLLMConfig().apiKey
-    ? {
-        Authorization: 'Bearer ' + getLLMConfig().apiKey,
-      }
-    : {};
+const AuthHeaders = (): Record<string, string> => {
+  const config = getLLMConfig();
+  if (!config.apiKey) return {};
+  
+  const headers: Record<string, string> = {
+    Authorization: 'Bearer ' + config.apiKey,
+  };
+  
+  // Add OpenRouter specific headers
+  if (config.provider === 'openrouter') {
+    headers['HTTP-Referer'] = process.env.OPENROUTER_REFERER || 'https://ai-town-app';
+    headers['X-Title'] = process.env.OPENROUTER_APP_NAME || 'AI Town';
+  }
+  
+  return headers;
+};
 
 // Overload for non-streaming
 export async function chatCompletion(

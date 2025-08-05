@@ -1,0 +1,45 @@
+# Multi-stage build for production
+FROM node:18-alpine as builder
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source code and configuration
+COPY . .
+COPY config/ ./config/
+
+# Build arguments for configuration
+ARG VITE_LANGUAGE=en
+ARG OLLAMA_HOST=http://host.docker.internal:11434
+ARG OLLAMA_MODEL=llama3
+ARG OLLAMA_EMBEDDING_MODEL=mxbai-embed-large
+
+# Set environment variables
+ENV VITE_LANGUAGE=${VITE_LANGUAGE}
+ENV OLLAMA_HOST=${OLLAMA_HOST}
+ENV OLLAMA_MODEL=${OLLAMA_MODEL}
+ENV OLLAMA_EMBEDDING_MODEL=${OLLAMA_EMBEDDING_MODEL}
+
+# Build the application
+RUN npm run build
+
+# Production stage
+FROM nginx:alpine
+
+# Copy built application
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Expose port
+EXPOSE 80
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]

@@ -1,0 +1,40 @@
+{
+  "ui": {
+    "title": "Ville IA",
+    "description": "Une ville virtuelle où les personnages IA vivent, discutent et socialisent",
+    "buttons": {
+      "login": "Entrer dans la Ville",
+      "interact": "Interagir",
+      "freeze": "Geler",
+      "unfreeze": "Dégeler",
+      "music": "Musique",
+      "mute": "Muet",
+      "help": "Aide",
+      "star": "Étoile"
+    },
+    "status": {
+      "connecting": "Connexion...",
+      "loading": "Chargement...",
+      "frozen": "Le monde est gelé",
+      "running": "Le monde fonctionne"
+    },
+    "messages": {
+      "enterName": "Entrez votre nom",
+      "typeMessage": "Tapez un message...",
+      "noMessages": "Aucun message pour le moment",
+      "clickToInteract": "Cliquez sur un personnage pour interagir"
+    },
+    "help": {
+      "title": "Aide",
+      "welcome": "Bienvenue dans la Ville IA. La Ville IA prend en charge les spectateurs anonymes et l'interactivité avec connexion.",
+      "spectating": "Observer",
+      "spectatingDesc": "Cliquez et faites glisser pour vous déplacer dans la ville, et faites défiler pour zoomer. Vous pouvez cliquer sur un personnage pour voir son historique de chat.",
+      "interactivity": "Interactivité",
+      "interactivityDesc": "Si vous vous connectez, vous pouvez rejoindre la simulation et parler directement avec différents agents ! Après vous être connecté, cliquez sur le bouton \"Interagir\", et votre personnage apparaîtra quelque part sur la carte avec un cercle en surbrillance en dessous de vous.",
+      "controls": "Contrôles :",
+      "clickNavigate": "Cliquez pour naviguer.",
+      "talkAgent": "Pour parler à un agent, cliquez sur lui puis cliquez sur \"Commencer la conversation\", ce qui lui demandera de commencer à marcher vers vous. Une fois qu'il est à proximité, la conversation commencera, et vous pourrez vous parler. Vous pouvez partir à tout moment en fermant le panneau de conversation ou en vous éloignant. Il peut vous proposer une conversation - vous verrez un bouton pour accepter dans le panneau des messages.",
+      "maxPlayers": "La Ville IA ne prend en charge que {maxPlayers} humains à la fois. Si vous êtes inactif pendant cinq minutes, vous serez automatiquement retiré de la simulation."
+    }
+  }
+}
