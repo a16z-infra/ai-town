@@ -1,0 +1,64 @@
+version: '3.8'
+
+# AI Town - Docker Hub Deployment
+# Ready-to-use configuration with pre-built image from Docker Hub
+
+services:
+  # Frontend from Docker Hub
+  frontend:
+    image: lingelo/ai-town:latest
+    ports:
+      - '${FRONTEND_PORT:-80}:80'
+    environment:
+      - VITE_LANGUAGE=${VITE_LANGUAGE:-en}
+    networks:
+      - ai-town-network
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Convex Backend (self-hosted)
+  backend:
+    image: ghcr.io/get-convex/convex-backend:latest
+    ports:
+      - '${PORT:-3210}:3210'
+      - '${SITE_PROXY_PORT:-3211}:3211'
+    volumes:
+      - data:/convex/data
+    environment:
+      - INSTANCE_NAME=${INSTANCE_NAME:-ai-town}
+      - INSTANCE_SECRET=${INSTANCE_SECRET:-}
+      - CONVEX_CLOUD_ORIGIN=${URL_BASE:-http://127.0.0.1}:${PORT:-3210}
+      - CONVEX_SITE_ORIGIN=${URL_BASE:-http://127.0.0.1}:${SITE_PROXY_PORT:-3211}
+    healthcheck:
+      test: curl -f http://localhost:3210/version || exit 1
+      interval: 5s
+      start_period: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - ai-town-network
+    restart: unless-stopped
+
+  # Convex Dashboard
+  dashboard:
+    image: ghcr.io/get-convex/convex-dashboard:latest
+    ports:
+      - '${DASHBOARD_PORT:-6791}:6791'
+    environment:
+      - NEXT_PUBLIC_DEPLOYMENT_URL=http://127.0.0.1:${PORT:-3210}
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - ai-town-network
+    restart: unless-stopped
+
+volumes:
+  data:
+    driver: local
+
+networks:
+  ai-town-network:
+    driver: bridge
