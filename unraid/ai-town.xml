@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>AI-Town</Name>
+  <Repository>lingelo/ai-town:latest</Repository>
+  <Registry>https://hub.docker.com/r/lingelo/ai-town</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/Lingelo/ai-town/issues</Support>
+  <Project>https://github.com/Lingelo/ai-town</Project>
+  <Overview>🏠 AI Town - Une ville virtuelle où les personnages IA vivent, discutent et socialisent.&#xD;
+&#xD;
+✨ Fonctionnalités :&#xD;
+• Support multilingue (Français, Anglais, Portugais)&#xD;
+• Intégration OpenRouter pour accès aux meilleurs modèles IA&#xD;
+• Personnages personnalisables (Angelo, Mélanie, Jenna par défaut)&#xD;
+• Interface web moderne et réactive&#xD;
+• Configuration via variables d'environnement&#xD;
+&#xD;
+🚀 Après installation :&#xD;
+1. Configurez vos clés API (OpenRouter recommandé)&#xD;
+2. Choisissez votre langue dans les paramètres&#xD;
+3. Accédez à l'interface web sur le port configuré&#xD;
+&#xD;
+📚 Documentation complète disponible sur GitHub</Overview>
+  <Category>Productivity: Tools: Entertainment:</Category>
+  <WebUI>http://[IP]:[PORT:80]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/Lingelo/ai-town/main/unraid/ai-town.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/Lingelo/ai-town/main/unraid/icon.png</Icon>
+  <ExtraParams>--health-cmd="curl -f http://localhost/ || exit 1" --health-interval=30s --health-timeout=3s --health-start-period=5s --health-retries=3</ExtraParams>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+  <Config Name="WebUI Port" Target="80" Default="8080" Mode="tcp" Description="Port pour l'interface web AI Town" Type="Port" Display="always" Required="true" Mask="false">8080</Config>
+  <Config Name="Language / Langue" Target="VITE_LANGUAGE" Default="fr" Mode="" Description="Langue de l'interface (en/fr/pt)" Type="Variable" Display="always" Required="false" Mask="false">fr</Config>
+  <Config Name="Backend URL" Target="VITE_CONVEX_URL" Default="" Mode="" Description="URL du backend Convex (laisser vide pour auto-détection)" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+  <Config Name="LLM Provider" Target="LLM_PROVIDER" Default="openrouter" Mode="" Description="Fournisseur LLM (openrouter/ollama/openai)" Type="Variable" Display="always" Required="false" Mask="false">openrouter</Config>
+  <Config Name="OpenRouter API Key" Target="OPENROUTER_API_KEY" Default="" Mode="" Description="Clé API OpenRouter (sk-or-v1-...)" Type="Variable" Display="always" Required="false" Mask="true"></Config>
+  <Config Name="OpenRouter Model" Target="OPENROUTER_CHAT_MODEL" Default="anthropic/claude-3.5-sonnet" Mode="" Description="Modèle OpenRouter à utiliser" Type="Variable" Display="always" Required="false" Mask="false">anthropic/claude-3.5-sonnet</Config>
+  <Config Name="Ollama Host" Target="OLLAMA_HOST" Default="" Mode="" Description="URL du serveur Ollama (http://host:11434)" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+  <Config Name="Ollama Model" Target="OLLAMA_MODEL" Default="llama3.1:latest" Mode="" Description="Modèle Ollama à utiliser" Type="Variable" Display="advanced" Required="false" Mask="false">llama3.1:latest</Config>
+  <Config Name="OpenAI API Key" Target="OPENAI_API_KEY" Default="" Mode="" Description="Clé API OpenAI (optionnel)" Type="Variable" Display="advanced" Required="false" Mask="true"></Config>
+  <Config Name="Characters Config" Target="/usr/share/nginx/html/config/characters.json" Default="" Mode="rw" Description="Fichier de configuration des personnages (optionnel)" Type="Path" Display="advanced" Required="false" Mask="false"></Config>
+  <Config Name="Translations Config" Target="/usr/share/nginx/html/config/translations" Default="" Mode="rw" Description="Dossier des traductions personnalisées (optionnel)" Type="Path" Display="advanced" Required="false" Mask="false"></Config>
+</Container>
