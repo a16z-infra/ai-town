@@ -9,9 +9,20 @@ services:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     environment:
-      - VITE_CONVEX_URL=http://127.0.0.1:${PORT:-3210}
+      - VITE_CONVEX_URL=http://backend:3210
+      - RABBITMQ_URL=amqp://rabbitmq
+      - DRAGONFLY_HOST=dragonflydb
+      - DRAGONFLY_PORT=6379
+      - MILVUS_HOST=milvus-standalone
+      - MILVUS_PORT=19530
     networks:
       - ai-town-network
+    depends_on:
+      - backend
+      - rabbitmq
+      - dragonflydb
+      - milvus-standalone
+
   backend:
     image: ghcr.io/get-convex/convex-backend:latest
     ports:
@@ -25,8 +36,8 @@ services:
       - INSTANCE_SECRET=${INSTANCE_SECRET:-}
       - CONVEX_RELEASE_VERSION_DEV=${CONVEX_RELEASE_VERSION_DEV:-}
       - ACTIONS_USER_TIMEOUT_SECS=${ACTIONS_USER_TIMEOUT_SECS:-}
-      - CONVEX_CLOUD_ORIGIN=${URL_BASE:-http://127.0.0.1}:${PORT:-3210}
-      - CONVEX_SITE_ORIGIN=${URL_BASE:-http://127.0.0.1}:${SITE_PROXY_PORT:-3211}
+      - CONVEX_CLOUD_ORIGIN=${URL_BASE:-http://backend}:${PORT:-3210}
+      - CONVEX_SITE_ORIGIN=${URL_BASE:-http://backend}:${SITE_PROXY_PORT:-3211}
       - DATABASE_URL=${DATABASE_URL:-}
     healthcheck:
       test: curl -f http://localhost:3210/version
@@ -40,10 +51,93 @@ services:
     ports:
       - '${DASHBOARD_PORT:-6791}:6791'
     environment:
-      - NEXT_PUBLIC_DEPLOYMENT_URL=http://127.0.0.1:${PORT:-3210}
+      - NEXT_PUBLIC_DEPLOYMENT_URL=http://backend:${PORT:-3210}
     depends_on:
       backend:
         condition: service_healthy
+    networks:
+      - ai-town-network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - ai-town-network
+
+  dragonflydb:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly
+    ports:
+      - "6379:6379"
+    networks:
+      - ai-town-network
+
+  etcd:
+    container_name: milvus-etcd
+    image: quay.io/coreos/etcd:v3.5.18
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - ./volumes/etcd:/etcd
+    command: etcd -advertise-client-urls=http://etcd:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - ai-town-network
+
+  minio:
+    container_name: milvus-minio
+    image: minio/minio:RELEASE.2024-05-28T17-19-04Z
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    ports:
+      - "9001:9001"
+      - "9000:9000"
+    volumes:
+      - ./volumes/minio:/minio_data
+    command: minio server /minio_data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - ai-town-network
+
+  milvus-standalone:
+    container_name: milvus-standalone
+    image: milvusdb/milvus:v2.5.14
+    command: ["milvus", "run", "standalone"]
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      MINIO_REGION: us-east-1
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+    volumes:
+      - ./volumes/milvus:/var/lib/milvus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      start_period: 90s
+      timeout: 20s
+      retries: 3
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    depends_on:
+      - "etcd"
+      - "minio"
+    networks:
+      - ai-town-network
 
 volumes:
   data:

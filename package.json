@@ -30,6 +30,8 @@
     "@zilliz/milvus2-sdk-node": "2.4.2",
     "ioredis": "5.4.1",
     "amqplib": "0.10.4",
+    "ws": "8.17.1",
+    "socket.io-client": "4.7.5",
     "pixi-viewport": "^5.0.1",
     "pixi.js": "^7.2.4",
     "react": "18.2.0",
