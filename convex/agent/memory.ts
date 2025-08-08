@@ -4,6 +4,7 @@ import { Doc, Id } from '../_generated/dataModel';
 import { internal } from '../_generated/api';
 import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/llm';
 import { asyncMap } from '../util/asyncMap';
+import { insertVector, searchVectors } from '../util/milvus';
 import { GameId, agentId, conversationId, playerId } from '../aiTown/ids';
 import { SerializedPlayer } from '../aiTown/player';
 import { memoryFields } from './schema';
@@ -68,7 +69,7 @@ export async function rememberConversation(
   const importance = await calculateImportance(description);
   const { embedding } = await fetchEmbedding(description);
   authors.delete(player.id as GameId<'players'>);
-  await ctx.runMutation(selfInternal.insertMemory, {
+  await ctx.runAction(selfInternal.insertMemory, {
     agentId,
     playerId: player.id,
     description,
@@ -161,13 +162,9 @@ export async function searchMemories(
   searchEmbedding: number[],
   n: number = 3,
 ) {
-  const candidates = await ctx.vectorSearch('memoryEmbeddings', 'embedding', {
-    vector: searchEmbedding,
-    filter: (q) => q.eq('playerId', playerId),
-    limit: n * MEMORY_OVERFETCH,
-  });
+  const candidates = await searchVectors(searchEmbedding, playerId, n * MEMORY_OVERFETCH);
   const rankedMemories = await ctx.runMutation(selfInternal.rankAndTouchMemories, {
-    candidates,
+    candidates: candidates.map((c) => ({ _id: c.memoryId, _score: c.score })),
     n,
   });
   return rankedMemories.map(({ memory }) => memory);
@@ -270,21 +267,34 @@ async function calculateImportance(description: string) {
 
 const { embeddingId: _embeddingId, ...memoryFieldsWithoutEmbeddingId } = memoryFields;
 
-export const insertMemory = internalMutation({
+export const insertMemoryMutation = internalMutation({
   args: {
     agentId,
     embedding: v.array(v.float64()),
     ...memoryFieldsWithoutEmbeddingId,
   },
-  handler: async (ctx, { agentId: _, embedding, ...memory }): Promise<void> => {
+  handler: async (ctx, { agentId: _, embedding, ...memory }): Promise<Id<'memories'>> => {
     const embeddingId = await ctx.db.insert('memoryEmbeddings', {
       playerId: memory.playerId,
       embedding,
     });
-    await ctx.db.insert('memories', {
+    const memoryId = await ctx.db.insert('memories', {
       ...memory,
       embeddingId,
     });
+    return memoryId;
+  },
+});
+
+export const insertMemory = internalAction({
+  args: {
+    agentId,
+    embedding: v.array(v.float64()),
+    ...memoryFieldsWithoutEmbeddingId,
+  },
+  handler: async (ctx, args): Promise<void> => {
+    const memoryId = await ctx.runMutation(selfInternal.insertMemoryMutation, args);
+    await insertVector(args.embedding, args.playerId, memoryId);
   },
 });
 
