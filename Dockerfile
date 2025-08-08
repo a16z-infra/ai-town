@@ -42,7 +42,10 @@ RUN npx update-browserslist-db@latest
 # Copy application files
 COPY . .
 
-# Expose necessary ports
-EXPOSE 5173
+# Build the application
+RUN npm run build
 
-CMD ["npx", "vite", "--host"]
+# Expose necessary ports
+EXPOSE 3000
+
+CMD ["npm", "start"]

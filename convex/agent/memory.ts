@@ -1,13 +1,12 @@
 import { v } from 'convex/values';
 import { ActionCtx, DatabaseReader, internalMutation, internalQuery } from '../_generated/server';
-import { Doc, Id } from '../_generated/dataModel';
 import { internal } from '../_generated/api';
 import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/llm';
 import { asyncMap } from '../util/asyncMap';
 import { insertVector, searchVectors } from '../util/milvus';
+import * as dragonfly from '../util/dragonfly';
 import { GameId, agentId, conversationId, playerId } from '../aiTown/ids';
 import { SerializedPlayer } from '../aiTown/player';
-import { memoryFields } from './schema';
 
 // How long to wait before updating a memory's last access time.
 export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
@@ -16,7 +15,29 @@ export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
 const MEMORY_OVERFETCH = 10;
 const selfInternal = internal.agent.memory;
 
-export type Memory = Doc<'memories'>;
+export type Memory = {
+    _id: string,
+    _creationTime: number,
+    playerId: string,
+    description: string,
+    embeddingId: string,
+    importance: number,
+    lastAccess: number,
+    data:
+    | {
+        type: 'relationship',
+        playerId: string,
+    }
+    | {
+        type: 'conversation',
+        conversationId: string,
+        playerIds: string[],
+    }
+    | {
+        type: 'reflection',
+        relatedMemoryIds: string[],
+    },
+};
 export type MemoryType = Memory['data']['type'];
 export type MemoryOfType<T extends MemoryType> = Omit<Memory, 'data'> & {
   data: Extract<Memory['data'], { type: T }>;
@@ -24,7 +45,7 @@ export type MemoryOfType<T extends MemoryType> = Omit<Memory, 'data'> & {
 
 export async function rememberConversation(
   ctx: ActionCtx,
-  worldId: Id<'worlds'>,
+  worldId: string,
   agentId: GameId<'agents'>,
   playerId: GameId<'players'>,
   conversationId: GameId<'conversations'>,
@@ -69,8 +90,10 @@ export async function rememberConversation(
   const importance = await calculateImportance(description);
   const { embedding } = await fetchEmbedding(description);
   authors.delete(player.id as GameId<'players'>);
-  await ctx.runAction(selfInternal.insertMemory, {
-    agentId,
+
+  const memory: Memory = {
+    _id: '', // This will be set in the action
+    _creationTime: 0, // This will be set in the action
     playerId: player.id,
     description,
     importance,
@@ -80,6 +103,12 @@ export async function rememberConversation(
       conversationId,
       playerIds: [...authors],
     },
+    embeddingId: '', // This will be set in the action
+  };
+
+  await ctx.runAction(selfInternal.insertMemory, {
+    agentId,
+    memory,
     embedding,
   });
   await reflectOnMemories(ctx, worldId, playerId);
@@ -183,19 +212,14 @@ function normalize(value: number, range: readonly [number, number]) {
 
 export const rankAndTouchMemories = internalMutation({
   args: {
-    candidates: v.array(v.object({ _id: v.id('memoryEmbeddings'), _score: v.number() })),
+    candidates: v.array(v.object({ memoryId: v.string(), score: v.number() })),
     n: v.number(),
   },
   handler: async (ctx, args) => {
     const ts = Date.now();
-    const relatedMemories = await asyncMap(args.candidates, async ({ _id }) => {
-      const memory = await ctx.db
-        .query('memories')
-        .withIndex('embeddingId', (q) => q.eq('embeddingId', _id))
-        .first();
-      if (!memory) throw new Error(`Memory for embedding ${_id} not found`);
-      return memory;
-    });
+    const relatedMemories = (await asyncMap(args.candidates, async ({ memoryId }) => {
+        return await dragonfly.getMemory(memoryId);
+    })).filter((m) => m !== null) as Memory[];
 
     // TODO: fetch <count> recent memories and <count> important memories
     // so we don't miss them in case they were a little less relevant.
@@ -203,13 +227,13 @@ export const rankAndTouchMemories = internalMutation({
       const hoursSinceAccess = (ts - memory.lastAccess) / 1000 / 60 / 60;
       return 0.99 ** Math.floor(hoursSinceAccess);
     });
-    const relevanceRange = makeRange(args.candidates.map((c) => c._score));
+    const relevanceRange = makeRange(args.candidates.map((c) => c.score));
     const importanceRange = makeRange(relatedMemories.map((m) => m.importance));
     const recencyRange = makeRange(recencyScore);
     const memoryScores = relatedMemories.map((memory, idx) => ({
       memory,
       overallScore:
-        normalize(args.candidates[idx]._score, relevanceRange) +
+        normalize(args.candidates[idx].score, relevanceRange) +
         normalize(memory.importance, importanceRange) +
         normalize(recencyScore[idx], recencyRange),
     }));
@@ -217,7 +241,7 @@ export const rankAndTouchMemories = internalMutation({
     const accessed = memoryScores.slice(0, args.n);
     await asyncMap(accessed, async ({ memory }) => {
       if (memory.lastAccess < ts - MEMORY_ACCESS_THROTTLE) {
-        await ctx.db.patch(memory._id, { lastAccess: ts });
+        await dragonfly.patchMemory(memory._id, { lastAccess: ts });
       }
     });
     return accessed;
@@ -265,71 +289,62 @@ async function calculateImportance(description: string) {
   return importance;
 }
 
-const { embeddingId: _embeddingId, ...memoryFieldsWithoutEmbeddingId } = memoryFields;
-
 export const insertMemoryMutation = internalMutation({
   args: {
-    agentId,
-    embedding: v.array(v.float64()),
-    ...memoryFieldsWithoutEmbeddingId,
+    memory: v.any(),
   },
-  handler: async (ctx, { agentId: _, embedding, ...memory }): Promise<Id<'memories'>> => {
-    const embeddingId = await ctx.db.insert('memoryEmbeddings', {
-      playerId: memory.playerId,
-      embedding,
-    });
-    const memoryId = await ctx.db.insert('memories', {
-      ...memory,
-      embeddingId,
-    });
-    return memoryId;
+  handler: async (ctx, args): Promise<void> => {
+    await dragonfly.setMemory(args.memory._id, args.memory);
   },
 });
 
 export const insertMemory = internalAction({
   args: {
     agentId,
+    memory: v.any(),
     embedding: v.array(v.float64()),
-    ...memoryFieldsWithoutEmbeddingId,
   },
   handler: async (ctx, args): Promise<void> => {
-    const memoryId = await ctx.runMutation(selfInternal.insertMemoryMutation, args);
-    await insertVector(args.embedding, args.playerId, memoryId);
+    const newId = crypto.randomUUID();
+    const memoryWithId = { ...args.memory, _id: newId, _creationTime: Date.now(), embeddingId: newId };
+    await ctx.runMutation(selfInternal.insertMemoryMutation, { memory: memoryWithId });
+    await insertVector(args.embedding, args.memory.playerId, newId);
   },
 });
 
 export const insertReflectionMemories = internalMutation({
-  args: {
-    worldId: v.id('worlds'),
-    playerId,
-    reflections: v.array(
-      v.object({
-        description: v.string(),
-        relatedMemoryIds: v.array(v.id('memories')),
-        importance: v.number(),
-        embedding: v.array(v.float64()),
-      }),
-    ),
-  },
-  handler: async (ctx, { playerId, reflections }) => {
-    const lastAccess = Date.now();
-    for (const { embedding, relatedMemoryIds, ...rest } of reflections) {
-      const embeddingId = await ctx.db.insert('memoryEmbeddings', {
+    args: {
+        worldId: v.id('worlds'),
         playerId,
-        embedding,
-      });
-      await ctx.db.insert('memories', {
-        playerId,
-        embeddingId,
-        lastAccess,
-        ...rest,
-        data: {
-          type: 'reflection',
-          relatedMemoryIds,
-        },
-      });
-    }
-  },
+        reflections: v.array(
+            v.object({
+                description: v.string(),
+                relatedMemoryIds: v.array(v.string()),
+                importance: v.number(),
+                embedding: v.array(v.float64()),
+            }),
+        ),
+    },
+    handler: async (ctx, { playerId, reflections }) => {
+        const lastAccess = Date.now();
+        for (const { embedding, relatedMemoryIds, ...rest } of reflections) {
+            const newId = crypto.randomUUID();
+            const memory: Memory = {
+                _id: newId,
+                _creationTime: Date.now(),
+                playerId,
+                embeddingId: newId,
+                lastAccess,
+                ...rest,
+                data: {
+                    type: 'reflection',
+                    relatedMemoryIds,
+                },
+            };
+            await dragonfly.setMemory(newId, memory);
+            await insertVector(embedding, playerId, newId);
+        }
+    },
 });
 
 async function reflectOnMemories(
@@ -423,23 +438,13 @@ export const getReflectionMemories = internalQuery({
     if (!playerDescription) {
       throw new Error(`Player description for ${args.playerId} not found`);
     }
-    const memories = await ctx.db
-      .query('memories')
-      .withIndex('playerId', (q) => q.eq('playerId', player.id))
-      .order('desc')
-      .take(args.numberOfItems);
-
-    const lastReflection = await ctx.db
-      .query('memories')
-      .withIndex('playerId_type', (q) =>
-        q.eq('playerId', args.playerId).eq('data.type', 'reflection'),
-      )
-      .order('desc')
-      .first();
+    const memories = await dragonfly.getPlayerMemories(args.playerId);
+    memories.sort((a, b) => b._creationTime - a._creationTime);
+    const lastReflection = memories.find((m) => m.data.type === 'reflection');
 
     return {
       name: playerDescription.name,
-      memories,
+      memories: memories.slice(0, args.numberOfItems),
       lastReflectionTs: lastReflection?._creationTime,
     };
   },
@@ -450,11 +455,9 @@ export async function latestMemoryOfType<T extends MemoryType>(
   playerId: GameId<'players'>,
   type: T,
 ) {
-  const entry = await db
-    .query('memories')
-    .withIndex('playerId_type', (q) => q.eq('playerId', playerId).eq('data.type', type))
-    .order('desc')
-    .first();
+  const memories = await dragonfly.getPlayerMemories(playerId);
+  memories.sort((a, b) => b._creationTime - a._creationTime);
+  const entry = memories.find((m) => m.data.type === type);
   if (!entry) return null;
   return entry as MemoryOfType<T>;
 }

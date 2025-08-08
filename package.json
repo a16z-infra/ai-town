@@ -12,7 +12,8 @@
     "dashboard": "convex dashboard",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --verbose",
     "level-editor": "vite src/editor/",
-    "le": "vite src/editor/"
+    "le": "vite src/editor/",
+    "start": "serve -s dist"
   },
   "dependencies": {
     "@clerk/clerk-react": "^4.27.0",
@@ -27,6 +28,8 @@
     "dotenv": "^16.1.4",
     "eslint": "8.42.0",
     "@zilliz/milvus2-sdk-node": "2.4.2",
+    "ioredis": "5.4.1",
+    "amqplib": "0.10.4",
     "pixi-viewport": "^5.0.1",
     "pixi.js": "^7.2.4",
     "react": "18.2.0",
@@ -58,7 +61,9 @@
     "tailwindcss": "^3.3.3",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.1",
-    "vite": "^4.4.9"
+    "vite": "^4.4.9",
+    "serve": "14.2.3",
+    "@types/amqplib": "0.10.5"
   },
   "type": "module"
 }
