@@ -1,10 +1,9 @@
-import { useMutation, useQuery } from 'convex/react';
+import { useMutation, useQuery, api } from '../lib/staticConvexReplaceSimple.tsx';
 import { useEffect } from 'react';
-import { api } from '../../convex/_generated/api';
 import { WORLD_HEARTBEAT_INTERVAL } from '../../convex/constants';
 
 export function useWorldHeartbeat() {
-  const worldStatus = useQuery(api.world.defaultWorldStatus);
+  const worldStatus = useQuery(api.world.defaultWorldStatus) as any;
   const worldId = worldStatus?.worldId;
 
   // Send a periodic heartbeat to our world to keep it alive.

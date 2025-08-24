@@ -16,6 +16,8 @@
   },
   "dependencies": {
     "@clerk/clerk-react": "^4.27.0",
+    "@duckdb/duckdb-wasm": "^1.29.1-dev132.0",
+    "@electric-sql/pglite": "^0.3.7",
     "@pixi/react": "^7.1.0",
     "@pixi/sound": "^5.2.0",
     "@tailwindcss/forms": "^0.5.3",
@@ -27,6 +29,8 @@
     "dotenv": "^16.1.4",
     "eslint": "8.42.0",
     "hnswlib-node": "^1.4.2",
+    "hnswlib-wasm": "^0.8.2",
+    "parquet-wasm": "^0.6.1",
     "pixi-viewport": "^5.0.1",
     "pixi.js": "^7.2.4",
     "react": "18.2.0",

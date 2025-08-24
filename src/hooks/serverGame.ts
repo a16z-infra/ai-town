@@ -5,8 +5,7 @@ import { World } from '../../convex/aiTown/world.ts';
 import { WorldMap } from '../../convex/aiTown/worldMap.ts';
 import { Id } from '../../convex/_generated/dataModel';
 import { useMemo } from 'react';
-import { useQuery } from 'convex/react';
-import { api } from '../../convex/_generated/api';
+import { useQuery, api } from '../lib/staticConvexReplaceSimple.tsx';
 import { parseMap } from '../../convex/util/object.ts';
 
 export type ServerGame = {
@@ -19,8 +18,8 @@ export type ServerGame = {
 // TODO: This hook reparses the game state (even if we're not rerunning the query)
 // when used in multiple components. Move this to a context to only parse it once.
 export function useServerGame(worldId: Id<'worlds'> | undefined): ServerGame | undefined {
-  const worldState = useQuery(api.world.worldState, worldId ? { worldId } : 'skip');
-  const descriptions = useQuery(api.world.gameDescriptions, worldId ? { worldId } : 'skip');
+  const worldState = useQuery(api.world.worldState, worldId ? { worldId } : 'skip') as any;
+  const descriptions = useQuery(api.world.gameDescriptions, worldId ? { worldId } : 'skip') as any;
   const game = useMemo(() => {
     if (!worldState || !descriptions) {
       return undefined;

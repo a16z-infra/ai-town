@@ -3,9 +3,8 @@ import PixiGame from './PixiGame.tsx';
 
 import { useElementSize } from 'usehooks-ts';
 import { Stage } from '@pixi/react';
-import { ConvexProvider, useConvex, useQuery } from 'convex/react';
+import { ConvexProvider, useConvex, useQuery, api } from '../lib/staticConvexReplaceSimple.tsx';
 import PlayerDetails from './PlayerDetails.tsx';
-import { api } from '../../convex/_generated/api';
 import { useWorldHeartbeat } from '../hooks/useWorldHeartbeat.ts';
 import { useHistoricalTime } from '../hooks/useHistoricalTime.ts';
 import { DebugTimeManager } from './DebugTimeManager.tsx';
@@ -22,16 +21,16 @@ export default function Game() {
   }>();
   const [gameWrapperRef, { width, height }] = useElementSize();
 
-  const worldStatus = useQuery(api.world.defaultWorldStatus);
+  const worldStatus = useQuery(api.world.defaultWorldStatus) as any;
   const worldId = worldStatus?.worldId;
   const engineId = worldStatus?.engineId;
 
-  const game = useServerGame(worldId);
+  const game = useServerGame(worldId as any);
 
   // Send a periodic heartbeat to our world to keep it alive.
   useWorldHeartbeat();
 
-  const worldState = useQuery(api.world.worldState, worldId ? { worldId } : 'skip');
+  const worldState = useQuery(api.world.worldState, worldId ? { worldId } : 'skip') as any;
   const { historicalTime, timeManager } = useHistoricalTime(worldState?.engine);
 
   const scrollViewRef = useRef<HTMLDivElement>(null);
@@ -53,8 +52,8 @@ https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-5315492
                 <ConvexProvider client={convex}>
                   <PixiGame
                     game={game}
-                    worldId={worldId}
-                    engineId={engineId}
+                    worldId={worldId as any}
+                    engineId={engineId as any}
                     width={width}
                     height={height}
                     historicalTime={historicalTime}
@@ -71,8 +70,8 @@ https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-5315492
           ref={scrollViewRef}
         >
           <PlayerDetails
-            worldId={worldId}
-            engineId={engineId}
+            worldId={worldId as any}
+            engineId={engineId as any}
             game={game}
             playerId={selectedElement?.id}
             setSelectedElement={setSelectedElement}
