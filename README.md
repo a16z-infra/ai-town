@@ -39,6 +39,25 @@ above) are written in Python.
   [OpenAI API](https://platform.openai.com/). PRs welcome to add more cloud provider support.
 - Background Music Generation: [Replicate](https://replicate.com/) using
   [MusicGen](https://huggingface.co/spaces/facebook/MusicGen)
+- **Peer-to-Peer Player Discovery**: [libp2p](https://libp2p.io/) for decentralized player discovery and networking
+
+## P2P Player Discovery
+
+AI Town now includes **experimental** peer-to-peer player discovery using libp2p. This feature allows players to discover each other directly without relying solely on the central server.
+
+### Key Features:
+- **Decentralized Discovery**: Players can find each other through P2P networking
+- **Hybrid Approach**: Works alongside the existing Convex backend
+- **Optional**: Fully opt-in - the game works perfectly without P2P enabled
+- **Proximity-based**: Find players near your position in the game world
+
+### How to Use:
+1. Look for the P2P status indicator in the top-left of the game screen
+2. Click "Connect" to enable P2P discovery
+3. Your player will be announced to other P2P-enabled players
+4. You can now discover other players using the P2P network
+
+For detailed information, see [P2P Player Discovery Documentation](./docs/P2P_PLAYER_DISCOVERY.md).
 
 Other credits:
 

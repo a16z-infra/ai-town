@@ -5,6 +5,7 @@ import { useElementSize } from 'usehooks-ts';
 import { Stage } from '@pixi/react';
 import { ConvexProvider, useConvex, useQuery } from 'convex/react';
 import PlayerDetails from './PlayerDetails.tsx';
+import P2PStatus from './P2PStatus.tsx';
 import { api } from '../../convex/_generated/api';
 import { useWorldHeartbeat } from '../hooks/useWorldHeartbeat.ts';
 import { useHistoricalTime } from '../hooks/useHistoricalTime.ts';
@@ -66,6 +67,10 @@ https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-5315492
                 </ConvexProvider>
               </Stage>
             </div>
+          </div>
+          {/* P2P Status overlay */}
+          <div className="absolute top-4 left-4">
+            <P2PStatus className="bg-black bg-opacity-50 text-white p-2 rounded" />
           </div>
         </div>
         {/* Right column area */}
