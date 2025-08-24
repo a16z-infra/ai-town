@@ -4,7 +4,6 @@ import PixiGame from './PixiGame.tsx';
 import { useElementSize } from 'usehooks-ts';
 import { Stage } from '@pixi/react';
 import { ConvexProvider, useConvex, useQuery, api } from '../lib/staticConvexReplaceSimple.tsx';
-import PlayerDetails from './PlayerDetails.tsx';
 import { useWorldHeartbeat } from '../hooks/useWorldHeartbeat.ts';
 import { useHistoricalTime } from '../hooks/useHistoricalTime.ts';
 import { DebugTimeManager } from './DebugTimeManager.tsx';
@@ -69,14 +68,10 @@ https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-5315492
           className="flex flex-col overflow-y-auto shrink-0 px-4 py-6 sm:px-6 lg:w-96 xl:pr-6 border-t-8 sm:border-t-0 sm:border-l-8 border-brown-900  bg-brown-800 text-brown-100"
           ref={scrollViewRef}
         >
-          <PlayerDetails
-            worldId={worldId as any}
-            engineId={engineId as any}
-            game={game}
-            playerId={selectedElement?.id}
-            setSelectedElement={setSelectedElement}
-            scrollViewRef={scrollViewRef}
-          />
+          <div className="text-center p-4">
+            <h3 className="text-2xl font-bold mb-4">Player Details</h3>
+            <p className="text-gray-300">Static mode - Player details disabled for now</p>
+          </div>
         </div>
       </div>
     </>

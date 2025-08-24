@@ -1,6 +1,6 @@
 import { useMutation, useQuery, api } from '../lib/staticConvexReplaceSimple.tsx';
 import { useEffect } from 'react';
-import { WORLD_HEARTBEAT_INTERVAL } from '../../convex/constants';
+import { WORLD_HEARTBEAT_INTERVAL } from '../lib/constants.ts';
 
 export function useWorldHeartbeat() {
   const worldStatus = useQuery(api.world.defaultWorldStatus) as any;

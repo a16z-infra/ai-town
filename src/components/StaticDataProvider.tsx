@@ -79,10 +79,10 @@ export default function StaticDataProvider({ children }: StaticDataProviderProps
   useEffect(() => {
     const initialize = async () => {
       try {
-        // Initialize the database
-        await initializeStaticDb();
+        // Skip DuckDB initialization for now and just use in-memory storage
+        console.log('Using simplified static data provider');
         
-        // Set up default data
+        // Set up default data in memory
         await initializeDefaultData();
         
         setIsReady(true);

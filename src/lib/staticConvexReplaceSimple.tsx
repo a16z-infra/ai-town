@@ -9,6 +9,9 @@ import { useStaticData } from '../components/StaticDataProvider';
 export type Id<T extends string> = string & { __tableName: T };
 export type GameId<T extends string> = string & { __gameId: T };
 
+// Export Doc type for compatibility
+export type Doc<T extends string> = { _id: Id<T>; _creationTime: number } & Record<string, any>;
+
 // Mock implementations that return actual data structures
 export function useQuery<T>(queryFn: any, args?: any): T | undefined {
   const { isReady } = useStaticData();
@@ -28,9 +31,13 @@ export function useQuery<T>(queryFn: any, args?: any): T | undefined {
 }
 
 export function useMutation<TArgs, TResult>(mutationFn: any) {
-  return async (args: TArgs): Promise<TResult> => {
+  return async (args?: TArgs): Promise<TResult> => {
     console.log('Mock mutation called:', args);
-    return {} as TResult;
+    try {
+      return await mutationFn(args) as TResult;
+    } catch (error) {
+      return {} as TResult;
+    }
   };
 }
 
@@ -88,6 +95,10 @@ export const api = {
     }),
     heartbeatWorld: (args: any) => Promise.resolve({ success: true }),
     sendWorldInput: (args: any) => Promise.resolve('mock-input-id'),
+    userStatus: (args: any) => Promise.resolve(null), // Add userStatus endpoint
+    joinWorld: (args: any) => Promise.resolve('mock-player-id'), // Add joinWorld endpoint
+    leaveWorld: (args: any) => Promise.resolve({ success: true }), // Add leaveWorld endpoint
+    previousConversation: (args: any) => Promise.resolve(null), // Add previousConversation endpoint
   },
   aiTown: {
     main: {
@@ -96,9 +107,16 @@ export const api = {
   },
   messages: {
     writeMessage: (args: any) => Promise.resolve('mock-message-id'),
+    list: (args: any) => Promise.resolve([]), // Add messages list endpoint
+    listMessages: (args: any) => Promise.resolve([]), // Add listMessages endpoint
   },
   music: {
     getBackgroundMusic: (args?: any) => Promise.resolve(null),
+  },
+  testing: {
+    stopAllowed: (args?: any) => Promise.resolve(false), // Add testing endpoint
+    stop: (args?: any) => Promise.resolve({ success: true }),
+    resume: (args?: any) => Promise.resolve({ success: true }),
   }
 };
 
