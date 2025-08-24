@@ -22,6 +22,7 @@
     "@types/node": "20.2.5",
     "@types/react": "18.2.8",
     "@types/react-dom": "18.2.4",
+    "@xenova/transformers": "^2.17.2",
     "clsx": "^2.0.0",
     "convex": "^1.19.2",
     "dotenv": "^16.1.4",
