@@ -7,7 +7,7 @@ import { serializedAgentDescription } from './agentDescription';
 import { serializedWorld } from './world';
 import { serializedWorldMap } from './worldMap';
 import { serializedConversation } from './conversation';
-import { conversationId, playerId } from './ids';
+import { conversationId, playerId, agentId } from './ids';
 
 export const aiTownTables = {
   // This table has a single document that stores all players, conversations, and agents. This
@@ -76,4 +76,33 @@ export const aiTownTables = {
     .index('edge', ['worldId', 'player1', 'player2', 'ended'])
     .index('conversation', ['worldId', 'player1', 'conversationId'])
     .index('playerHistory', ['worldId', 'player1', 'ended']),
+
+  // Client-side LLM requests for agent conversations
+  clientLLMRequests: defineTable({
+    worldId: v.id('worlds'),
+    agentId: agentId,
+    operationId: v.string(),
+    messageUuid: v.string(),
+    type: v.union(v.literal('start'), v.literal('continue'), v.literal('leave')),
+    conversationContext: v.object({
+      worldId: v.string(),
+      playerId: v.string(),
+      playerName: v.string(),
+      playerIdentity: v.string(),
+      playerPlan: v.string(),
+      otherPlayerId: v.string(),
+      otherPlayerName: v.string(),
+      otherPlayerIdentity: v.optional(v.string()),
+      conversationId: v.string(),
+      conversationHistory: v.array(v.string()),
+      memories: v.array(v.string()),
+      lastConversationTime: v.optional(v.number()),
+    }),
+    timestamp: v.number(),
+    status: v.union(v.literal('pending'), v.literal('completed'), v.literal('failed')),
+    generatedText: v.optional(v.string()),
+  })
+    .index('worldId', ['worldId', 'timestamp'])
+    .index('operationId', ['operationId'])
+    .index('status', ['status', 'timestamp']),
 };
