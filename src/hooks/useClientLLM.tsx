@@ -10,14 +10,18 @@ import {
   getClientLLMStatus,
   ConversationContext
 } from '../lib/clientConversation';
+import { LLM_CONFIG, shouldUseClientLLM } from '../lib/llmConfig';
 
 export function useClientLLMProcessor(worldId?: Id<'worlds'>) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
+  // Only process if client-side LLM is enabled
+  const shouldProcess = shouldUseClientLLM();
+  
   // Query for pending client LLM requests
   const pendingRequests = useQuery(api.clientLLMRequests.getPendingRequests, 
-    worldId ? { worldId } : 'skip'
+    worldId && shouldProcess ? { worldId } : 'skip'
   );
 
   // Mutation to complete a client LLM request
@@ -26,6 +30,8 @@ export function useClientLLMProcessor(worldId?: Id<'worlds'>) {
   // Initialize the client LLM on mount
   useEffect(() => {
     const init = async () => {
+      if (!shouldProcess) return;
+      
       try {
         console.log('Initializing client-side LLM...');
         await initializeClientLLM();
@@ -39,12 +45,12 @@ export function useClientLLMProcessor(worldId?: Id<'worlds'>) {
     if (!isInitialized) {
       init();
     }
-  }, [isInitialized]);
+  }, [isInitialized, shouldProcess]);
 
   // Process pending requests
   useEffect(() => {
     const processRequests = async () => {
-      if (!isInitialized || isProcessing || !pendingRequests || pendingRequests.length === 0) {
+      if (!shouldProcess || !isInitialized || isProcessing || !pendingRequests || pendingRequests.length === 0) {
         return;
       }
 
@@ -52,7 +58,8 @@ export function useClientLLMProcessor(worldId?: Id<'worlds'>) {
       
       try {
         // Process requests one by one to avoid overwhelming the browser
-        for (const request of pendingRequests.slice(0, 1)) { // Process only one at a time
+        const maxRequests = Math.min(LLM_CONFIG.MAX_CONCURRENT_REQUESTS, pendingRequests.length);
+        for (const request of pendingRequests.slice(0, maxRequests)) {
           console.log(`Processing client LLM request: ${request.operationId}`);
           
           try {
@@ -101,7 +108,7 @@ export function useClientLLMProcessor(worldId?: Id<'worlds'>) {
     };
 
     processRequests();
-  }, [pendingRequests, isInitialized, isProcessing, completeRequest]);
+  }, [pendingRequests, isInitialized, isProcessing, completeRequest, shouldProcess]);
 
   const status = getClientLLMStatus();
 
@@ -116,14 +123,20 @@ export function useClientLLMProcessor(worldId?: Id<'worlds'>) {
 export function ClientLLMProcessor({ worldId }: { worldId?: Id<'worlds'> }) {
   const { isInitialized, isProcessing, pendingRequestCount, llmStatus } = useClientLLMProcessor(worldId);
 
+  // Only show anything if client-side LLM is enabled
+  if (!shouldUseClientLLM()) {
+    return null;
+  }
+
   // This component runs the client LLM processing in the background
   // It can optionally show status information during development
 
-  if (process.env.NODE_ENV === 'development') {
+  if (LLM_CONFIG.SHOW_CLIENT_STATUS) {
     return (
-      <div className="fixed bottom-4 right-4 bg-gray-800 text-white p-3 rounded-lg text-sm max-w-xs">
+      <div className="fixed bottom-4 right-4 bg-gray-800 text-white p-3 rounded-lg text-sm max-w-xs z-50">
         <div className="font-semibold mb-1">Client LLM Status</div>
-        <div>LLM Ready: {llmStatus.isReady ? '✅' : '❌'}</div>
+        <div>Model: {LLM_CONFIG.CLIENT_MODEL.split('/').pop()}</div>
+        <div>Ready: {llmStatus.isReady ? '✅' : '❌'}</div>
         <div>Loading: {llmStatus.isLoading ? '⏳' : '✅'}</div>
         <div>Processing: {isProcessing ? '⚙️' : '✅'}</div>
         <div>Pending: {pendingRequestCount}</div>
@@ -131,5 +144,5 @@ export function ClientLLMProcessor({ worldId }: { worldId?: Id<'worlds'> }) {
     );
   }
 
-  return null; // Hidden in production
+  return null; // Hidden in production or when status display is disabled
 }

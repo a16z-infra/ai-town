@@ -293,7 +293,8 @@ export async function runAgentOperation(ctx: MutationCtx, operation: string, arg
       reference = internal.aiTown.agentOperations.agentRememberConversation;
       break;
     case 'agentGenerateMessage':
-      // Use the new client-side LLM operation
+      // Always use client-side LLM operations now
+      // The client will determine whether to use client-side or server-side based on configuration
       reference = internal.aiTown.clientAgentOperations.agentGenerateMessageClient;
       break;
     case 'agentDoSomething':

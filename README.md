@@ -169,6 +169,27 @@ If it says "Ollama is running", it's good! Otherwise, check out the
 
 ## Connect an LLM
 
+The project supports multiple LLM options:
+
+1. **Client-Side LLM (New)**: Uses Hugging Face Transformers.js for browser-based inference
+2. **Server-Side LLM**: Traditional API-based inference with multiple providers
+
+### Client-Side LLM with Transformers.js (Recommended for Privacy)
+
+The project now includes client-side LLM inference using Hugging Face Transformers.js. This approach:
+- Runs entirely in your browser (privacy-preserving)
+- Works offline once models are downloaded
+- Eliminates server LLM API costs
+- Uses DistilGPT-2 model optimized for conversations
+
+**No additional setup required!** The client-side LLM is enabled by default and will automatically download the model on first use.
+
+See [CLIENT_LLM_IMPLEMENTATION.md](./CLIENT_LLM_IMPLEMENTATION.md) for technical details.
+
+### Server-Side LLM Options
+
+If you prefer server-side inference or need more powerful models, you can configure one of these providers:
+
 Note: If you want to run the backend in the cloud, you can either use a cloud-based LLM API, like
 OpenAI or Together.ai or you can proxy the traffic from the cloud to your local Ollama. See
 [below](#using-local-inference-from-a-cloud-deployment) for instructions.
