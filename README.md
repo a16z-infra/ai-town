@@ -701,6 +701,31 @@ There are built-in features for [reactive pagination](https://docs.convex.dev/da
 [reactive text search](https://docs.convex.dev/text-search),
 [vector search](https://docs.convex.dev/vector-search),
 [https endpoints](https://docs.convex.dev/functions/http-actions) (for webhooks),
+and more.
+
+## GitHub Pages Deployment
+
+This repository is configured for automatic deployment to GitHub Pages using Vite. The site will be available at https://ustypology.github.io.
+
+### How it works:
+
+1. **Automatic Deployment**: Every push to the `main` branch triggers the GitHub Actions workflow
+2. **Vite Build**: The application is built using `npm run build`, bundling all dependencies
+3. **Static Hosting**: The built files from the `dist/` directory are deployed to GitHub Pages
+4. **Custom Domain**: The site is served from the GitHub.io domain with all assets properly bundled
+
+### Manual Deployment:
+
+You can also trigger deployment manually from the GitHub Actions tab in the repository.
+
+### Local Development:
+
+```bash
+npm install
+npm run dev
+```
+
+The development server will be available at http://localhost:5173
 [snapshot import/export](https://docs.convex.dev/database/import-export/),
 [streaming import/export](https://docs.convex.dev/production/integrations/streaming-import-export),
 and [runtime validation](https://docs.convex.dev/database/schemas#validators) for
