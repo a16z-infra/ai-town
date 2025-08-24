@@ -42,3 +42,7 @@ dist
 
 convex-local*
 convex_local*
+
+# Backup files
+*.bak
+*~
