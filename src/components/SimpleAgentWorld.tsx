@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { agentSimulation, Agent, Conversation } from '../lib/staticAgentSimulation';
 import { clientLLM } from '../lib/clientLLM';
 import { worldPersistence } from '../lib/worldPersistence';
+import { characters } from '../../data/characters';
 import UserControls from './UserControls';
 import WorldManager from './WorldManager';
 
@@ -121,83 +122,192 @@ export default function SimpleAgentWorld() {
           style={{ minHeight: '400px' }}
           onClick={handleMapClick}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-sky-200 to-green-200">
-            {/* Simple town background pattern */}
-            <div className="w-full h-full opacity-20 bg-repeat" style={{
-              backgroundImage: 'url("data:image/svg+xml,%3Csvg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="%23000" fill-opacity="0.1"%3E%3Cpath d="m0 40l40-40h-40v40zm40 0v-40h-40l40 40z"/%3E%3C/g%3E%3C/svg%3E")'
-            }} />
+          {/* AI Town world background with tile texture */}
+          <div className="absolute inset-0">
+            {/* Load the actual map tileset as background */}
+            <div 
+              className="w-full h-full opacity-80"
+              style={{
+                backgroundImage: 'url("/assets/rpg-tileset.png")',
+                backgroundSize: '32px 32px',
+                backgroundRepeat: 'repeat',
+                imageRendering: 'pixelated',
+              }}
+            />
+            
+            {/* Overlay pattern for depth */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-green-900 opacity-20" />
 
-            {/* Add some simple buildings/locations */}
-            <div className="absolute w-16 h-16 bg-brown-600 border border-brown-800 rounded opacity-60" style={{ left: '50px', top: '50px' }}>
-              <div className="text-xs text-white text-center mt-2">Library</div>
-            </div>
-            <div className="absolute w-16 h-16 bg-red-600 border border-red-800 rounded opacity-60" style={{ left: '200px', top: '300px' }}>
-              <div className="text-xs text-white text-center mt-2">Café</div>
-            </div>
-            <div className="absolute w-16 h-16 bg-blue-600 border border-blue-800 rounded opacity-60" style={{ left: '400px', top: '80px' }}>
-              <div className="text-xs text-white text-center mt-2">Lab</div>
-            </div>
-
-            {/* Render agents */}
-            {agents.map(agent => (
-              <div
-                key={agent.id}
-                className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all ${
-                  selectedAgent?.id === agent.id ? 'scale-125 z-10' : 'hover:scale-110'
-                }`}
-                style={{
-                  left: `${agent.position.x}px`,
-                  top: `${agent.position.y}px`,
-                }}
-                onClick={(e) => {
-                  e.stopPropagation(); // Prevent map click when clicking agent
-                  setSelectedAgent(selectedAgent?.id === agent.id ? null : agent);
-                }}
-              >
-                {/* Agent avatar - different styling for user vs AI */}
-                <div className={`w-10 h-10 rounded-full border-3 flex items-center justify-center text-white font-bold text-sm ${
-                  agent.isUserControlled ? 
-                    'bg-yellow-500 border-yellow-700 shadow-lg ring-2 ring-yellow-300' :
-                  agent.currentConversation ? 
-                    'bg-blue-500 border-blue-700 animate-pulse' :
-                  agent.isMoving ? 
-                    'bg-orange-500 border-orange-700' :
-                    'bg-purple-500 border-purple-700'
-                } ${agent.id === userCharacterId ? 'ring-4 ring-white' : ''}`}>
-                  {agent.isUserControlled ? '👤' : agent.name[0]}
+            {/* Add buildings and landmarks using sprites */}
+            <div className="absolute" style={{ left: '50px', top: '50px' }}>
+              <div className="relative">
+                <img 
+                  src="/assets/rpg-tileset.png" 
+                  alt="Library"
+                  className="w-16 h-16 object-cover"
+                  style={{ 
+                    objectPosition: '-128px -160px', // House sprite from tileset
+                    imageRendering: 'pixelated'
+                  }}
+                />
+                <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                  Library
                 </div>
-                
-                {/* Agent name and status */}
-                <div className="absolute top-12 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
-                  {agent.name} {agent.isUserControlled ? '(You)' : ''}
-                  {agent.isMoving && (
-                    <div className="text-green-300">→ moving</div>
-                  )}
-                  {agent.currentConversation && (
-                    <div className="text-blue-300">💬 chatting</div>
-                  )}
-                </div>
-
-                {/* Show last message as speech bubble */}
-                {agent.lastMessage && agent.lastMessageTime && Date.now() - agent.lastMessageTime < 10000 && (
-                  <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 bg-white border-2 border-gray-300 rounded-lg p-2 text-sm shadow-lg max-w-xs">
-                    <div className="text-gray-800">{agent.lastMessage}</div>
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
-                  </div>
-                )}
-
-                {/* Movement target indicator */}
-                {agent.targetPosition && (
-                  <div 
-                    className="absolute w-3 h-3 bg-yellow-400 border border-yellow-600 transform -translate-x-1/2 -translate-y-1/2 opacity-50"
-                    style={{
-                      left: `${agent.targetPosition.x - agent.position.x}px`,
-                      top: `${agent.targetPosition.y - agent.position.y}px`,
-                    }}
-                  />
-                )}
               </div>
-            ))}
+            </div>
+            
+            <div className="absolute" style={{ left: '200px', top: '300px' }}>
+              <div className="relative">
+                <img 
+                  src="/assets/rpg-tileset.png" 
+                  alt="Café"
+                  className="w-16 h-16 object-cover"
+                  style={{ 
+                    objectPosition: '-160px -160px', // Shop sprite from tileset
+                    imageRendering: 'pixelated'
+                  }}
+                />
+                <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                  Café
+                </div>
+              </div>
+            </div>
+            
+            <div className="absolute" style={{ left: '400px', top: '80px' }}>
+              <div className="relative">
+                <img 
+                  src="/assets/rpg-tileset.png" 
+                  alt="Lab"
+                  className="w-16 h-16 object-cover"
+                  style={{ 
+                    objectPosition: '-192px -160px', // Laboratory sprite from tileset
+                    imageRendering: 'pixelated'
+                  }}
+                />
+                <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                  Lab
+                </div>
+              </div>
+            </div>
+
+            {/* Add animated elements */}
+            <div className="absolute" style={{ left: '320px', top: '200px' }}>
+              <img 
+                src="/assets/spritesheets/campfire.png" 
+                alt="Campfire"
+                className="w-8 h-8 animate-pulse"
+                style={{ imageRendering: 'pixelated' }}
+              />
+            </div>
+
+            {/* Render agents with actual character sprites */}
+            {agents.map(agent => {
+              const character = characters.find(c => c.name === agent.character);
+              return (
+                <div
+                  key={agent.id}
+                  className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all ${
+                    selectedAgent?.id === agent.id ? 'scale-125 z-10' : 'hover:scale-110'
+                  }`}
+                  style={{
+                    left: `${agent.position.x}px`,
+                    top: `${agent.position.y}px`,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent map click when clicking agent
+                    setSelectedAgent(selectedAgent?.id === agent.id ? null : agent);
+                  }}
+                >
+                  {/* Character sprite from 32x32folk.png */}
+                  {character ? (
+                    <div className="relative">
+                      <img 
+                        src="/assets/32x32folk.png"
+                        alt={agent.name}
+                        className={`w-10 h-10 object-cover border-3 rounded ${
+                          agent.isUserControlled ? 
+                            'border-yellow-300 shadow-lg ring-2 ring-yellow-300' :
+                          agent.currentConversation ? 
+                            'border-blue-300 animate-pulse' :
+                          agent.isMoving ? 
+                            'border-orange-300' :
+                            'border-purple-300'
+                        } ${agent.id === userCharacterId ? 'ring-4 ring-white' : ''}`}
+                        style={{
+                          // Use sprite sheet cropping based on character
+                          objectPosition: character.name === 'f1' ? '0px 0px' :
+                                         character.name === 'f2' ? '-32px 0px' :
+                                         character.name === 'f3' ? '-64px 0px' :
+                                         character.name === 'f4' ? '-96px 0px' :
+                                         character.name === 'f6' ? '-160px 0px' :
+                                         character.name === 'f7' ? '-192px 0px' : '0px 0px',
+                          width: '32px',
+                          height: '32px',
+                          transform: 'scale(1.25)', // Make sprites a bit larger
+                          imageRendering: 'pixelated', // Keep pixel art crisp
+                        }}
+                      />
+                      
+                      {/* Status indicator overlay */}
+                      {agent.currentConversation && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">
+                          💬
+                        </div>
+                      )}
+                      
+                      {agent.isMoving && (
+                        <div className="absolute -top-1 -left-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center text-white text-xs">
+                          →
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    // Fallback for missing character data
+                    <div className={`w-10 h-10 rounded-full border-3 flex items-center justify-center text-white font-bold text-sm ${
+                      agent.isUserControlled ? 
+                        'bg-yellow-500 border-yellow-700 shadow-lg ring-2 ring-yellow-300' :
+                      agent.currentConversation ? 
+                        'bg-blue-500 border-blue-700 animate-pulse' :
+                      agent.isMoving ? 
+                        'bg-orange-500 border-orange-700' :
+                        'bg-purple-500 border-purple-700'
+                    } ${agent.id === userCharacterId ? 'ring-4 ring-white' : ''}`}>
+                      {agent.isUserControlled ? '👤' : agent.name[0]}
+                    </div>
+                  )}
+                
+                  {/* Agent name and status */}
+                  <div className="absolute top-12 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                    {agent.name} {agent.isUserControlled ? '(You)' : ''}
+                    {agent.isMoving && (
+                      <div className="text-green-300">→ moving</div>
+                    )}
+                    {agent.currentConversation && (
+                      <div className="text-blue-300">💬 chatting</div>
+                    )}
+                  </div>
+
+                  {/* Show last message as speech bubble */}
+                  {agent.lastMessage && agent.lastMessageTime && Date.now() - agent.lastMessageTime < 10000 && (
+                    <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 bg-white border-2 border-gray-300 rounded-lg p-2 text-sm shadow-lg max-w-xs">
+                      <div className="text-gray-800">{agent.lastMessage}</div>
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
+                    </div>
+                  )}
+
+                  {/* Movement target indicator */}
+                  {agent.targetPosition && (
+                    <div 
+                      className="absolute w-3 h-3 bg-yellow-400 border border-yellow-600 transform -translate-x-1/2 -translate-y-1/2 opacity-50"
+                      style={{
+                        left: `${agent.targetPosition.x - agent.position.x}px`,
+                        top: `${agent.targetPosition.y - agent.position.y}px`,
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            })}
 
             {/* Draw conversation connections */}
             {conversations.map(conv => {
