@@ -10,12 +10,19 @@ export interface Agent {
   id: string;
   name: string;
   identity: string;
+  plan?: string;
+  character?: string;
   position: Position;
   targetPosition?: Position;
   currentConversation?: string;
   isMoving: boolean;
   lastMessage?: string;
   lastMessageTime?: number;
+  isUserControlled?: boolean;
+  memories?: string[];
+  goals?: string[];
+  lastActivity?: string;
+  lastActivityTime?: number;
 }
 
 export interface Conversation {
@@ -37,30 +44,57 @@ export class StaticAgentSimulation {
   }
 
   private initializeAgents() {
+    // Use rich character data from original AI Town
     const agentData = [
       {
-        id: 'alice',
-        name: 'Alice',
-        identity: 'A friendly researcher who loves discussing new technologies and artificial intelligence.',
-        position: { x: 100, y: 150 }
+        id: 'lucky',
+        name: 'Lucky',
+        identity: `Lucky is always happy and curious, and he loves cheese. He spends most of his time reading about the history of science and traveling through the galaxy on whatever ship will take him. He's very articulate and infinitely patient, except when he sees a squirrel. He's also incredibly loyal and brave. Lucky has just returned from an amazing space adventure to explore a distant planet and he's very excited to tell people about it.`,
+        plan: 'You want to hear all the gossip.',
+        character: 'f1',
+        position: { x: 100, y: 150 },
+        memories: ['Recently returned from space adventure', 'Loves cheese and science'],
+        goals: ['Share space adventure stories', 'Learn local gossip']
       },
       {
         id: 'bob', 
         name: 'Bob',
-        identity: 'A creative artist who enjoys painting and talking about creative processes.',
-        position: { x: 300, y: 200 }
+        identity: `Bob is always grumpy and he loves trees. He spends most of his time gardening by himself. When spoken to he'll respond but try and get out of the conversation as quickly as possible. Secretly he resents that he never went to college.`,
+        plan: 'You want to avoid people as much as possible.',
+        character: 'f4',
+        position: { x: 300, y: 200 },
+        memories: ['Never went to college', 'Prefers gardening alone'],
+        goals: ['Tend to plants', 'Avoid social interactions']
       },
       {
-        id: 'charlie',
-        name: 'Charlie',
-        identity: 'A curious student who asks lots of questions and loves learning from others.',
-        position: { x: 200, y: 100 }
+        id: 'stella',
+        name: 'Stella',
+        identity: `Stella can never be trusted. She tries to trick people all the time, normally into giving her money, or doing things that will make her money. She's incredibly charming and not afraid to use her charm. She's a sociopath who has no empathy, but hides it well.`,
+        plan: 'You want to take advantage of others as much as possible.',
+        character: 'f6',
+        position: { x: 200, y: 100 },
+        memories: ['Successfully tricked someone last week', 'Charming exterior hides true nature'],
+        goals: ['Find new marks to con', 'Make money through deception']
       },
       {
-        id: 'diana',
-        name: 'Diana',
-        identity: 'A thoughtful philosopher who enjoys deep conversations about life and meaning.',
-        position: { x: 400, y: 300 }
+        id: 'alice',
+        name: 'Alice',
+        identity: `Alice is a famous scientist. She is smarter than everyone else and has discovered mysteries of the universe no one else can understand. As a result she often speaks in oblique riddles. She comes across as confused and forgetful.`,
+        plan: 'You want to figure out how the world works.',
+        character: 'f3',
+        position: { x: 400, y: 150 },
+        memories: ['Discovered quantum entanglement patterns', 'Nobel prize consideration'],
+        goals: ['Unravel universe mysteries', 'Share knowledge in cryptic ways']
+      },
+      {
+        id: 'pete',
+        name: 'Pete',
+        identity: `Pete is deeply religious and sees the hand of god or of the work of the devil everywhere. He can't have a conversation without bringing up his deep faith, or warning others about the perils of hell.`,
+        plan: 'You want to convert everyone to your religion.',
+        character: 'f7',
+        position: { x: 150, y: 250 },
+        memories: ['Had religious awakening last month', 'Sees signs everywhere'],
+        goals: ['Convert others to faith', 'Warn about spiritual dangers']
       }
     ];
 
@@ -389,6 +423,148 @@ export class StaticAgentSimulation {
     return Array.from(this.conversations.values()).filter(
       conv => conv.messages.some(msg => now - msg.timestamp < 10000) // Active in last 10 seconds
     );
+  }
+
+  public addUserCharacter(name: string, identity: string): string {
+    const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const userAgent: Agent = {
+      id: userId,
+      name: name,
+      identity: identity,
+      position: { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 },
+      isMoving: false,
+      isUserControlled: true,
+      memories: [],
+      goals: ['Interact with other characters', 'Have interesting conversations']
+    };
+
+    this.agents.set(userId, userAgent);
+    
+    if (this.onUpdate) {
+      this.onUpdate();
+    }
+
+    return userId;
+  }
+
+  public removeUserCharacter(userId: string): boolean {
+    const agent = this.agents.get(userId);
+    if (!agent || !agent.isUserControlled) {
+      return false;
+    }
+
+    // End any active conversations
+    if (agent.currentConversation) {
+      this.endConversation(agent.currentConversation);
+    }
+
+    this.agents.delete(userId);
+
+    if (this.onUpdate) {
+      this.onUpdate();
+    }
+
+    return true;
+  }
+
+  public moveUserCharacter(userId: string, targetPosition: Position): boolean {
+    const agent = this.agents.get(userId);
+    if (!agent || !agent.isUserControlled) {
+      return false;
+    }
+
+    agent.targetPosition = targetPosition;
+    agent.isMoving = true;
+
+    return true;
+  }
+
+  public sendUserMessage(userId: string, message: string, targetAgentId?: string): boolean {
+    const userAgent = this.agents.get(userId);
+    if (!userAgent || !userAgent.isUserControlled) {
+      return false;
+    }
+
+    // If targeting a specific agent, start a conversation
+    if (targetAgentId) {
+      const targetAgent = this.agents.get(targetAgentId);
+      if (!targetAgent || targetAgent.currentConversation) {
+        return false;
+      }
+
+      // Check if close enough to start conversation
+      const distance = this.getDistance(userAgent.position, targetAgent.position);
+      if (distance > 80) {
+        return false; // Too far away
+      }
+
+      // Start conversation if not already in one
+      if (!userAgent.currentConversation) {
+        this.startConversation(userId, targetAgentId);
+      }
+
+      // Add message to conversation
+      const conversation = this.conversations.get(userAgent.currentConversation!);
+      if (conversation) {
+        conversation.messages.push({
+          agentId: userId,
+          text: message,
+          timestamp: Date.now()
+        });
+
+        userAgent.lastMessage = message;
+        userAgent.lastMessageTime = Date.now();
+
+        // Schedule AI response
+        setTimeout(() => {
+          this.generateConversationMessage(targetAgentId, 'continue');
+        }, 1000 + Math.random() * 2000);
+      }
+    }
+
+    return true;
+  }
+
+  public createCustomNPC(name: string, identity: string, plan?: string): string {
+    const npcId = `npc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const customNPC: Agent = {
+      id: npcId,
+      name: name,
+      identity: identity,
+      plan: plan,
+      character: 'f' + (Math.floor(Math.random() * 8) + 1), // Random character sprite
+      position: { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 },
+      isMoving: false,
+      memories: [`Created with identity: ${identity}`],
+      goals: plan ? [plan] : ['Interact with others', 'Be helpful']
+    };
+
+    this.agents.set(npcId, customNPC);
+    
+    if (this.onUpdate) {
+      this.onUpdate();
+    }
+
+    return npcId;
+  }
+
+  // Expose internal data for world persistence
+  public getAgentsMap(): Map<string, Agent> {
+    return this.agents;
+  }
+
+  public getConversationsMap(): Map<string, Conversation> {
+    return this.conversations;
+  }
+
+  public clearWorld(): void {
+    this.agents.clear();
+    this.conversations.clear();
+    this.initializeAgents();
+    
+    if (this.onUpdate) {
+      this.onUpdate();
+    }
   }
 }
 
