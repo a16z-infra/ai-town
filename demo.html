@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/assets/star-35840d8c.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Town - P2P Demo</title>
+    <style>
+      body { 
+        margin: 0; 
+        font-family: system-ui, -apple-system, sans-serif; 
+        background: #1a202c;
+        color: white;
+      }
+      .demo-container {
+        padding: 20px;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      .p2p-demo-area {
+        margin-top: 20px;
+        padding: 20px;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 8px;
+        border: 2px dashed #4a5568;
+      }
+      .p2p-status {
+        background: rgba(0, 0, 0, 0.5);
+        padding: 12px;
+        border-radius: 6px;
+        display: inline-block;
+      }
+      .p2p-status .flex {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .p2p-status .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .status-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #9ca3af;
+      }
+      .status-dot.connected {
+        background: #10b981;
+      }
+      .connect-btn {
+        background: #3b82f6;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      .connect-btn:hover {
+        background: #2563eb;
+      }
+      .features-list {
+        list-style: none;
+        padding: 0;
+      }
+      .features-list li {
+        margin: 8px 0;
+        padding-left: 20px;
+      }
+      .workflow-list {
+        counter-reset: step-counter;
+        padding-left: 0;
+      }
+      .workflow-list li {
+        counter-increment: step-counter;
+        margin: 8px 0;
+        padding-left: 30px;
+        position: relative;
+      }
+      .workflow-list li::before {
+        content: counter(step-counter);
+        position: absolute;
+        left: 0;
+        top: 0;
+        background: #3b82f6;
+        color: white;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="demo-container">
+      <h1>AI Town - P2P Player Discovery Demo</h1>
+      <p>This demonstrates the P2P player discovery interface that has been added to AI Town.</p>
+      
+      <div class="p2p-demo-area">
+        <h2>P2P Status Component (as it appears in-game)</h2>
+        <div class="p2p-status">
+          <div class="flex">
+            <div class="status-indicator">
+              <div class="status-dot"></div>
+              <span style="font-size: 14px; font-weight: 500;">P2P: Disconnected</span>
+            </div>
+            <button class="connect-btn" onclick="toggleConnection(this)">Connect</button>
+          </div>
+          <div style="margin-top: 8px; font-size: 12px; color: #9ca3af;">
+            Discovered players: 0
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 20px;">
+        <h2>Features Implemented:</h2>
+        <ul class="features-list">
+          <li>✅ Core libp2p service for peer management</li>
+          <li>✅ React hooks for easy P2P integration</li>
+          <li>✅ UI component with connection status</li>
+          <li>✅ Player announcement and discovery framework</li>
+          <li>✅ Proximity-based player search</li>
+          <li>✅ Hybrid approach (works with existing Convex backend)</li>
+          <li>✅ Optional/opt-in functionality</li>
+          <li>✅ Unit tests and documentation</li>
+        </ul>
+      </div>
+
+      <div style="margin-top: 20px;">
+        <h2>How it Works:</h2>
+        <ol class="workflow-list">
+          <li>Click "Connect" to initialize P2P networking</li>
+          <li>Your player gets announced to other P2P-enabled players</li>
+          <li>You can discover other players near your position</li>
+          <li>Falls back to centralized discovery if P2P fails</li>
+        </ol>
+      </div>
+
+      <div style="margin-top: 20px; font-size: 0.9em; color: #a0aec0;">
+        <p><strong>Note:</strong> This is a basic interface demo. In the full game, the P2P status 
+        appears as an overlay in the top-left corner of the game screen, allowing players to 
+        optionally enable peer-to-peer discovery alongside the existing centralized player discovery system.</p>
+      </div>
+    </div>
+
+    <script>
+      function toggleConnection(button) {
+        const statusDot = document.querySelector('.status-dot');
+        const statusText = document.querySelector('.status-indicator span');
+        const discoveredText = document.querySelector('.p2p-status div:last-child');
+        
+        if (button.textContent === 'Connect') {
+          // Simulate connecting
+          statusDot.classList.add('connected');
+          statusText.textContent = 'P2P: Connected';
+          button.textContent = 'Disconnect';
+          button.style.background = '#dc2626';
+          discoveredText.innerHTML = 'Peer ID: 12D3KooW... <br>Discovered players: 0';
+          
+          // Simulate discovering players after a delay
+          setTimeout(() => {
+            discoveredText.innerHTML = 'Peer ID: 12D3KooW... <br>Discovered players: 2';
+          }, 2000);
+        } else {
+          // Simulate disconnecting
+          statusDot.classList.remove('connected');
+          statusText.textContent = 'P2P: Disconnected';
+          button.textContent = 'Connect';
+          button.style.background = '#3b82f6';
+          discoveredText.textContent = 'Discovered players: 0';
+        }
+      }
+    </script>
+  </body>
+</html>

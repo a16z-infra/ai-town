@@ -39,6 +39,25 @@ above) are written in Python.
   [OpenAI API](https://platform.openai.com/). PRs welcome to add more cloud provider support.
 - Background Music Generation: [Replicate](https://replicate.com/) using
   [MusicGen](https://huggingface.co/spaces/facebook/MusicGen)
+- **Peer-to-Peer Player Discovery**: [libp2p](https://libp2p.io/) for decentralized player discovery and networking
+
+## P2P Player Discovery
+
+AI Town now includes **experimental** peer-to-peer player discovery using libp2p. This feature allows players to discover each other directly without relying solely on the central server.
+
+### Key Features:
+- **Decentralized Discovery**: Players can find each other through P2P networking
+- **Hybrid Approach**: Works alongside the existing Convex backend
+- **Optional**: Fully opt-in - the game works perfectly without P2P enabled
+- **Proximity-based**: Find players near your position in the game world
+
+### How to Use:
+1. Look for the P2P status indicator in the top-left of the game screen
+2. Click "Connect" to enable P2P discovery
+3. Your player will be announced to other P2P-enabled players
+4. You can now discover other players using the P2P network
+
+For detailed information, see [P2P Player Discovery Documentation](./docs/P2P_PLAYER_DISCOVERY.md).
 
 Other credits:
 
@@ -168,6 +187,27 @@ If it says "Ollama is running", it's good! Otherwise, check out the
 [Troubleshooting](#troubleshooting) section.
 
 ## Connect an LLM
+
+The project supports multiple LLM options:
+
+1. **Client-Side LLM (New)**: Uses Hugging Face Transformers.js for browser-based inference
+2. **Server-Side LLM**: Traditional API-based inference with multiple providers
+
+### Client-Side LLM with Transformers.js (Recommended for Privacy)
+
+The project now includes client-side LLM inference using Hugging Face Transformers.js. This approach:
+- Runs entirely in your browser (privacy-preserving)
+- Works offline once models are downloaded
+- Eliminates server LLM API costs
+- Uses DistilGPT-2 model optimized for conversations
+
+**No additional setup required!** The client-side LLM is enabled by default and will automatically download the model on first use.
+
+See [CLIENT_LLM_IMPLEMENTATION.md](./CLIENT_LLM_IMPLEMENTATION.md) for technical details.
+
+### Server-Side LLM Options
+
+If you prefer server-side inference or need more powerful models, you can configure one of these providers:
 
 Note: If you want to run the backend in the cloud, you can either use a cloud-based LLM API, like
 OpenAI or Together.ai or you can proxy the traffic from the cloud to your local Ollama. See

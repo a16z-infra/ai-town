@@ -3,12 +3,16 @@ import PixiGame from './PixiGame.tsx';
 
 import { useElementSize } from 'usehooks-ts';
 import { Stage } from '@pixi/react';
-import { ConvexProvider, useConvex, useQuery, api } from '../lib/staticConvexReplaceSimple.tsx';
+import { ConvexProvider, useConvex, useQuery } from 'convex/react';
+import PlayerDetails from './PlayerDetails.tsx';
+import P2PStatus from './P2PStatus.tsx';
+import { api } from '../../convex/_generated/api';
 import { useWorldHeartbeat } from '../hooks/useWorldHeartbeat.ts';
 import { useHistoricalTime } from '../hooks/useHistoricalTime.ts';
 import { DebugTimeManager } from './DebugTimeManager.tsx';
 import { GameId } from '../../convex/aiTown/ids.ts';
 import { useServerGame } from '../hooks/serverGame.ts';
+import { ClientLLMProcessor } from '../hooks/useClientLLM.tsx';
 
 export const SHOW_DEBUG_UI = !!import.meta.env.VITE_SHOW_DEBUG_UI;
 
@@ -40,6 +44,8 @@ export default function Game() {
   return (
     <>
       {SHOW_DEBUG_UI && <DebugTimeManager timeManager={timeManager} width={200} height={100} />}
+      {/* Add the Client LLM Processor */}
+      <ClientLLMProcessor worldId={worldId} />
       <div className="mx-auto w-full max-w grid grid-rows-[240px_1fr] lg:grid-rows-[1fr] lg:grid-cols-[1fr_auto] lg:grow max-w-[1400px] min-h-[480px] game-frame">
         {/* Game area */}
         <div className="relative overflow-hidden bg-brown-900" ref={gameWrapperRef}>
@@ -61,6 +67,10 @@ https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-5315492
                 </ConvexProvider>
               </Stage>
             </div>
+          </div>
+          {/* P2P Status overlay */}
+          <div className="absolute top-4 left-4">
+            <P2PStatus className="bg-black bg-opacity-50 text-white p-2 rounded" />
           </div>
         </div>
         {/* Right column area */}
