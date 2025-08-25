@@ -85,6 +85,6 @@ export const api = {
 };
 
 // Re-export ConvexProvider as a no-op for compatibility
-export function ConvexProvider({ children, client }: { children: React.ReactNode; client?: any }) {
+export function ConvexProvider({ children, client: _client }: { children: React.ReactNode; client?: any }) {
   return <>{children}</>;
 }

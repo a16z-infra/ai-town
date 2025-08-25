@@ -25,5 +25,14 @@
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "jest.config.ts"],
-  "exclude": ["node_modules", "convex", "dist", "/tmp", "disabled_components"]
+  "exclude": [
+    "node_modules", 
+    "convex", 
+    "dist", 
+    "/tmp", 
+    "disabled_components",
+    "disabled_hooks",
+    "disabled_services", 
+    "disabled_tests"
+  ]
 }

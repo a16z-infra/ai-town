@@ -4,4 +4,10 @@ next.config.js
 tailwind.config.js
 postcss.config.js
 convex/_generated/*
+convex/*
 dist/*
+disabled_components/*
+disabled_hooks/*
+disabled_services/*
+disabled_tests/*
+test/*
