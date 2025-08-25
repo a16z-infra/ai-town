@@ -24,16 +24,16 @@ export default function Game() {
   }>();
   const [gameWrapperRef, { width, height }] = useElementSize();
 
-  const worldStatus = useQuery(api.world.defaultWorldStatus);
+  const worldStatus = useQuery(api.world.defaultWorldStatus) as any;
   const worldId = worldStatus?.worldId;
   const engineId = worldStatus?.engineId;
 
-  const game = useServerGame(worldId);
+  const game = useServerGame(worldId as any);
 
   // Send a periodic heartbeat to our world to keep it alive.
   useWorldHeartbeat();
 
-  const worldState = useQuery(api.world.worldState, worldId ? { worldId } : 'skip');
+  const worldState = useQuery(api.world.worldState, worldId ? { worldId } : 'skip') as any;
   const { historicalTime, timeManager } = useHistoricalTime(worldState?.engine);
 
   const scrollViewRef = useRef<HTMLDivElement>(null);
@@ -57,8 +57,8 @@ https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-5315492
                 <ConvexProvider client={convex}>
                   <PixiGame
                     game={game}
-                    worldId={worldId}
-                    engineId={engineId}
+                    worldId={worldId as any}
+                    engineId={engineId as any}
                     width={width}
                     height={height}
                     historicalTime={historicalTime}
@@ -78,14 +78,10 @@ https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-5315492
           className="flex flex-col overflow-y-auto shrink-0 px-4 py-6 sm:px-6 lg:w-96 xl:pr-6 border-t-8 sm:border-t-0 sm:border-l-8 border-brown-900  bg-brown-800 text-brown-100"
           ref={scrollViewRef}
         >
-          <PlayerDetails
-            worldId={worldId}
-            engineId={engineId}
-            game={game}
-            playerId={selectedElement?.id}
-            setSelectedElement={setSelectedElement}
-            scrollViewRef={scrollViewRef}
-          />
+          <div className="text-center p-4">
+            <h3 className="text-2xl font-bold mb-4">Player Details</h3>
+            <p className="text-gray-300">Static mode - Player details disabled for now</p>
+          </div>
         </div>
       </div>
     </>

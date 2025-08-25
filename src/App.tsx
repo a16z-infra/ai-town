@@ -1,4 +1,4 @@
-import Game from './components/Game.tsx';
+import GameSimple from './components/GameSimple.tsx';
 
 import { ToastContainer } from 'react-toastify';
 import a16zImg from '../assets/a16z.png';
@@ -14,14 +14,14 @@ import MusicButton from './components/buttons/MusicButton.tsx';
 import Button from './components/buttons/Button.tsx';
 import InteractButton from './components/buttons/InteractButton.tsx';
 import FreezeButton from './components/FreezeButton.tsx';
-import { MAX_HUMAN_PLAYERS } from '../convex/constants.ts';
-import PoweredByConvex from './components/PoweredByConvex.tsx';
+import { MAX_HUMAN_PLAYERS } from './lib/constants.ts';
+import PoweredByStatic from './components/PoweredByConvex.tsx';
 
 export default function Home() {
   const [helpModalOpen, setHelpModalOpen] = useState(false);
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-between font-body game-background">
-      <PoweredByConvex />
+      <PoweredByStatic />
 
       <ReactModal
         isOpen={helpModalOpen}
@@ -86,7 +86,7 @@ export default function Home() {
           </Unauthenticated> */}
         </div>
 
-        <Game />
+        <GameSimple />
 
         <footer className="justify-end bottom-0 left-0 w-full flex items-center mt-4 gap-3 p-6 flex-wrap pointer-events-none">
           <div className="flex gap-4 flex-grow pointer-events-none">
