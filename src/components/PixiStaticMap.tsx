@@ -1,6 +1,6 @@
 import { PixiComponent, applyDefaultProps } from '@pixi/react';
 import * as PIXI from 'pixi.js';
-import { AnimatedSprite, WorldMap } from '../../convex/aiTown/worldMap';
+import { AnimatedSprite, WorldMap } from '../lib/staticTypes';
 import * as campfire from '../../data/animations/campfire.json';
 import * as gentlesparkle from '../../data/animations/gentlesparkle.json';
 import * as gentlewaterfall from '../../data/animations/gentlewaterfall.json';

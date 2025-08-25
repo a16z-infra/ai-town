@@ -84,12 +84,12 @@ export class StaticQuery<T> {
     return this;
   }
 
-  async unique(): Promise<T | null> {
-    const results = await this.collect();
+  unique(): T | null {
+    const results = this.collect();
     return results.length > 0 ? results[0] : null;
   }
 
-  async collect(): Promise<T[]> {
+  collect(): T[] {
     const storage = this.getStorage<T>();
     const items = Array.from(storage.values());
     
