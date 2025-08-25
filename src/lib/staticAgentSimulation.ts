@@ -143,7 +143,7 @@ export class StaticAgentSimulation {
         const agent2 = freeAgents[j];
         const distance = this.getDistance(agent1.position, agent2.position);
         
-        if (distance < 50 && Math.random() < 0.1) { // 10% chance to start conversation
+        if (distance < 60 && Math.random() < 0.5) { // 50% chance to start conversation when close
           this.startConversation(agent1.id, agent2.id);
         }
       }
@@ -352,8 +352,8 @@ export class StaticAgentSimulation {
 
   private planNewActions() {
     this.agents.forEach(agent => {
-      if (!agent.currentConversation && !agent.isMoving && Math.random() < 0.05) {
-        // 5% chance to start moving randomly
+      if (!agent.currentConversation && !agent.isMoving && Math.random() < 0.1) {
+        // 10% chance to start moving randomly
         this.moveAgentRandomly(agent);
       }
     });
