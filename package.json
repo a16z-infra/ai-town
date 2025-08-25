@@ -27,8 +27,8 @@
     "eslint": "8.42.0",
     "hnswlib-node": "^1.4.2",
     "hnswlib-wasm": "^0.8.2",
-    "parquet-wasm": "^0.6.1",
     "libp2p": "^2.10.0",
+    "parquet-wasm": "^0.6.1",
     "pixi-viewport": "^5.0.1",
     "pixi.js": "^7.2.4",
     "react": "18.2.0",
@@ -44,6 +44,7 @@
   },
   "devDependencies": {
     "@flydotio/dockerfile": "^0.2.14",
+    "@playwright/test": "^1.55.0",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
