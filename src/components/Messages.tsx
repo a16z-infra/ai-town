@@ -5,7 +5,8 @@ import { api } from '../../convex/_generated/api';
 import { MessageInput } from './MessageInput';
 import { Player } from '../../convex/aiTown/player';
 import { Conversation } from '../../convex/aiTown/conversation';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { GameId } from '../../convex/aiTown/ids';
 
 export function Messages({
   worldId,
@@ -26,10 +27,32 @@ export function Messages({
 }) {
   const humanPlayerId = humanPlayer?.id;
   const descriptions = useQuery(api.world.gameDescriptions, { worldId });
-  const messages = useQuery(api.messages.listMessages, {
-    worldId,
-    conversationId: conversation.doc.id,
-  });
+  const [messages, setMessages] = useState<any[]>([]);
+  const [socket, setSocket] = useState<WebSocket | null>(null);
+
+  useEffect(() => {
+    const ws = new WebSocket('ws://localhost:3124');
+    setSocket(ws);
+
+    ws.onopen = () => {
+      console.log('WebSocket connected');
+      ws.send(JSON.stringify({ type: 'subscribe', conversationId: conversation.doc.id }));
+    };
+
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      setMessages((prevMessages) => [...prevMessages, message]);
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket disconnected');
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, [conversation.doc.id]);
+
   let currentlyTyping = conversation.kind === 'active' ? conversation.doc.isTyping : undefined;
   if (messages !== undefined && currentlyTyping) {
     if (messages.find((m) => m.messageUuid === currentlyTyping!.messageUuid)) {
@@ -70,11 +93,11 @@ export function Messages({
   }
   const messageNodes: { time: number; node: React.ReactNode }[] = messages.map((m) => {
     const node = (
-      <div key={`text-${m._id}`} className="leading-tight mb-6">
+      <div key={`text-${m.messageUuid}`} className="leading-tight mb-6">
         <div className="flex gap-4">
-          <span className="uppercase flex-grow">{m.authorName}</span>
-          <time dateTime={m._creationTime.toString()}>
-            {new Date(m._creationTime).toLocaleString()}
+          <span className="uppercase flex-grow">{descriptions?.playerDescriptions.find(p => p.playerId === m.author)?.name}</span>
+          <time dateTime={m.timestamp.toString()}>
+            {new Date(m.timestamp).toLocaleString()}
           </time>
         </div>
         <div className={clsx('bubble', m.author === humanPlayerId && 'bubble-mine')}>
@@ -82,9 +105,9 @@ export function Messages({
         </div>
       </div>
     );
-    return { node, time: m._creationTime };
+    return { node, time: m.timestamp };
   });
-  const lastMessageTs = messages.map((m) => m._creationTime).reduce((a, b) => Math.max(a, b), 0);
+  const lastMessageTs = messages.map((m) => m.timestamp).reduce((a, b) => Math.max(a, b), 0);
 
   const membershipNodes: typeof messageNodes = [];
   if (conversation.kind === 'active') {

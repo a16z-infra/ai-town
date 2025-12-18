@@ -1,5 +1,6 @@
 import { httpRouter } from 'convex/server';
 import { handleReplicateWebhook } from './music';
+import './websocket';
 
 const http = httpRouter();
 http.route({
