@@ -8,25 +8,26 @@
 
 AI Town is a virtual town where AI characters live, chat and socialize.
 
-This project is a deployable starter kit for easily building and customizing your own version of AI town.
-Inspired by the research paper [_Generative Agents: Interactive Simulacra of Human Behavior_](https://arxiv.org/pdf/2304.03442.pdf).
+This project is a deployable starter kit for easily building and customizing your own version of AI
+town. Inspired by the research paper
+[_Generative Agents: Interactive Simulacra of Human Behavior_](https://arxiv.org/pdf/2304.03442.pdf).
 
-The primary goal of this project, beyond just being a lot of fun to work on,
-is to provide a platform with a strong foundation that is meant to be extended.
-The back-end natively supports shared global state, transactions, and a simulation engine
-and should be suitable from everything from a simple project to play around with to a scalable, multi-player game.
-A secondary goal is to make a JS/TS framework available as most simulators in this space
-(including the original paper above) are written in Python.
+The primary goal of this project, beyond just being a lot of fun to work on, is to provide a
+platform with a strong foundation that is meant to be extended. The back-end natively supports
+shared global state, transactions, and a simulation engine and should be suitable from everything
+from a simple project to play around with to a scalable, multi-player game. A secondary goal is to
+make a JS/TS framework available as most simulators in this space (including the original paper
+above) are written in Python.
 
 ## Overview
 
 - 💻 [Stack](#stack)
-- 🧠 [Installation](#installation)
-- 🐳 [Docker Installation](#docker-installation)
-- 💻️ [Windows Installation](#windows-installation)
-- 👤 [Customize - run YOUR OWN simulated world](#customize-your-own-simulation)
-- 👩‍💻 [Deploying](#deploy-the-app)
-- 🏆 [Credits](#credits)
+- 🧠 [Installation](#installation) (cloud, local, Docker, self-host, Fly.io, ...)
+- 💻️ [Windows Pre-requisites](#windows-installation)
+- 🤖 [Configure your LLM of choice](#connect-an-llm) (Ollama, OpenAI, Together.ai, ...)
+- 👤 [Customize - YOUR OWN simulated world](#customize-your-own-simulation)
+- 👩‍💻 [Deploying to production](#deploy-the-app-to-production)
+- 🐛 [Troubleshooting](#troubleshooting)
 
 ## Stack
 
@@ -34,125 +35,312 @@ A secondary goal is to make a JS/TS framework available as most simulators in th
 - Auth (Optional): [Clerk](https://clerk.com/)
 - Default chat model is `llama3` and embeddings with `mxbai-embed-large`.
 - Local inference: [Ollama](https://github.com/jmorganca/ollama)
-- Configurable for other cloud LLMs: [Together.ai](https://together.ai/) or anything
-  that speaks the [OpenAI API](https://platform.openai.com/).
-  PRs welcome to add more cloud provider support.
-- Pixel Art Generation: [Replicate](https://replicate.com/), [Fal.ai](https://serverless.fal.ai/lora)
-- Background Music Generation: [Replicate](https://replicate.com/) using [MusicGen](https://huggingface.co/spaces/facebook/MusicGen)
+- Configurable for other cloud LLMs: [Together.ai](https://together.ai/) or anything that speaks the
+  [OpenAI API](https://platform.openai.com/). PRs welcome to add more cloud provider support.
+- Background Music Generation: [Replicate](https://replicate.com/) using
+  [MusicGen](https://huggingface.co/spaces/facebook/MusicGen)
 
-## Installation
+Other credits:
 
-**Note**: There is a one-click install of a fork of this project on
-[Pinokio](https://pinokio.computer/item?uri=https://github.com/cocktailpeanutlabs/aitown)
-for anyone interested in running but not modifying it 😎
+- Pixel Art Generation: [Replicate](https://replicate.com/),
+  [Fal.ai](https://serverless.fal.ai/lora)
+- All interactions, background music and rendering on the <Game/> component in the project are
+  powered by [PixiJS](https://pixijs.com/).
+- Tilesheet:
+  - https://opengameart.org/content/16x16-game-assets by George Bailey
+  - https://opengameart.org/content/16x16-rpg-tileset by hilau
+- We used https://github.com/pierpo/phaser3-simple-rpg for the original POC of this project. We have
+  since re-wrote the whole app, but appreciated the easy starting point
+- Original assets by [ansimuz](https://opengameart.org/content/tiny-rpg-forest)
+- The UI is based on original assets by
+  [Mounir Tohami](https://mounirtohami.itch.io/pixel-art-gui-elements)
 
-### 1. Clone repo and Install packages
+# Installation
 
-```bash
+The overall steps are:
+
+1. [Build and deploy](#build-and-deploy)
+2. [Connect it to an LLM](#connect-an-llm)
+
+## Build and Deploy
+
+There are a few ways to run the app on top of Convex (the backend).
+
+1. The standard Convex setup, where you develop locally or in the cloud. This requires a Convex
+   account(free). This is the easiest way to depoy it to the cloud and seriously develop.
+2. If you want to try it out without an account and you're okay with Docker, the Docker Compose
+   setup is nice and self-contained.
+3. There's a community fork of this project offering a one-click install on
+   [Pinokio](https://pinokio.computer/item?uri=https://github.com/cocktailpeanutlabs/aitown) for
+   anyone interested in running but not modifying it 😎.
+4. You can also deploy it to [Fly.io](https://fly.io/). See [./fly](./fly) for instructions.
+
+### Standard Setup
+
+Note, if you're on Windows, see [below](#windows-installation).
+
+```sh
 git clone https://github.com/a16z-infra/ai-town.git
 cd ai-town
 npm install
 ```
 
-### 2. To develop locally with [Convex](https://convex.dev):
+This will require logging into your Convex account, if you haven't already.
 
-Either
-[download a pre-built binary(recommended)](https://github.com/get-convex/convex-backend/releases),
-or [build it from source and run it](https://stack.convex.dev/building-the-oss-backend).
+To run it:
 
 ```sh
-# For new Macs:
-curl  -L -O https://github.com/get-convex/convex-backend/releases/latest/download/convex-local-backend-aarch64-apple-darwin.zip
-unzip convex-local-backend-aarch64-apple-darwin.zip
-
-brew install just
-
-# Runs the server
-./convex-local-backend
-```
-
-This also [installs `just`](https://github.com/casey/just?tab=readme-ov-file#installation)
-(e.g. `brew install just` or `cargo install just`).
-We use `just` like `make` to add extra params, so you run `just convex ...`
-instead of `npx convex ...` for local development.
-
-If you're running the pre-built binary on Mac and there's an Apple warning,
-go to the folder it's in and right-click it and select "Open" to bypass.
-From then on you can run it from the commandline.
-Or you can compile it from source and run it (see above).
-
-### 3. To run a local LLM, download and run [Ollama](https://ollama.com/).
-
-You can leave the app running or run `ollama serve`.
-`ollama serve` will warn you if the app is already running.
-Run `ollama pull llama3` to have it download `llama3`.
-Test it out with `ollama run llama3`.
-If you want to customize which model to use, adjust convex/util/llm.ts or set
-`just convex env set LLM_MODEL # model`.
-Ollama model options can be found [here](https://ollama.ai/library).
-
-You might want to set `NUM_MEMORIES_TO_SEARCH` to `1` in constants.ts,
-to reduce the size of conversation prompts, if you see slowness.
-
-Check out `convex/config.ts` to configure which models to offer to the UI,
-or to set it up to talk to a cloud-hosted LLM.
-
-### 4. Adding background music with Replicate (Optional)
-
-For Daily background music generation, create a
-[Replicate](https://replicate.com/) account and create a token in your Profile's
-[API Token page](https://replicate.com/account/api-tokens).
-`just convex env set REPLICATE_API_TOKEN # token`
-
-### 5. Run the code
-
-To run both the front and and back end:
-
-```bash
 npm run dev
 ```
 
-**Note**: If you encounter a node version error on the convex server upon application startup, please use node version 18, which is the most stable. One way to do this is by [installing nvm](https://nodejs.org/en/download/package-manager) and running `nvm install 18` or `nvm use 18`. Do this before both the `npm run dev` above and the `./convex-local-backend` in Step 2.
-
 You can now visit http://localhost:5173.
 
-If you'd rather run the frontend in a separate terminal from Convex (which syncs
-your backend functions as they're saved), you can run these two commands:
+If you'd rather run the frontend and backend separately (which syncs your backend functions as
+they're saved), you can run these in two terminals:
 
 ```bash
 npm run dev:frontend
 npm run dev:backend
 ```
 
-See package.json for details, but dev:backend runs `just convex dev`
+See [package.json](./package.json) for details.
 
-**Note**: The simulation will pause after 5 minutes if the window is idle.
-Loading the page will unpause it.
-You can also manually freeze & unfreeze the world with a button in the UI.
-If you want to run the world without the
-browser, you can comment-out the "stop inactive worlds" cron in `convex/crons.ts`.
+### Using Docker Compose with self-hosted Convex
 
-### Various commands to run / test / debug
+You can also run the Convex backend with the self-hosted Docker container. Here we'll set it up to
+run the frontend, backend, and dashboard all via docker compose.
+
+```sh
+docker compose up --build -d
+```
+
+The container will keep running in the background if you pass `-d`. After you've done it once, you
+can `stop` and `start` services.
+
+- The frontend will be running on http://localhost:5173.
+- The backend will be running on http://localhost:3210 (3211 for the http api).
+- The dashboard will be running on http://localhost:6791.
+
+To log into the dashboard and deploy from the convex CLI, you will need to generate an admin key.
+
+```sh
+docker compose exec backend ./generate_admin_key.sh
+```
+
+Add it to your `.env.local` file. Note: If you run `down` and `up`, you'll have to generate the key
+again and update the `.env.local` file.
+
+```sh
+# in .env.local
+CONVEX_SELF_HOSTED_ADMIN_KEY="<admin-key>" # Ensure there are quotes around it
+CONVEX_SELF_HOSTED_URL="http://127.0.0.1:3210"
+```
+
+Then set up the Convex backend (one time):
+
+```sh
+npm run predev
+```
+
+To continuously deploy new code to the backend and print logs:
+
+```sh
+npm run dev:backend
+```
+
+To see the dashboard, visit `http://localhost:6791` and provide the admin key you generated earlier.
+
+### Configuring Docker for Ollama
+
+If you'll be using Ollama for local inference, you'll need to configure Docker to connect to it.
+
+```sh
+npx convex env set OLLAMA_HOST http://host.docker.internal:11434
+```
+
+To test the connection (after you [have it running](#ollama-default)):
+
+```sh
+docker compose exec backend /bin/bash curl http://host.docker.internal:11434
+```
+
+If it says "Ollama is running", it's good! Otherwise, check out the
+[Troubleshooting](#troubleshooting) section.
+
+## Connect an LLM
+
+Note: If you want to run the backend in the cloud, you can either use a cloud-based LLM API, like
+OpenAI or Together.ai or you can proxy the traffic from the cloud to your local Ollama. See
+[below](#using-local-inference-from-a-cloud-deployment) for instructions.
+
+### Ollama (default)
+
+By default, the app tries to use Ollama to run it entirely locally.
+
+1. Download and install [Ollama](https://ollama.com/).
+2. Open the app or run `ollama serve` in a terminal. `ollama serve` will warn you if the app is
+   already running.
+3. Run `ollama pull llama3` to have it download `llama3`.
+4. Test it out with `ollama run llama3`.
+
+Ollama model options can be found [here](https://ollama.ai/library).
+
+If you want to customize which model to use, adjust convex/util/llm.ts or set
+`npx convex env set OLLAMA_MODEL # model`. If you want to edit the embedding model:
+
+1. Change the `OLLAMA_EMBEDDING_DIMENSION` in `convex/util/llm.ts` and ensure:
+   `export const EMBEDDING_DIMENSION = OLLAMA_EMBEDDING_DIMENSION;`
+2. Set `npx convex env set OLLAMA_EMBEDDING_MODEL # model`.
+
+Note: You might want to set `NUM_MEMORIES_TO_SEARCH` to `1` in constants.ts, to reduce the size of
+conversation prompts, if you see slowness.
+
+### OpenAI
+
+To use OpenAI, you need to:
+
+```ts
+// In convex/util/llm.ts change the following line:
+export const EMBEDDING_DIMENSION = OPENAI_EMBEDDING_DIMENSION;
+```
+
+Set the `OPENAI_API_KEY` environment variable. Visit https://platform.openai.com/account/api-keys if
+you don't have one.
+
+```sh
+npx convex env set OPENAI_API_KEY 'your-key'
+```
+
+Optional: choose models with `OPENAI_CHAT_MODEL` and `OPENAI_EMBEDDING_MODEL`.
+
+### Together.ai
+
+To use Together.ai, you need to:
+
+```ts
+// In convex/util/llm.ts change the following line:
+export const EMBEDDING_DIMENSION = TOGETHER_EMBEDDING_DIMENSION;
+```
+
+Set the `TOGETHER_API_KEY` environment variable. Visit https://api.together.xyz/settings/api-keys if
+you don't have one.
+
+```sh
+npx convex env set TOGETHER_API_KEY 'your-key'
+```
+
+Optional: choose models via `TOGETHER_CHAT_MODEL`, `TOGETHER_EMBEDDING_MODEL`. The embedding model's
+dimension must match `EMBEDDING_DIMENSION`.
+
+### Other OpenAI-compatible API
+
+You can use any OpenAI-compatible API, such as Anthropic, Groq, or Azure.
+
+- Change the `EMBEDDING_DIMENSION` in `convex/util/llm.ts` to match the dimension of your embedding
+  model.
+- Edit `getLLMConfig` in `llm.ts` or set environment variables:
+
+```sh
+npx convex env set LLM_API_URL 'your-url'
+npx convex env set LLM_API_KEY 'your-key'
+npx convex env set LLM_MODEL 'your-chat-model'
+npx convex env set LLM_EMBEDDING_MODEL 'your-embedding-model'
+```
+
+Note: if `LLM_API_KEY` is not required, don't set it.
+
+### Note on changing the LLM provider or embedding model:
+
+If you change the LLM provider or embedding model, you should delete your data and start over. The
+embeddings used for memory are based on the embedding model you choose, and the dimension of the
+vector database must match the embedding model's dimension. See
+[below](#wiping-the-database-and-starting-over) for how to do that.
+
+## Customize your own simulation
+
+NOTE: every time you change character data, you should re-run `npx convex run testing:wipeAllTables`
+and then `npm run dev` to re-upload everything to Convex. This is because character data is sent to
+Convex on the initial load. However, beware that `npx convex run testing:wipeAllTables` WILL wipe
+all of your data.
+
+1. Create your own characters and stories: All characters and stories, as well as their spritesheet
+   references are stored in [characters.ts](./data/characters.ts). You can start by changing
+   character descriptions.
+
+2. Updating spritesheets: in `data/characters.ts`, you will see this code:
+
+   ```ts
+   export const characters = [
+     {
+       name: 'f1',
+       textureUrl: '/assets/32x32folk.png',
+       spritesheetData: f1SpritesheetData,
+       speed: 0.1,
+     },
+     ...
+   ];
+   ```
+
+   You should find a sprite sheet for your character, and define sprite motion / assets in the
+   corresponding file (in the above example, `f1SpritesheetData` was defined in f1.ts)
+
+3. Update the Background (Environment): The map gets loaded in `convex/init.ts` from
+   `data/gentle.js`. To update the map, follow these steps:
+
+   - Use [Tiled](https://www.mapeditor.org/) to export tilemaps as a JSON file (2 layers named
+     bgtiles and objmap)
+   - Use the `convertMap.js` script to convert the JSON to a format that the engine can use.
+
+   ```console
+   node data/convertMap.js <mapDataPath> <assetPath> <tilesetpxw> <tilesetpxh>
+   ```
+
+   - `<mapDataPath>`: Path to the Tiled JSON file.
+   - `<assetPath>`: Path to tileset images.
+   - `<tilesetpxw>`: Tileset width in pixels.
+   - `<tilesetpxh>`: Tileset height in pixels. Generates `converted-map.js` that you can use like
+     `gentle.js`
+
+4. Adding background music with Replicate (Optional)
+
+   For Daily background music generation, create a [Replicate](https://replicate.com/) account and
+   create a token in your Profile's [API Token page](https://replicate.com/account/api-tokens).
+   `npx convex env set REPLICATE_API_TOKEN # token`
+
+   This only works if you can receive the webhook from Replicate. If it's running in the normal
+   Convex cloud, it will work by default. If you're self-hosting, you'll need to configure it to hit
+   your app's url on `/http`. If you're using Docker Compose, it will be `http://localhost:3211`,
+   but you'll need to proxy the traffic to your local machine.
+
+   **Note**: The simulation will pause after 5 minutes if the window is idle. Loading the page will
+   unpause it. You can also manually freeze & unfreeze the world with a button in the UI. If you
+   want to run the world without the browser, you can comment-out the "stop inactive worlds" cron in
+   `convex/crons.ts`.
+
+   - Change the background music by modifying the prompt in `convex/music.ts`
+   - Change how often to generate new music at `convex/crons.ts` by modifying the
+     `generate new background music` job
+
+## Commands to run / test / debug
 
 **To stop the back end, in case of too much activity**
 
-This will stop running the engine and agents. You can still run queries and
-run functions to debug.
+This will stop running the engine and agents. You can still run queries and run functions to debug.
 
 ```bash
-just convex run testing:stop
+npx convex run testing:stop
 ```
 
 **To restart the back end after stopping it**
 
 ```bash
-just convex run testing:resume
+npx convex run testing:resume
 ```
 
 **To kick the engine in case the game engine or agents aren't running**
 
 ```bash
-just convex run testing:kick
+npx convex run testing:kick
 ```
 
 **To archive the world**
@@ -160,147 +348,23 @@ just convex run testing:kick
 If you'd like to reset the world and start from scratch, you can archive the current world:
 
 ```bash
-just convex run testing:archive
+npx convex run testing:archive
 ```
 
-Then, you can still look at the world's data in the dashboard, but the engine and agents will
-no longer run.
+Then, you can still look at the world's data in the dashboard, but the engine and agents will no
+longer run.
 
 You can then create a fresh world with `init`.
 
 ```bash
-just convex run init
-```
-
-**To clear all databases**
-
-You can wipe all tables with the `wipeAllTables` testing function.
-
-```bash
-just convex run testing:wipeAllTables
+npx convex run init
 ```
 
 **To pause your backend deployment**
 
-You can go to the [dashboard](https://dashboard.convex.dev) to your deployment
-settings to pause and un-pause your deployment. This will stop all functions, whether invoked
-from the client, scheduled, or as a cron job. See this as a last resort, as
-there are gentler ways of stopping above. Once you
-
-## Docker Installation
-
-### Before Launching Docker
-
-Modify your `package.json` file to add the `--host` option to your front-end server (Vite):
-
-```json
-{
-  "name": "ai-town",
-  "version": "0.0.0",
-  "private": true,
-  "scripts": {
-    "dev": "npm-run-all --parallel dev:frontend dev:backend",
-    "build": "tsc && vite build",
-    "lint": "eslint .",
-    "predev": "just convex dev --run init --until-success",
-    "dev:backend": "just convex dev --tail-logs",
-    "dev:frontend": "vite --host", // <------------------------------------------ modify this line
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest --verbose",
-    "le": "vite src/editor/"
-  }
-}
-```
-
-### Launching Docker Compose
-
-Run the following command to launch Docker Compose:
-```sh
-docker-compose up --build
-```
-
-Once completed, you can close the terminal.
-
-### Launching an Interactive Docker Terminal
-
-In another terminal, still in the `aitown` directory, launch an interactive Docker terminal:
-```bash
-docker-compose exec ai-town /bin/bash
-```
-
-### Running Locally
-
-1. Download and unzip the local Convex backend:
-    ```bash
-    curl -L -O https://github.com/get-convex/convex-backend/releases/download/precompiled-2024-06-28-91981ab/convex-local-backend-x86_64-unknown-linux-gnu.zip
-    unzip convex-local-backend-x86_64-unknown-linux-gnu.zip
-    ```
-   
-2. Verify the `convex-local-backend` file is in the directory, then remove the zip file:
-    ```bash
-    rm convex-local-backend-x86_64-unknown-linux-gnu.zip
-    ```
-
-3. Make the file executable:
-    ```bash
-    chmod +x /usr/src/app/convex-local-backend
-    ```
-
-4. Launch the Convex backend server:
-    ```bash
-    ./convex-local-backend
-    ```
-
-### Relaunching an Interactive Docker Terminal for aitown server
-
-In another terminal, in the `aitown` directory, relaunch:
-```sh
-docker-compose exec ai-town /bin/bash
-```
-
-### Configuring Socat
-
-Configure `socat` with the host's IP address:
-
-```sh
-HOST_IP=YOUR-HOST-IP  # Use your host's IP address (not the Docker IP)
-socat TCP-LISTEN:11434,fork TCP:$HOST_IP:11434 &
-```
-
-### Testing the Connection
-
-Test the connection:
-```bash
-curl http://localhost:11434/
-```
-
-If it says "Ollama is running", it's good!
-
-### Starting Services
-
-Make sure Convex knows where to find Ollama (to skip a random mysterious bug ...):
-```bash
-just convex env set OLLAMA_HOST http://localhost:11434
-```
-
-Update the browser list:
-```bash
-npx update-browserslist-db@latest
-```
-
-Launch AI Town:
-```bash
-npm run dev
-```
-
-### For relaunching
-launch container then 
-Simply open two terminal in your AI-town folder with docker-compose exec ai-town /bin/bash
-
-Launch the Convex backend server:
-    ```bash
-    ./convex-local-backend
-    ```
-And in the second terminal simply Configuring Socat, Launch AI Town.
+You can go to the [dashboard](https://dashboard.convex.dev) to your deployment settings to pause and
+un-pause your deployment. This will stop all functions, whether invoked from the client, scheduled,
+or as a cron job. See this as a last resort, as there are gentler ways of stopping above.
 
 ## Windows Installation
 
@@ -309,220 +373,66 @@ And in the second terminal simply Configuring Socat, Launch AI Town.
 1. **Windows 10/11 with WSL2 installed**
 2. **Internet connection**
 
-### 1. Install WSL2
+Steps:
 
-First, you need to install WSL2. Follow [this guide](https://docs.microsoft.com/en-us/windows/wsl/install) to set up WSL2 on your Windows machine. We recommend using Ubuntu as your Linux distribution.
+1. Install WSL2
 
-### 2. Update Packages
+   First, you need to install WSL2. Follow
+   [this guide](https://docs.microsoft.com/en-us/windows/wsl/install) to set up WSL2 on your Windows
+   machine. We recommend using Ubuntu as your Linux distribution.
 
-Open your WSL terminal (Ubuntu) and update your packages:
+2. Update Packages
 
-    sudo apt update
+   Open your WSL terminal (Ubuntu) and update your packages:
 
-### 3. Install NVM and Node.js
+   ```sh
+   sudo apt update
+   ```
 
-NVM (Node Version Manager) helps manage multiple versions of Node.js. Install NVM and Node.js 18 (the stable version):
+3. Install NVM and Node.js
 
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
-    export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-    source ~/.bashrc
-    nvm install 18
-    nvm use 18
+   NVM (Node Version Manager) helps manage multiple versions of Node.js. Install NVM and Node.js 18
+   (the stable version):
 
-### 4. Install Python and Pip
+   ```sh
+   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
+   export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+   source ~/.bashrc
+   nvm install 18
+   nvm use 18
+   ```
 
-Python is required for some dependencies. Install Python and Pip:
+4. Install Python and Pip
 
-    sudo apt-get install python3 python3-pip
-    sudo ln -s /usr/bin/python3 /usr/bin/python
+   Python is required for some dependencies. Install Python and Pip:
 
-### 5. Install Additional Tools
+   ```sh
+   sudo apt-get install python3 python3-pip sudo ln -s /usr/bin/python3 /usr/bin/python
+   ```
 
-Install `unzip` and `socat`:
+At this point, you can follow the instructions [above](#installation).
 
-    sudo apt install unzip socat
-
-### 6. Install Rust and Cargo
-
-Cargo is the Rust package manager. Install Rust and Cargo:
-
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-    source $HOME/.cargo/env
-
-### 7. Install `just` with Cargo
-
-`just` is used to run commands. Install it with Cargo:
-
-    cargo install just
-    export PATH="$HOME/.cargo/bin:$PATH"
-    just --version
-
-### 8. Configure `socat` to Bridge Ports for Ollama
-
-Run the following command to bridge ports, allowing communication between Convex and Ollama:
-
-    socat TCP-LISTEN:11434,fork TCP:$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}'):11434 &
-
-Test if it's working:
-
-    curl http://127.0.0.1:11434
-
-If it responds OK, the Ollama API is accessible.
-
-### 9. Clone the AI Town Repository
-
-Clone the AI Town repository from GitHub:
-
-    git clone https://github.com/a16z-infra/ai-town.git
-    cd ai-town
-
-### 10. Install NPM Packages
-
-Install the necessary npm packages:
-
-    npm install
-
-### 11. Install Precompiled Convex
-
-Download and install the precompiled version of Convex:
-
-    curl -L -O https://github.com/get-convex/convex-backend/releases/download/precompiled-2024-06-28-91981ab/convex-local-backend-x86_64-unknown-linux-gnu.zip
-    unzip convex-local-backend-x86_64-unknown-linux-gnu.zip
-    rm convex-local-backend-x86_64-unknown-linux-gnu.zip
-    chmod +x convex-local-backend
-
-### 12. Launch Convex
-
-In a separate terminal, launch Convex:
-
-    ./convex-local-backend
-
-### 13. Configure Convex to Use Ollama
-
-Set the Ollama host in Convex:
-
-    just convex env set OLLAMA_HOST http://localhost:11434
-
-### 14. Launch AI Town
-
-Finally, launch AI Town:
-
-    npm run dev
-
-Visit `http://localhost:5173` in your browser to see AI Town in action.
-
-### Relaunching AI Town on windows WSL : 
-
-If you need to restart the services:
-
-1. Ensure `socat` is running:
-
-    socat TCP-LISTEN:11434,fork TCP:$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}'):11434 &
-
-2. Launch Convex:
-
-    ./convex-local-backend
-
-In another terminal : 
-3. Launch AI Town:
-
-    npm run dev
-
-
-
-
-## Customize your own simulation
-
-NOTE: every time you change character data, you should re-run
-`just convex run testing:wipeAllTables` and then
-`npm run dev` to re-upload everything to Convex.
-This is because character data is sent to Convex on the initial load.
-However, beware that `just convex run testing:wipeAllTables` WILL wipe all of your data.
-
-1. Create your own characters and stories: All characters and stories, as well as their spritesheet references are stored in [characters.ts](./data/characters.ts). You can start by changing character descriptions.
-
-2. Updating spritesheets: in `data/characters.ts`, you will see this code:
-
-```ts
-export const characters = [
-  {
-    name: 'f1',
-    textureUrl: '/assets/32x32folk.png',
-    spritesheetData: f1SpritesheetData,
-    speed: 0.1,
-  },
-  ...
-];
-```
-
-You should find a sprite sheet for your character, and define sprite motion / assets in the corresponding file (in the above example, `f1SpritesheetData` was defined in f1.ts)
-
-3. Update the Background (Environment): The map gets loaded in `convex/init.ts` from `data/gentle.js`. To update the map, follow these steps:
-
-   - Use [Tiled](https://www.mapeditor.org/) to export tilemaps as a JSON file (2 layers named bgtiles and objmap)
-   - Use the `convertMap.js` script to convert the JSON to a format that the engine can use.
-
-```console
-node data/convertMap.js <mapDataPath> <assetPath> <tilesetpxw> <tilesetpxh>
-```
-
-- `<mapDataPath>`: Path to the Tiled JSON file.
-- `<assetPath>`: Path to tileset images.
-- `<tilesetpxw>`: Tileset width in pixels.
-- `<tilesetpxh>`: Tileset height in pixels.
-  Generates `converted-map.js` that you can use like `gentle.js`
-
-4. Change the background music by modifying the prompt in `convex/music.ts`
-5. Change how often to generate new music at `convex/crons.ts` by modifying the `generate new background music` job
-
-## Using a cloud AI Provider
-
-Configure `convex/util/llm.ts` or set these env variables:
-
-```sh
-just convex env set LLM_API_HOST # url
-just convex env set LLM_MODEL # model
-```
-
-The embeddings model config needs to be changed [in code](./convex/util/llm.ts),
-since you need to specify the embeddings dimension.
-
-### Keys
-
-For Together.ai, visit https://api.together.xyz/settings/api-keys
-For OpenAI, visit https://platform.openai.com/account/api-keys
-
-## Using hosted Convex
-
-You can run your Convex backend in the cloud by just running
-
-```sh
-npx convex dev --until-success --configure
-```
-
-And updating the `package.json` scripts to remove `just`:
-change `just convex ...` to `convex ...`.
-
-You'll then need to set any environment variables you had locally in the cloud
-environment with `npx convex env set` or on the dashboard:
-https://dashboard.convex.dev/deployment/settings/environment-variables
-
-## Deploy the app
+## Deploy the app to production
 
 ### Deploy Convex functions to prod environment
 
-Before you can run the app, you will need to make sure the Convex functions are deployed to its production environment.
+Before you can run the app, you will need to make sure the Convex functions are deployed to its
+production environment. Note: this is assuming you're using the default Convex cloud product.
 
 1. Run `npx convex deploy` to deploy the convex functions to production
 2. Run `npx convex run init --prod`
 
-If you have existing data you want to clear, you can run `npx convex run testing:wipeAllTables --prod`
+To transfer your local data to the cloud, you can run `npx convex export` and then import it with
+`npx convex import --prod`.
+
+If you have existing data you want to clear, you can run
+`npx convex run testing:wipeAllTables --prod`
 
 ### Adding Auth (Optional)
 
-You can add clerk auth back in with `git revert b44a436`.
-Or just look at that diff for what changed to remove it.
+You can add clerk auth back in with `git revert b44a436`. Or just look at that diff for what changed
+to remove it.
 
 **Make a Clerk account**
 
@@ -540,21 +450,34 @@ CLERK_SECRET_KEY=sk_***
 - Copy the JWKS endpoint URL for use below.
 
 ```sh
-just convex env set CLERK_ISSUER_URL # e.g. https://your-issuer-url.clerk.accounts.dev/
+npx convex env set CLERK_ISSUER_URL # e.g. https://your-issuer-url.clerk.accounts.dev/
 ```
 
-### Deploy to Vercel
+### Deploy the frontend to Vercel
 
 - Register an account on Vercel and then [install the Vercel CLI](https://vercel.com/docs/cli).
-- **If you are using Github Codespaces**: You will need to [install the Vercel CLI](https://vercel.com/docs/cli) and authenticate from your codespaces cli by running `vercel login`.
+- **If you are using Github Codespaces**: You will need to
+  [install the Vercel CLI](https://vercel.com/docs/cli) and authenticate from your codespaces cli by
+  running `vercel login`.
 - Deploy the app to Vercel with `vercel --prod`.
 
-## Using local inference from a cloud deployment.
+## Using local inference from a cloud deployment
 
-We support using [Ollama](https://github.com/jmorganca/ollama) for conversation generations.
-To have it accessible from the web, you can use Tunnelmole or Ngrok or similar.
+We support using [Ollama](https://github.com/jmorganca/ollama) for conversation generations. To have
+it accessible from the web, you can use Tunnelmole or Ngrok or similar so the cloud backend can send
+requests to Ollama running on your local machine.
 
-**Using Tunnelmole**
+Steps:
+
+1. Set up either Tunnelmole or Ngrok.
+2. Add Ollama endpoint to Convex
+   ```sh
+   npx convex env set OLLAMA_HOST # your tunnelmole/ngrok unique url from the previous step
+   ```
+3. Update Ollama domains Ollama has a list of accepted domains. Add the ngrok domain so it won't
+   reject traffic. see [ollama.ai](https://ollama.ai) for more details.
+
+### Using Tunnelmole
 
 [Tunnelmole](https://github.com/robbie-cahill/tunnelmole-client) is an open source tunneling tool.
 
@@ -562,8 +485,10 @@ You can install Tunnelmole using one of the following options:
 
 - NPM: `npm install -g tunnelmole`
 - Linux: `curl -s https://tunnelmole.com/sh/install-linux.sh | sudo bash`
-- Mac: `curl -s https://tunnelmole.com/sh/install-mac.sh --output install-mac.sh && sudo bash install-mac.sh`
-- Windows: Install with NPM, or if you don't have NodeJS installed, download the `exe` file for Windows [here](https://tunnelmole.com/downloads/tmole.exe) and put it somewhere in your PATH.
+- Mac:
+  `curl -s https://tunnelmole.com/sh/install-mac.sh --output install-mac.sh && sudo bash install-mac.sh`
+- Windows: Install with NPM, or if you don't have NodeJS installed, download the `exe` file for
+  Windows [here](https://tunnelmole.com/downloads/tmole.exe) and put it somewhere in your PATH.
 
 Once Tunnelmole is installed, run the following command:
 
@@ -573,7 +498,7 @@ tmole 11434
 
 Tunnelmole should output a unique url once you run this command.
 
-**Using Ngrok**
+### Using Ngrok
 
 Ngrok is a popular closed source tunneling tool.
 
@@ -587,32 +512,143 @@ ngrok http http://localhost:11434
 
 Ngrok should output a unique url once you run this command.
 
-**Add Ollama endpoint to Convex**
+## Troubleshooting
+
+### Wiping the database and starting over
+
+You can wipe the database by running:
 
 ```sh
-just convex env set OLLAMA_HOST # your tunnelmole/ngrok unique url from the previous step
+npx convex run testing:wipeAllTables
 ```
 
-**Update Ollama domains**
+Then reset with:
 
-Ollama has a list of accepted domains. Add the ngrok domain so it won't reject
-traffic. see ollama.ai for more details.
+```sh
+npx convex run init
+```
 
-## Credits
+### Incompatible Node.js versions
 
-- All interactions, background music and rendering on the <Game/> component in the project are powered by [PixiJS](https://pixijs.com/).
-- Tilesheet:
-  - https://opengameart.org/content/16x16-game-assets by George Bailey
-  - https://opengameart.org/content/16x16-rpg-tileset by hilau
-- We used https://github.com/pierpo/phaser3-simple-rpg for the original POC of this project. We have since re-wrote the whole app, but appreciated the easy starting point
-- Original assets by [ansimuz](https://opengameart.org/content/tiny-rpg-forest)
-- The UI is based on original assets by [Mounir Tohami](https://mounirtohami.itch.io/pixel-art-gui-elements)
+If you encounter a node version error on the convex server upon application startup, please use node
+version 18, which is the most stable. One way to do this is by
+[installing nvm](https://nodejs.org/en/download/package-manager) and running `nvm install 18` and
+`nvm use 18`.
+
+### Reaching Ollama
+
+If you're having trouble with the backend communicating with Ollama, it depends on your setup how to
+debug:
+
+1. If you're running directly on Windows, see
+   [Windows Ollama connection issues](#windows-ollama-connection-issues).
+2. If you're using **Docker**, see
+   [Docker to Ollama connection issues](#docker-to-ollama-connection-issues).
+3. If you're running locally, you can try the following:
+
+```sh
+npx convex env set OLLAMA_HOST http://localhost:11434
+```
+
+By default, the host is set to `http://127.0.0.1:11434`. Some systems prefer `localhost`
+¯\_(ツ)\_/¯.
+
+### Windows Ollama connection issues
+
+If the above didn't work after following the [windows](#windows-installation) and regular
+[installation](#installation) instructions, you can try the following, assuming you're **not** using
+Docker.
+
+If you're using Docker, see the [next section](#docker-to-ollama-connection-issues) for Docker
+troubleshooting.
+
+For running directly on Windows, you can try the following:
+
+1. Install `unzip` and `socat`:
+
+   ```sh
+   sudo apt install unzip socat
+   ```
+
+2. Configure `socat` to Bridge Ports for Ollama
+
+   Run the following command to bridge ports:
+
+   ```sh
+   socat TCP-LISTEN:11434,fork TCP:$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}'):11434 &
+   ```
+
+3. Test if it's working:
+
+   ```sh
+   curl http://127.0.0.1:11434
+   ```
+
+   If it responds OK, the Ollama API should be accessible.
+
+### Docker to Ollama connection issues
+
+If you're having trouble with the backend communicating with Ollama, there's a couple things to
+check:
+
+1. Is Docker at least verion 18.03 ? That allows you to use the `host.docker.internal` hostname to
+   connect to the host from inside the container.
+
+2. Is Ollama running? You can check this by running `curl http://localhost:11434` from outside the
+   container.
+
+3. Is Ollama accessible from inside the container? You can check this by running
+   `docker compose exec backend curl http://host.docker.internal:11434`.
+
+If 1 & 2 work, but 3 does not, you can use `socat` to bridge the traffic from inside the container
+to Ollama running on the host.
+
+1. Configure `socat` with the host's IP address (not the Docker IP).
+
+   ```sh
+   docker compose exec backend /bin/bash
+   HOST_IP=YOUR-HOST-IP
+   socat TCP-LISTEN:11434,fork TCP:$HOST_IP:11434
+   ```
+
+   Keep this running.
+
+2. Then from outside of the container:
+
+   ```sh
+   npx convex env set OLLAMA_HOST http://localhost:11434
+   ```
+
+3. Test if it's working:
+
+   ```sh
+   docker compose exec backend curl http://localhost:11434
+   ```
+
+   If it responds OK, the Ollama API is accessible. Otherwise, try changing the previous two to
+   `http://127.0.0.1:11434`.
+
+### Launching an Interactive Docker Terminal
+
+If you wan to investigate inside the container, you can launch an interactive Docker terminal, for
+the `frontend`, `backend` or `dashboard` service:
+
+```bash
+docker compose exec frontend /bin/bash
+```
+
+To exit the container, run `exit`.
+
+### Updating the browser list
+
+```bash
+docker compose exec frontend npx update-browserslist-db@latest
+```
 
 # 🧑‍🏫 What is Convex?
 
-[Convex](https://convex.dev) is a hosted backend platform with a
-built-in database that lets you write your
-[database schema](https://docs.convex.dev/database/schemas) and
+[Convex](https://convex.dev) is a hosted backend platform with a built-in database that lets you
+write your [database schema](https://docs.convex.dev/database/schemas) and
 [server functions](https://docs.convex.dev/functions) in
 [TypeScript](https://docs.convex.dev/typescript). Server-side database
 [queries](https://docs.convex.dev/functions/query-functions) automatically
@@ -620,34 +656,28 @@ built-in database that lets you write your
 [subscribe](https://docs.convex.dev/client/react#reactivity) to data, powering a
 [realtime `useQuery` hook](https://docs.convex.dev/client/react#fetching-data) in our
 [React client](https://docs.convex.dev/client/react). There are also clients for
-[Python](https://docs.convex.dev/client/python),
-[Rust](https://docs.convex.dev/client/rust),
+[Python](https://docs.convex.dev/client/python), [Rust](https://docs.convex.dev/client/rust),
 [ReactNative](https://docs.convex.dev/client/react-native), and
 [Node](https://docs.convex.dev/client/javascript), as well as a straightforward
 [HTTP API](https://docs.convex.dev/http-api/).
 
-The database supports
-[NoSQL-style documents](https://docs.convex.dev/database/document-storage) with
-[opt-in schema validation](https://docs.convex.dev/database/schemas),
+The database supports [NoSQL-style documents](https://docs.convex.dev/database/document-storage)
+with [opt-in schema validation](https://docs.convex.dev/database/schemas),
 [relationships](https://docs.convex.dev/database/document-ids) and
-[custom indexes](https://docs.convex.dev/database/indexes/)
-(including on fields in nested objects).
+[custom indexes](https://docs.convex.dev/database/indexes/) (including on fields in nested objects).
 
-The
-[`query`](https://docs.convex.dev/functions/query-functions) and
-[`mutation`](https://docs.convex.dev/functions/mutation-functions) server functions have transactional,
-low latency access to the database and leverage our
+The [`query`](https://docs.convex.dev/functions/query-functions) and
+[`mutation`](https://docs.convex.dev/functions/mutation-functions) server functions have
+transactional, low latency access to the database and leverage our
 [`v8` runtime](https://docs.convex.dev/functions/runtimes) with
 [determinism guardrails](https://docs.convex.dev/functions/runtimes#using-randomness-and-time-in-queries-and-mutations)
-to provide the strongest ACID guarantees on the market:
-immediate consistency,
-serializable isolation, and
-automatic conflict resolution via
-[optimistic multi-version concurrency control](https://docs.convex.dev/database/advanced/occ) (OCC / MVCC).
+to provide the strongest ACID guarantees on the market: immediate consistency, serializable
+isolation, and automatic conflict resolution via
+[optimistic multi-version concurrency control](https://docs.convex.dev/database/advanced/occ) (OCC /
+MVCC).
 
-The [`action` server functions](https://docs.convex.dev/functions/actions) have
-access to external APIs and enable other side-effects and non-determinism in
-either our
+The [`action` server functions](https://docs.convex.dev/functions/actions) have access to external
+APIs and enable other side-effects and non-determinism in either our
 [optimized `v8` runtime](https://docs.convex.dev/functions/runtimes) or a more
 [flexible `node` runtime](https://docs.convex.dev/functions/runtimes#nodejs-runtime).
 
@@ -656,26 +686,24 @@ Functions can run in the background via
 [cron jobs](https://docs.convex.dev/scheduling/cron-jobs).
 
 Development is cloud-first, with
-[hot reloads for server function](https://docs.convex.dev/cli#run-the-convex-dev-server) editing via the
-[CLI](https://docs.convex.dev/cli),
+[hot reloads for server function](https://docs.convex.dev/cli#run-the-convex-dev-server) editing via
+the [CLI](https://docs.convex.dev/cli),
 [preview deployments](https://docs.convex.dev/production/hosting/preview-deployments),
 [logging and exception reporting integrations](https://docs.convex.dev/production/integrations/),
-There is a
-[dashboard UI](https://docs.convex.dev/dashboard) to
+There is a [dashboard UI](https://docs.convex.dev/dashboard) to
 [browse and edit data](https://docs.convex.dev/dashboard/deployments/data),
 [edit environment variables](https://docs.convex.dev/production/environment-variables),
 [view logs](https://docs.convex.dev/dashboard/deployments/logs),
 [run server functions](https://docs.convex.dev/dashboard/deployments/functions), and more.
 
-There are built-in features for
-[reactive pagination](https://docs.convex.dev/database/pagination),
+There are built-in features for [reactive pagination](https://docs.convex.dev/database/pagination),
 [file storage](https://docs.convex.dev/file-storage),
 [reactive text search](https://docs.convex.dev/text-search),
 [vector search](https://docs.convex.dev/vector-search),
 [https endpoints](https://docs.convex.dev/functions/http-actions) (for webhooks),
 [snapshot import/export](https://docs.convex.dev/database/import-export/),
-[streaming import/export](https://docs.convex.dev/production/integrations/streaming-import-export), and
-[runtime validation](https://docs.convex.dev/database/schemas#validators) for
+[streaming import/export](https://docs.convex.dev/production/integrations/streaming-import-export),
+and [runtime validation](https://docs.convex.dev/database/schemas#validators) for
 [function arguments](https://docs.convex.dev/functions/args-validation) and
 [database data](https://docs.convex.dev/database/schemas#schema-validation).
 

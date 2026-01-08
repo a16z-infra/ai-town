@@ -28,13 +28,6 @@ RUN . $NVM_DIR/nvm.sh && nvm install $NODE_VERSION
 ENV NODE_PATH $NVM_DIR/versions/node/v$NODE_VERSION/lib/node_modules
 ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 
-# Install Rust and Cargo
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
-    . "$HOME/.cargo/env"
-
-# Install just
-RUN . "$HOME/.cargo/env" && cargo install just
-
 # Set the working directory
 WORKDIR /usr/src/app
 
@@ -44,11 +37,12 @@ COPY package*.json ./
 # Install npm dependencies
 RUN npm install
 
+RUN npx update-browserslist-db@latest
+
 # Copy application files
 COPY . .
 
 # Expose necessary ports
 EXPOSE 5173
 
-# Set the entry point to keep the container active
-CMD ["tail", "-f", "/dev/null"]
+CMD ["npx", "vite", "--host"]

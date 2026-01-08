@@ -1,4 +1,3 @@
-
 const UNDO_STAX_MAX_LEN = 16
 
 let undo_stack = [];
@@ -9,8 +8,8 @@ export function undo_mark_task_start(layer) {
     undoqueu.push(layer);
 }
 
-export function undo_add_index_to_task(tileindex) {
-    undoqueu.push(tileindex);
+export function undo_add_index_to_task(tileindex, oldValue) {
+    undoqueu.push([tileindex, oldValue]);
 }
 
 export function undo_mark_task_end() {
@@ -21,9 +20,9 @@ export function undo_mark_task_end() {
 }
 
 // utility function for adding a single tile as a task
-export function undo_add_single_index_as_task(layer, tileindex) {
+export function undo_add_single_index_as_task(layer, tileindex, oldValue) {
     undo_mark_task_start(layer);
-    undo_add_index_to_task(tileindex);
+    undo_add_index_to_task(tileindex, oldValue);
     undo_mark_task_end();
 }
 

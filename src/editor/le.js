@@ -577,8 +577,37 @@ window.addEventListener(
                 if (g_ctx.debug_flag) {
                     console.log("Undo removing ", undome[i])
                 }
-                layer.container.removeChild(layer.sprites[undome[i]]);
-                g_ctx.composite.container.removeChild(layer.composite_sprites[undome[i]]);
+                // Remove current tile
+                layer.container.removeChild(layer.sprites[undome[i][0]]);
+                g_ctx.composite.container.removeChild(layer.composite_sprites[undome[i][0]]);
+                
+                // Restore original tile if it existed
+                if (undome[i][1] !== -1) {
+                    let pxloc = tileset_px_from_index(undome[i][1]);
+                    let originalTile = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
+                    let originalTile2 = sprite_from_px(pxloc[0] + g_ctx.tileset.fudgex, pxloc[1] + g_ctx.tileset.fudgey);
+                    
+                    // Position tiles at the correct location
+                    let x = Math.floor(undome[i][0] % CONFIG.leveltilewidth) * g_ctx.tiledimx;
+                    let y = Math.floor(undome[i][0] / CONFIG.leveltilewidth) * g_ctx.tiledimx;
+                    originalTile.x = x;
+                    originalTile.y = y;
+                    originalTile2.x = x;
+                    originalTile2.y = y;
+                    originalTile2.zIndex = layer.num;
+                    
+                    // Add tiles back to containers
+                    layer.container.addChild(originalTile);
+                    g_ctx.composite.container.addChild(originalTile2);
+                    
+                    // Update sprite references
+                    layer.sprites[undome[i][0]] = originalTile;
+                    layer.composite_sprites[undome[i][0]] = originalTile2;
+                } else {
+                    // If there was no original tile, delete the sprite references
+                    delete layer.sprites[undome[i][0]];
+                    delete layer.composite_sprites[undome[i][0]];
+                }
             }
         }
         else if (event.shiftKey && event.code == 'ArrowUp') {
@@ -766,6 +795,11 @@ function centerCompositePane(x, y){
     compositepane.scrollTop  = y - (CONFIG.htmlCompositePaneH/2);
 }
 
+function getOldTileValue(layer, x, y) {
+    let levelIndex = level_index_from_px(x, y);
+    return layer.sprites[levelIndex] ? layer.sprites[levelIndex].index : -1;
+}
+
 function centerLayerPanes(x, y){
     // TODO remove magic number pulled from index.html
     g_ctx.g_layers.map((l) => {
@@ -909,17 +943,22 @@ function levelPlaceNoVariable(layer, e) {
     let xorig = e.data.global.x;
     let yorig = e.data.global.y;
 
-    centerCompositePane(xorig,yorig);
+    centerCompositePane(xorig, yorig);
 
     if (g_ctx.dkey || g_ctx.selected_tiles.length == 0) {
+        let oldValue = getOldTileValue(layer, e.data.global.x, e.data.global.y);
         let ti = layer.addTileLevelPx(e.data.global.x, e.data.global.y, g_ctx.tile_index);
-        UNDO.undo_add_single_index_as_task(layer, ti);
+        UNDO.undo_add_single_index_as_task(layer, ti, oldValue);
     } else {
-        let undolist = [];
         UNDO.undo_mark_task_start(layer);
         for (let index of g_ctx.selected_tiles) {
-            let ti = layer.addTileLevelPx(xorig + index[0] * g_ctx.tiledimx, yorig + index[1] * g_ctx.tiledimx, index[2]);
-            UNDO.undo_add_index_to_task(ti);
+            // Calculate position and get old value
+            let x = xorig + index[0] * g_ctx.tiledimx;
+            let y = yorig + index[1] * g_ctx.tiledimx;
+            let oldValue = getOldTileValue(layer, x, y);
+            
+            let ti = layer.addTileLevelPx(x, y, index[2]);
+            UNDO.undo_add_index_to_task(ti, oldValue);
         }
         UNDO.undo_mark_task_end();
     }
@@ -1036,9 +1075,11 @@ function onLevelDragEnd(layer, e)
         UNDO.undo_mark_task_start(layer);
         for (let i = starttilex; i <= endtilex; i++) {
             for (let j = starttiley; j <= endtiley; j++) {
-                let squareindex = (j * g_ctx.tilesettilew) + i;
-                let ti = layer.addTileLevelPx(i * g_ctx.tiledimx, j * g_ctx.tiledimx, g_ctx.tile_index);
-                UNDO.undo_add_index_to_task(ti);
+                let x = i * g_ctx.tiledimx;
+                let y = j * g_ctx.tiledimx;
+                let oldValue = getOldTileValue(layer, x, y);
+                let ti = layer.addTileLevelPx(x, y, g_ctx.tile_index);
+                UNDO.undo_add_index_to_task(ti, oldValue);
             }
         }
         UNDO.undo_mark_task_end();
@@ -1066,36 +1107,40 @@ function onLevelDragEnd(layer, e)
         let ti=0;
         for (let i = starttilex; i <= endtilex; i++) {
             for (let j = starttiley; j <= endtiley; j++) {
-                let squareindex = (j * g_ctx.tilesettilew) + i;
+                // Get the old value before placing new tile
+                let x = i * g_ctx.tiledimx;
+                let y = j * g_ctx.tiledimx;
+                let oldValue = getOldTileValue(layer, x, y);
+
                 if (j === starttiley) { // first row 
                     if (i === starttilex) { // top left corner
-                        ti = layer.addTileLevelPx(i * g_ctx.tiledimx, j * g_ctx.tiledimx, selected_grid[0][0][2]);
+                        ti = layer.addTileLevelPx(x, y, selected_grid[0][0][2]);
                     }
                     else if (i == endtilex) { // top right corner
-                        ti = layer.addTileLevelPx(i * g_ctx.tiledimx, j * g_ctx.tiledimx, selected_grid[column - 1][0][2]);
+                        ti = layer.addTileLevelPx(x, y, selected_grid[column - 1][0][2]);
                     } else { // top middle
-                        ti = layer.addTileLevelPx(i * g_ctx.tiledimx, j * g_ctx.tiledimx, selected_grid[1][0][2]);
+                        ti = layer.addTileLevelPx(x, y, selected_grid[1][0][2]);
                     }
                 } else if (j === endtiley) { // last row
                     if (i === starttilex) { // bottom left corner
-                        ti = layer.addTileLevelPx(i * g_ctx.tiledimx, j * g_ctx.tiledimx, selected_grid[0][row][2]);
+                        ti = layer.addTileLevelPx(x, y, selected_grid[0][row][2]);
                     }
                     else if (i == endtilex) { // bottom right corner
-                        ti = layer.addTileLevelPx(i * g_ctx.tiledimx, j * g_ctx.tiledimx, selected_grid[column - 1][row][2]);
+                        ti = layer.addTileLevelPx(x, y, selected_grid[column - 1][row][2]);
                     } else { // bottom middle
-                        ti = layer.addTileLevelPx(i * g_ctx.tiledimx, j * g_ctx.tiledimx, selected_grid[1][row][2]);
+                        ti = layer.addTileLevelPx(x, y, selected_grid[1][row][2]);
                     }
                 } else { // middle row
                     if (i === starttilex) { // middle left 
-                        ti = layer.addTileLevelPx(i * g_ctx.tiledimx, j * g_ctx.tiledimx, selected_grid[0][(row > 0)? 1 : 0][2]);
+                        ti = layer.addTileLevelPx(x, y, selected_grid[0][(row > 0)? 1 : 0][2]);
                     }
                     else if (i === endtilex) { // middle end 
-                        ti = layer.addTileLevelPx(i * g_ctx.tiledimx, j * g_ctx.tiledimx, selected_grid[column - 1][(row > 0)? 1 : 0][2]);
+                        ti = layer.addTileLevelPx(x, y, selected_grid[column - 1][(row > 0)? 1 : 0][2]);
                     } else { // middle middle
-                        ti = layer.addTileLevelPx(i * g_ctx.tiledimx, j * g_ctx.tiledimx, selected_grid[1][(row > 0)? 1 : 0][2]);
+                        ti = layer.addTileLevelPx(x, y, selected_grid[1][(row > 0)? 1 : 0][2]);
                     }
                 }
-                UNDO.undo_add_index_to_task(ti);
+                UNDO.undo_add_index_to_task(ti, oldValue);
             }
         }
         UNDO.undo_mark_task_end();

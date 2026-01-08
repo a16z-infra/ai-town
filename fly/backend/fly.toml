@@ -1,0 +1,38 @@
+# fly.toml app configuration file generated for convex-backend on 2025-02-12T15:17:28-08:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'convex-backend'
+primary_region = 'iad'
+
+[build]
+image = 'ghcr.io/get-convex/convex-backend:4499dd4fd7f2148687a7774599c613d052950f46'
+
+[env]
+TMPDIR = '/convex/data/tmp'
+
+[[mounts]]
+source = 'convex_data'
+destination = '/convex/data'
+
+[http_service]
+internal_port = 3210
+force_https = true
+auto_stop_machines = 'stop'
+auto_start_machines = true
+min_machines_running = 1
+processes = ['app']
+
+[[http_service.checks]]
+interval = '5s'
+timeout = '30s'
+grace_period = '5s'
+method = 'GET'
+path = '/version'
+protocol = 'http'
+
+[[vm]]
+memory = '1gb'
+cpu_kind = 'shared'
+cpus = 1
