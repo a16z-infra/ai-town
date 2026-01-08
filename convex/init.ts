@@ -105,8 +105,8 @@ async function shouldCreateAgents(
     .order('asc')
     .filter((q) => q.eq(q.field('name'), 'createAgent'))
     .filter((q) => q.eq(q.field('returnValue'), undefined))
-    .collect();
-  if (unactionedJoinInputs.length > 0) {
+    .first();
+  if (unactionedJoinInputs) {
     return false;
   }
   return true;
