@@ -78,15 +78,8 @@ export class Agent {
     if (!conversation && !doingActivity && (!player.pathfinding || !recentlyAttemptedInvite)) {
       this.startOperation(game, now, 'agentDoSomething', {
         worldId: game.worldId,
-        player: player.serialize(),
-        otherFreePlayers: [...game.world.players.values()]
-          .filter((p) => p.id !== player.id)
-          .filter(
-            (p) => ![...game.world.conversations.values()].find((c) => c.participants.has(p.id)),
-          )
-          .map((p) => p.serialize()),
-        agent: this.serialize(),
-        map: game.worldMap.serialize(),
+        playerId: player.id,
+        agentId: this.id,
       });
       return;
     }
@@ -337,28 +330,51 @@ export const findConversationCandidate = internalQuery({
   args: {
     now: v.number(),
     worldId: v.id('worlds'),
-    player: v.object(serializedPlayer),
-    otherFreePlayers: v.array(v.object(serializedPlayer)),
+    playerId: playerId, 
   },
-  handler: async (ctx, { now, worldId, player, otherFreePlayers }) => {
-    const { position } = player;
+  handler: async (ctx, { now, worldId, playerId }) => {
+    const myDynamic = await ctx.db
+      .query('agents_dynamic')
+      .withIndex('by_player', (q) => q.eq('worldId', worldId).eq('playerId', playerId))
+      .first();
+    if (!myDynamic) throw new Error(`Agent dynamic data for ${playerId} not found`);
+    const { position } = myDynamic;
+
+    const allDynamic = await ctx.db
+      .query('agents_dynamic')
+      .withIndex('by_world', (q) => q.eq('worldId', worldId))
+      .collect();
+    
+    // Perform join in memory (efficient for ~100 agents)
     const candidates = [];
 
-    for (const otherPlayer of otherFreePlayers) {
-      // Find the latest conversation we're both members of.
-      const lastMember = await ctx.db
-        .query('participatedTogether')
-        .withIndex('edge', (q) =>
-          q.eq('worldId', worldId).eq('player1', player.id).eq('player2', otherPlayer.id),
-        )
-        .order('desc')
-        .first();
-      if (lastMember) {
-        if (now < lastMember.ended + PLAYER_CONVERSATION_COOLDOWN) {
-          continue;
+    for (const otherDynamic of allDynamic) {
+        if (otherDynamic.playerId === playerId) continue;
+        
+        const otherState = await ctx.db
+            .query('agents_state')
+            .withIndex('worldId', (q) => q.eq('worldId', worldId).eq('playerId', otherDynamic.playerId))
+            .first();
+        
+        // Filter busy agents
+        if (otherState && (otherState.state === 'CONVERSING' || otherState.state === 'MOVING')) {
+             continue;
         }
-      }
-      candidates.push({ id: otherPlayer.id, position });
+
+        // Find the latest conversation we're both members of.
+        const lastMember = await ctx.db
+            .query('participatedTogether')
+            .withIndex('edge', (q) =>
+            q.eq('worldId', worldId).eq('player1', playerId).eq('player2', otherDynamic.playerId),
+            )
+            .order('desc')
+            .first();
+        if (lastMember) {
+            if (now < lastMember.ended + PLAYER_CONVERSATION_COOLDOWN) {
+            continue;
+            }
+        }
+        candidates.push({ id: otherDynamic.playerId, position: otherDynamic.position });
     }
 
     // Sort by distance and take the nearest candidate.

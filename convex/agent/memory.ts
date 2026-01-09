@@ -169,6 +169,7 @@ export async function searchMemories(
   const rankedMemories = await ctx.runMutation(selfInternal.rankAndTouchMemories, {
     candidates,
     n,
+    playerId,
   });
   return rankedMemories.map(({ memory }) => memory);
 }
@@ -188,6 +189,7 @@ export const rankAndTouchMemories = internalMutation({
   args: {
     candidates: v.array(v.object({ _id: v.id('memoryEmbeddings'), _score: v.number() })),
     n: v.number(),
+    playerId: playerId,
   },
   handler: async (ctx, args) => {
     const ts = Date.now();
@@ -200,8 +202,12 @@ export const rankAndTouchMemories = internalMutation({
       return memory;
     });
 
-    // TODO: fetch <count> recent memories and <count> important memories
-    // so we don't miss them in case they were a little less relevant.
+    const recentMemories = await ctx.db
+      .query('memories')
+      .withIndex('playerId', (q) => q.eq('playerId', args.playerId))
+      .order('desc')
+      .take(5);
+
     const recencyScore = relatedMemories.map((memory) => {
       const hoursSinceAccess = (ts - memory.lastAccess) / 1000 / 60 / 60;
       return 0.99 ** Math.floor(hoursSinceAccess);
@@ -212,18 +218,29 @@ export const rankAndTouchMemories = internalMutation({
     const memoryScores = relatedMemories.map((memory, idx) => ({
       memory,
       overallScore:
-        normalize(args.candidates[idx]._score, relevanceRange) +
-        normalize(memory.importance, importanceRange) +
-        normalize(recencyScore[idx], recencyRange),
+        0.5 * normalize(args.candidates[idx]._score, relevanceRange) +
+        0.2 * normalize(memory.importance, importanceRange) +
+        0.3 * normalize(recencyScore[idx], recencyRange),
     }));
     memoryScores.sort((a, b) => b.overallScore - a.overallScore);
-    const accessed = memoryScores.slice(0, args.n);
-    await asyncMap(accessed, async ({ memory }) => {
+    
+    // Top 10 relevant
+    const relevant = memoryScores.slice(0, 10);
+    
+    // Combine with recent (deduplicated by _id)
+    const allMemories = [...relevant];
+    for (const recent of recentMemories) {
+        if (!allMemories.find((m) => m.memory._id === recent._id)) {
+            allMemories.push({ memory: recent, overallScore: 1.0 }); // Score is dummy for recent items
+        }
+    }
+
+    await asyncMap(allMemories, async ({ memory }) => {
       if (memory.lastAccess < ts - MEMORY_ACCESS_THROTTLE) {
         await ctx.db.patch(memory._id, { lastAccess: ts });
       }
     });
-    return accessed;
+    return allMemories;
   },
 });
 

@@ -1,4 +1,87 @@
 import { Id, TableNames } from './_generated/dataModel';
+import { characters } from '../data/characters';
+
+// ... (existing content)
+
+export const spawnStressTestAgents = mutation({
+  args: {
+    worldId: v.optional(v.id('worlds')),
+    count: v.number(),
+  },
+  handler: async (ctx: any, args: any) => { // Explicit any to match file style
+    let worldId = args.worldId;
+    if (!worldId) {
+        const { worldStatus } = await getDefaultWorld(ctx.db);
+        worldId = worldStatus.worldId;
+    }
+    
+    // Get constraints
+    const worldMap = await ctx.db
+       .query('maps')
+       .withIndex('worldId', (q: any) => q.eq('worldId', worldId))
+       .first();
+       
+    if (!worldMap) throw new Error('No map found');
+    
+    for (let i = 0; i < args.count; i++) {
+        const character = characters[i % characters.length];
+        const playerId = await ctx.db.insert('players', {
+            worldId,
+            name: `StressTestBot_${i}`,
+            description: 'A bot for stress testing',
+            characterId: character.name,
+            human: `bot_${i}`,
+        });
+        
+        const agentId = await ctx.db.insert('agents', {
+            doc: 'placeholder', // Legacy schema satisfaction if needed
+            playerId, 
+            worldId,
+        });
+
+        // 1. Static
+        await ctx.db.insert('agents_static', {
+            worldId,
+            playerId,
+            agentId,
+            name: `StressBot ${i}`,
+            description: "I am a robot designed to test the limits of this world.",
+            character: character.name,
+            isHuman: false,
+        });
+
+        // 2. Dynamic
+        const x = Math.floor(Math.random() * worldMap.width);
+        const y = Math.floor(Math.random() * worldMap.height);
+        await ctx.db.insert('agents_dynamic', {
+            worldId,
+            playerId,
+            position: { x, y },
+            facing: { dx: 1, dy: 0 },
+            speed: 1.0,
+            destination: { x: Math.floor(Math.random() * worldMap.width), y: Math.floor(Math.random() * worldMap.height) }, // Start with a destination to trigger movement
+            gridKey: `${Math.floor(x / 16)}_${Math.floor(y / 16)}`,
+            lastInput: Date.now(),
+            pathfinding: {
+                destination: { x: Math.floor(Math.random() * worldMap.width), y: Math.floor(Math.random() * worldMap.height) },
+                started: Date.now(),
+                state: { kind: 'needsPath' },
+            }
+        });
+
+        // 3. State
+        await ctx.db.insert('agents_state', {
+             worldId,
+             playerId,
+             agentId,
+             state: 'IDLE', // Will pick up needsPath -> MOVING
+        });
+        
+        // Schedule tick
+        await ctx.scheduler.runAfter(0, internal.aiTown.agentTick.agentTick, { agentId });
+    }
+  },
+});
 import { internal } from './_generated/api';
 import {
   DatabaseReader,
