@@ -16,7 +16,7 @@ import { inputHandler } from './inputHandler';
 import { characters } from '../../data/characters';
 import { PlayerDescription } from './playerDescription';
 
-const pathfinding = v.object({
+export const pathfinding = v.object({
   destination: point,
   started: v.number(),
   state: v.union(

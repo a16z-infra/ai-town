@@ -13,6 +13,7 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as actions_navigation from "../actions/navigation.js";
 import type * as agent_conversation from "../agent/conversation.js";
 import type * as agent_embeddingsCache from "../agent/embeddingsCache.js";
 import type * as agent_memory from "../agent/memory.js";
@@ -20,8 +21,10 @@ import type * as aiTown_agent from "../aiTown/agent.js";
 import type * as aiTown_agentDescription from "../aiTown/agentDescription.js";
 import type * as aiTown_agentInputs from "../aiTown/agentInputs.js";
 import type * as aiTown_agentOperations from "../aiTown/agentOperations.js";
+import type * as aiTown_agentTick from "../aiTown/agentTick.js";
 import type * as aiTown_conversation from "../aiTown/conversation.js";
 import type * as aiTown_conversationMembership from "../aiTown/conversationMembership.js";
+import type * as aiTown_fsm from "../aiTown/fsm.js";
 import type * as aiTown_game from "../aiTown/game.js";
 import type * as aiTown_ids from "../aiTown/ids.js";
 import type * as aiTown_inputHandler from "../aiTown/inputHandler.js";
@@ -41,6 +44,7 @@ import type * as engine_historicalObject from "../engine/historicalObject.js";
 import type * as http from "../http.js";
 import type * as init from "../init.js";
 import type * as messages from "../messages.js";
+import type * as migrations from "../migrations.js";
 import type * as music from "../music.js";
 import type * as testing from "../testing.js";
 import type * as util_FastIntegerCompression from "../util/FastIntegerCompression.js";
@@ -66,6 +70,7 @@ import type * as world from "../world.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  "actions/navigation": typeof actions_navigation;
   "agent/conversation": typeof agent_conversation;
   "agent/embeddingsCache": typeof agent_embeddingsCache;
   "agent/memory": typeof agent_memory;
@@ -73,8 +78,10 @@ declare const fullApi: ApiFromModules<{
   "aiTown/agentDescription": typeof aiTown_agentDescription;
   "aiTown/agentInputs": typeof aiTown_agentInputs;
   "aiTown/agentOperations": typeof aiTown_agentOperations;
+  "aiTown/agentTick": typeof aiTown_agentTick;
   "aiTown/conversation": typeof aiTown_conversation;
   "aiTown/conversationMembership": typeof aiTown_conversationMembership;
+  "aiTown/fsm": typeof aiTown_fsm;
   "aiTown/game": typeof aiTown_game;
   "aiTown/ids": typeof aiTown_ids;
   "aiTown/inputHandler": typeof aiTown_inputHandler;
@@ -94,6 +101,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   init: typeof init;
   messages: typeof messages;
+  migrations: typeof migrations;
   music: typeof music;
   testing: typeof testing;
   "util/FastIntegerCompression": typeof util_FastIntegerCompression;

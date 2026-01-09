@@ -175,24 +175,13 @@ export class Game extends AbstractGame {
   }
 
   tick(now: number) {
-    for (const player of this.world.players.values()) {
-      player.tick(this, now);
-    }
-    for (const player of this.world.players.values()) {
-      player.tickPathfinding(this, now);
-    }
-    for (const player of this.world.players.values()) {
-      player.tickPosition(this, now);
-    }
-    for (const conversation of this.world.conversations.values()) {
-      conversation.tick(this, now);
-    }
-    for (const agent of this.world.agents.values()) {
-      agent.tick(this, now);
-    }
-
+    // Global tick is deprecated. Agents and players tick themselves independently.
+    // We can keep history tracking if needed, or move that too.
+    // For now, removing the monolithic loop.
+    
     // Save each player's location into the history buffer at the end of
-    // each tick.
+    // each tick. (This might need migration to per-agent updates too)
+    /*
     for (const player of this.world.players.values()) {
       let historicalObject = this.historicalLocations.get(player.id);
       if (!historicalObject) {
@@ -201,6 +190,7 @@ export class Game extends AbstractGame {
       }
       historicalObject.update(now, playerLocation(player));
     }
+    */
   }
 
   async saveStep(ctx: ActionCtx, engineUpdate: EngineUpdate): Promise<void> {

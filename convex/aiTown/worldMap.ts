@@ -1,4 +1,5 @@
 import { Infer, ObjectType, v } from 'convex/values';
+import { internalQuery } from '../_generated/server';
 
 // `layer[position.x][position.y]` is the tileIndex or -1 if empty.
 const tileLayer = v.array(v.array(v.number()));
@@ -72,3 +73,19 @@ export class WorldMap {
     };
   }
 }
+
+// Moves import to top of file if possible, or just below
+// ... existing code ...
+export const getMap = internalQuery({
+  args: {
+    worldId: v.id('worlds'),
+  },
+  handler: async (ctx, args) => {
+    const map = await ctx.db
+      .query('maps')
+      .withIndex('worldId', (q) => q.eq('worldId', args.worldId))
+      .unique();
+    if (!map) throw new Error('Map not found');
+    return map;
+  },
+});

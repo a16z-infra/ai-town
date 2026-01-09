@@ -46,6 +46,11 @@ export const memoryTables = {
 
 export const agentTables = {
   ...memoryTables,
+  agents: defineTable({
+    worldId: v.id('worlds'),
+    playerId: playerId,
+    doc: v.optional(v.string()), // For migration/placeholder
+  }).index('worldId', ['worldId', 'playerId']),
   embeddingsCache: defineTable({
     textHash: v.bytes(),
     embedding: v.array(v.float64()),

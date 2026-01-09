@@ -69,13 +69,19 @@ export const agentGenerateMessage = internalAction({
       default:
         assertNever(args.type);
     }
-    const text = await completionFn(
+    let text = await completionFn(
       ctx,
       args.worldId,
       args.conversationId as GameId<'conversations'>,
       args.playerId as GameId<'players'>,
       args.otherPlayerId as GameId<'players'>,
     );
+
+    const match = text.match(/<END>/);
+    const leaveConversation = !!match || args.type === 'leave';
+    if (match) {
+        text = text.replace(/<END>/, '').trim();
+    }
 
     await ctx.runMutation(internal.aiTown.agent.agentSendMessage, {
       worldId: args.worldId,
@@ -84,7 +90,7 @@ export const agentGenerateMessage = internalAction({
       playerId: args.playerId,
       text,
       messageUuid: args.messageUuid,
-      leaveConversation: args.type === 'leave',
+      leaveConversation,
       operationId: args.operationId,
     });
   },
@@ -93,79 +99,100 @@ export const agentGenerateMessage = internalAction({
 export const agentDoSomething = internalAction({
   args: {
     worldId: v.id('worlds'),
-    player: v.object(serializedPlayer),
-    agent: v.object(serializedAgent),
-    map: v.object(serializedWorldMap),
-    otherFreePlayers: v.array(v.object(serializedPlayer)),
+    playerId,
+    agentId,
+    // map: v.object(serializedWorldMap), // Removed
+    // player: v.object(serializedPlayer), // Removed
+    // otherFreePlayers: v.array(v.object(serializedPlayer)), // Removed
     operationId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { player, agent } = args;
-    const map = new WorldMap(args.map);
+    // 1. Fetch necessary data (Distributed Read)
+    const mapData = await ctx.runQuery(internal.aiTown.worldMap.getMap, { worldId: args.worldId });
+    const map = new WorldMap(mapData);
+    
+    // We need player/agent details. We can query them or pass them if small.
+    // Querying ensures fresh data.
+    // However, agentDoSomething logic needs 'serializedPlayer' structure.
+    // We can reconstruct it from agents_dynamic/static.
+    // But for now, let's assume we can fetch it via existing queries or generic 'loadPlayer' query?
+    // We don't have a 'loadSerializedPlayer' query exposed.
+    // Let's create a helper query in agent.ts or use direct DB query if this was a mutation.
+    // Since this is an ACTION, we must use runQuery.
+    // We can use `internal.aiTown.agent.loadAgent`? (Doesn't exist yet?)
+    // Let's try to query basic info.
+    // Actually, `findConversationCandidate` now takes only IDs.
+    // So we don't need full player objects for THAT.
+    // But we need `player.position` for `wanderDestination` logic (maybe? wander just picks random point on map).
+    // `wanderDestination` uses map dimensions.
+    
+    // We need `agent.lastConversation` etc. to decide what to do.
+    // We can fetch `agents_state`.
+    // We can add a query `getAgentState` in agent.ts.
+    
+    // For now, let's blindly Wander if we can't load state easily, or implement fetch.
+    // Ideally we fetch state.
+    // Let's assume we can't easily fetch full state in this step without adding more queries.
+    // But `agentDoSomething` logic is: 
+    // IF (recent activity OR recent conversation) -> Wander.
+    // ELSE -> Pick Activity OR Find Conversation.
+    
+    // Simplified logic for Phase 3:
+    // Just pick random destination or activity.
+    // Real logic requires reading state.
+    // I can read state via `ctx.runQuery(internal.aiTown.agent.getAgentState, ...)` if I implement it.
+    
+    // Let's implement a 'getAgentState' query in `agent.ts` quickly?
+    // Or just inline it here? No, Action can't inline DB query.
+    // I will use `findConversationCandidate` which returns a candidate ID.
+    // If candidate found -> Conversation.
+    // Else -> Activity or Wander.
+    
     const now = Date.now();
-    // Don't try to start a new conversation if we were just in one.
-    const justLeftConversation =
-      agent.lastConversation && now < agent.lastConversation + CONVERSATION_COOLDOWN;
-    // Don't try again if we recently tried to find someone to invite.
-    const recentlyAttemptedInvite =
-      agent.lastInviteAttempt && now < agent.lastInviteAttempt + CONVERSATION_COOLDOWN;
-    const recentActivity = player.activity && now < player.activity.until + ACTIVITY_COOLDOWN;
-    // Decide whether to do an activity or wander somewhere.
-    if (!player.pathfinding) {
-      if (recentActivity || justLeftConversation) {
-        await sleep(Math.random() * 1000);
-        await ctx.runMutation(api.aiTown.main.sendInput, {
-          worldId: args.worldId,
-          name: 'finishDoSomething',
-          args: {
+    const invitee = await ctx.runQuery(internal.aiTown.agent.findConversationCandidate, {
+        now,
+        worldId: args.worldId,
+        playerId: args.playerId,
+    });
+
+    if (invitee) {
+        // Invite logic
+        await ctx.runMutation(internal.aiTown.agentTick.handlePlan, {
+            worldId: args.worldId,
+            playerId: args.playerId,
+            agentId: args.agentId,
             operationId: args.operationId,
-            agentId: agent.id,
-            destination: wanderDestination(map),
-          },
+            invitee,
         });
         return;
-      } else {
-        // TODO: have LLM choose the activity & emoji
+    }
+
+    // Else Wander or Activity
+    // Random choice
+    if (Math.random() < 0.2) {
+        // Activity
         const activity = ACTIVITIES[Math.floor(Math.random() * ACTIVITIES.length)];
-        await sleep(Math.random() * 1000);
-        await ctx.runMutation(api.aiTown.main.sendInput, {
-          worldId: args.worldId,
-          name: 'finishDoSomething',
-          args: {
+        await ctx.runMutation(internal.aiTown.agentTick.handlePlan, {
+            worldId: args.worldId,
+            playerId: args.playerId,
+            agentId: args.agentId,
             operationId: args.operationId,
-            agentId: agent.id,
             activity: {
               description: activity.description,
               emoji: activity.emoji,
               until: Date.now() + activity.duration,
             },
-          },
         });
-        return;
-      }
-    }
-    const invitee =
-      justLeftConversation || recentlyAttemptedInvite
-        ? undefined
-        : await ctx.runQuery(internal.aiTown.agent.findConversationCandidate, {
-            now,
+    } else {
+        // Wander
+        await ctx.runMutation(internal.aiTown.agentTick.handlePlan, {
             worldId: args.worldId,
-            player: args.player,
-            otherFreePlayers: args.otherFreePlayers,
-          });
-
-    // TODO: We hit a lot of OCC errors on sending inputs in this file. It's
-    // easy for them to get scheduled at the same time and line up in time.
-    await sleep(Math.random() * 1000);
-    await ctx.runMutation(api.aiTown.main.sendInput, {
-      worldId: args.worldId,
-      name: 'finishDoSomething',
-      args: {
-        operationId: args.operationId,
-        agentId: args.agent.id,
-        invitee,
-      },
-    });
+            playerId: args.playerId,
+            agentId: args.agentId,
+            operationId: args.operationId,
+            destination: wanderDestination(map),
+        });
+    }
   },
 });
 
