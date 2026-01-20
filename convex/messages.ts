@@ -1,34 +1,21 @@
 import { v } from 'convex/values';
-import { mutation, query } from './_generated/server';
+import { action, query } from './_generated/server';
 import { insertInput } from './aiTown/insertInput';
 import { conversationId, playerId } from './aiTown/ids';
+import { publishMessage } from '../util/rabbitmq';
 
+// Deprecated: This will be removed once the frontend is updated to use a real-time communication mechanism.
 export const listMessages = query({
   args: {
     worldId: v.id('worlds'),
     conversationId,
   },
   handler: async (ctx, args) => {
-    const messages = await ctx.db
-      .query('messages')
-      .withIndex('conversationId', (q) => q.eq('worldId', args.worldId).eq('conversationId', args.conversationId))
-      .collect();
-    const out = [];
-    for (const message of messages) {
-      const playerDescription = await ctx.db
-        .query('playerDescriptions')
-        .withIndex('worldId', (q) => q.eq('worldId', args.worldId).eq('playerId', message.author))
-        .first();
-      if (!playerDescription) {
-        throw new Error(`Invalid author ID: ${message.author}`);
-      }
-      out.push({ ...message, authorName: playerDescription.name });
-    }
-    return out;
+    return [];
   },
 });
 
-export const writeMessage = mutation({
+export const writeMessage = action({
   args: {
     worldId: v.id('worlds'),
     conversationId,
@@ -37,12 +24,10 @@ export const writeMessage = mutation({
     text: v.string(),
   },
   handler: async (ctx, args) => {
-    await ctx.db.insert('messages', {
-      conversationId: args.conversationId,
-      author: args.playerId,
-      messageUuid: args.messageUuid,
-      text: args.text,
-      worldId: args.worldId,
+    await publishMessage(args.conversationId, {
+        author: args.playerId,
+        text: args.text,
+        messageUuid: args.messageUuid,
     });
     await insertInput(ctx, args.worldId, 'finishSendingMessage', {
       conversationId: args.conversationId,

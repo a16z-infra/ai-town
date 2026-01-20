@@ -1,4 +1,5 @@
 // That's right! No imports and no dependencies 🤯
+import { readMcpConfig } from './mcp';
 
 const OPENAI_EMBEDDING_DIMENSION = 1536;
 const TOGETHER_EMBEDDING_DIMENSION = 768;
@@ -35,7 +36,7 @@ export function detectMismatchedLLMProvider() {
 }
 
 export interface LLMConfig {
-  provider: 'openai' | 'together' | 'ollama' | 'custom';
+  provider: 'openai' | 'together' | 'ollama' | 'custom' | 'claude';
   url: string; // Should not have a trailing slash
   chatModel: string;
   embeddingModel: string;
@@ -44,6 +45,17 @@ export interface LLMConfig {
 }
 
 export function getLLMConfig(): LLMConfig {
+  const mcpConfig = readMcpConfig();
+  if (mcpConfig) {
+    return {
+      provider: 'claude',
+      url: mcpConfig.url,
+      chatModel: mcpConfig.chatModel ?? 'claude-3-opus-20240229',
+      embeddingModel: mcpConfig.embeddingModel ?? 'claude-3-opus-20240229',
+      stopWords: mcpConfig.stopWords ?? [],
+      apiKey: mcpConfig.apiKey,
+    };
+  }
   let provider = process.env.LLM_PROVIDER;
   if (provider ? provider === 'openai' : process.env.OPENAI_API_KEY) {
     if (EMBEDDING_DIMENSION !== OPENAI_EMBEDDING_DIMENSION) {
