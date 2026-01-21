@@ -1,9 +1,8 @@
-export default {
+module.exports = {
   parser: '@typescript-eslint/parser', // Specifies the ESLint parser
   plugins: ['@typescript-eslint'],
   extends: [
     'plugin:@typescript-eslint/recommended', // Uses the recommended rules from the @typescript-eslint/eslint-plugin
-    'plugin:@typescript-eslint/recommended-type-checked',
   ],
   parserOptions: {
     project: './tsconfig.json',
@@ -18,5 +17,6 @@ export default {
       { varsIgnorePattern: '^_', argsIgnorePattern: '^_' },
     ],
     '@typescript-eslint/no-non-null-assertion': 'off',
+    '@typescript-eslint/no-this-alias': 'off',
   },
 };

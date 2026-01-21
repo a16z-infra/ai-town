@@ -126,7 +126,7 @@ class LayerContext {
         this.sprites = {};
         this.composite_sprites = {};
         this.dragctx = new DragState();
-        this.tilearray = Array.from(Array(CONFIG.leveltileheight), () => new Array().fill(null)); 
+        this.tilearray = Array.from(Array(CONFIG.leveltileheight), () => [].fill(null)); 
 
         app.stage.addChild(this.container);
 

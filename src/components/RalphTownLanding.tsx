@@ -256,7 +256,7 @@ const HeroSection = () => {
     const width = canvas.width;
     const height = canvas.height;
     
-    let particles: Array<{
+    const particles: Array<{
       x: number;
       y: number;
       size: number;

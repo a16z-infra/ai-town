@@ -61,7 +61,6 @@ export function Messages({
         behavior: 'smooth',
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, currentlyTyping]);
 
   if (messages === undefined) {

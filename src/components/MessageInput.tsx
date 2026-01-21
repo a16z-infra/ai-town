@@ -81,7 +81,6 @@ export function MessageInput({
       </div>
       <div className={clsx('bubble', 'bubble-mine')}>
         {/* contentEditable div is intentionally used for rich text editing */}
-        {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/aria-unsupported-elements, jsx-a11y/no-noninteractive-tabindex */}
         <div
           className="bg-white -mx-3 -my-1"
           ref={inputRef}
