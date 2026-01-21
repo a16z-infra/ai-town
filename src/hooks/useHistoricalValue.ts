@@ -1,4 +1,5 @@
-import { FieldConfig, History, unpackSampleRecord } from '../../convex/engine/historicalObject';
+import type { FieldConfig, History } from '../../convex/engine/historicalObject';
+import { unpackSampleRecord } from '../../convex/engine/historicalObject';
 import { useMemo, useRef } from 'react';
 
 export function useHistoricalValue<T extends Record<string, number>>(
@@ -16,7 +17,7 @@ export function useHistoricalValue<T extends Record<string, number>>(
       throw new Error(`Expected ArrayBuffer, found ${typeof history}`);
     }
     return unpackSampleRecord(fields, history);
-  }, [value && history]);
+  }, [fields, value, history]);
   if (sampleRecord) {
     manager.current.receive(sampleRecord);
   }
@@ -40,7 +41,7 @@ class HistoryManager {
         histories = [];
         this.histories[fieldName] = histories;
       }
-      if (histories[histories.length - 1] == history) {
+      if (histories[histories.length - 1] === history) {
         continue;
       }
       histories.push(history);
@@ -50,7 +51,7 @@ class HistoryManager {
   query(historicalTime: number): Record<string, number> {
     const result: Record<string, number> = {};
     for (const [fieldName, histories] of Object.entries(this.histories)) {
-      if (histories.length == 0) {
+      if (histories.length === 0) {
         continue;
       }
       let foundIndex = null;

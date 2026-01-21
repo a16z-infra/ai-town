@@ -1,0 +1,35 @@
+{
+    "for + if": {
+        "name": "for + if",
+        "browser": "Firefox 54.0.0 (Windows 7 0.0.0)",
+        "suite": "itar-long",
+        "hz": 14666.732983263433,
+        "success": true,
+        "fastest": true,
+        "rme": 0.017720925761977167,
+        "rhz": 1,
+        "sampleSize": 206
+    },
+    "while + if": {
+        "name": "while + if",
+        "browser": "Firefox 54.0.0 (Windows 7 0.0.0)",
+        "suite": "itar-long",
+        "hz": 14304.32478751105,
+        "success": true,
+        "fastest": false,
+        "rme": 0.019517232560753738,
+        "rhz": 0.9752904620159148,
+        "sampleSize": 206
+    },
+    "array join": {
+        "name": "array join",
+        "browser": "Firefox 54.0.0 (Windows 7 0.0.0)",
+        "suite": "itar-long",
+        "hz": 14128.325816957695,
+        "success": true,
+        "fastest": false,
+        "rme": 0.02191559968248959,
+        "rhz": 0.9632905864639297,
+        "sampleSize": 212
+    }
+}

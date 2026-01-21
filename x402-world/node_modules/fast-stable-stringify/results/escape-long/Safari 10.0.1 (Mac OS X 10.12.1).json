@@ -1,0 +1,57 @@
+{
+    "reg": {
+        "name": "reg",
+        "browser": "Safari 10.0.1 (Mac OS X 10.12.1)",
+        "suite": "escape-long",
+        "hz": 338041.79919469816,
+        "success": true,
+        "fastest": false,
+        "rme": 0.028614838392745215,
+        "rhz": 0.37806329872403155,
+        "sampleSize": 167
+    },
+    "fn if": {
+        "name": "fn if",
+        "browser": "Safari 10.0.1 (Mac OS X 10.12.1)",
+        "suite": "escape-long",
+        "hz": 93369.49659361344,
+        "success": true,
+        "fastest": false,
+        "rme": 0.02106853001441757,
+        "rhz": 0.10442371318125844,
+        "sampleSize": 167
+    },
+    "fn if reverse": {
+        "name": "fn if reverse",
+        "browser": "Safari 10.0.1 (Mac OS X 10.12.1)",
+        "suite": "escape-long",
+        "hz": 83557.77738018853,
+        "success": true,
+        "fastest": false,
+        "rme": 0.016320452691922446,
+        "rhz": 0.09345036331500452,
+        "sampleSize": 169
+    },
+    "escape31": {
+        "name": "escape31",
+        "browser": "Safari 10.0.1 (Mac OS X 10.12.1)",
+        "suite": "escape-long",
+        "hz": 100947.54042740246,
+        "success": true,
+        "fastest": false,
+        "rme": 0.013158480020082207,
+        "rhz": 0.11289893800997104,
+        "sampleSize": 173
+    },
+    "native": {
+        "name": "native",
+        "browser": "Safari 10.0.1 (Mac OS X 10.12.1)",
+        "suite": "escape-long",
+        "hz": 894140.7439854478,
+        "success": true,
+        "fastest": true,
+        "rme": 0.028000583912129402,
+        "rhz": 1,
+        "sampleSize": 168
+    }
+}

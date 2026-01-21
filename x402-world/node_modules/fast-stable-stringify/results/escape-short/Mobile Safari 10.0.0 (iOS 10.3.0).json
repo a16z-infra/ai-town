@@ -1,0 +1,57 @@
+{
+    "reg": {
+        "name": "reg",
+        "browser": "Mobile Safari 10.0.0 (iOS 10.3.0)",
+        "suite": "escape-short",
+        "hz": 537701.626064145,
+        "success": true,
+        "fastest": false,
+        "rme": 0.03257562097595429,
+        "rhz": 0.26353460226563175,
+        "sampleSize": 171
+    },
+    "fn if": {
+        "name": "fn if",
+        "browser": "Mobile Safari 10.0.0 (iOS 10.3.0)",
+        "suite": "escape-short",
+        "hz": 553756.7978187922,
+        "success": true,
+        "fastest": false,
+        "rme": 0.012983308427960112,
+        "rhz": 0.27140345200975097,
+        "sampleSize": 177
+    },
+    "fn if reverse": {
+        "name": "fn if reverse",
+        "browser": "Mobile Safari 10.0.0 (iOS 10.3.0)",
+        "suite": "escape-short",
+        "hz": 583552.7504135764,
+        "success": true,
+        "fastest": false,
+        "rme": 0.010066045577636453,
+        "rhz": 0.28600683822911,
+        "sampleSize": 177
+    },
+    "escape31": {
+        "name": "escape31",
+        "browser": "Mobile Safari 10.0.0 (iOS 10.3.0)",
+        "suite": "escape-short",
+        "hz": 570858.7989009853,
+        "success": true,
+        "fastest": false,
+        "rme": 0.025407559708725852,
+        "rhz": 0.27978536650410013,
+        "sampleSize": 175
+    },
+    "native": {
+        "name": "native",
+        "browser": "Mobile Safari 10.0.0 (iOS 10.3.0)",
+        "suite": "escape-short",
+        "hz": 2040345.4477760172,
+        "success": true,
+        "fastest": true,
+        "rme": 0.025360418301269214,
+        "rhz": 1,
+        "sampleSize": 168
+    }
+}

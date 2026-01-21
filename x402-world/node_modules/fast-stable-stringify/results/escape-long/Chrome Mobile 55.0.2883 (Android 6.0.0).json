@@ -1,0 +1,57 @@
+{
+    "reg": {
+        "name": "reg",
+        "browser": "Chrome Mobile 55.0.2883 (Android 6.0.0)",
+        "suite": "escape-long",
+        "hz": 294647.6540008401,
+        "success": true,
+        "fastest": false,
+        "rme": 0.024928682964508394,
+        "rhz": 0.7543996843123166,
+        "sampleSize": 152
+    },
+    "fn if": {
+        "name": "fn if",
+        "browser": "Chrome Mobile 55.0.2883 (Android 6.0.0)",
+        "suite": "escape-long",
+        "hz": 172908.7333875609,
+        "success": true,
+        "fastest": false,
+        "rme": 0.016138250187070446,
+        "rhz": 0.44270603248056595,
+        "sampleSize": 150
+    },
+    "fn if reverse": {
+        "name": "fn if reverse",
+        "browser": "Chrome Mobile 55.0.2883 (Android 6.0.0)",
+        "suite": "escape-long",
+        "hz": 124965.18805848437,
+        "success": true,
+        "fastest": false,
+        "rme": 0.027301864775113205,
+        "rhz": 0.31995400995482254,
+        "sampleSize": 147
+    },
+    "escape31": {
+        "name": "escape31",
+        "browser": "Chrome Mobile 55.0.2883 (Android 6.0.0)",
+        "suite": "escape-long",
+        "hz": 188347.98186648387,
+        "success": true,
+        "fastest": false,
+        "rme": 0.026531318695469853,
+        "rhz": 0.48223583704668577,
+        "sampleSize": 144
+    },
+    "native": {
+        "name": "native",
+        "browser": "Chrome Mobile 55.0.2883 (Android 6.0.0)",
+        "suite": "escape-long",
+        "hz": 390572.3453071566,
+        "success": true,
+        "fastest": true,
+        "rme": 0.024051025167801422,
+        "rhz": 1,
+        "sampleSize": 149
+    }
+}

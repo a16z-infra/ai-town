@@ -1,0 +1,87 @@
+{
+  "name": "jayson",
+  "version": "4.3.0",
+  "description": "JSON-RPC 1.0/2.0 compliant server and client",
+  "license": "MIT",
+  "keywords": [
+    "jsonrpc",
+    "json-rpc",
+    "rpc",
+    "json",
+    "jsonrpc-2.0",
+    "jsonrpc-1.0",
+    "middleware",
+    "connect",
+    "express",
+    "fork",
+    "distributed",
+    "relay",
+    "http",
+    "tcp",
+    "https",
+    "tls",
+    "api"
+  ],
+  "author": "Tedde Lundgren <mail@tedeh.net> (https://tedeh.net)",
+  "maintainers": [
+    "Tedde Lundgren <mail@tedeh.net> (https://tedeh.net)"
+  ],
+  "bin": "./bin/jayson.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/tedeh/jayson.git"
+  },
+  "homepage": "https://jayson.tedeh.net",
+  "bugs": "https://github.com/tedeh/jayson/issues",
+  "contributors": [
+    "Tedde Lundgren <mail@tedeh.net> (https://tedeh.net)",
+    "Daniel Vicory <dvicory@gmail.com> (http://bzfx.net)",
+    "Jonathan Liu <net147@gmail.com>"
+  ],
+  "scripts": {
+    "test": "mocha",
+    "test-ci": "mocha -w -R min",
+    "test-tsc": "tsc --strict --lib es6 --esModuleInterop typescript/test.ts",
+    "coverage": "nyc mocha",
+    "coveralls": "nyc npm test && nyc report --reporter=text-lcov | coveralls",
+    "docs": "jsdoc -t node_modules/ink-docstrap/template -R README.md -c ./jsdoc.conf.json",
+    "lint": "jshint lib/*.js lib/**/*.js promise/*.js promise/**/*.js; exit 0"
+  },
+  "dependencies": {
+    "@types/connect": "^3.4.33",
+    "@types/node": "^12.12.54",
+    "@types/ws": "^7.4.4",
+    "commander": "^2.20.3",
+    "delay": "^5.0.0",
+    "es6-promisify": "^5.0.0",
+    "eyes": "^0.1.8",
+    "isomorphic-ws": "^4.0.1",
+    "json-stringify-safe": "^5.0.1",
+    "stream-json": "^1.9.1",
+    "uuid": "^8.3.2",
+    "ws": "^7.5.10"
+  },
+  "devDependencies": {
+    "@types/express-serve-static-core": "^4.17.30",
+    "body-parser": "^1.19.0",
+    "connect": "^3.7.0",
+    "coveralls-next": "^6.0.1",
+    "es6-promise": "^4.2.8",
+    "express": "^4.17.1",
+    "ink-docstrap": "github:docstrap/docstrap#pull/345/head",
+    "jsdoc": "^4.0.2",
+    "jshint": "^2.12.0",
+    "mocha": "^10.2.0",
+    "mocha-lcov-reporter": "^1.3.0",
+    "node-fetch": "^2.7.0",
+    "nyc": "^17.1.0",
+    "pass-stream": "^1.0.0",
+    "should": "^13.2.3",
+    "superagent": "^3.8.3",
+    "typescript": "^4.7.4"
+  },
+  "engines": {
+    "node": ">=8"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+}

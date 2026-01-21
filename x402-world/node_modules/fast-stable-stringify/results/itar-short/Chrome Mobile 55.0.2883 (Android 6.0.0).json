@@ -1,0 +1,35 @@
+{
+    "for + if": {
+        "name": "for + if",
+        "browser": "Chrome Mobile 55.0.2883 (Android 6.0.0)",
+        "suite": "itar-short",
+        "hz": 235578.4947828406,
+        "success": true,
+        "fastest": true,
+        "rme": 0.03974005580662533,
+        "rhz": 1,
+        "sampleSize": 190
+    },
+    "while + if": {
+        "name": "while + if",
+        "browser": "Chrome Mobile 55.0.2883 (Android 6.0.0)",
+        "suite": "itar-short",
+        "hz": 225073.11912308275,
+        "success": true,
+        "fastest": false,
+        "rme": 0.029700688684889318,
+        "rhz": 0.9554060498202867,
+        "sampleSize": 193
+    },
+    "array join": {
+        "name": "array join",
+        "browser": "Chrome Mobile 55.0.2883 (Android 6.0.0)",
+        "suite": "itar-short",
+        "hz": 221468.15872985727,
+        "success": true,
+        "fastest": false,
+        "rme": 0.020249883449366055,
+        "rhz": 0.9401034628988931,
+        "sampleSize": 196
+    }
+}

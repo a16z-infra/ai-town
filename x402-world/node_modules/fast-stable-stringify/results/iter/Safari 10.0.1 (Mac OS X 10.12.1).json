@@ -1,0 +1,35 @@
+{
+    "keys-while": {
+        "name": "keys-while",
+        "browser": "Safari 10.0.1 (Mac OS X 10.12.1)",
+        "suite": "iter",
+        "hz": 37350.5774949858,
+        "success": true,
+        "fastest": true,
+        "rme": 0.00603595175796559,
+        "rhz": 1,
+        "sampleSize": 178
+    },
+    "keys-for": {
+        "name": "keys-for",
+        "browser": "Safari 10.0.1 (Mac OS X 10.12.1)",
+        "suite": "iter",
+        "hz": 34798.70521653226,
+        "success": true,
+        "fastest": true,
+        "rme": 0.025579700229008188,
+        "rhz": 0.9316778360710454,
+        "sampleSize": 165
+    },
+    "incr-for": {
+        "name": "incr-for",
+        "browser": "Safari 10.0.1 (Mac OS X 10.12.1)",
+        "suite": "iter",
+        "hz": 17731.809750745466,
+        "success": true,
+        "fastest": false,
+        "rme": 0.011567636716923044,
+        "rhz": 0.4747399087236578,
+        "sampleSize": 176
+    }
+}

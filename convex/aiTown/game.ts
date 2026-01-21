@@ -1,4 +1,4 @@
-import { Infer, v } from 'convex/values';
+import { ConvexError, Infer, v } from 'convex/values';
 import { Doc, Id } from '../_generated/dataModel';
 import {
   ActionCtx,
@@ -365,7 +365,17 @@ export const saveWorld = internalMutation({
     worldDiff: gameStateDiff,
   },
   handler: async (ctx, args) => {
-    await applyEngineUpdate(ctx, args.engineId, args.engineUpdate);
-    await Game.saveDiff(ctx, args.worldId, args.worldDiff);
+    try {
+      await applyEngineUpdate(ctx, args.engineId, args.engineUpdate);
+      await Game.saveDiff(ctx, args.worldId, args.worldDiff);
+    } catch (e: unknown) {
+      // If engine was stopped (e.g., by stopInactiveWorlds cron), skip saving
+      // This is expected behavior when worlds are stopped due to inactivity
+      if (e instanceof ConvexError && e.data?.kind === 'engineNotRunning') {
+        console.debug(`Skipping save for stopped engine ${args.engineId}`);
+        return;
+      }
+      throw e;
+    }
   },
 });

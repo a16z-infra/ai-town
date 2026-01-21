@@ -1,0 +1,57 @@
+{
+    "reg": {
+        "name": "reg",
+        "browser": "Firefox 54.0.0 (Windows 7 0.0.0)",
+        "suite": "escape-long",
+        "hz": 292285.14849283424,
+        "success": true,
+        "fastest": false,
+        "rme": 0.029313572210377326,
+        "rhz": 0.6340733965180414,
+        "sampleSize": 170
+    },
+    "fn if": {
+        "name": "fn if",
+        "browser": "Firefox 54.0.0 (Windows 7 0.0.0)",
+        "suite": "escape-long",
+        "hz": 163169.81969413554,
+        "success": true,
+        "fastest": false,
+        "rme": 0.024903199178875946,
+        "rhz": 0.35397502170806816,
+        "sampleSize": 163
+    },
+    "fn if reverse": {
+        "name": "fn if reverse",
+        "browser": "Firefox 54.0.0 (Windows 7 0.0.0)",
+        "suite": "escape-long",
+        "hz": 164334.08219979555,
+        "success": true,
+        "fastest": false,
+        "rme": 0.022262815350227484,
+        "rhz": 0.3565007329363297,
+        "sampleSize": 163
+    },
+    "escape31": {
+        "name": "escape31",
+        "browser": "Firefox 54.0.0 (Windows 7 0.0.0)",
+        "suite": "escape-long",
+        "hz": 163872.13126377563,
+        "success": true,
+        "fastest": false,
+        "rme": 0.025364753280213054,
+        "rhz": 0.3554985923878372,
+        "sampleSize": 163
+    },
+    "native": {
+        "name": "native",
+        "browser": "Firefox 54.0.0 (Windows 7 0.0.0)",
+        "suite": "escape-long",
+        "hz": 460964.2197541997,
+        "success": true,
+        "fastest": true,
+        "rme": 0.04515613595385393,
+        "rhz": 1,
+        "sampleSize": 168
+    }
+}

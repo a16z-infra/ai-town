@@ -1,14 +1,13 @@
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { Id } from '../../convex/_generated/dataModel';
+import type { Id } from '../../convex/_generated/dataModel';
 import closeImg from '../../assets/close.svg';
-import { SelectElement } from './Player';
+import type { SelectElement } from './Player';
 import { Messages } from './Messages';
 import { toastOnError } from '../toasts';
 import { useSendInput } from '../hooks/sendInput';
-import { Player } from '../../convex/aiTown/player';
-import { GameId } from '../../convex/aiTown/ids';
-import { ServerGame } from '../hooks/serverGame';
+import type { GameId } from '../../convex/aiTown/ids';
+import type { ServerGame } from '../hooks/serverGame';
 
 export default function PlayerDetails({
   worldId,
@@ -25,7 +24,25 @@ export default function PlayerDetails({
   setSelectedElement: SelectElement;
   scrollViewRef: React.RefObject<HTMLDivElement>;
 }) {
-  const humanTokenIdentifier = useQuery(api.world.userStatus, { worldId });
+  // API types may not be generated - functions exist at runtime
+  const humanTokenIdentifier = useQuery((api as any).world?.userStatus, { worldId });
+  const previousConversation = useQuery(
+    (api as any).world?.previousConversation,
+    playerId ? { worldId, playerId } : 'skip',
+  );
+
+  const startConversation = useSendInput(engineId, 'startConversation');
+  const acceptInvite = useSendInput(engineId, 'acceptInvite');
+  const rejectInvite = useSendInput(engineId, 'rejectInvite');
+  const leaveConversation = useSendInput(engineId, 'leaveConversation');
+
+  if (!game) {
+    return (
+      <div className="h-full text-xl flex text-center items-center p-4">
+        Loading...
+      </div>
+    );
+  }
 
   const players = [...game.world.players.values()];
   const humanPlayer = players.find((p) => p.human === humanTokenIdentifier);
@@ -39,19 +56,8 @@ export default function PlayerDetails({
   }
 
   const player = playerId && game.world.players.get(playerId);
-  const playerConversation = player && game.world.playerConversation(player);
-
-  const previousConversation = useQuery(
-    api.world.previousConversation,
-    playerId ? { worldId, playerId } : 'skip',
-  );
-
+  const playerConversation = player ? game.world.playerConversation(player) : undefined;
   const playerDescription = playerId && game.playerDescriptions.get(playerId);
-
-  const startConversation = useSendInput(engineId, 'startConversation');
-  const acceptInvite = useSendInput(engineId, 'acceptInvite');
-  const rejectInvite = useSendInput(engineId, 'rejectInvite');
-  const leaveConversation = useSendInput(engineId, 'leaveConversation');
 
   if (!playerId) {
     return (
@@ -73,8 +79,8 @@ export default function PlayerDetails({
     humanConversation.id === playerConversation.id;
 
   const humanStatus =
-    humanPlayer && humanConversation && humanConversation.participants.get(humanPlayer.id)?.status;
-  const playerStatus = playerConversation && playerConversation.participants.get(playerId)?.status;
+    humanPlayer && humanConversation ? humanConversation.participants.get(humanPlayer.id)?.status : undefined;
+  const playerStatus = playerConversation?.participants.get(playerId)?.status;
 
   const haveInvite = sameConversation && humanStatus?.kind === 'invited';
   const waitingForAccept =
@@ -130,7 +136,7 @@ export default function PlayerDetails({
   // const pendingSuffix = (inputName: string) =>
   //   [...inflightInputs.values()].find((i) => i.name === inputName) ? ' opacity-50' : '';
 
-  const pendingSuffix = (s: string) => '';
+  const pendingSuffix = (_s: string) => '';
   return (
     <>
       <div className="flex gap-4">
@@ -139,17 +145,20 @@ export default function PlayerDetails({
             {playerDescription?.name}
           </h2>
         </div>
-        <a
+        <button
+          type="button"
           className="button text-white shadow-solid text-2xl cursor-pointer pointer-events-auto"
           onClick={() => setSelectedElement(undefined)}
+          aria-label="Close"
         >
           <h2 className="h-full bg-clay-700">
-            <img className="w-4 h-4 sm:w-5 sm:h-5" src={closeImg} />
+            <img className="w-4 h-4 sm:w-5 sm:h-5" src={closeImg} alt="Close" />
           </h2>
-        </a>
+        </button>
       </div>
       {canInvite && (
-        <a
+        <button
+          type="button"
           className={
             'mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto' +
             pendingSuffix('startConversation')
@@ -159,24 +168,25 @@ export default function PlayerDetails({
           <div className="h-full bg-clay-700 text-center">
             <span>Start conversation</span>
           </div>
-        </a>
+        </button>
       )}
       {waitingForAccept && (
-        <a className="mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto opacity-50">
+        <div className="mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto opacity-50">
           <div className="h-full bg-clay-700 text-center">
             <span>Waiting for accept...</span>
           </div>
-        </a>
+        </div>
       )}
       {waitingForNearby && (
-        <a className="mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto opacity-50">
+        <div className="mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto opacity-50">
           <div className="h-full bg-clay-700 text-center">
             <span>Walking over...</span>
           </div>
-        </a>
+        </div>
       )}
       {inConversationWithMe && (
-        <a
+        <button
+          type="button"
           className={
             'mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto' +
             pendingSuffix('leaveConversation')
@@ -186,11 +196,12 @@ export default function PlayerDetails({
           <div className="h-full bg-clay-700 text-center">
             <span>Leave conversation</span>
           </div>
-        </a>
+        </button>
       )}
       {haveInvite && (
         <>
-          <a
+          <button
+            type="button"
             className={
               'mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto' +
               pendingSuffix('acceptInvite')
@@ -200,8 +211,9 @@ export default function PlayerDetails({
             <div className="h-full bg-clay-700 text-center">
               <span>Accept</span>
             </div>
-          </a>
-          <a
+          </button>
+          <button
+            type="button"
             className={
               'mt-6 button text-white shadow-solid text-xl cursor-pointer pointer-events-auto' +
               pendingSuffix('rejectInvite')
@@ -211,7 +223,7 @@ export default function PlayerDetails({
             <div className="h-full bg-clay-700 text-center">
               <span>Reject</span>
             </div>
-          </a>
+          </button>
         </>
       )}
       {!playerConversation && player.activity && player.activity.until > Date.now() && (

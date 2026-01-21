@@ -1,0 +1,22 @@
+{
+  "nickyout/fast-stable-stringify": {
+    "chrome 26": {
+      "Windows 2008": {
+        "opsPerSec": 6.025,
+        "percentage": 6.76,
+        "numSamples": 50,
+        "cumStrLength": 94425969
+      }
+    }
+  },
+  "substack/json-stable-stringify": {
+    "chrome 26": {
+      "Windows 2008": {
+        "opsPerSec": 4.114,
+        "percentage": 1.05,
+        "numSamples": 50,
+        "cumStrLength": 61301724
+      }
+    }
+  }
+}
