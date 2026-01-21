@@ -2,7 +2,7 @@ import { History, packSampleRecord, unpackSampleRecord } from './historicalObjec
 
 describe('HistoricalObject', () => {
   test('pack sample record roundtrips', () => {
-    let data: Record<string, History> = {
+    const data: Record<string, History> = {
       x: {
         initialValue: 0,
         samples: [

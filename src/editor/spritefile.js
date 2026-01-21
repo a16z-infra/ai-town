@@ -36,7 +36,7 @@ export function generate_sprite_file() {
 
     let text = generate_preamble();
 
-    let animations = Array.from(Array(CONFIG.leveltileheight), () => new Array().fill(null)); 
+    let animations = Array.from(Array(CONFIG.leveltileheight), () => [].fill(null)); 
 
     for (let row = 0; row < CONFIG.leveltileheight; row++) {
         if (!layer0.tilearray[row][0]) {

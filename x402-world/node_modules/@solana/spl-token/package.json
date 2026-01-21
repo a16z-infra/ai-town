@@ -1,0 +1,89 @@
+{
+  "name": "@solana/spl-token",
+  "description": "SPL Token Program JS API",
+  "version": "0.4.14",
+  "author": "Solana Labs Maintainers <maintainers@solanalabs.com>",
+  "repository": "https://github.com/solana-labs/solana-program-library",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=16"
+  },
+  "files": [
+    "lib",
+    "src",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./lib/cjs/index.js",
+  "module": "./lib/esm/index.js",
+  "types": "./lib/types/index.d.ts",
+  "exports": {
+    "types": "./lib/types/index.d.ts",
+    "require": "./lib/cjs/index.js",
+    "import": "./lib/esm/index.js"
+  },
+  "peerDependencies": {
+    "@solana/web3.js": "^1.95.5"
+  },
+  "dependencies": {
+    "@solana/buffer-layout": "^4.0.0",
+    "@solana/buffer-layout-utils": "^0.2.0",
+    "@solana/spl-token-group": "^0.0.7",
+    "@solana/spl-token-metadata": "^0.1.6",
+    "buffer": "^6.0.3"
+  },
+  "devDependencies": {
+    "@solana/codecs-strings": "3.0.1",
+    "@solana/prettier-config-solana": "0.0.5",
+    "@solana/spl-memo": "0.2.5",
+    "@solana/web3.js": "^1.95.5",
+    "@types/chai-as-promised": "^8.0.1",
+    "@types/chai": "^5.0.1",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.0.0",
+    "@types/node-fetch": "^2.6.12",
+    "@typescript-eslint/eslint-plugin": "^8.4.0",
+    "@typescript-eslint/parser": "^8.4.0",
+    "chai": "^5.1.2",
+    "chai-as-promised": "^8.0.1",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.1",
+    "eslint-plugin-require-extensions": "^0.1.1",
+    "gh-pages": "^6.3.0",
+    "mocha": "^11.0.1",
+    "prettier": "^3.4.2",
+    "process": "^0.11.10",
+    "shx": "^0.4.0",
+    "ts-node": "^10.9.2",
+    "typedoc": "^0.28.0",
+    "typescript": "^5.7.2"
+  },
+  "prettier": "@solana/prettier-config-solana",
+  "scripts": {
+    "nuke": "shx rm -rf node_modules package-lock.json || true",
+    "reinstall": "npm run nuke && npm install",
+    "clean": "shx rm -rf lib **/*.tsbuildinfo || true",
+    "build": "tsc --build --verbose tsconfig.all.json",
+    "postbuild": "shx echo '{ \"type\": \"commonjs\" }' > lib/cjs/package.json",
+    "watch": "tsc --build --verbose --watch tsconfig.all.json",
+    "release": "npm run clean && npm run build",
+    "lint": "eslint --max-warnings 0 .",
+    "lint:fix": "eslint --fix .",
+    "format": "prettier --check src test",
+    "format:fix": "prettier --write src test",
+    "example": "node --experimental-specifier-resolution=node --loader ts-node/esm examples/createMintAndTransferTokens.ts",
+    "test": "npm run test:unit && npm run test:e2e-native && npm run test:e2e-2022",
+    "test:unit": "mocha test/unit",
+    "test:e2e-native": "mocha test/e2e",
+    "test:e2e-2022": "TEST_PROGRAM_ID=TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb mocha test/e2e*",
+    "deploy": "npm run deploy:docs",
+    "docs": "shx rm -rf docs && typedoc && shx cp .nojekyll docs/",
+    "deploy:docs": "npm run docs && gh-pages --dest token/js --dist docs --dotfiles"
+  }
+}

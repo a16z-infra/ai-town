@@ -1,0 +1,65 @@
+{
+    "name": "@solana/buffer-layout-utils",
+    "version": "0.2.0",
+    "author": "Solana Maintainers <maintainers@solana.foundation>",
+    "repository": "https://github.com/solana-labs/buffer-layout-utils",
+    "license": "Apache-2.0",
+    "engines": {
+        "node": ">= 10"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "files": [
+        "lib",
+        "src",
+        "LICENSE",
+        "README.md"
+    ],
+    "type": "module",
+    "sideEffects": false,
+    "main": "lib/cjs/index.js",
+    "module": "lib/esm/index.mjs",
+    "types": "lib/types/index.d.ts",
+    "exports": {
+        "import": "./lib/esm/index.mjs",
+        "require": "./lib/cjs/index.js"
+    },
+    "scripts": {
+        "clean": "shx rm -rf lib",
+        "build": "yarn clean && tsc -p tsconfig.json; tsc-esm -p tsconfig.json && tsc -p tsconfig.cjs.json",
+        "postbuild": "echo '{\"type\":\"commonjs\"}' > lib/cjs/package.json && echo '{\"type\":\"module\"}' > lib/esm/package.json",
+        "docs": "shx rm -rf docs && typedoc && shx cp .nojekyll docs/",
+        "fmt": "prettier --write '{*,**/*}.{js,ts,jsx,tsx,json}'",
+        "lint": "eslint --ext .ts . && prettier --check '{*,**/*}.{js,ts,jsx,tsx,json}'",
+        "lint:fix": "eslint --fix --ext .ts . && yarn fmt",
+        "nuke": "shx rm -rf node_modules yarn.lock",
+        "pages": "yarn docs && gh-pages --dist docs --dotfiles",
+        "prepare": "yarn build"
+    },
+    "dependencies": {
+        "@solana/buffer-layout": "^4.0.0",
+        "@solana/web3.js": "^1.32.0",
+        "bigint-buffer": "^1.1.5",
+        "bignumber.js": "^9.0.1"
+    },
+    "devDependencies": {
+        "@types/eslint": "^8.4.0",
+        "@types/eslint-plugin-prettier": "^3.1.0",
+        "@types/node": "^16.11.13",
+        "@types/prettier": "^2.4.3",
+        "@typescript-eslint/eslint-plugin": "^5.10.0",
+        "@typescript-eslint/parser": "^5.10.0",
+        "eslint": "^8.7.0",
+        "eslint-config-prettier": "^8.3.0",
+        "eslint-plugin-prettier": "^4.0.0",
+        "gh-pages": "^3.2.3",
+        "prettier": "^2.5.1",
+        "shx": "^0.3.4",
+        "ts-node": "^10.4.0",
+        "tslib": "^2.3.1",
+        "typedoc": "^0.22.11",
+        "typescript": "^4.5.5",
+        "typescript-esm": "^2.0.0"
+    }
+}

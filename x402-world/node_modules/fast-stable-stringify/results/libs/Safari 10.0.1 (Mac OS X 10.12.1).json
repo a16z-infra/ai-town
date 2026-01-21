@@ -1,0 +1,46 @@
+{
+    "JSON.stringify@native": {
+        "name": "JSON.stringify@native",
+        "browser": "Safari 10.0.1 (Mac OS X 10.12.1)",
+        "suite": "libs",
+        "hz": 20880.94942943559,
+        "success": true,
+        "fastest": false,
+        "rme": 0.034431069225489566,
+        "rhz": 6.0500575134602785,
+        "sampleSize": 171
+    },
+    "fast-stable-stringify@a9f81e8": {
+        "name": "fast-stable-stringify@a9f81e8",
+        "browser": "Safari 10.0.1 (Mac OS X 10.12.1)",
+        "suite": "libs",
+        "hz": 3451.36379001014,
+        "success": true,
+        "fastest": true,
+        "rme": 0.030283351076228322,
+        "rhz": 1,
+        "sampleSize": 136
+    },
+    "json-stable-stringify@1.0.1": {
+        "name": "json-stable-stringify@1.0.1",
+        "browser": "Safari 10.0.1 (Mac OS X 10.12.1)",
+        "suite": "libs",
+        "hz": 2888.328126218209,
+        "success": true,
+        "fastest": false,
+        "rme": 0.021217425635208887,
+        "rhz": 0.8368657440801751,
+        "sampleSize": 171
+    },
+    "faster-stable-stringify@1.0.0": {
+        "name": "faster-stable-stringify@1.0.0",
+        "browser": "Safari 10.0.1 (Mac OS X 10.12.1)",
+        "suite": "libs",
+        "hz": 3063.3319729455015,
+        "success": true,
+        "fastest": false,
+        "rme": 0.029382106163122576,
+        "rhz": 0.887571452714494,
+        "sampleSize": 164
+    }
+}

@@ -1,0 +1,35 @@
+{
+    "keys-while": {
+        "name": "keys-while",
+        "browser": "IE 10.0.0 (Windows 7 0.0.0)",
+        "suite": "iter",
+        "hz": 35966.149453114274,
+        "success": true,
+        "fastest": true,
+        "rme": 0.022718710100452157,
+        "rhz": 1,
+        "sampleSize": 170
+    },
+    "keys-for": {
+        "name": "keys-for",
+        "browser": "IE 10.0.0 (Windows 7 0.0.0)",
+        "suite": "iter",
+        "hz": 34156.64425441182,
+        "success": true,
+        "fastest": true,
+        "rme": 0.026098683427836902,
+        "rhz": 0.9496886593027886,
+        "sampleSize": 167
+    },
+    "incr-for": {
+        "name": "incr-for",
+        "browser": "IE 10.0.0 (Windows 7 0.0.0)",
+        "suite": "iter",
+        "hz": 14980.832916171697,
+        "success": true,
+        "fastest": false,
+        "rme": 0.029043619258269707,
+        "rhz": 0.416525904050441,
+        "sampleSize": 164
+    }
+}

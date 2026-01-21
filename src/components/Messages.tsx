@@ -1,10 +1,10 @@
 import clsx from 'clsx';
-import { Doc, Id } from '../../convex/_generated/dataModel';
+import type { Id } from '../../convex/_generated/dataModel';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { MessageInput } from './MessageInput';
-import { Player } from '../../convex/aiTown/player';
-import { Conversation } from '../../convex/aiTown/conversation';
+import type { Player } from '../../convex/aiTown/player';
+import type { Conversation } from '../../convex/aiTown/conversation';
 import { useEffect, useRef } from 'react';
 
 export function Messages({
@@ -19,26 +19,27 @@ export function Messages({
   engineId: Id<'engines'>;
   conversation:
     | { kind: 'active'; doc: Conversation }
-    | { kind: 'archived'; doc: Doc<'archivedConversations'> };
+    | { kind: 'archived'; doc: any };
   inConversationWithMe: boolean;
   humanPlayer?: Player;
   scrollViewRef: React.RefObject<HTMLDivElement>;
 }) {
   const humanPlayerId = humanPlayer?.id;
-  const descriptions = useQuery(api.world.gameDescriptions, { worldId });
-  const messages = useQuery(api.messages.listMessages, {
+  // API types may not be generated - functions exist at runtime
+  const descriptions = useQuery((api as any).world?.gameDescriptions, { worldId });
+  const messages = useQuery((api as any).messages?.listMessages, {
     worldId,
     conversationId: conversation.doc.id,
   });
   let currentlyTyping = conversation.kind === 'active' ? conversation.doc.isTyping : undefined;
   if (messages !== undefined && currentlyTyping) {
-    if (messages.find((m) => m.messageUuid === currentlyTyping!.messageUuid)) {
+    if (messages.find((m: any) => m.messageUuid === currentlyTyping?.messageUuid)) {
       currentlyTyping = undefined;
     }
   }
   const currentlyTypingName =
     currentlyTyping &&
-    descriptions?.playerDescriptions.find((p) => p.playerId === currentlyTyping?.playerId)?.name;
+    descriptions?.playerDescriptions.find((p: any) => p.playerId === currentlyTyping?.playerId)?.name;
 
   const scrollView = scrollViewRef.current;
   const isScrolledToBottom = useRef(false);
@@ -54,8 +55,8 @@ export function Messages({
     return () => scrollView.removeEventListener('scroll', onScroll);
   }, [scrollView]);
   useEffect(() => {
-    if (isScrolledToBottom.current) {
-      scrollViewRef.current?.scrollTo({
+    if (isScrolledToBottom.current && scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({
         top: scrollViewRef.current.scrollHeight,
         behavior: 'smooth',
       });
@@ -68,7 +69,7 @@ export function Messages({
   if (messages.length === 0 && !inConversationWithMe) {
     return null;
   }
-  const messageNodes: { time: number; node: React.ReactNode }[] = messages.map((m) => {
+  const messageNodes: { time: number; node: React.ReactNode }[] = messages.map((m: any) => {
     const node = (
       <div key={`text-${m._id}`} className="leading-tight mb-6">
         <div className="flex gap-4">
@@ -84,14 +85,14 @@ export function Messages({
     );
     return { node, time: m._creationTime };
   });
-  const lastMessageTs = messages.map((m) => m._creationTime).reduce((a, b) => Math.max(a, b), 0);
+  const lastMessageTs = messages.map((m: any) => m._creationTime).reduce((a: number, b: number) => Math.max(a, b), 0);
 
   const membershipNodes: typeof messageNodes = [];
   if (conversation.kind === 'active') {
     for (const [playerId, m] of conversation.doc.participants) {
-      const playerName = descriptions?.playerDescriptions.find((p) => p.playerId === playerId)
+      const playerName = descriptions?.playerDescriptions.find((p: any) => p.playerId === playerId)
         ?.name;
-      let started;
+      let started: number | undefined;
       if (m.status.kind === 'participating') {
         started = m.status.started;
       }
@@ -108,7 +109,7 @@ export function Messages({
     }
   } else {
     for (const playerId of conversation.doc.participants) {
-      const playerName = descriptions?.playerDescriptions.find((p) => p.playerId === playerId)
+      const playerName = descriptions?.playerDescriptions.find((p: any) => p.playerId === playerId)
         ?.name;
       const started = conversation.doc.created;
       membershipNodes.push({

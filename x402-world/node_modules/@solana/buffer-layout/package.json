@@ -1,0 +1,55 @@
+{
+  "name": "@solana/buffer-layout",
+  "version": "4.0.1",
+  "description": "Translation between JavaScript values and Buffers",
+  "keywords": [
+    "Buffer",
+    "struct",
+    "endian",
+    "pack data"
+  ],
+  "homepage": "https://github.com/solana-labs/buffer-layout",
+  "bugs": "https://github.com/solana-labs/buffer-layout/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/solana-labs/buffer-layout.git"
+  },
+  "license": "MIT",
+  "author": "Peter A. Bigot <pab@pabigot.com>",
+  "main": "./lib/Layout.js",
+  "types": "./lib/Layout.d.ts",
+  "files": [
+    "/lib"
+  ],
+  "dependencies": {
+    "buffer": "~6.0.3"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^4.28.2",
+    "@typescript-eslint/parser": "^4.28.2",
+    "coveralls": "^3.0.0",
+    "eslint": "~7.30.0",
+    "gh-pages": "^3.2.3",
+    "istanbul": "~0.4.5",
+    "jsdoc": "~3.5.5",
+    "lodash": "~4.17.5",
+    "mocha": "~5.0.4",
+    "shx": "^0.3.3",
+    "typedoc": "^0.22.10",
+    "typescript": "^4.4.4"
+  },
+  "engines": {
+    "node": ">=5.10"
+  },
+  "scripts": {
+    "build": "tsc",
+    "coverage": "npm run build && istanbul cover _mocha -- -u tdd",
+    "coveralls": "npm run build && istanbul cover _mocha --report lcovonly -- -u tdd && cat ./coverage/lcov.info | coveralls",
+    "docs": "shx rm -rf docs && typedoc && shx cp .nojekyll docs/",
+    "eslint": "eslint src/ --ext .ts",
+    "jsdoc": "jsdoc -c jsdoc/conf.json",
+    "pages": "gh-pages --dist docs --dotfiles",
+    "prepare": "npm run build",
+    "test": "npm run build && mocha -u tdd"
+  }
+}

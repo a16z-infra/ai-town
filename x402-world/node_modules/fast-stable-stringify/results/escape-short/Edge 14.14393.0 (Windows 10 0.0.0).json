@@ -1,0 +1,57 @@
+{
+    "reg": {
+        "name": "reg",
+        "browser": "Edge 14.14393.0 (Windows 10 0.0.0)",
+        "suite": "escape-short",
+        "hz": 613213.9007119045,
+        "success": true,
+        "fastest": false,
+        "rme": 0.014974749195626105,
+        "rhz": 0.4084658150744344,
+        "sampleSize": 172
+    },
+    "fn if": {
+        "name": "fn if",
+        "browser": "Edge 14.14393.0 (Windows 10 0.0.0)",
+        "suite": "escape-short",
+        "hz": 714253.4975991725,
+        "success": true,
+        "fastest": false,
+        "rme": 0.018992545536700448,
+        "rhz": 0.4757689555437499,
+        "sampleSize": 168
+    },
+    "fn if reverse": {
+        "name": "fn if reverse",
+        "browser": "Edge 14.14393.0 (Windows 10 0.0.0)",
+        "suite": "escape-short",
+        "hz": 595903.4738796077,
+        "success": true,
+        "fastest": false,
+        "rme": 0.017260970308691965,
+        "rhz": 0.3969352258344779,
+        "sampleSize": 167
+    },
+    "escape31": {
+        "name": "escape31",
+        "browser": "Edge 14.14393.0 (Windows 10 0.0.0)",
+        "suite": "escape-short",
+        "hz": 1013969.6558224236,
+        "success": true,
+        "fastest": false,
+        "rme": 0.01728600326103597,
+        "rhz": 0.6754118610902676,
+        "sampleSize": 172
+    },
+    "native": {
+        "name": "native",
+        "browser": "Edge 14.14393.0 (Windows 10 0.0.0)",
+        "suite": "escape-short",
+        "hz": 1501261.2514468536,
+        "success": true,
+        "fastest": true,
+        "rme": 0.012863296877945634,
+        "rhz": 1,
+        "sampleSize": 172
+    }
+}

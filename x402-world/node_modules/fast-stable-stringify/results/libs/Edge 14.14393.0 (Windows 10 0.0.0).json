@@ -1,0 +1,46 @@
+{
+    "JSON.stringify@native": {
+        "name": "JSON.stringify@native",
+        "browser": "Edge 14.14393.0 (Windows 10 0.0.0)",
+        "suite": "libs",
+        "hz": 21346.248036663714,
+        "success": true,
+        "fastest": false,
+        "rme": 0.02454137183514576,
+        "rhz": 3.51787999536997,
+        "sampleSize": 171
+    },
+    "fast-stable-stringify@a9f81e8": {
+        "name": "fast-stable-stringify@a9f81e8",
+        "browser": "Edge 14.14393.0 (Windows 10 0.0.0)",
+        "suite": "libs",
+        "hz": 6067.929566886422,
+        "success": true,
+        "fastest": true,
+        "rme": 0.01636142507497922,
+        "rhz": 1,
+        "sampleSize": 149
+    },
+    "json-stable-stringify@1.0.1": {
+        "name": "json-stable-stringify@1.0.1",
+        "browser": "Edge 14.14393.0 (Windows 10 0.0.0)",
+        "suite": "libs",
+        "hz": 4375.290115410294,
+        "success": true,
+        "fastest": false,
+        "rme": 0.015137049904064193,
+        "rhz": 0.7210515658070408,
+        "sampleSize": 141
+    },
+    "faster-stable-stringify@1.0.0": {
+        "name": "faster-stable-stringify@1.0.0",
+        "browser": "Edge 14.14393.0 (Windows 10 0.0.0)",
+        "suite": "libs",
+        "hz": 4952.367339646239,
+        "success": true,
+        "fastest": false,
+        "rme": 0.01379783018004576,
+        "rhz": 0.8161543875973826,
+        "sampleSize": 142
+    }
+}

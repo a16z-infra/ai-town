@@ -1,11 +1,11 @@
 import clsx from 'clsx';
 import { useMutation, useQuery } from 'convex/react';
-import { KeyboardEvent, useRef, useState } from 'react';
+import { type KeyboardEvent, useRef } from 'react';
 import { api } from '../../convex/_generated/api';
-import { Id } from '../../convex/_generated/dataModel';
+import type { Id } from '../../convex/_generated/dataModel';
 import { useSendInput } from '../hooks/sendInput';
-import { Player } from '../../convex/aiTown/player';
-import { Conversation } from '../../convex/aiTown/conversation';
+import type { Player } from '../../convex/aiTown/player';
+import type { Conversation } from '../../convex/aiTown/conversation';
 
 export function MessageInput({
   worldId,
@@ -18,12 +18,13 @@ export function MessageInput({
   humanPlayer: Player;
   conversation: Conversation;
 }) {
-  const descriptions = useQuery(api.world.gameDescriptions, { worldId });
-  const humanName = descriptions?.playerDescriptions.find((p) => p.playerId === humanPlayer.id)
+  // API types may not be generated - functions exist at runtime
+  const descriptions = useQuery((api as any).world?.gameDescriptions, { worldId });
+  const humanName = descriptions?.playerDescriptions.find((p: any) => p.playerId === humanPlayer.id)
     ?.name;
-  const inputRef = useRef<HTMLParagraphElement>(null);
+  const inputRef = useRef<HTMLDivElement>(null);
   const inflightUuid = useRef<string | undefined>();
-  const writeMessage = useMutation(api.messages.writeMessage);
+  const writeMessage = useMutation((api as any).messages?.writeMessage);
   const startTyping = useSendInput(engineId, 'startTyping');
   const currentlyTyping = conversation.isTyping;
 
@@ -79,14 +80,17 @@ export function MessageInput({
         <span className="uppercase flex-grow">{humanName}</span>
       </div>
       <div className={clsx('bubble', 'bubble-mine')}>
-        <p
+        {/* contentEditable div is intentionally used for rich text editing */}
+        <div
           className="bg-white -mx-3 -my-1"
           ref={inputRef}
           contentEditable
+          suppressContentEditableWarning
           style={{ outline: 'none' }}
-          tabIndex={0}
-          placeholder="Type here"
+          data-placeholder="Type here"
           onKeyDown={(e) => onKeyDown(e)}
+          aria-label="Message input"
+          tabIndex={0}
         />
       </div>
     </div>

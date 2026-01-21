@@ -1,0 +1,24 @@
+- testing: chrome @ Windows 2008: 26
+- testing: opera @ Windows 2003: 11 12
+- queuing: <chrome 26 on Windows 2008>
+- starting: <chrome 26 on Windows 2008>
+<chrome 26 on Windows 2008> console
+Finished benchmarking: nickyout/fast-stable-stringify x 6,025 ops/sec ±6.76% (50 runs sampled) (cumulative string length: 94425969)
+Finished benchmarking: substack/json-stable-stringify x 4,114 ops/sec ±1.05% (50 runs sampled) (cumulative string length: 61301724)
+- passed: <chrome 26 on Windows 2008>
+- queuing: <opera 11 on Windows 2003>
+- starting: <opera 11 on Windows 2003>
+<opera 11 on Windows 2003> Benchmark :: fastest
+Error: Benchmark.js was unable to find a working timer.
+    clock([arguments not available]) __zuul/test-bundle.js:4066
+    cycle([arguments not available]) __zuul/test-bundle.js:4301
+    run([arguments not available]) __zuul/test-bundle.js:4409
+    execute([arguments not available]) __zuul/test-bundle.js:3088
+    invoke([arguments not available]) __zuul/test-bundle.js:3202
+    compute([arguments not available]) __zuul/test-bundle.js:4259
+    run([arguments not available]) __zuul/test-bundle.js:4414
+    execute([arguments not available]) __zuul/test-bundle.js:3088
+    invoke([arguments not available]) __zuul/test-bundle.js:3202
+    runSuite([arguments not available]) __zuul/test-bundle.js:3451
+
+- passed: <opera 11 on Windows 2003>

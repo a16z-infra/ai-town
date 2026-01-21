@@ -115,7 +115,7 @@ export function DebugTimeManager(props: {
   let statusNode: React.ReactNode | null = null;
   if (timeManager.latestEngineStatus) {
     const status = timeManager.latestEngineStatus;
-    let statusMsg = status.running ? 'Running' : 'Stopped';
+    const statusMsg = status.running ? 'Running' : 'Stopped';
     statusNode = (
       <div style={{ fontSize: '12px', paddingTop: '8px' }}>
         <p>Generation number: {status.generationNumber}</p>

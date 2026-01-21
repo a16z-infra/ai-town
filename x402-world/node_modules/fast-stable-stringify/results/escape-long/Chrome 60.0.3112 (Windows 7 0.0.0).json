@@ -1,0 +1,57 @@
+{
+    "reg": {
+        "name": "reg",
+        "browser": "Chrome 60.0.3112 (Windows 7 0.0.0)",
+        "suite": "escape-long",
+        "hz": 253343.14412049987,
+        "success": true,
+        "fastest": false,
+        "rme": 0.014150323478317376,
+        "rhz": 0.8571066586149397,
+        "sampleSize": 173
+    },
+    "fn if": {
+        "name": "fn if",
+        "browser": "Chrome 60.0.3112 (Windows 7 0.0.0)",
+        "suite": "escape-long",
+        "hz": 152430.27131168763,
+        "success": true,
+        "fastest": false,
+        "rme": 0.009869184897547099,
+        "rhz": 0.5156997674805344,
+        "sampleSize": 173
+    },
+    "fn if reverse": {
+        "name": "fn if reverse",
+        "browser": "Chrome 60.0.3112 (Windows 7 0.0.0)",
+        "suite": "escape-long",
+        "hz": 134572.13503988463,
+        "success": true,
+        "fastest": false,
+        "rme": 0.00900151732022404,
+        "rhz": 0.4552823934002038,
+        "sampleSize": 171
+    },
+    "escape31": {
+        "name": "escape31",
+        "browser": "Chrome 60.0.3112 (Windows 7 0.0.0)",
+        "suite": "escape-long",
+        "hz": 164000.28145229374,
+        "success": true,
+        "fastest": false,
+        "rme": 0.010577368405487704,
+        "rhz": 0.5548432492044333,
+        "sampleSize": 172
+    },
+    "native": {
+        "name": "native",
+        "browser": "Chrome 60.0.3112 (Windows 7 0.0.0)",
+        "suite": "escape-long",
+        "hz": 295579.48427316535,
+        "success": true,
+        "fastest": true,
+        "rme": 0.01035041406915358,
+        "rhz": 1,
+        "sampleSize": 171
+    }
+}

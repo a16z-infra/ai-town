@@ -1,0 +1,35 @@
+{
+    "for + if": {
+        "name": "for + if",
+        "browser": "Safari 10.0.1 (Mac OS X 10.12.1)",
+        "suite": "itar-long",
+        "hz": 24983.89047457792,
+        "success": true,
+        "fastest": false,
+        "rme": 0.014556136047743569,
+        "rhz": 0.9435641971541613,
+        "sampleSize": 206
+    },
+    "while + if": {
+        "name": "while + if",
+        "browser": "Safari 10.0.1 (Mac OS X 10.12.1)",
+        "suite": "itar-long",
+        "hz": 24686.899076943977,
+        "success": true,
+        "fastest": false,
+        "rme": 0.014123011962622743,
+        "rhz": 0.9323477515027001,
+        "sampleSize": 209
+    },
+    "array join": {
+        "name": "array join",
+        "browser": "Safari 10.0.1 (Mac OS X 10.12.1)",
+        "suite": "itar-long",
+        "hz": 26478.209484771287,
+        "success": true,
+        "fastest": true,
+        "rme": 0.012780034002736902,
+        "rhz": 1,
+        "sampleSize": 209
+    }
+}

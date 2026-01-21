@@ -1,0 +1,70 @@
+{
+  "name": "@solana/spl-token-group",
+  "description": "SPL Token Group Interface JS API",
+  "version": "0.0.7",
+  "author": "Solana Labs Maintainers <maintainers@solanalabs.com>",
+  "repository": "https://github.com/solana-labs/solana-program-library",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=16"
+  },
+  "files": [
+    "lib",
+    "src",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./lib/cjs/index.js",
+  "module": "./lib/esm/index.js",
+  "types": "./lib/types/index.d.ts",
+  "exports": {
+    "types": "./lib/types/index.d.ts",
+    "require": "./lib/cjs/index.js",
+    "import": "./lib/esm/index.js"
+  },
+  "peerDependencies": {
+    "@solana/web3.js": "^1.95.3"
+  },
+  "dependencies": {
+    "@solana/codecs": "2.0.0-rc.1"
+  },
+  "devDependencies": {
+    "@solana/spl-type-length-value": "0.2.0",
+    "@solana/web3.js": "^1.95.3",
+    "@types/chai": "^5.0.0",
+    "@types/mocha": "^10.0.9",
+    "@types/node": "^22.7.6",
+    "@typescript-eslint/eslint-plugin": "^8.4.0",
+    "@typescript-eslint/parser": "^8.4.0",
+    "chai": "^5.1.1",
+    "eslint": "^8.57.0",
+    "eslint-plugin-require-extensions": "^0.1.1",
+    "gh-pages": "^6.2.0",
+    "mocha": "^10.7.3",
+    "shx": "^0.3.4",
+    "ts-node": "^10.9.2",
+    "tslib": "^2.8.0",
+    "typedoc": "^0.26.10",
+    "typescript": "^5.6.3"
+  },
+  "scripts": {
+    "build": "tsc --build --verbose tsconfig.all.json",
+    "clean": "shx rm -rf lib **/*.tsbuildinfo || true",
+    "deploy": "npm run deploy:docs",
+    "deploy:docs": "npm run docs && gh-pages --dest token-group/js --dist docs --dotfiles",
+    "docs": "shx rm -rf docs && typedoc && shx cp .nojekyll docs/",
+    "lint": "eslint --max-warnings 0 .",
+    "lint:fix": "eslint --fix .",
+    "nuke": "shx rm -rf node_modules package-lock.json || true",
+    "postbuild": "shx echo '{ \"type\": \"commonjs\" }' > lib/cjs/package.json",
+    "reinstall": "npm run nuke && npm install",
+    "release": "npm run clean && npm run build",
+    "test": "mocha test",
+    "watch": "tsc --build --verbose --watch tsconfig.all.json"
+  }
+}

@@ -1,0 +1,35 @@
+{
+    "keys-while": {
+        "name": "keys-while",
+        "browser": "Chrome Mobile 39.0.0 (Android 5.1.1)",
+        "suite": "iter",
+        "hz": 41449.9799734825,
+        "success": true,
+        "fastest": true,
+        "rme": 0.022947386031672564,
+        "rhz": 1,
+        "sampleSize": 159
+    },
+    "keys-for": {
+        "name": "keys-for",
+        "browser": "Chrome Mobile 39.0.0 (Android 5.1.1)",
+        "suite": "iter",
+        "hz": 38639.94651532041,
+        "success": true,
+        "fastest": false,
+        "rme": 0.019140969586850222,
+        "rhz": 0.9322066389426532,
+        "sampleSize": 160
+    },
+    "incr-for": {
+        "name": "incr-for",
+        "browser": "Chrome Mobile 39.0.0 (Android 5.1.1)",
+        "suite": "iter",
+        "hz": 15632.699209216895,
+        "success": true,
+        "fastest": false,
+        "rme": 0.017769563380438193,
+        "rhz": 0.37714612212642484,
+        "sampleSize": 161
+    }
+}

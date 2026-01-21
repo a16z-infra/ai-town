@@ -1,0 +1,82 @@
+{
+  "name": "@solana/codecs-numbers",
+  "version": "2.0.0-rc.1",
+  "description": "Codecs for numbers of different sizes and endianness",
+  "exports": {
+    "browser": {
+      "import": "./dist/index.browser.mjs",
+      "require": "./dist/index.browser.cjs"
+    },
+    "node": {
+      "import": "./dist/index.node.mjs",
+      "require": "./dist/index.node.cjs"
+    },
+    "react-native": "./dist/index.native.mjs",
+    "types": "./dist/types/index.d.ts"
+  },
+  "browser": {
+    "./dist/index.node.cjs": "./dist/index.browser.cjs",
+    "./dist/index.node.mjs": "./dist/index.browser.mjs"
+  },
+  "main": "./dist/index.node.cjs",
+  "module": "./dist/index.node.mjs",
+  "react-native": "./dist/index.native.mjs",
+  "types": "./dist/types/index.d.ts",
+  "type": "commonjs",
+  "files": [
+    "./dist/"
+  ],
+  "sideEffects": false,
+  "keywords": [
+    "blockchain",
+    "solana",
+    "web3"
+  ],
+  "author": "Solana Labs Maintainers <maintainers@solanalabs.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/solana-labs/solana-web3.js"
+  },
+  "bugs": {
+    "url": "http://github.com/solana-labs/solana-web3.js/issues"
+  },
+  "browserslist": [
+    "supports bigint and not dead",
+    "maintained node versions"
+  ],
+  "engine": {
+    "node": ">=17.4"
+  },
+  "dependencies": {
+    "@solana/codecs-core": "2.0.0-rc.1",
+    "@solana/errors": "2.0.0-rc.1"
+  },
+  "peerDependencies": {
+    "typescript": ">=5"
+  },
+  "bundlewatch": {
+    "defaultCompression": "gzip",
+    "files": [
+      {
+        "path": "./dist/index*.js"
+      }
+    ]
+  },
+  "scripts": {
+    "compile:js": "tsup --config build-scripts/tsup.config.package.ts",
+    "compile:typedefs": "tsc -p ./tsconfig.declarations.json",
+    "dev": "jest -c ../../node_modules/@solana/test-config/jest-dev.config.ts --rootDir . --watch",
+    "publish-impl": "npm view $npm_package_name@$npm_package_version > /dev/null 2>&1 || pnpm publish --tag ${PUBLISH_TAG:-canary} --access public --no-git-checks",
+    "publish-packages": "pnpm prepublishOnly && pnpm publish-impl",
+    "style:fix": "pnpm eslint --fix src/* && pnpm prettier --log-level warn --ignore-unknown --write ./*",
+    "test:lint": "TERM_OVERRIDE=\"${TURBO_HASH:+dumb}\" TERM=${TERM_OVERRIDE:-$TERM} jest -c ../../node_modules/@solana/test-config/jest-lint.config.ts --rootDir . --silent",
+    "test:prettier": "TERM_OVERRIDE=\"${TURBO_HASH:+dumb}\" TERM=${TERM_OVERRIDE:-$TERM} jest -c ../../node_modules/@solana/test-config/jest-prettier.config.ts --rootDir . --silent",
+    "test:treeshakability:browser": "agadoo dist/index.browser.mjs",
+    "test:treeshakability:native": "agadoo dist/index.native.mjs",
+    "test:treeshakability:node": "agadoo dist/index.node.mjs",
+    "test:typecheck": "tsc --noEmit",
+    "test:unit:browser": "TERM_OVERRIDE=\"${TURBO_HASH:+dumb}\" TERM=${TERM_OVERRIDE:-$TERM} jest -c ../../node_modules/@solana/test-config/jest-unit.config.browser.ts --rootDir . --silent",
+    "test:unit:node": "TERM_OVERRIDE=\"${TURBO_HASH:+dumb}\" TERM=${TERM_OVERRIDE:-$TERM} jest -c ../../node_modules/@solana/test-config/jest-unit.config.node.ts --rootDir . --silent"
+  }
+}
