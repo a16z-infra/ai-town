@@ -1,0 +1,26 @@
+{
+  "name": "text-encoding-utf-8",
+  "author": "Erik Arvidsson <erik.arvidsson@gmail.com>",
+  "contributors": ["Rick Eyre <rick.eyre@outlook.com>", "Joshua Bell <inexorabletash@gmail.com>"],
+  "version": "1.0.2",
+  "description": "UTF-8 only polyfill for the Encoding Living Standard's API.",
+  "main": "lib/encoding.lib",
+  "jsnext:main": "src/encoding.js",
+  "files": ["src", "lib"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arv/text-encoding-utf-8.git"
+  },
+  "keywords": ["encoding", "decoding", "living standard"],
+  "bugs": {
+    "url": "https://github.com/arv/text-encoding-utf-8/issues"
+  },
+  "homepage": "https://github.com/arv/text-encoding-utf-8",
+  "scripts": {
+    "prepublish":
+      "rollup -f iife -o lib/encoding.js -- src/polyfill.js && rollup -f cjs -o lib/encoding.lib.js -- src/encoding.js && cp src/encoding.js lib/encoding.lib.mjs"
+  },
+  "devDependencies": {
+    "rollup": "^0.21.0"
+  }
+}

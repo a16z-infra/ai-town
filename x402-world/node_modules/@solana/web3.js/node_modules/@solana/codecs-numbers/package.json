@@ -1,0 +1,83 @@
+{
+  "name": "@solana/codecs-numbers",
+  "version": "2.3.0",
+  "description": "Codecs for numbers of different sizes and endianness",
+  "exports": {
+    "edge-light": {
+      "import": "./dist/index.node.mjs",
+      "require": "./dist/index.node.cjs"
+    },
+    "workerd": {
+      "import": "./dist/index.node.mjs",
+      "require": "./dist/index.node.cjs"
+    },
+    "browser": {
+      "import": "./dist/index.browser.mjs",
+      "require": "./dist/index.browser.cjs"
+    },
+    "node": {
+      "import": "./dist/index.node.mjs",
+      "require": "./dist/index.node.cjs"
+    },
+    "react-native": "./dist/index.native.mjs",
+    "types": "./dist/types/index.d.ts"
+  },
+  "browser": {
+    "./dist/index.node.cjs": "./dist/index.browser.cjs",
+    "./dist/index.node.mjs": "./dist/index.browser.mjs"
+  },
+  "main": "./dist/index.node.cjs",
+  "module": "./dist/index.node.mjs",
+  "react-native": "./dist/index.native.mjs",
+  "types": "./dist/types/index.d.ts",
+  "type": "commonjs",
+  "files": [
+    "./dist/"
+  ],
+  "sideEffects": false,
+  "keywords": [
+    "blockchain",
+    "solana",
+    "web3"
+  ],
+  "author": "Solana Labs Maintainers <maintainers@solanalabs.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anza-xyz/kit"
+  },
+  "bugs": {
+    "url": "https://github.com/anza-xyz/kit/issues"
+  },
+  "browserslist": [
+    "supports bigint and not dead",
+    "maintained node versions"
+  ],
+  "dependencies": {
+    "@solana/codecs-core": "2.3.0",
+    "@solana/errors": "2.3.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.3.3"
+  },
+  "engines": {
+    "node": ">=20.18.0"
+  },
+  "scripts": {
+    "compile:docs": "typedoc",
+    "compile:js": "tsup --config build-scripts/tsup.config.package.ts",
+    "compile:typedefs": "tsc -p ./tsconfig.declarations.json",
+    "dev": "jest -c ../../node_modules/@solana/test-config/jest-dev.config.ts --rootDir . --watch",
+    "publish-impl": "npm view $npm_package_name@$npm_package_version > /dev/null 2>&1 || (pnpm publish --tag ${PUBLISH_TAG:-canary} --access public --no-git-checks && (([ \"$PUBLISH_TAG\" != \"canary\" ] && pnpm dist-tag add $npm_package_name@$npm_package_version latest) || true))",
+    "publish-packages": "pnpm prepublishOnly && pnpm publish-impl",
+    "style:fix": "pnpm eslint --fix src && pnpm prettier --log-level warn --ignore-unknown --write ./*",
+    "test:lint": "TERM_OVERRIDE=\"${TURBO_HASH:+dumb}\" TERM=${TERM_OVERRIDE:-$TERM} jest -c ../../node_modules/@solana/test-config/jest-lint.config.ts --rootDir . --silent",
+    "test:prettier": "TERM_OVERRIDE=\"${TURBO_HASH:+dumb}\" TERM=${TERM_OVERRIDE:-$TERM} jest -c ../../node_modules/@solana/test-config/jest-prettier.config.ts --rootDir . --silent",
+    "test:treeshakability:browser": "agadoo dist/index.browser.mjs",
+    "test:treeshakability:native": "agadoo dist/index.native.mjs",
+    "test:treeshakability:node": "agadoo dist/index.node.mjs",
+    "test:typecheck": "tsc --noEmit",
+    "test:unit:browser": "TERM_OVERRIDE=\"${TURBO_HASH:+dumb}\" TERM=${TERM_OVERRIDE:-$TERM} jest -c ../../node_modules/@solana/test-config/jest-unit.config.browser.ts --rootDir . --silent",
+    "test:unit:node": "TERM_OVERRIDE=\"${TURBO_HASH:+dumb}\" TERM=${TERM_OVERRIDE:-$TERM} jest -c ../../node_modules/@solana/test-config/jest-unit.config.node.ts --rootDir . --silent"
+  }
+}

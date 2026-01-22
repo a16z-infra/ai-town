@@ -1,0 +1,61 @@
+{
+  "name": "borsh",
+  "version": "0.7.0",
+  "description": "Binary Object Representation Serializer for Hashing",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "lib",
+    "LICENSE-APACHE",
+    "LICENSE-MIT.txt"
+  ],
+  "scripts": {
+    "build": "tsc -p ./tsconfig.json",
+    "test": "jest test --runInBand",
+    "fuzz": "jsfuzz borsh-ts/test/fuzz/borsh-roundtrip.js borsh-ts/test/fuzz/corpus/",
+    "dev": "yarn build -w",
+    "pretest": "yarn build",
+    "lint": "eslint borsh-ts/**/*.ts",
+    "pretty": "prettier --write borsh-ts/**/*.ts package.json",
+    "pretty:check": "yarn prettier --loglevel error --check  borsh-ts/**/*.ts package.json",
+    "fix": "eslint borsh-ts/**/*.ts --fix"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/near/borsh-js.git"
+  },
+  "keywords": [
+    "serializer",
+    "binary",
+    "serializer",
+    "deserializer",
+    "consistency",
+    "deterministic"
+  ],
+  "author": "Near Inc",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/near/borsh-js/issues"
+  },
+  "homepage": "https://github.com/near/borsh-js#readme",
+  "devDependencies": {
+    "@types/babel__core": "^7.1.2",
+    "@types/babel__template": "^7.0.2",
+    "@types/bn.js": "^5.1.0",
+    "@types/node": "^12.7.3",
+    "@typescript-eslint/eslint-plugin": "^2.18.0",
+    "@typescript-eslint/parser": "^2.18.0",
+    "bs58": "^4.0.0",
+    "eslint": "^6.5.1",
+    "jest": "^26.0.1",
+    "js-sha256": "^0.9.0",
+    "jsfuzz": "^1.0.14",
+    "prettier": "^2.4.1",
+    "typescript": "^3.6.2"
+  },
+  "dependencies": {
+    "bn.js": "^5.2.0",
+    "bs58": "^4.0.0",
+    "text-encoding-utf-8": "^1.0.2"
+  }
+}

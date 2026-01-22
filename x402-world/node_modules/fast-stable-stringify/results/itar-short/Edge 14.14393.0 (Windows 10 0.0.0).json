@@ -1,0 +1,35 @@
+{
+    "for + if": {
+        "name": "for + if",
+        "browser": "Edge 14.14393.0 (Windows 10 0.0.0)",
+        "suite": "itar-short",
+        "hz": 258326.20076670017,
+        "success": true,
+        "fastest": true,
+        "rme": 0.01562542930728137,
+        "rhz": 1,
+        "sampleSize": 210
+    },
+    "while + if": {
+        "name": "while + if",
+        "browser": "Edge 14.14393.0 (Windows 10 0.0.0)",
+        "suite": "itar-short",
+        "hz": 250131.81743630744,
+        "success": true,
+        "fastest": false,
+        "rme": 0.015426062316980953,
+        "rhz": 0.9682789306463216,
+        "sampleSize": 210
+    },
+    "array join": {
+        "name": "array join",
+        "browser": "Edge 14.14393.0 (Windows 10 0.0.0)",
+        "suite": "itar-short",
+        "hz": 257660.10445245806,
+        "success": true,
+        "fastest": true,
+        "rme": 0.012689221094028156,
+        "rhz": 0.9974214914620926,
+        "sampleSize": 212
+    }
+}

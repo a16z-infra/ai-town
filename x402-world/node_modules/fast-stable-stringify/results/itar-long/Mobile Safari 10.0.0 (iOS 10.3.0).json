@@ -1,0 +1,35 @@
+{
+    "for + if": {
+        "name": "for + if",
+        "browser": "Mobile Safari 10.0.0 (iOS 10.3.0)",
+        "suite": "itar-long",
+        "hz": 23297.55521668556,
+        "success": true,
+        "fastest": false,
+        "rme": 0.00631699710436391,
+        "rhz": 0.9710234238747862,
+        "sampleSize": 207
+    },
+    "while + if": {
+        "name": "while + if",
+        "browser": "Mobile Safari 10.0.0 (iOS 10.3.0)",
+        "suite": "itar-long",
+        "hz": 22230.138102258647,
+        "success": true,
+        "fastest": false,
+        "rme": 0.026905685238200833,
+        "rhz": 0.9265343342894962,
+        "sampleSize": 212
+    },
+    "array join": {
+        "name": "array join",
+        "browser": "Mobile Safari 10.0.0 (iOS 10.3.0)",
+        "suite": "itar-long",
+        "hz": 23992.783947187032,
+        "success": true,
+        "fastest": true,
+        "rme": 0.011710983965349786,
+        "rhz": 1,
+        "sampleSize": 209
+    }
+}

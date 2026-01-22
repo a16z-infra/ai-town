@@ -1,0 +1,75 @@
+{
+  "name": "@solana/web3.js",
+  "version": "1.98.4",
+  "description": "Solana Javascript API",
+  "keywords": [
+    "api",
+    "blockchain"
+  ],
+  "license": "MIT",
+  "author": "Solana Labs Maintainers <maintainers@solanalabs.com>",
+  "homepage": "https://solana.com/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/solana-foundation/solana-web3.js.git"
+  },
+  "bugs": {
+    "url": "http://github.com/solana-foundation/solana-web3.js.git/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "browser": {
+    "./lib/index.cjs.js": "./lib/index.browser.cjs.js",
+    "./lib/index.esm.js": "./lib/index.browser.esm.js"
+  },
+  "react-native": "lib/index.native.js",
+  "main": "lib/index.cjs.js",
+  "module": "lib/index.esm.js",
+  "types": "lib/index.d.ts",
+  "browserslist": [
+    "defaults",
+    "not IE 11",
+    "maintained node versions"
+  ],
+  "files": [
+    "/lib",
+    "/src"
+  ],
+  "scripts": {
+    "compile:docs": "typedoc --treatWarningsAsErrors",
+    "compile:js": "cross-env NODE_ENV=production rollup -c",
+    "compile:typedefs": "./scripts/typegen.sh",
+    "build:fixtures": "set -ex; ./test/fixtures/noop-program/build.sh",
+    "clean": "rimraf ./doc ./declarations ./lib",
+    "dev": "cross-env NODE_ENV=development rollup -c --watch",
+    "prepublishOnly": "pnpm pkg delete devDependencies",
+    "publish-packages": "semantic-release --repository-url git@github.com:solana-foundation/solana-web3.js.git",
+    "test:lint": "eslint src/ test/ --ext .js,.ts",
+    "test:lint:fix": "eslint src/ test/ --fix --ext .js,.ts",
+    "test:live": "TEST_LIVE=1 pnpm run test:unit",
+    "test:live-with-test-validator": "start-server-and-test './scripts/start-shared-test-validator.sh' http://127.0.0.1:8899/health test:live",
+    "test:live-with-test-validator:setup": "./scripts/setup-test-validator.sh",
+    "test:prettier": "prettier --check '{,{src,test}/**/}*.{j,t}s'",
+    "test:prettier:fix": "pnpm prettier --write '{,{src,test}/**/}*.{j,t}s'",
+    "test:typecheck": "tsc --noEmit",
+    "test:unit": "cross-env NODE_ENV=test NODE_OPTIONS='--import tsx' mocha './test/**/*.test.ts'"
+  },
+  "dependencies": {
+    "@babel/runtime": "^7.25.0",
+    "@noble/curves": "^1.4.2",
+    "@noble/hashes": "^1.4.0",
+    "@solana/buffer-layout": "^4.0.1",
+    "@solana/codecs-numbers": "^2.1.0",
+    "agentkeepalive": "^4.5.0",
+    "bn.js": "^5.2.1",
+    "borsh": "^0.7.0",
+    "bs58": "^4.0.1",
+    "buffer": "6.0.3",
+    "fast-stable-stringify": "^1.0.0",
+    "jayson": "^4.1.1",
+    "node-fetch": "^2.7.0",
+    "rpc-websockets": "^9.0.2",
+    "superstruct": "^2.0.2"
+  }
+}

@@ -1,0 +1,51 @@
+language: node_js
+node_js:
+- node
+- '10'
+sudo : false
+env:
+  global:
+  - DISPLAY=:99.0
+  - secure: SQDlqZZTkrbRW/wYLPgEwFQpkSrs65MiF0JgO+cwSCAG1m0c7EuBTzvttAXzKK+coZXjd2+QJcAOBi6YUP84OdSf31PojIy4/SLuZxuFQa0sGey+8oSDqgMntpSthO9nom0s6u2vB61IVfcRVIUNv5L3J5i5ZIGlKGgC2MIBzsnhx0L//eyh/bLszR27ajCT7RG+pnqpk010eaDtRabOJTtO0C2kbBQoW2SvJIisDsRj5zqVyl03pZJQQAJeseiNlLokucrgitDWENE+tEJ2w1x1yl+901tgU+BIi4iLQTezcSAxnF149U/Nof7LpCba+1Y+PPh1SRpO4100CT6O46qW0O1keVfTmZL/R3ghBM6H0AtV1s48k/XCpHV9CGwxjBHoCN1kKvSO9B1BJuAdlmgobOEdze+X81nilSBhBmYMI1XPLbXqTo2ImfaFeDzveuPJH6+HMCc+8sDlhgLcrOiteAsY8RsI0ngBkutsWWv7QcRq29e4VX2eBy0j1VJZNf0FPAcKpWF8eIaPw7Z0CuWMs2hM0v0ns58jDcOL+1k4kKyJ10OOmANqNX+NZYRJJ05dd/VMrlh37teARI64PFSG6eIoCniW0GtrUcpX4KhqpaRSUDpsKvncXNdNydumMyMQjeQqyHqahvIE2ONVXXELD2T/EV6TpazDR5KSSo0=
+  - secure: ZwKAlaNZ8liLknkAfFN+TztrILi8Q06AknHUj0Zd+9PjzD5n6tpzp5g1nE0MEvF9bqkGkwf6vwWJVKcSXWM9J4a2pfoLe9wsVcjq+AkmWnZG0zV26ie3UPoa8d/PezRtxz+4vErvQcOqnESVPJAqeWCt0fH1WvnEcjaY3BYyyDbWwAPamWr/v9c4ZLKxJqJmgtczMCrRahd6Dz+HGGJ9BehhOXtse+rT5qFI6w2SMXaisDzk2twMu0fK1I66G2IsesIKErPigCeEPahsP2yu831+S18YvxJtao7tXpluMBf+RNhD9eI1evUu6IxpF419ANDJ7BpJ8uGfRVzIz9kQIAmcy/1s7g3otT633XngUfNYDisUeLJ39plclOHw+sVeLL49Xa9k+/U0CzlOThNlCj0hY2uJW3Ot9NjvKDjdR/UkgEBCl6nIDAnRQk9xSJ4ws1f9Yp5CgEXcXvu7077i6O8vG7+k08qHDSkxEEwQjB2PwjhcPfg9ieAwafblM3szYwzblL4UpROp/L/XmmzjR/cOVrS93RIpeLqDr2CCMKGd0GoOFtDse7u43SJMIAZ+O5DNtNpqIQ22V13p4P3L2C1RV3cjE55luEYVR1JZ7AzaxD+hZu2zcU2301MuSgFLTKMEu43HV1tPJ6QtCcSf+kH/LK/TPfTLveW23xkkZM0=
+  matrix:
+  - TEST_SUITE=test:node
+addons:
+  chrome: stable
+services:
+  - xvfb
+cache:
+  directories:
+   - $HOME/.npm
+matrix:
+  fast_finish: true
+  include:
+  - os: linux
+    node_js: '10'
+    env: TEST_SUITE=test:browser
+  - os: windows
+    node_js: '10'
+    env: TEST_SUITE=test:node
+script: npm run $TEST_SUITE
+before_deploy:
+- npm pack
+deploy:
+- provider: releases
+  api_key: "$GITHUB_TOKEN"
+  file_glob: true
+  file: bigint-buffer-*.tgz
+  skip_cleanup: true
+  on:
+    branch: master
+    node: '10'
+    condition: "$TEST_SUITE = test:node"
+    tags: true
+- provider: npm
+  api_key: "$NPM_TOKEN"
+  skip_cleanup: true
+  email: mwei@cs.ucsd.edu
+  on:
+    branch: master
+    node: '10'
+    condition: "$TEST_SUITE = test:node"
+    tags: true

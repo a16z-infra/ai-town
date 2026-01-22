@@ -1,0 +1,47 @@
+{
+  "name": "fast-stable-stringify",
+  "version": "1.0.0",
+  "description": "Deterministic stringification for when performance matters",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "./node_modules/.bin/karma start",
+    "travis": "./node_modules/.bin/karma start ./karma.conf.travis.js",
+    "table": "node ./cli/index.js results/libs/*.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nickyout/fast-stable-stringify.git"
+  },
+  "keywords": [
+    "JSON",
+    "stable",
+    "deterministic",
+    "stringify",
+    "fast"
+  ],
+  "author": "Nicky Out",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nickyout/fast-stable-stringify/issues"
+  },
+  "homepage": "https://github.com/nickyout/fast-stable-stringify#readme",
+  "devDependencies": {
+    "faster-stable-stringify": "^1.0.0",
+    "fs-extra": "^4.0.1",
+    "glob": "^7.1.2",
+    "json-stable-stringify": "^1.0.0",
+    "karma": "^1.7.1",
+    "karma-benchmark": "^0.7.1",
+    "karma-benchmark-reporter": "git+https://github.com/nickyout/karma-benchmark-reporter.git#4b570c9",
+    "karma-firefox-launcher": "^1.0.1",
+    "karma-sauce-launcher": "^1.2.0",
+    "karma-webpack": "^2.0.4",
+    "markdown-table": "^1.1.1",
+    "minimist": "^1.2.0",
+    "split": "^1.0.1",
+    "webpack": "^3.5.5"
+  }
+}

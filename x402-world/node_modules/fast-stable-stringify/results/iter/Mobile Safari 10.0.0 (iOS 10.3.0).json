@@ -1,0 +1,35 @@
+{
+    "keys-while": {
+        "name": "keys-while",
+        "browser": "Mobile Safari 10.0.0 (iOS 10.3.0)",
+        "suite": "iter",
+        "hz": 23603.301526308816,
+        "success": true,
+        "fastest": true,
+        "rme": 0.030880882113979637,
+        "rhz": 1,
+        "sampleSize": 167
+    },
+    "keys-for": {
+        "name": "keys-for",
+        "browser": "Mobile Safari 10.0.0 (iOS 10.3.0)",
+        "suite": "iter",
+        "hz": 23426.457275766345,
+        "success": true,
+        "fastest": true,
+        "rme": 0.02398797289803229,
+        "rhz": 0.9925076476972784,
+        "sampleSize": 171
+    },
+    "incr-for": {
+        "name": "incr-for",
+        "browser": "Mobile Safari 10.0.0 (iOS 10.3.0)",
+        "suite": "iter",
+        "hz": 11144.323028321938,
+        "success": true,
+        "fastest": false,
+        "rme": 0.024524181905002183,
+        "rhz": 0.47215102581730795,
+        "sampleSize": 164
+    }
+}

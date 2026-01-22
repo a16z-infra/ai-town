@@ -1,0 +1,35 @@
+{
+    "JSON.stringify@native": {
+        "name": "JSON.stringify@native",
+        "browser": "IE 11.0.0 (Windows 7 0.0.0)",
+        "suite": "libs",
+        "hz": 14003.509566928884,
+        "success": true,
+        "fastest": false,
+        "rme": 0.014594535695529036,
+        "rhz": 2.187283150730621,
+        "sampleSize": 174
+    },
+    "fast-stable-stringify@a9f81e8": {
+        "name": "fast-stable-stringify@a9f81e8",
+        "browser": "IE 11.0.0 (Windows 7 0.0.0)",
+        "suite": "libs",
+        "hz": 6402.239034416405,
+        "success": true,
+        "fastest": true,
+        "rme": 0.013900958827880387,
+        "rhz": 1,
+        "sampleSize": 150
+    },
+    "json-stable-stringify@1.0.1": {
+        "name": "json-stable-stringify@1.0.1",
+        "browser": "IE 11.0.0 (Windows 7 0.0.0)",
+        "suite": "libs",
+        "hz": 4699.054054054045,
+        "success": true,
+        "fastest": false,
+        "rme": 0.01732984212468934,
+        "rhz": 0.7339704170358873,
+        "sampleSize": 173
+    }
+}

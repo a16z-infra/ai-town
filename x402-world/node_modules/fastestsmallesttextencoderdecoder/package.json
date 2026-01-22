@@ -1,0 +1,66 @@
+{
+	"name": "fastestsmallesttextencoderdecoder",
+	"version": "1.0.22",
+	"description": "The fastest smallest Javascript polyfill for the encode of TextEncoder and decode of TextDecoder for UTF-8 only. Made by AnonyCo with ❤️ from 🐕s.",
+	"keywords": [
+		"utf-8",
+		"encoding",
+		"decoding",
+		"encoder",
+		"decoder",
+		"javascript",
+		"polyfill",
+		"js",
+		"utf8",
+		"compact",
+		"cross-browser",
+		"utf8-string",
+		"pure-javascript",
+		"nodejs",
+		"node-js",
+		"node-module",
+		"nodejs-modules",
+		"performance",
+		"tiny",
+		"small"
+	],
+	"homepage": "https://github.com/anonyco/FastestSmallestTextEncoderDecoder#quick-start",
+	"bugs": {
+		"url": "https://github.com/anonyco/FastestSmallestTextEncoderDecoder/issues",
+		"email": "wowzeryest@gmail.com"
+	},
+	"scripts": {
+		"install-dev": "mkdir compiler-latest 2> /dev/null; wget -P ./compiler-latest/ 'https://dl.google.com/closure-compiler/compiler-latest.tar.gz'; unlink ./closure-compiler.jar 2> /dev/null; wget -P ./compiler-latest/ 'https://github.com/google/zopfli/archive/zopfli-1.0.3.tar.gz'; cd compiler-latest; tar xvzf compiler-latest.tar.gz 1> /dev/null; tar xvzf compiler-latest.tar.gz 1> /dev/null; bash -c 'for j in closure-compiler-*; do mv -- \"$j\" \"../closure-compiler.jar\" 1> /dev/null; done' 1> /dev/null 2> /dev/null; tar xvzf zopfli-1.0.3.tar.gz 1> /dev/null; cd zopfli-zopfli-1.0.3; make zopfli 1> /dev/null; mv ./zopfli ../../; cd ../..; rm -rf compiler-latest 2> /dev/null; chmod +X ./zopfli; curl -V 1>/dev/null 2>&1 || (echo 'Curl must be installed in order to upload to NPM. Installing...'; if type apk > /dev/null; then sudo apk add --no-cache curl; elif type apt-get > /dev/null; then sudo apt-get install curl; elif type dnf > /dev/null; then sudo dnf install curl; elif type pacman > /dev/null; then pacman -S curl; elif type zypper > /dev/null; then sudo zypper install curl; fi ); wait",
+		"build": "if [ ! -s 'closure-compiler.jar' ]; then npm run install-dev; fi; npm run build-browser & npm run build-gzip; npm run build-encodeinto & true; npm run build-require & true; npm run build-module & true; wait",
+		"build-browser": "java -server -Xmx1024M -jar './closure-compiler.jar' --D ENCODEINTO_BUILD=false --js './EncoderDecoderTogether.src.js' --js_output_file 'EncoderDecoderTogether.min.js' --create_source_map 'EncoderDecoderTogether.min.js.map' --language_out ECMASCRIPT_2017 --compilation_level ADVANCED_OPTIMIZATIONS --output_wrapper '%output%//AnonyCo\n//# sourceMappingURL=https://cdn.jsdelivr.net/gh/AnonyCo/FastestSmallestTextEncoderDecoder/EncoderDecoderTogether.min.js.map' & true; java -server -Xmx1024M -jar './closure-compiler.jar' --D ENCODEINTO_BUILD=false --js './individual/FastestTextEncoderPolyfill.src.js' --js_output_file 'individual/FastestTextEncoderPolyfill.min.js' --language_out ECMASCRIPT_2017 --compilation_level ADVANCED_OPTIMIZATIONS --output_wrapper '%output%//AnonyCo'; wait; sed -i -e 's/\"undefined\"/\"\"+void 0/g' './EncoderDecoderTogether.min.js' & true; if [ \"${PWD##*/}\" != 'encodeInto' ]; then java -server -Xmx1024M -jar './closure-compiler.jar' --js './individual/FastestTextDecoderPolyfill.src.js' --js_output_file 'individual/FastestTextDecoderPolyfill.min.js' --language_out ECMASCRIPT_2017 --compilation_level ADVANCED_OPTIMIZATIONS --output_wrapper '%output%//AnonyCo'; fi; wait",
+		"build-require": "java -server -Xmx1024M -jar './closure-compiler.jar' --D ENCODEINTO_BUILD=false --js './NodeJS/EncoderAndDecoderNodeJS.src.js' --js_output_file 'NodeJS/EncoderAndDecoderNodeJS.min.js' --create_source_map 'NodeJS/EncoderAndDecoderNodeJS.min.js.map' --compilation_level ADVANCED_OPTIMIZATIONS --output_wrapper '%output%//AnonyCo\n//# sourceMappingURL=https://cdn.jsdelivr.net/gh/AnonyCo/FastestSmallestTextEncoderDecoder/NodeJS/EncoderAndDecoderNodeJS.min.js.map' --language_out ECMASCRIPT_2017",
+		"build-module": "java -server -Xmx1024M -jar './closure-compiler.jar' --D ENCODEINTO_BUILD=false --js './NodeJS/EncoderAndDecoderNodeJS.src.module.js' --create_source_map 'NodeJS/EncoderAndDecoderNodeJS.min.mjs.map' --compilation_level ADVANCED_OPTIMIZATIONS --output_wrapper '%output%//AnonyCo\n//# sourceMappingURL=https://cdn.jsdelivr.net/gh/AnonyCo/FastestSmallestTextEncoderDecoder/NodeJS/EncoderAndDecoderNodeJS.min.mjs.map' --language_out ECMASCRIPT_2017 | sed -e 's@window\\.export_default=@export default @g;     s@window\\.export_@export let @g;     s@window\\.exports=\\[@export{@g;    s@window\\.var_gens=\\[@@g;    s@,\"_REMOVE@@g;    s@REMOVE_\",@@g;    s@REMOVE_\"@@g;    s@,\"REM_B_\"\\]@}@g;    s@,\"REM_VAR_\"\\]@@g;    s@\"REM_VAR_\"\\]@@g;    s@REM_VAR_\"\\]@@g' > 'NodeJS/EncoderAndDecoderNodeJS.min.mjs'",
+		"build-es6": "npm run build-module",
+		"build-gzip": "./zopfli -i20 EncoderDecoderTogether.min.js; mv EncoderDecoderTogether.min.js.gz test 2> /dev/null",
+		"build-encodeinto": "if [ \"${PWD##*/}\" != 'encodeInto' ]; then mkdir -p encodeInto; cd encodeInto; mkdir -p test individual NodeJS; echo 'Please see [fastestsmallesttextencoderdecoder](fastestsmallesttextencoderdecoder) for usage and details' > README.md; ln -fsT ../LICENSE LICENSE; ln -fsT '../closure-compiler.jar' 'closure-compiler.jar'; ln -fsT ../zopfli zopfli; sed -e 's@\"fastestsmallesttextencoderdecoder\"@\"fastestsmallesttextencoderdecoder-encodeinto\"@; s@E[N]CODEINTO_BUILD=false@ENCODEINTO_BUILD=true@g; s@gh/AnonyCo/[F]astestSmallestTextEncoderDecoder@gh/AnonyCo/FastestSmallestTextEncoderDecoder/encodeInto@g; s@[.]/EncoderDecoderTogether@..\\/EncoderDecoderTogether@g; s@[.]/NodeJS/@..\\/NodeJS/@g; s@[.]/individual/FastestTextEncoderPolyfill@..\\/individual/FastestTextEncoderPolyfill@g' > package.json < '../package.json'; cd test; for f in *; do if [ ! -e \"../../test/$f\" ]; then unlink \"$f\" 2> /dev/null; fi; done; for i in $(dir -Ab1L ../../test); do ln -fsT \"../../test/$i\" \"./$i\"; done; cd ..; npm run build; cd ..; printf '#!/bin/sh\nnpm install fastestsmallesttextencoderdecoder-encodeinto\n' > gh-pages/install-FastestSmallestTextEncoderDecoder-encodeInto.sh; printf '@npm install fastestsmallesttextencoderdecoder-encodeinto\r\n' > gh-pages/install-FastestSmallestTextEncoderDecoder-encodeInto.bat; fi; wait",
+		"prepublishOnly": "if [ -f './encodeInto/package.json' ]; then cd encodeInto; npm publish; cd ..; fi",
+		"test": "if [ \"${PWD##*/}\" != 'encodeInto' ]; then cd encodeInto/test; node --preserve-symlinks --preserve-symlinks-main -- 'test.js' -test-encode-into; cd ../..; fi; cd test; node --preserve-symlinks --preserve-symlinks-main -- 'test.js'",
+		"benchmark": "cd test; node --preserve-symlinks --preserve-symlinks-main --expose-gc --max-old-space-size=10240 --max-semi-space-size=8192 --noconcurrent_sweeping --nouse-idle-notification -- 'benchmark.js'"
+	},
+	"license": "CC0-1.0",
+	"author": {
+		"name": "Jack Giffin",
+		"email": "wowzeryest@gmail.com",
+		"url": "https://jackgiffin.com/"
+	},
+	"main": "NodeJS/EncoderAndDecoderNodeJS.min.js",
+	"module": "NodeJS/EncoderAndDecoderNodeJS.min.mjs",
+	"es2015": "NodeJS/EncoderAndDecoderNodeJS.min.mjs",
+	"browser": "EncoderDecoderTogether.min.js",
+	"repository": {
+		"type": "git",
+		"url": "git://github.com/anonyco/FastestSmallestTextEncoderDecoder.git"
+	},
+	"files": [
+		"EncoderDecoderTogether.min.js",
+		"NodeJS/EncoderAndDecoderNodeJS.min.js",
+		"NodeJS/EncoderAndDecoderNodeJS.min.mjs"
+	],
+	"publishConfig": { "registry": "https://registry.npmjs.org/" }
+
+}

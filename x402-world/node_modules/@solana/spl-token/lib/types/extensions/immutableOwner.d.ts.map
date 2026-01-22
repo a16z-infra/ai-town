@@ -1,0 +1,1 @@
+{"version":3,"file":"immutableOwner.d.ts","sourceRoot":"","sources":["../../../src/extensions/immutableOwner.ts"],"names":[],"mappings":"AACA,OAAO,KAAK,EAAE,OAAO,EAAE,MAAM,qBAAqB,CAAC;AAGnD,8CAA8C;AAC9C,MAAM,WAAW,cAAc;CAAG;AAElC,kDAAkD;AAClD,eAAO,MAAM,oBAAoB,2DAA6B,CAAC;AAE/D,eAAO,MAAM,oBAAoB,QAA4B,CAAC;AAE9D,wBAAgB,iBAAiB,CAAC,OAAO,EAAE,OAAO,GAAG,cAAc,GAAG,IAAI,CAOzE"}

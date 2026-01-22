@@ -1,4 +1,6 @@
 import Game from './components/Game.tsx';
+import RalphTownLanding from './components/RalphTownLanding.tsx';
+import X402ProtocolFactory from './components/X402ProtocolFactory.tsx';
 
 import { ToastContainer } from 'react-toastify';
 import a16zImg from '../assets/a16z.png';
@@ -19,6 +21,148 @@ import PoweredByConvex from './components/PoweredByConvex.tsx';
 
 export default function Home() {
   const [helpModalOpen, setHelpModalOpen] = useState(false);
+  const [view, setView] = useState<'ai-town' | 'ralph-town' | 'x402-factory'>('ai-town');
+  
+  // If viewing Ralph Town, render it directly
+  if (view === 'ralph-town') {
+    return (
+      <>
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          left: '20px',
+          zIndex: 10000,
+          display: 'flex',
+          gap: '12px',
+        }}>
+          <button
+            onClick={() => setView('ai-town')}
+            style={{
+              padding: '12px 24px',
+              background: 'rgba(153, 69, 255, 0.2)',
+              border: '2px solid #9945FF',
+              borderRadius: '8px',
+              color: '#9945FF',
+              fontSize: '14px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              fontFamily: "'JetBrains Mono', monospace",
+              letterSpacing: '1px',
+              transition: 'all 0.3s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(153, 69, 255, 0.4)';
+              e.currentTarget.style.boxShadow = '0 0 20px rgba(153, 69, 255, 0.6)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(153, 69, 255, 0.2)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            ← BACK TO AI TOWN
+          </button>
+          <button
+            onClick={() => setView('x402-factory')}
+            style={{
+              padding: '12px 24px',
+              background: 'rgba(0, 212, 255, 0.2)',
+              border: '2px solid #00D4FF',
+              borderRadius: '8px',
+              color: '#00D4FF',
+              fontSize: '14px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              fontFamily: "'JetBrains Mono', monospace",
+              letterSpacing: '1px',
+              transition: 'all 0.3s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(0, 212, 255, 0.4)';
+              e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 212, 255, 0.6)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(0, 212, 255, 0.2)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            → FACTORY
+          </button>
+        </div>
+        <RalphTownLanding />
+      </>
+    );
+  }
+  
+  // If viewing X402 Factory, render it directly
+  if (view === 'x402-factory') {
+    return (
+      <>
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          left: '20px',
+          zIndex: 10000,
+          display: 'flex',
+          gap: '12px',
+        }}>
+          <button
+            onClick={() => setView('ai-town')}
+            style={{
+              padding: '12px 24px',
+              background: 'rgba(153, 69, 255, 0.2)',
+              border: '2px solid #9945FF',
+              borderRadius: '8px',
+              color: '#9945FF',
+              fontSize: '14px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              fontFamily: "'JetBrains Mono', monospace",
+              letterSpacing: '1px',
+              transition: 'all 0.3s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(153, 69, 255, 0.4)';
+              e.currentTarget.style.boxShadow = '0 0 20px rgba(153, 69, 255, 0.6)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(153, 69, 255, 0.2)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            ← BACK TO AI TOWN
+          </button>
+          <button
+            onClick={() => setView('ralph-town')}
+            style={{
+              padding: '12px 24px',
+              background: 'rgba(153, 69, 255, 0.2)',
+              border: '2px solid #9945FF',
+              borderRadius: '8px',
+              color: '#9945FF',
+              fontSize: '14px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              fontFamily: "'JetBrains Mono', monospace",
+              letterSpacing: '1px',
+              transition: 'all 0.3s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(153, 69, 255, 0.4)';
+              e.currentTarget.style.boxShadow = '0 0 20px rgba(153, 69, 255, 0.6)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(153, 69, 255, 0.2)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            → RALPH TOWN
+          </button>
+        </div>
+        <X402ProtocolFactory />
+      </>
+    );
+  }
+  
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-between font-body game-background">
       <PoweredByConvex />
@@ -71,6 +215,69 @@ export default function Home() {
           <LoginButton />
         </Unauthenticated>
       </div> */}
+      
+      {/* Navigation Buttons */}
+      <div style={{
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        zIndex: 10000,
+        display: 'flex',
+        gap: '12px',
+      }}>
+        <button
+          onClick={() => setView('x402-factory')}
+          style={{
+            padding: '12px 24px',
+            background: 'rgba(0, 212, 255, 0.2)',
+            border: '2px solid #00D4FF',
+            borderRadius: '8px',
+            color: '#00D4FF',
+            fontSize: '14px',
+            fontWeight: '700',
+            cursor: 'pointer',
+            fontFamily: "'JetBrains Mono', monospace",
+            letterSpacing: '1px',
+            transition: 'all 0.3s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(0, 212, 255, 0.4)';
+            e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 212, 255, 0.6)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(0, 212, 255, 0.2)';
+            e.currentTarget.style.boxShadow = 'none';
+          }}
+        >
+          FACTORY →
+        </button>
+        <button
+          onClick={() => setView('ralph-town')}
+          style={{
+            padding: '12px 24px',
+            background: 'rgba(153, 69, 255, 0.2)',
+            border: '2px solid #9945FF',
+            borderRadius: '8px',
+            color: '#9945FF',
+            fontSize: '14px',
+            fontWeight: '700',
+            cursor: 'pointer',
+            fontFamily: "'JetBrains Mono', monospace",
+            letterSpacing: '1px',
+            transition: 'all 0.3s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(153, 69, 255, 0.4)';
+            e.currentTarget.style.boxShadow = '0 0 20px rgba(153, 69, 255, 0.6)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(153, 69, 255, 0.2)';
+            e.currentTarget.style.boxShadow = 'none';
+          }}
+        >
+          RALPH TOWN →
+        </button>
+      </div>
 
       <div className="w-full lg:h-screen min-h-screen relative isolate overflow-hidden lg:p-8 shadow-2xl flex flex-col justify-start">
         <h1 className="mx-auto text-4xl p-3 sm:text-8xl lg:text-9xl font-bold font-display leading-none tracking-wide game-title w-full text-left sm:text-center sm:w-auto">

@@ -1,0 +1,57 @@
+{
+    "reg": {
+        "name": "reg",
+        "browser": "IE 10.0.0 (Windows 7 0.0.0)",
+        "suite": "escape-short",
+        "hz": 581239.0461276657,
+        "success": true,
+        "fastest": false,
+        "rme": 0.024732909178170403,
+        "rhz": 0.44122546422972886,
+        "sampleSize": 170
+    },
+    "fn if": {
+        "name": "fn if",
+        "browser": "IE 10.0.0 (Windows 7 0.0.0)",
+        "suite": "escape-short",
+        "hz": 555729.4222633594,
+        "success": true,
+        "fastest": false,
+        "rme": 0.027909801235014572,
+        "rhz": 0.42186080573536117,
+        "sampleSize": 169
+    },
+    "fn if reverse": {
+        "name": "fn if reverse",
+        "browser": "IE 10.0.0 (Windows 7 0.0.0)",
+        "suite": "escape-short",
+        "hz": 501086.63136037166,
+        "success": true,
+        "fastest": false,
+        "rme": 0.01642873238900235,
+        "rhz": 0.38038081408028707,
+        "sampleSize": 169
+    },
+    "escape31": {
+        "name": "escape31",
+        "browser": "IE 10.0.0 (Windows 7 0.0.0)",
+        "suite": "escape-short",
+        "hz": 596529.88438048,
+        "success": true,
+        "fastest": false,
+        "rme": 0.02664240853437143,
+        "rhz": 0.4528329211814042,
+        "sampleSize": 169
+    },
+    "native": {
+        "name": "native",
+        "browser": "IE 10.0.0 (Windows 7 0.0.0)",
+        "suite": "escape-short",
+        "hz": 1317328.8788813811,
+        "success": true,
+        "fastest": true,
+        "rme": 0.02441843017891321,
+        "rhz": 1,
+        "sampleSize": 174
+    }
+}
