@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { ActionCtx, DatabaseReader, internalMutation, internalQuery } from '../_generated/server';
+import { ActionCtx, DatabaseReader, internalAction, internalMutation, internalQuery } from '../_generated/server';
 import { Doc, Id } from '../_generated/dataModel';
 import { internal } from '../_generated/api';
 import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/llm';
@@ -81,7 +81,49 @@ export async function rememberConversation(
     },
     embedding,
   });
+  // Update trust between the two players after conversation
+  // Use LLM to extract sentiment rather than naive keyword matching
+  let trustDelta = 3; // slightly positive default if LLM fails
+  try {
+    const { content: sentimentRaw } = await chatCompletion({
+      messages: [
+        {
+          role: 'user',
+          content: `Based on this conversation summary, rate the sentiment from ${player.name}'s perspective toward ${otherPlayer.name} on a scale of -10 to +10, where -10 is extremely negative (hostile, suspicious, angry, manipulated) and +10 is extremely positive (warm, trusting, grateful). Consider: did they enjoy it? Was there deception or conflict? Did they help each other?
+
+Summary: ${content}
+
+Respond with ONLY a single integer between -10 and 10, nothing else. Example: "3" or "-5"`,
+        },
+      ],
+      temperature: 0.0,
+      max_tokens: 4,
+    });
+    const parsed = parseInt(sentimentRaw.trim(), 10);
+    if (!isNaN(parsed) && parsed >= -10 && parsed <= 10) {
+      trustDelta = parsed;
+    } else {
+      console.debug('Could not parse trust sentiment from:', sentimentRaw, '— using default +3');
+    }
+  } catch (e) {
+    console.error('Failed to get LLM sentiment for trust update, using default +3:', e);
+  }
+  await ctx.runMutation(internal.townNews.updateRelationship, {
+    worldId,
+    player1: player.id,
+    player2: otherPlayer.id,
+    trustDelta,
+  });
+
   await reflectOnMemories(ctx, worldId, playerId);
+
+  // Promote important STM entries to LTM
+  await ctx.runAction(selfInternal.promoteMemories, {
+    worldId,
+    agentId,
+    playerId,
+  });
+
   return description;
 }
 
@@ -448,3 +490,103 @@ export async function latestMemoryOfType<T extends MemoryType>(
   if (!entry) return null;
   return entry as MemoryOfType<T>;
 }
+
+// ==================== Short-Term Memory (STM) ====================
+
+const STM_MAX_ENTRIES = 20;
+const STM_PROMOTION_THRESHOLD = 5; // importance >= 5 gets promoted to LTM
+
+// Insert a short-term memory entry
+export const insertShortTermMemory = internalMutation({
+  args: {
+    playerId,
+    type: v.string(),
+    content: v.string(),
+    importance: v.number(),
+    timestamp: v.number(),
+    relatedPlayerId: v.optional(v.string()),
+    sentiment: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    // Insert new STM
+    await ctx.db.insert('shortTermMemories', {
+      playerId: args.playerId,
+      type: args.type,
+      content: args.content,
+      importance: args.importance,
+      timestamp: args.timestamp,
+      relatedPlayerId: args.relatedPlayerId,
+      sentiment: args.sentiment,
+    });
+
+    // FIFO cleanup: keep only most recent STM_MAX_ENTRIES
+    const allStm = await ctx.db
+      .query('shortTermMemories')
+      .withIndex('playerId', (q) => q.eq('playerId', args.playerId))
+      .order('desc')
+      .collect();
+
+    if (allStm.length > STM_MAX_ENTRIES) {
+      const toDelete = allStm.slice(STM_MAX_ENTRIES);
+      for (const stm of toDelete) {
+        await ctx.db.delete(stm._id);
+      }
+    }
+  },
+});
+
+
+// Promote important STM entries to LTM
+export const promoteToLongTermMemory = internalMutation({
+  args: {
+    worldId: v.id('worlds'),
+    agentId,
+    playerId,
+  },
+  handler: async (ctx, args) => {
+    // Find STM entries with high importance that haven't been promoted
+    const stmEntries = await ctx.db
+      .query('shortTermMemories')
+      .withIndex('playerId', (q) => q.eq('playerId', args.playerId))
+      .order('desc')
+      .take(STM_MAX_ENTRIES);
+
+    const toPromote = stmEntries.filter((stm) => stm.importance >= STM_PROMOTION_THRESHOLD);
+    // We'll return the entries to promote — the actual LTM insertion with embedding
+    // needs to happen in an action (since fetchEmbedding is async/external)
+    return toPromote;
+  },
+});
+
+// Action: promote STM to LTM with embeddings
+export const promoteMemories = internalAction({
+  args: {
+    worldId: v.id('worlds'),
+    agentId,
+    playerId,
+  },
+  handler: async (ctx, args) => {
+    const toPromote = await ctx.runMutation(selfInternal.promoteToLongTermMemory, {
+      worldId: args.worldId,
+      agentId: args.agentId,
+      playerId: args.playerId,
+    });
+
+    for (const stm of toPromote) {
+      const importance = stm.importance;
+      const { embedding } = await fetchEmbedding(stm.content);
+      const data = stm.relatedPlayerId
+        ? { type: 'relationship' as const, playerId: stm.relatedPlayerId }
+        : { type: 'reflection' as const, relatedMemoryIds: [] as Id<'memories'>[] };
+      await ctx.runMutation(selfInternal.insertMemory, {
+        agentId: args.agentId,
+        playerId: args.playerId,
+        description: `[${stm.type}] ${stm.content}`,
+        importance,
+        lastAccess: stm.timestamp,
+        data,
+        embedding,
+      });
+    }
+  },
+});

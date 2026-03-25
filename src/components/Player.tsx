@@ -85,6 +85,8 @@ export const Player = ({
         onClick={() => {
           onClick({ kind: 'player', id: player.id });
         }}
+        name={!player.human ? game.playerDescriptions.get(player.id)?.name : undefined}
+        needs={!player.human ? (player.needs as any) : undefined}
       />
     </>
   );

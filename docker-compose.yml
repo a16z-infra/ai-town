@@ -1,53 +1,42 @@
-version: '3.8'
-
 services:
-  frontend:
-    build: .
-    ports:
-      - '5173:5173'
-    volumes:
-      - .:/usr/src/app
-      - /usr/src/app/node_modules
-    environment:
-      - VITE_CONVEX_URL=http://127.0.0.1:${PORT:-3210}
-    networks:
-      - ai-town-network
   backend:
     image: ghcr.io/get-convex/convex-backend:latest
     ports:
-      - '${PORT:-3210}:3210'
-      - '${SITE_PROXY_PORT:-3211}:3211'
-      - '${OLLAMA_PORT:-11434}:11434'
+      - '3210:3210'
+      - '3211:3211'
     volumes:
-      - data:/convex/data
+      - convex_data:/convex/data
     environment:
-      - INSTANCE_NAME=${INSTANCE_NAME:-}
-      - INSTANCE_SECRET=${INSTANCE_SECRET:-}
-      - CONVEX_RELEASE_VERSION_DEV=${CONVEX_RELEASE_VERSION_DEV:-}
-      - ACTIONS_USER_TIMEOUT_SECS=${ACTIONS_USER_TIMEOUT_SECS:-}
-      - CONVEX_CLOUD_ORIGIN=${URL_BASE:-http://127.0.0.1}:${PORT:-3210}
-      - CONVEX_SITE_ORIGIN=${URL_BASE:-http://127.0.0.1}:${SITE_PROXY_PORT:-3211}
-      - DATABASE_URL=${DATABASE_URL:-}
+      - INSTANCE_NAME=stanford-town
+      - INSTANCE_SECRET=abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+      - CONVEX_CLOUD_ORIGIN=http://127.0.0.1:3210
+      - CONVEX_SITE_ORIGIN=http://127.0.0.1:3211
+      - RUST_BACKTRACE=1
+      - RUST_LOG=info,common::errors=debug
     healthcheck:
       test: curl -f http://localhost:3210/version
       interval: 5s
-      start_period: 5s
+      start_period: 10s
     networks:
-      - ai-town-network
+      - town-net
 
-  dashboard:
-    image: ghcr.io/get-convex/convex-dashboard:latest
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - '${DASHBOARD_PORT:-6791}:6791'
+      - '5174:5174'
     environment:
-      - NEXT_PUBLIC_DEPLOYMENT_URL=http://127.0.0.1:${PORT:-3210}
+      - VITE_CONVEX_URL=http://127.0.0.1:3210
     depends_on:
       backend:
         condition: service_healthy
+    networks:
+      - town-net
 
 volumes:
-  data:
+  convex_data:
 
 networks:
-  ai-town-network:
+  town-net:
     driver: bridge

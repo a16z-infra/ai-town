@@ -151,7 +151,7 @@ export async function leaveConversationMessage(
   );
   const prompt = [
     `You are ${player.name}, and you're currently in a conversation with ${otherPlayer.name}.`,
-    `You've decided to leave the question and would like to politely tell them you're leaving the conversation.`,
+    `You've decided to leave the conversation and would like to politely tell them you're leaving the conversation.`,
   ];
   prompt.push(...agentPrompts(otherPlayer, agent, otherAgent ?? null));
   prompt.push(
@@ -184,13 +184,50 @@ export async function leaveConversationMessage(
 
 function agentPrompts(
   otherPlayer: { name: string },
-  agent: { identity: string; plan: string } | null,
-  otherAgent: { identity: string; plan: string } | null,
+  agent: { identity: string; plan: string; archetype?: string; mbti?: string } | null,
+  otherAgent: { identity: string; plan: string; archetype?: string; mbti?: string } | null,
 ): string[] {
   const prompt = [];
   if (agent) {
     prompt.push(`About you: ${agent.identity}`);
     prompt.push(`Your goals for the conversation: ${agent.plan}`);
+
+    // MBTI-driven conversation style
+    if (agent.mbti) {
+      const mbti = agent.mbti;
+      const styles: string[] = [];
+      if (mbti.includes('E')) styles.push('outgoing and talkative');
+      if (mbti.includes('I')) styles.push('thoughtful and reserved');
+      if (mbti.includes('T')) styles.push('logical and direct');
+      if (mbti.includes('F')) styles.push('empathetic and warm');
+      if (mbti.includes('J')) styles.push('organized in your thoughts');
+      if (mbti.includes('P')) styles.push('spontaneous and exploratory');
+      if (styles.length > 0) {
+        prompt.push(`Your personality type is ${mbti}. You are naturally ${styles.join(', ')}.`);
+      }
+    }
+
+    // Six-dimensional stats influence on conversation
+    const stats = (agent as any).stats;
+    if (stats) {
+      if (stats.creativity > 7) prompt.push('You are highly creative — you bring imaginative ideas and artistic references into conversation.');
+      if (stats.resilience > 7) prompt.push('You are very resilient — you stay calm under pressure and don\'t get flustered easily.');
+      if (stats.cunning > 7) prompt.push('You are shrewd and strategic — you read between the lines and think several steps ahead.');
+      if (stats.justice > 7) prompt.push('You have a strong sense of justice — you speak up about fairness and right behavior.');
+    }
+
+    // Archetype overlay (villain/guardian dynamics)
+    if (agent.archetype === 'villain') {
+      prompt.push('You have hidden selfish motives. Be charming but subtly steer conversations to benefit yourself.');
+      if (otherAgent?.archetype === 'guardian') {
+        prompt.push(`Be extra cautious with ${otherPlayer.name}. They seem principled — tone down the manipulation.`);
+      }
+    } else if (agent.archetype === 'guardian') {
+      prompt.push('You care deeply about community fairness and protecting others.');
+      if (otherAgent?.archetype === 'villain') {
+        prompt.push(`Something about ${otherPlayer.name} feels off. Stay alert for manipulation.`);
+      }
+    }
   }
   if (otherAgent) {
     prompt.push(`About ${otherPlayer.name}: ${otherAgent.identity}`);
@@ -334,10 +371,18 @@ export const queryPromptData = internalQuery({
       player: { name: playerDescription.name, ...player },
       otherPlayer: { name: otherPlayerDescription.name, ...otherPlayer },
       conversation,
-      agent: { identity: agentDescription.identity, plan: agentDescription.plan, ...agent },
+      agent: {
+        identity: agentDescription.identity,
+        plan: agentDescription.plan,
+        archetype: agentDescription.archetype,
+        mbti: agentDescription.mbti,
+        ...agent,
+      },
       otherAgent: otherAgent && {
         identity: otherAgentDescription!.identity,
         plan: otherAgentDescription!.plan,
+        archetype: otherAgentDescription!.archetype,
+        mbti: otherAgentDescription!.mbti,
         ...otherAgent,
       },
       lastConversation,
