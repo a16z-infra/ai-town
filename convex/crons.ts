@@ -1,5 +1,5 @@
 import { cronJobs } from 'convex/server';
-import { DELETE_BATCH_SIZE, IDLE_WORLD_TIMEOUT, VACUUM_MAX_AGE } from './constants';
+import { DELETE_BATCH_SIZE, IDLE_WORLD_TIMEOUT, TOWN_NEWS_INTERVAL_MS, VACUUM_MAX_AGE } from './constants';
 import { internal } from './_generated/api';
 import { internalMutation } from './_generated/server';
 import { TableNames } from './_generated/dataModel';
@@ -14,6 +14,24 @@ crons.interval(
 );
 
 crons.interval('restart dead worlds', { seconds: 60 }, internal.world.restartDeadWorlds);
+
+crons.interval(
+  'generate town news',
+  { seconds: TOWN_NEWS_INTERVAL_MS / 1000 },
+  internal.townNews.generateTownNews,
+);
+
+crons.interval(
+  'generate agent plans',
+  { seconds: TOWN_NEWS_INTERVAL_MS / 1000 },
+  internal.townNews.generateAgentPlans,
+);
+
+crons.interval(
+  'generate town vote',
+  { seconds: 1800 }, // every 30 minutes
+  internal.townNews.generateTownVote,
+);
 
 crons.daily('vacuum old entries', { hourUTC: 4, minuteUTC: 20 }, internal.crons.vacuumOldEntries);
 

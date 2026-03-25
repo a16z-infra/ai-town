@@ -125,7 +125,64 @@ export const PixiGame = (props: {
           historicalTime={props.historicalTime}
         />
       ))}
+      <PoiLabels tileDim={tileDim} />
     </PixiViewport>
   );
 };
 export default PixiGame;
+
+// POI overlay: colored zones + labels on the PIXI map
+import { PixiComponent } from '@pixi/react';
+
+const POI_ZONES = [
+  { name: 'House A', x1: 2, y1: 2, x2: 8, y2: 8, color: 0x5a6988 },
+  { name: 'House B', x1: 2, y1: 36, x2: 8, y2: 42, color: 0x5a6988 },
+  { name: 'House C', x1: 40, y1: 1, x2: 45, y2: 5, color: 0x5a6988 },
+  { name: 'Restaurant', x1: 32, y1: 2, x2: 37, y2: 9, color: 0xe4a672 },
+  { name: 'Town Square', x1: 24, y1: 21, x2: 31, y2: 28, color: 0xc0cbdc },
+  { name: 'Welfare', x1: 45, y1: 33, x2: 47, y2: 37, color: 0xac3232 },
+  { name: 'Park', x1: 15, y1: 35, x2: 25, y2: 42, color: 0x6abe30 },
+  { name: 'Forest', x1: 1, y1: 15, x2: 8, y2: 25, color: 0x37946e },
+  { name: 'Herb Garden', x1: 50, y1: 38, x2: 58, y2: 44, color: 0x4b692f },
+];
+
+const PoiLabels = PixiComponent('PoiOverlay', {
+  create: (props: { tileDim: number }) => {
+    const container = new PIXI.Container();
+    const td = props.tileDim;
+    const cl = 6; // corner bracket length in pixels
+
+    for (const poi of POI_ZONES) {
+      const x = poi.x1 * td;
+      const y = poi.y1 * td;
+      const w = (poi.x2 - poi.x1) * td;
+      const h = (poi.y2 - poi.y1) * td;
+
+      // Corner brackets — subtle, not a full rectangle
+      const g = new PIXI.Graphics();
+      g.lineStyle(1, poi.color, 0.35);
+      g.moveTo(x, y + cl); g.lineTo(x, y); g.lineTo(x + cl, y);
+      g.moveTo(x + w - cl, y); g.lineTo(x + w, y); g.lineTo(x + w, y + cl);
+      g.moveTo(x, y + h - cl); g.lineTo(x, y + h); g.lineTo(x + cl, y + h);
+      g.moveTo(x + w - cl, y + h); g.lineTo(x + w, y + h); g.lineTo(x + w, y + h - cl);
+      container.addChild(g);
+
+      // Label — pixel font, muted, blends with game
+      const text = new PIXI.Text(poi.name, {
+        fontSize: 7,
+        fill: poi.color,
+        stroke: 0x181425,
+        strokeThickness: 2,
+        fontFamily: 'Upheaval Pro, monospace',
+        letterSpacing: 0.5,
+      });
+      text.x = x + w / 2;
+      text.y = y - 2;
+      text.anchor.set(0.5, 1);
+      text.alpha = 0.55;
+      container.addChild(text);
+    }
+    return container;
+  },
+  applyProps: () => {},
+});

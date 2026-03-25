@@ -76,3 +76,48 @@ export const ENGINE_ACTION_DURATION = 30000;
 export const MAX_PATHFINDS_PER_STEP = 16;
 
 export const DEFAULT_NAME = 'Me';
+
+// Needs system constants — Layer 1: Physiological
+export const HUNGER_DECAY_PER_SEC = 0.05; // ~33min full→empty
+export const ENERGY_DECAY_PER_SEC = 0.03; // ~55min full→empty
+export const HUNGER_EAT_THRESHOLD = 30;
+export const ENERGY_SLEEP_THRESHOLD = 20;
+export const ENERGY_EMERGENCY_THRESHOLD = 10;
+export const WORK_MIN_ENERGY = 35;
+export const EAT_RECOVER = 50;
+export const SLEEP_RECOVER = 60;
+export const WORK_ENERGY_COST = 10;
+export const WORK_HUNGER_COST = 5;
+export const WORK_COOLDOWN_MS = 90_000;
+export const TOWN_NEWS_INTERVAL_MS = 600_000;
+
+// Needs system constants — Layer 2: Safety
+export const SECURITY_DECAY_PER_SEC = 0.008; // ~208min full→empty
+export const SECURITY_THRESHOLD = 30;
+
+// Needs system constants — Layer 3: Social
+export const SOCIAL_DECAY_PER_SEC = 0.015; // ~111min full→empty
+export const SOCIAL_THRESHOLD = 30;
+export const SOCIAL_CHAT_RECOVER = 20;
+
+// Needs system constants — Layer 4: Esteem
+export const ESTEEM_DECAY_PER_SEC = 0.006; // ~278min full→empty
+export const ESTEEM_THRESHOLD = 30;
+export const ESTEEM_WORK_RECOVER = 10;
+export const ESTEEM_HELP_RECOVER = 15;
+export const ESTEEM_TRADE_RECOVER = 10;
+
+// Needs system constants — Layer 5: Self-actualization
+export const FULFILLMENT_DECAY_PER_SEC = 0.003; // ~556min full→empty
+export const FULFILLMENT_THRESHOLD = 30;
+export const FULFILLMENT_CREATE_RECOVER = 20;
+export const FULFILLMENT_EXPLORE_RECOVER = 10;
+
+// Maslow gate: lower layers must be above this to pursue higher needs
+export const MASLOW_GATE_THRESHOLD = 50;
+
+// Economy constants
+export const WORK_GOLD_REWARD = 15;
+export const EAT_GOLD_COST = 5;
+export const WELFARE_GOLD = 3;
+export const HELP_GOLD_AMOUNT = 10;

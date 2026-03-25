@@ -16,26 +16,23 @@ export const Character = ({
   isViewer = false,
   speed = 0.1,
   onClick,
+  name,
+  needs,
 }: {
-  // Path to the texture packed image.
   textureUrl: string;
-  // The data for the spritesheet.
   spritesheetData: ISpritesheetData;
-  // The pose of the NPC.
   x: number;
   y: number;
   orientation: number;
   isMoving?: boolean;
-  // Shows a thought bubble if true.
   isThinking?: boolean;
-  // Shows a speech bubble if true.
   isSpeaking?: boolean;
   emoji?: string;
-  // Highlights the player.
   isViewer?: boolean;
-  // The speed of the animation. Can be tuned depending on the side and speed of the NPC.
   speed?: number;
   onClick: () => void;
+  name?: string;
+  needs?: { hunger: number; energy: number; security: number; social: number; esteem: number; fulfillment: number };
 }) => {
   const [spriteSheet, setSpriteSheet] = useState<Spritesheet>();
   useEffect(() => {
@@ -52,12 +49,9 @@ export const Character = ({
     void parseSheet();
   }, []);
 
-  // The first "left" is "right" but reflected.
   const roundedOrientation = Math.floor(orientation / 90);
   const direction = ['right', 'down', 'left', 'up'][roundedOrientation];
 
-  // Prevents the animation from stopping when the texture changes
-  // (see https://github.com/pixijs/pixi-react/issues/359)
   const ref = useRef<PIXI.AnimatedSprite | null>(null);
   useEffect(() => {
     if (isMoving) {
@@ -69,28 +63,18 @@ export const Character = ({
 
   let blockOffset = { x: 0, y: 0 };
   switch (roundedOrientation) {
-    case 2:
-      blockOffset = { x: -20, y: 0 };
-      break;
-    case 0:
-      blockOffset = { x: 20, y: 0 };
-      break;
-    case 3:
-      blockOffset = { x: 0, y: -20 };
-      break;
-    case 1:
-      blockOffset = { x: 0, y: 20 };
-      break;
+    case 2: blockOffset = { x: -20, y: 0 }; break;
+    case 0: blockOffset = { x: 20, y: 0 }; break;
+    case 3: blockOffset = { x: 0, y: -20 }; break;
+    case 1: blockOffset = { x: 0, y: 20 }; break;
   }
 
   return (
     <Container x={x} y={y} interactive={true} pointerdown={onClick} cursor="pointer">
       {isThinking && (
-        // TODO: We'll eventually have separate assets for thinking and speech animations.
         <Text x={-20} y={-10} scale={{ x: -0.8, y: 0.8 }} text={'💭'} anchor={{ x: 0.5, y: 0.5 }} />
       )}
       {isSpeaking && (
-        // TODO: We'll eventually have separate assets for thinking and speech animations.
         <Text x={18} y={-10} scale={0.8} text={'💬'} anchor={{ x: 0.5, y: 0.5 }} />
       )}
       {isViewer && <ViewerIndicator />}
@@ -104,9 +88,50 @@ export const Character = ({
       {emoji && (
         <Text x={0} y={-24} scale={{ x: -0.8, y: 0.8 }} text={emoji} anchor={{ x: 0.5, y: 0.5 }} />
       )}
+      {/* Agent name — pixel-style, subtle */}
+      {name && !isViewer && (
+        <Text
+          x={0} y={14}
+          text={name.split(' ')[0]}
+          anchor={{ x: 0.5, y: 0 }}
+          style={new PIXI.TextStyle({
+            fontSize: 7,
+            fill: 0xe4a672,
+            stroke: 0x181425,
+            strokeThickness: 2,
+            fontFamily: 'Upheaval Pro, monospace',
+            letterSpacing: 0.5,
+          })}
+        />
+      )}
+      {/* Needs indicator — 3 small dots showing top 3 critical needs */}
+      {needs && !isViewer && <NeedsDots needs={needs} />}
     </Container>
   );
 };
+
+// 3 small colored dots showing the state of key needs
+// Colors fade from bright (critical) to dim (fine)
+function NeedsDots({ needs }: { needs: { hunger: number; energy: number; security: number; social: number; esteem: number; fulfillment: number } }) {
+  const entries = [
+    { val: needs.hunger, color: 0x6abe30 },    // green for food
+    { val: needs.energy, color: 0x639bff },     // blue for energy
+    { val: needs.social, color: 0xd77bba },     // pink for social
+  ];
+
+  const draw = useCallback((g: PIXI.Graphics) => {
+    g.clear();
+    entries.forEach((e, i) => {
+      const alpha = e.val > 50 ? 0.3 : e.val > 30 ? 0.7 : 1.0;
+      const dotColor = e.val > 50 ? e.color : e.val > 30 ? 0xfbf236 : 0xac3232;
+      g.beginFill(dotColor, alpha);
+      g.drawCircle(-4 + i * 4, 0, 1.5);
+      g.endFill();
+    });
+  }, [needs.hunger, needs.energy, needs.social]);
+
+  return <Graphics y={-32} draw={draw} />;
+}
 
 function ViewerIndicator() {
   const draw = useCallback((g: PIXI.Graphics) => {

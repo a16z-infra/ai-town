@@ -42,3 +42,11 @@ dist
 
 convex-local*
 convex_local*
+
+# tools (ops)
+tools/logs/
+tools/run/
+tools/status.json
+
+# legacy
+projects/

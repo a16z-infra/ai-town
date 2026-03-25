@@ -1,0 +1,68 @@
+{
+  "generated_at": "2026-03-11T01:29:39.442718+00:00",
+  "projects": {
+    "ai-town": {
+      "display": "AI Town (a16z)",
+      "setup": "installed",
+      "credentials": "ok",
+      "runtime": "stopped",
+      "port": 5174,
+      "pid": null,
+      "blockers": [],
+      "automation": "auto",
+      "cost": "free"
+    },
+    "agent-town": {
+      "display": "Agent Town (OpenClaw)",
+      "setup": "installed",
+      "credentials": "ok",
+      "runtime": "healthy",
+      "port": 3001,
+      "pid": 39726,
+      "blockers": [],
+      "automation": "auto",
+      "cost": "free"
+    },
+    "worldcraft": {
+      "display": "World Craft",
+      "setup": "installed",
+      "credentials": "missing",
+      "runtime": "stopped",
+      "port": 8081,
+      "pid": null,
+      "blockers": [
+        "needs_gemini_api_key",
+        "needs_godot_gui"
+      ],
+      "automation": "manual",
+      "cost": "paid"
+    },
+    "agentsims": {
+      "display": "AgentSims",
+      "setup": "installed",
+      "credentials": "missing",
+      "runtime": "stopped",
+      "port": 8001,
+      "pid": null,
+      "blockers": [
+        "needs_openai_api_key"
+      ],
+      "automation": "auto",
+      "cost": "paid"
+    }
+  },
+  "infra": {
+    "ollama": {
+      "status": "stopped",
+      "models": []
+    },
+    "mysql": {
+      "status": "stopped",
+      "port": 3306
+    },
+    "openclaw_gateway": {
+      "status": "running",
+      "port": 18789
+    }
+  }
+}

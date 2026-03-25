@@ -44,8 +44,27 @@ export const memoryTables = {
   }),
 };
 
+// Short-term memory: recent events, FIFO, max ~20 per agent
+export const shortTermMemoryFields = {
+  playerId,
+  type: v.string(), // 'conversation' | 'event' | 'perception' | 'interaction'
+  content: v.string(),
+  importance: v.number(), // 0-9
+  timestamp: v.number(),
+  // Optional metadata for promotion decisions
+  relatedPlayerId: v.optional(playerId),
+  sentiment: v.optional(v.number()), // -10 to +10
+};
+
+export const shortTermMemoryTable = {
+  shortTermMemories: defineTable(shortTermMemoryFields)
+    .index('playerId', ['playerId', 'timestamp'])
+    .index('playerId_type', ['playerId', 'type', 'timestamp']),
+};
+
 export const agentTables = {
   ...memoryTables,
+  ...shortTermMemoryTable,
   embeddingsCache: defineTable({
     textHash: v.bytes(),
     embedding: v.array(v.float64()),

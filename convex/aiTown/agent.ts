@@ -8,6 +8,7 @@ import {
   AWKWARD_CONVERSATION_TIMEOUT,
   CONVERSATION_COOLDOWN,
   CONVERSATION_DISTANCE,
+  ENERGY_EMERGENCY_THRESHOLD,
   INVITE_ACCEPT_PROBABILITY,
   INVITE_TIMEOUT,
   MAX_CONVERSATION_DURATION,
@@ -20,7 +21,7 @@ import { FunctionArgs } from 'convex/server';
 import { MutationCtx, internalMutation, internalQuery } from '../_generated/server';
 import { distance } from '../util/geometry';
 import { internal } from '../_generated/api';
-import { movePlayer } from './movement';
+import { movePlayer, stopPlayer } from './movement';
 import { insertInput } from './insertInput';
 
 export class Agent {
@@ -62,6 +63,17 @@ export class Agent {
       console.log(`Timing out ${JSON.stringify(this.inProgressOperation)}`);
       delete this.inProgressOperation;
     }
+
+    // Emergency sleep: force leave conversation when energy is critically low
+    const playerNeeds = player.needs ?? { hunger: 100, energy: 100 };
+    if (playerNeeds.energy < ENERGY_EMERGENCY_THRESHOLD) {
+      const existingConversation = game.world.playerConversation(player);
+      if (existingConversation) {
+        console.log(`Agent ${this.id} emergency sleep: leaving conversation`);
+        existingConversation.leave(game, now, player);
+      }
+    }
+
     const conversation = game.world.playerConversation(player);
     const member = conversation?.participants.get(player.id);
 
@@ -70,12 +82,16 @@ export class Agent {
     const doingActivity = player.activity && player.activity.until > now;
     if (doingActivity && (conversation || player.pathfinding)) {
       player.activity!.until = now;
+      if (player.pathfinding) {
+        stopPlayer(player);
+      }
     }
     // If we're not in a conversation, do something.
     // If we aren't doing an activity or moving, do something.
     // If we have been wandering but haven't thought about something to do for
     // a while, do something.
     if (!conversation && !doingActivity && (!player.pathfinding || !recentlyAttemptedInvite)) {
+      const desc = game.agentDescriptions.get(this.id);
       this.startOperation(game, now, 'agentDoSomething', {
         worldId: game.worldId,
         player: player.serialize(),
@@ -86,6 +102,7 @@ export class Agent {
           )
           .map((p) => p.serialize()),
         agent: this.serialize(),
+        agentDescription: desc ? desc.serialize() : undefined,
         map: game.worldMap.serialize(),
       });
       return;
@@ -339,10 +356,15 @@ export const findConversationCandidate = internalQuery({
     worldId: v.id('worlds'),
     player: v.object(serializedPlayer),
     otherFreePlayers: v.array(v.object(serializedPlayer)),
+    archetype: v.optional(v.string()),
   },
-  handler: async (ctx, { now, worldId, player, otherFreePlayers }) => {
+  handler: async (ctx, { now, worldId, player, otherFreePlayers, archetype }) => {
     const { position } = player;
-    const candidates = [];
+    const candidates: { id: string; position: { x: number; y: number }; otherArchetype?: string; trust: number }[] = [];
+
+    // Look up archetype for each candidate via their agent description
+    const world = await ctx.db.get(worldId);
+    const agents = world?.agents ?? [];
 
     for (const otherPlayer of otherFreePlayers) {
       // Find the latest conversation we're both members of.
@@ -358,11 +380,61 @@ export const findConversationCandidate = internalQuery({
           continue;
         }
       }
-      candidates.push({ id: otherPlayer.id, position });
+      // Look up the other player's archetype
+      let otherArchetype: string | undefined;
+      const otherAgent = agents.find((a: { playerId: string }) => a.playerId === otherPlayer.id);
+      if (otherAgent) {
+        const otherDesc = await ctx.db
+          .query('agentDescriptions')
+          .withIndex('worldId', (q) => q.eq('worldId', worldId).eq('agentId', otherAgent.id))
+          .first();
+        otherArchetype = otherDesc?.archetype;
+      }
+      // Look up trust between current player and candidate
+      const [p1, p2] = player.id < otherPlayer.id ? [player.id, otherPlayer.id] : [otherPlayer.id, player.id];
+      const rel = await ctx.db
+        .query('relationships')
+        .withIndex('edge', (q) => q.eq('worldId', worldId).eq('player1', p1).eq('player2', p2))
+        .first();
+      const trust = rel?.trustValue ?? 0;
+
+      candidates.push({ id: otherPlayer.id, position: otherPlayer.position, otherArchetype, trust });
     }
 
-    // Sort by distance and take the nearest candidate.
-    candidates.sort((a, b) => distance(a.position, position) - distance(b.position, position));
-    return candidates[0]?.id;
+    if (candidates.length === 0) return undefined;
+
+    // Filter out agents with strongly negative trust (avoid enemies)
+    // Non-villain agents avoid those they deeply distrust; villains target anyone
+    const filtered = archetype === 'villain'
+      ? candidates
+      : candidates.filter((c) => c.trust > -30);
+
+    if (filtered.length === 0) return undefined;
+
+    // Sorting: archetype preference + trust bonus + distance
+    filtered.sort((a, b) => {
+      let aScore = 0, bScore = 0;
+      if (archetype === 'villain') {
+        // Villains prefer normal agents (easier targets), avoid guardians
+        aScore += a.otherArchetype === 'normal' ? -10 : a.otherArchetype === 'guardian' ? 10 : 0;
+        bScore += b.otherArchetype === 'normal' ? -10 : b.otherArchetype === 'guardian' ? 10 : 0;
+      } else if (archetype === 'guardian') {
+        aScore += a.otherArchetype === 'villain' ? -10 : 0;
+        bScore += b.otherArchetype === 'villain' ? -10 : 0;
+      }
+      // Trust has strong influence: higher trust = much more preferred
+      // Negative trust = heavy penalty (agents actively avoid distrusted others)
+      aScore -= a.trust * 0.5;
+      bScore -= b.trust * 0.5;
+      // Extra penalty for negative trust (asymmetric: distrust weighs more than trust attracts)
+      if (a.trust < 0) aScore += Math.abs(a.trust) * 0.3;
+      if (b.trust < 0) bScore += Math.abs(b.trust) * 0.3;
+      // Distance tiebreaker
+      aScore += distance(a.position, position) * 0.1;
+      bScore += distance(b.position, position) * 0.1;
+      return aScore - bScore;
+    });
+
+    return filtered[0]?.id;
   },
 });

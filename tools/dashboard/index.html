@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stanford Town — Dashboard</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --border: #2a2d3a;
+    --text: #e4e4e7;
+    --muted: #71717a;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #eab308;
+    --blue: #3b82f6;
+    --purple: #a855f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Mono', 'Fira Code', monospace;
+    background: var(--bg);
+    color: var(--text);
+    padding: 2rem;
+    min-height: 100vh;
+  }
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-bottom: 2rem;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--blue); }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+  .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  .badge {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .badge-healthy { background: rgba(34,197,94,0.15); color: var(--green); }
+  .badge-stopped { background: rgba(113,113,122,0.15); color: var(--muted); }
+  .badge-unhealthy { background: rgba(234,179,8,0.15); color: var(--yellow); }
+  .badge-starting { background: rgba(59,130,246,0.15); color: var(--blue); }
+  .badge-missing { background: rgba(239,68,68,0.15); color: var(--red); }
+  .badge-free { background: rgba(34,197,94,0.1); color: var(--green); }
+  .badge-paid { background: rgba(168,85,247,0.1); color: var(--purple); }
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.3rem 0;
+    font-size: 0.82rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-label { color: var(--muted); }
+  .detail-value { font-weight: 500; }
+  .link {
+    color: var(--blue);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .link:hover { text-decoration: underline; }
+  .blockers {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(239,68,68,0.08);
+    border-radius: 6px;
+    font-size: 0.78rem;
+    color: var(--red);
+  }
+  .infra-section { margin-top: 1rem; }
+  .infra-section h2 {
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .infra-grid {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .infra-chip {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 0.82rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .dot-green { background: var(--green); }
+  .dot-red { background: var(--red); }
+  .dot-gray { background: var(--muted); }
+  .footer {
+    margin-top: 2rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.75rem;
+  }
+  .refresh-btn {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-family: inherit;
+  }
+  .refresh-btn:hover { border-color: var(--blue); }
+  .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+  }
+  .auto-refresh {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+  <div class="header-row">
+    <div>
+      <h1>Stanford Town</h1>
+      <div class="subtitle" id="timestamp">Loading...</div>
+    </div>
+    <div style="display:flex;gap:0.5rem;align-items:center">
+      <div class="auto-refresh">
+        <input type="checkbox" id="autoRefresh" checked>
+        <label for="autoRefresh">Auto-refresh (10s)</label>
+      </div>
+      <button class="refresh-btn" onclick="fetchStatus()">↻ Refresh</button>
+    </div>
+  </div>
+
+  <div class="grid" id="projects"></div>
+
+  <div class="infra-section">
+    <h2>Infrastructure</h2>
+    <div class="infra-grid" id="infra"></div>
+  </div>
+
+  <div class="footer">
+    Stanford Town — <code>python3 lab/lab.py dashboard</code>
+  </div>
+
+<script>
+const STATUS_URL = '/status.json';
+let refreshTimer = null;
+
+async function fetchStatus() {
+  try {
+    const resp = await fetch(STATUS_URL + '?t=' + Date.now());
+    const data = await resp.json();
+    render(data);
+  } catch (e) {
+    document.getElementById('timestamp').textContent = 'Failed to load status: ' + e.message;
+  }
+}
+
+function render(data) {
+  // Timestamp
+  const ts = new Date(data.generated_at);
+  document.getElementById('timestamp').textContent =
+    `Last updated: ${ts.toLocaleString()}`;
+
+  // Projects
+  const grid = document.getElementById('projects');
+  grid.innerHTML = '';
+  for (const [key, proj] of Object.entries(data.projects)) {
+    const port = proj.port || '—';
+    const isRunning = proj.runtime === 'healthy' || proj.runtime === 'starting';
+    const url = isRunning ? `http://localhost:${port}` : null;
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-header">
+        <span class="card-title">${proj.display || key}</span>
+        <div style="display:flex;gap:4px">
+          <span class="badge badge-${proj.cost || 'free'}">${proj.cost || 'free'}</span>
+          <span class="badge badge-${proj.runtime}">${proj.runtime}</span>
+        </div>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Setup</span>
+        <span class="detail-value">${proj.setup}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Credentials</span>
+        <span class="detail-value">${proj.credentials}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Port</span>
+        <span class="detail-value">${port}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">PID</span>
+        <span class="detail-value">${proj.pid || '—'}</span>
+      </div>
+      ${url ? `<div class="detail-row">
+        <span class="detail-label">URL</span>
+        <a class="link" href="${url}" target="_blank">${url}</a>
+      </div>` : ''}
+      ${proj.blockers && proj.blockers.length > 0 ? `
+        <div class="blockers">⚠ ${proj.blockers.join(', ')}</div>
+      ` : ''}
+    `;
+    grid.appendChild(card);
+  }
+
+  // Infrastructure
+  const infraEl = document.getElementById('infra');
+  infraEl.innerHTML = '';
+  for (const [key, info] of Object.entries(data.infra)) {
+    const running = info.status === 'running';
+    const dotClass = running ? 'dot-green' : 'dot-gray';
+    let extra = '';
+    if (info.port) extra += ` :${info.port}`;
+    if (info.models && info.models.length > 0) extra += ` (${info.models.join(', ')})`;
+
+    const chip = document.createElement('div');
+    chip.className = 'infra-chip';
+    chip.innerHTML = `<span class="dot ${dotClass}"></span>${key}${extra}`;
+    infraEl.appendChild(chip);
+  }
+}
+
+// Auto-refresh
+document.getElementById('autoRefresh').addEventListener('change', (e) => {
+  if (e.target.checked) {
+    refreshTimer = setInterval(fetchStatus, 10000);
+  } else {
+    clearInterval(refreshTimer);
+  }
+});
+
+fetchStatus();
+refreshTimer = setInterval(fetchStatus, 10000);
+</script>
+</body>
+</html>
