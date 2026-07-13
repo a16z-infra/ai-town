@@ -7,6 +7,12 @@ const OLLAMA_EMBEDDING_DIMENSION = 1024;
 export const EMBEDDING_DIMENSION: number = OLLAMA_EMBEDDING_DIMENSION;
 
 export function detectMismatchedLLMProvider() {
+  // If BAREWIRE_API_KEY is set, assume Barewire is the intended provider,
+  // and getLLMConfig will handle its specific dimension checks.
+  // This prevents false positives for missing upstream API keys (e.g., OpenAI).
+  if (process.env.BAREWIRE_API_KEY) {
+    return;
+  }
   switch (EMBEDDING_DIMENSION) {
     case OPENAI_EMBEDDING_DIMENSION:
       if (!process.env.OPENAI_API_KEY) {
@@ -35,7 +41,7 @@ export function detectMismatchedLLMProvider() {
 }
 
 export interface LLMConfig {
-  provider: 'openai' | 'together' | 'ollama' | 'custom';
+  provider: 'openai' | 'together' | 'ollama' | 'custom' | 'barewire';
   url: string; // Should not have a trailing slash
   chatModel: string;
   embeddingModel: string;
@@ -45,6 +51,26 @@ export interface LLMConfig {
 
 export function getLLMConfig(): LLMConfig {
   let provider = process.env.LLM_PROVIDER;
+
+  // New: Barewire Integration
+  // If BAREWIRE_API_KEY is set, Barewire takes precedence as the LLM provider.
+  if (process.env.BAREWIRE_API_KEY) {
+    if (EMBEDDING_DIMENSION !== OPENAI_EMBEDDING_DIMENSION) {
+      throw new Error(
+        'EMBEDDING_DIMENSION must be 1536 when using Barewire, as it typically proxies OpenAI-compatible models. ' +
+        'Please set EMBEDDING_DIMENSION in convex/util/llm.ts or ensure your Barewire configuration matches.'
+      );
+    }
+    return {
+      provider: 'barewire',
+      url: process.env.BAREWIRE_URL ?? 'https://api.barewire.ai/v1',
+      chatModel: process.env.BAREWIRE_CHAT_MODEL ?? 'gpt-4o-mini', // Default to common OpenAI model
+      embeddingModel: process.env.BAREWIRE_EMBEDDING_MODEL ?? 'text-embedding-ada-002', // Default to common OpenAI model
+      stopWords: [], // Barewire handles upstream stop words or passes them through
+      apiKey: process.env.BAREWIRE_API_KEY,
+    };
+  }
+
   if (provider ? provider === 'openai' : process.env.OPENAI_API_KEY) {
     if (EMBEDDING_DIMENSION !== OPENAI_EMBEDDING_DIMENSION) {
       throw new Error('EMBEDDING_DIMENSION must be 1536 for OpenAI');
