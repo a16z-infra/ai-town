@@ -7,12 +7,6 @@ const OLLAMA_EMBEDDING_DIMENSION = 1024;
 export const EMBEDDING_DIMENSION: number = OLLAMA_EMBEDDING_DIMENSION;
 
 export function detectMismatchedLLMProvider() {
-  // If BAREWIRE_API_KEY is set, assume Barewire is the intended provider,
-  // and getLLMConfig will handle its specific dimension checks.
-  // This prevents false positives for missing upstream API keys (e.g., OpenAI).
-  if (process.env.BAREWIRE_API_KEY) {
-    return;
-  }
   switch (EMBEDDING_DIMENSION) {
     case OPENAI_EMBEDDING_DIMENSION:
       if (!process.env.OPENAI_API_KEY) {
@@ -43,39 +37,23 @@ export function detectMismatchedLLMProvider() {
 export interface LLMConfig {
   provider: 'openai' | 'together' | 'ollama' | 'custom' | 'barewire';
   url: string; // Should not have a trailing slash
+  targetUrl?: string; // The URL of the upstream LLM if proxied by Barewire
   chatModel: string;
   embeddingModel: string;
   stopWords: string[];
   apiKey: string | undefined;
+  barewireApiKey?: string; // API key for Barewire itself, if needed
 }
 
 export function getLLMConfig(): LLMConfig {
-  let provider = process.env.LLM_PROVIDER;
+  let baseConfig: LLMConfig;
+  const providerEnv = process.env.LLM_PROVIDER;
 
-  // New: Barewire Integration
-  // If BAREWIRE_API_KEY is set, Barewire takes precedence as the LLM provider.
-  if (process.env.BAREWIRE_API_KEY) {
-    if (EMBEDDING_DIMENSION !== OPENAI_EMBEDDING_DIMENSION) {
-      throw new Error(
-        'EMBEDDING_DIMENSION must be 1536 when using Barewire, as it typically proxies OpenAI-compatible models. ' +
-        'Please set EMBEDDING_DIMENSION in convex/util/llm.ts or ensure your Barewire configuration matches.'
-      );
-    }
-    return {
-      provider: 'barewire',
-      url: process.env.BAREWIRE_URL ?? 'https://api.barewire.ai/v1',
-      chatModel: process.env.BAREWIRE_CHAT_MODEL ?? 'gpt-4o-mini', // Default to common OpenAI model
-      embeddingModel: process.env.BAREWIRE_EMBEDDING_MODEL ?? 'text-embedding-ada-002', // Default to common OpenAI model
-      stopWords: [], // Barewire handles upstream stop words or passes them through
-      apiKey: process.env.BAREWIRE_API_KEY,
-    };
-  }
-
-  if (provider ? provider === 'openai' : process.env.OPENAI_API_KEY) {
+  if (providerEnv === 'openai' || (!providerEnv && process.env.OPENAI_API_KEY)) {
     if (EMBEDDING_DIMENSION !== OPENAI_EMBEDDING_DIMENSION) {
       throw new Error('EMBEDDING_DIMENSION must be 1536 for OpenAI');
     }
-    return {
+    baseConfig = {
       provider: 'openai',
       url: 'https://api.openai.com',
       chatModel: process.env.OPENAI_CHAT_MODEL ?? 'gpt-4o-mini',
@@ -83,12 +61,11 @@ export function getLLMConfig(): LLMConfig {
       stopWords: [],
       apiKey: process.env.OPENAI_API_KEY,
     };
-  }
-  if (process.env.TOGETHER_API_KEY) {
+  } else if (providerEnv === 'together' || (!providerEnv && process.env.TOGETHER_API_KEY)) {
     if (EMBEDDING_DIMENSION !== TOGETHER_EMBEDDING_DIMENSION) {
       throw new Error('EMBEDDING_DIMENSION must be 768 for Together.ai');
     }
-    return {
+    baseConfig = {
       provider: 'together',
       url: 'https://api.together.xyz',
       chatModel: process.env.TOGETHER_CHAT_MODEL ?? 'meta-llama/Llama-3-8b-chat-hf',
@@ -97,15 +74,15 @@ export function getLLMConfig(): LLMConfig {
       stopWords: ['<|eot_id|>'],
       apiKey: process.env.TOGETHER_API_KEY,
     };
-  }
-  if (process.env.LLM_API_URL) {
+  } else if (providerEnv === 'custom' || (!providerEnv && process.env.LLM_API_URL)) {
     const apiKey = process.env.LLM_API_KEY;
     const url = process.env.LLM_API_URL;
     const chatModel = process.env.LLM_MODEL;
-    if (!chatModel) throw new Error('LLM_MODEL is required');
+    if (!url) throw new Error('LLM_API_URL is required for custom provider');
+    if (!chatModel) throw new Error('LLM_MODEL is required for custom provider');
     const embeddingModel = process.env.LLM_EMBEDDING_MODEL;
-    if (!embeddingModel) throw new Error('LLM_EMBEDDING_MODEL is required');
-    return {
+    if (!embeddingModel) throw new Error('LLM_EMBEDDING_MODEL is required for custom provider');
+    baseConfig = {
       provider: 'custom',
       url,
       chatModel,
@@ -113,34 +90,62 @@ export function getLLMConfig(): LLMConfig {
       stopWords: [],
       apiKey,
     };
+  } else {
+    // Assume Ollama or throw error for unknown embedding dimension
+    if (EMBEDDING_DIMENSION !== OLLAMA_EMBEDDING_DIMENSION) {
+      detectMismatchedLLMProvider();
+      throw new Error(
+        `Unknown EMBEDDING_DIMENSION ${EMBEDDING_DIMENSION} found` +
+          `. See convex/util/llm.ts for details.`, 
+      );
+    }
+    baseConfig = {
+      provider: 'ollama',
+      url: process.env.OLLAMA_HOST ?? 'http://127.0.0.1:11434',
+      chatModel: process.env.OLLAMA_MODEL ?? 'llama3',
+      embeddingModel: process.env.OLLAMA_EMBEDDING_MODEL ?? 'mxbai-embed-large',
+      stopWords: ['<|eot_id|>'],
+      apiKey: undefined,
+    };
   }
-  // Assume Ollama
-  if (EMBEDDING_DIMENSION !== OLLAMA_EMBEDDING_DIMENSION) {
-    detectMismatchedLLMProvider();
-    throw new Error(
-      `Unknown EMBEDDING_DIMENSION ${EMBEDDING_DIMENSION} found` +
-        `. See convex/util/llm.ts for details.`,
-    );
+
+  // If BAREWIRE_URL is set, wrap the configuration to route through Barewire.
+  // Barewire will use X-Barewire-Target-Url to know where to forward the request.
+  if (process.env.BAREWIRE_URL) {
+    const barewireUrl = process.env.BAREWIRE_URL.replace(/\/$/, ''); // Ensure no trailing slash
+    return {
+      ...baseConfig,
+      provider: 'barewire',
+      targetUrl: baseConfig.url, // Store the original LLM URL for Barewire to use
+      url: barewireUrl, // Barewire becomes the new endpoint
+      // Barewire might have its own API key, otherwise it will use the underlying LLM's API key
+      barewireApiKey: process.env.BAREWIRE_API_KEY,
+    };
   }
-  // Alternative embedding model:
-  // embeddingModel: 'llama3'
-  // const OLLAMA_EMBEDDING_DIMENSION = 4096,
-  return {
-    provider: 'ollama',
-    url: process.env.OLLAMA_HOST ?? 'http://127.0.0.1:11434',
-    chatModel: process.env.OLLAMA_MODEL ?? 'llama3',
-    embeddingModel: process.env.OLLAMA_EMBEDDING_MODEL ?? 'mxbai-embed-large',
-    stopWords: ['<|eot_id|>'],
-    apiKey: undefined,
-  };
+
+  return baseConfig;
 }
 
-const AuthHeaders = (): Record<string, string> =>
-  getLLMConfig().apiKey
-    ? {
-        Authorization: 'Bearer ' + getLLMConfig().apiKey,
-      }
-    : {};
+const AuthHeaders = (config: LLMConfig): Record<string, string> => {
+  const headers: Record<string, string> = {};
+  if (config.provider === 'barewire') {
+    if (config.barewireApiKey) {
+      headers['Authorization'] = `Bearer ${config.barewireApiKey}`;
+    }
+    if (config.targetUrl) {
+      // Barewire often uses a header to indicate the target LLM URL.
+      // X-Barewire-Target-Url is a common convention.
+      headers['X-Barewire-Target-Url'] = config.targetUrl;
+    }
+    // Also pass the original LLM API key if it exists, for Barewire to forward.
+    if (config.apiKey) {
+      headers['X-Barewire-LLM-API-Key'] = config.apiKey;
+    }
+  } else if (config.apiKey) {
+    headers['Authorization'] = `Bearer ${config.apiKey}`;
+  }
+  return headers;
+};
 
 // Overload for non-streaming
 export async function chatCompletion(
@@ -177,7 +182,7 @@ export async function chatCompletion(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...AuthHeaders(),
+        ...AuthHeaders(config),
       },
 
       body: JSON.stringify(body),
@@ -247,7 +252,7 @@ export async function fetchEmbeddingBatch(texts: string[]) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...AuthHeaders(),
+        ...AuthHeaders(config),
       },
 
       body: JSON.stringify({
@@ -289,7 +294,7 @@ export async function fetchModeration(content: string) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...AuthHeaders(),
+        ...AuthHeaders(config),
       },
 
       body: JSON.stringify({
@@ -718,6 +723,7 @@ export async function ollamaFetchEmbedding(text: string) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...AuthHeaders(config), // Pass config to AuthHeaders for Barewire-specific headers
       },
       body: JSON.stringify({ model: config.embeddingModel, prompt: text }),
     });
