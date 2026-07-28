@@ -5,6 +5,7 @@ import a16zImg from '../assets/a16z.png';
 import convexImg from '../assets/convex.svg';
 import starImg from '../assets/star.svg';
 import helpImg from '../assets/help.svg';
+import analyticsImg from '../assets/analytics.svg';
 // import { UserButton } from '@clerk/clerk-react';
 // import { Authenticated, Unauthenticated } from 'convex/react';
 // import LoginButton from './components/buttons/LoginButton.tsx';
@@ -16,6 +17,10 @@ import InteractButton from './components/buttons/InteractButton.tsx';
 import FreezeButton from './components/FreezeButton.tsx';
 import { MAX_HUMAN_PLAYERS } from '../convex/constants.ts';
 import PoweredByConvex from './components/PoweredByConvex.tsx';
+
+// Vite doesn't guarantee a trailing slash on BASE_URL (it's `/ai-town` here), so join explicitly
+// rather than interpolating — otherwise the link resolves to `/ai-townanalytics.html`.
+const analyticsUrl = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/analytics.html`;
 
 export default function Home() {
   const [helpModalOpen, setHelpModalOpen] = useState(false);
@@ -96,6 +101,14 @@ export default function Home() {
               Star
             </Button>
             <InteractButton />
+            <Button
+              href={analyticsUrl}
+              target="_blank"
+              imgUrl={analyticsImg}
+              title="Browse every conversation, memory and interaction"
+            >
+              Analytics
+            </Button>
             <Button imgUrl={helpImg} onClick={() => setHelpModalOpen(true)}>
               Help
             </Button>

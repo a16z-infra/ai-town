@@ -58,7 +58,10 @@ export const aiTownTables = {
     lastMessage: serializedConversation.lastMessage,
     numMessages: serializedConversation.numMessages,
     participants: v.array(playerId),
-  }).index('worldId', ['worldId', 'id']),
+  })
+    .index('worldId', ['worldId', 'id'])
+    // Lets analytics page through every conversation in a world, most recently ended first.
+    .index('worldId_ended', ['worldId', 'ended']),
   archivedAgents: defineTable({ worldId: v.id('worlds'), ...serializedAgent }).index('worldId', [
     'worldId',
     'id',
