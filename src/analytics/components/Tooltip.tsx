@@ -23,12 +23,17 @@ export function useTooltip() {
     [show, hide],
   );
 
+  // Near the bottom of the viewport, flip above the cursor instead of overflowing off-screen.
+  // Translating by its own height avoids having to measure the tooltip first.
+  const flipUp = tooltip !== null && tooltip.y + 110 > window.innerHeight;
+
   const node = tooltip ? (
     <div
       className="chart-tooltip"
       style={{
         left: Math.max(8, Math.min(tooltip.x + 12, window.innerWidth - 220)),
-        top: tooltip.y + 14,
+        top: flipUp ? tooltip.y - 14 : tooltip.y + 14,
+        transform: flipUp ? 'translateY(-100%)' : undefined,
       }}
     >
       {tooltip.content}

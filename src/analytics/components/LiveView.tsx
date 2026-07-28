@@ -77,7 +77,7 @@ export default function LiveView({
             {characterName ? `${characterName} feed` : 'Town feed'}
           </h2>
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            last {messages?.length ?? 0} messages
+            {messages === undefined ? 'loading…' : `last ${messages.length} messages`}
             {characterName && <> · all conversations involving {characterName}</>}
           </span>
           {playerId && (

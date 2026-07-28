@@ -47,6 +47,15 @@ export default function Transcript({
     }
   }, [messageCount, isActive]);
 
+  // Without this the pin above is write-once: opening a conversation clears it and nothing ever
+  // sets it again, so a live transcript would silently stop following.
+  const onScroll = () => {
+    const el = scrollRef.current;
+    if (el) {
+      pinnedToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+    }
+  };
+
   if (!conversationId) {
     return (
       <div
@@ -116,7 +125,7 @@ export default function Transcript({
         </div>
       </div>
 
-      <div ref={scrollRef} className="scroll-y flex-1 px-4 py-4">
+      <div ref={scrollRef} onScroll={onScroll} className="scroll-y flex-1 px-4 py-4">
         {messages.length === 0 && (
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             This conversation ended before anyone said anything.

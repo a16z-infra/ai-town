@@ -333,12 +333,16 @@ export const recentMessages = query({
       return messages.map(decorate);
     }
 
-    // Newest conversations first: any in-progress one (not yet archived), then the archive.
-    const conversationIds = new Set<string>();
+    // Newest conversations first: any in-progress one (not yet archived) leads, then the archive
+    // in descending end time. `endedAt` is the upper bound on when a message in it could have been
+    // sent, which is what makes the early exit below sound.
+    const ordered: { id: string; endedAt: number }[] = [];
+    const seen = new Set<string>();
     const world = await ctx.db.get(args.worldId);
     for (const conversation of world?.conversations ?? []) {
       if (conversation.participants.some((p) => p.playerId === forPlayer)) {
-        conversationIds.add(conversation.id);
+        seen.add(conversation.id);
+        ordered.push({ id: conversation.id, endedAt: Number.POSITIVE_INFINITY });
       }
     }
     const edges = await ctx.db
@@ -347,21 +351,41 @@ export const recentMessages = query({
       .order('desc')
       .take(MAX_TAIL_CONVERSATIONS);
     for (const edge of edges) {
-      conversationIds.add(edge.conversationId);
+      if (!seen.has(edge.conversationId)) {
+        seen.add(edge.conversationId);
+        ordered.push({ id: edge.conversationId, endedAt: edge.ended });
+      }
     }
 
-    const collected: Doc<'messages'>[] = [];
-    for (const id of conversationIds) {
+    let collected: Doc<'messages'>[] = [];
+    let oldestKept = Number.NEGATIVE_INFINITY;
+    for (const entry of ordered) {
+      // Conversations arrive newest-first and no message outlives its conversation, so once the
+      // page is full and this conversation ended before the oldest message we're still keeping,
+      // neither it nor anything behind it can displace a result. Stop reading.
+      if (collected.length >= limit && entry.endedAt <= oldestKept) {
+        break;
+      }
+      // Taking `limit` per conversation is enough: a message only survives the merge if it is
+      // among its own conversation's newest `limit`.
       const messages = await ctx.db
         .query('messages')
         .withIndex('conversationId', (q) =>
-          q.eq('worldId', args.worldId).eq('conversationId', id),
-        ).order('desc')
-        .take(MAX_TAIL_MESSAGES);
+          q.eq('worldId', args.worldId).eq('conversationId', entry.id),
+        )
+        .order('desc')
+        .take(limit);
       collected.push(...messages);
+      collected.sort((a, b) => b._creationTime - a._creationTime);
+      if (collected.length > limit) {
+        collected = collected.slice(0, limit);
+      }
+      if (collected.length >= limit) {
+        oldestKept = collected[collected.length - 1]._creationTime;
+      }
     }
-    collected.sort((a, b) => a._creationTime - b._creationTime);
-    return collected.slice(-limit).map(decorate);
+    collected.reverse();
+    return collected.map(decorate);
   },
 });
 
@@ -378,7 +402,7 @@ export const searchMessages = query({
   handler: async (ctx, args) => {
     const search = args.query.trim();
     if (!search) {
-      return [];
+      return { results: [], truncated: false, limit: 0 };
     }
     const limit = Math.min(args.limit ?? 50, MAX_SEARCH_RESULTS);
     const author = args.playerId;
@@ -390,13 +414,19 @@ export const searchMessages = query({
       })
       .take(limit);
     const names = await characterNames(ctx, args.worldId);
-    return messages.map((m) => ({
-      _id: m._id,
-      _creationTime: m._creationTime,
-      conversationId: m.conversationId,
-      text: m.text,
-      ...named(names, m.author),
-    }));
+    return {
+      results: messages.map((m) => ({
+        _id: m._id,
+        _creationTime: m._creationTime,
+        conversationId: m.conversationId,
+        text: m.text,
+        ...named(names, m.author),
+      })),
+      // A full page means the search index had more to give; the count shown is a floor, not a
+      // total, and the UI must say so rather than implying these are all the matches.
+      truncated: messages.length === limit,
+      limit,
+    };
   },
 });
 

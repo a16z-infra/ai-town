@@ -10,6 +10,7 @@ export type ConversationSummary = FunctionReturnType<
 >['page'][number];
 export type Transcript = FunctionReturnType<typeof api.analytics.transcript>;
 export type TailMessage = FunctionReturnType<typeof api.analytics.recentMessages>[number];
+export type SearchHits = FunctionReturnType<typeof api.analytics.searchMessages>;
 export type Memory = FunctionReturnType<typeof api.analytics.memories>['page'][number];
 export type Stats = FunctionReturnType<typeof api.analytics.stats>;
 

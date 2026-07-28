@@ -3,6 +3,7 @@ import { usePaginatedQuery, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
 import { compact, dateTime, duration } from '../format';
+import { SearchHits } from '../types';
 import Swatch from './Swatch';
 import Transcript from './Transcript';
 
@@ -180,16 +181,7 @@ function SearchResults({
   selected,
   onOpen,
 }: {
-  hits:
-    | {
-        _id: string;
-        _creationTime: number;
-        conversationId: string;
-        text: string;
-        playerId: string;
-        name: string;
-      }[]
-    | undefined;
+  hits: SearchHits | undefined;
   search: string;
   colors: Map<string, string>;
   selected: string | undefined;
@@ -202,7 +194,7 @@ function SearchResults({
       </div>
     );
   }
-  if (hits.length === 0) {
+  if (hits.results.length === 0) {
     return (
       <div className="p-4 text-sm" style={{ color: 'var(--text-muted)' }}>
         No messages match “{search}”.
@@ -212,9 +204,16 @@ function SearchResults({
   return (
     <>
       <div className="px-3 py-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-        {compact(hits.length)} matching {hits.length === 1 ? 'message' : 'messages'}
+        {hits.truncated ? (
+          <>showing the first {compact(hits.limit)} matches — narrow the search to see fewer</>
+        ) : (
+          <>
+            {compact(hits.results.length)} matching{' '}
+            {hits.results.length === 1 ? 'message' : 'messages'}
+          </>
+        )}
       </div>
-      {hits.map((hit) => (
+      {hits.results.map((hit) => (
         <button
           key={hit._id}
           className="row-button"

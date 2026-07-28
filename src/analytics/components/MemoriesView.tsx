@@ -1,4 +1,4 @@
-import { usePaginatedQuery } from 'convex/react';
+import { usePaginatedQuery, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
 import { Character } from '../types';
@@ -35,6 +35,12 @@ export default function MemoriesView({
     { initialNumItems: 20 },
   );
 
+  // The `memories` table has no worldId column and game ids restart per world, so this list cannot
+  // be scoped to the selected world. It only matters with more than one world in a deployment, so
+  // say so exactly then rather than crying wolf in the normal single-world case.
+  const worlds = useQuery(api.analytics.worlds);
+  const mayMixWorlds = (worlds?.length ?? 1) > 1;
+
   if (!playerId) {
     return (
       <div
@@ -65,6 +71,16 @@ export default function MemoriesView({
       </div>
 
       <div className="scroll-y flex-1 px-4 py-4">
+        {mayMixWorlds && (
+          <p
+            className="panel p-2 mb-3 max-w-3xl text-xs"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            This deployment has more than one world. Memories aren’t stored with a world id, and
+            character ids repeat across worlds, so this list may include memories from another
+            world.
+          </p>
+        )}
         {memories.status === 'LoadingFirstPage' && (
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
             Loading…
