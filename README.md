@@ -431,27 +431,77 @@ If you have existing data you want to clear, you can run
 
 ### Adding Auth (Optional)
 
-You can add clerk auth back in with `git revert b44a436`. Or just look at that diff for what changed
-to remove it.
+Authentication lets users log in and join the town as a human player, enabling direct
+conversations with AI characters. This project uses [Clerk](https://clerk.com/) for auth.
 
-**Make a Clerk account**
+**Prerequisites:** The auth-enabled code lives on the `clerk-auth` branch. To enable it:
 
-- Go to https://dashboard.clerk.com/ and click on "Add Application"
-- Name your application and select the sign-in providers you would like to offer users
-- Create Application
-- Add `VITE_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` to `.env.local`
+```sh
+git cherry-pick <clerk-auth-commit>
+```
+
+Or merge the `clerk-auth` branch into your working branch.
+
+This restores Clerk integration across 5 files:
+- `convex/auth.config.js` — Convex JWT validation config
+- `convex/world.ts` — Auth-gated mutations (join, leave, chat)
+- `src/App.tsx` — Login/logout UI
+- `src/components/ConvexClientProvider.tsx` — ClerkProvider wrapper
+- `src/components/buttons/InteractButton.tsx` — Sign-in button for unauthenticated users
+
+**Step 1: Create a Clerk Application**
+
+1. Go to https://dashboard.clerk.com/ and click **"Add Application"**
+2. Name your application (e.g. "AI Town")
+3. Select the sign-in providers you want (Email, Google, GitHub, etc.)
+4. Click **"Create Application"**
+
+**Step 2: Get your API keys**
+
+From the Clerk dashboard, go to **API Keys** and copy:
+- **Publishable Key** (starts with `pk_`)
+- **Secret Key** (starts with `sk_`)
+
+Add them to your `.env.local` file:
 
 ```bash
 VITE_CLERK_PUBLISHABLE_KEY=pk_***
 CLERK_SECRET_KEY=sk_***
 ```
 
-- Go to JWT Templates and create a new Convex Template.
-- Copy the JWKS endpoint URL for use below.
+If deploying to Vercel, also add these as environment variables in your Vercel project settings.
+
+**Step 3: Create a JWT Template for Convex**
+
+1. In the Clerk dashboard, go to **JWT Templates**
+2. Click **"New template"** and select **"Convex"**
+3. Keep the default settings and click **"Save"**
+4. Copy the **Issuer URL** (looks like `https://your-app.clerk.accounts.dev/`)
+
+**Step 4: Set the Clerk Issuer URL in Convex**
 
 ```sh
-npx convex env set CLERK_ISSUER_URL # e.g. https://your-issuer-url.clerk.accounts.dev/
+# For local development
+npx convex env set CLERK_ISSUER_URL "https://your-app.clerk.accounts.dev/"
+
+# For production
+npx convex env set CLERK_ISSUER_URL "https://your-app.clerk.accounts.dev/" --prod
 ```
+
+**Step 5: Wipe and re-initialize (if you have existing data)**
+
+If you previously ran the app without auth, the existing player data uses placeholder
+identifiers. Reset the world to start fresh:
+
+```sh
+npx convex run testing:wipeAllTables
+npx convex run init
+```
+
+**Step 6: Verify**
+
+Run `npm run dev` and visit http://localhost:5173. You should see a **"Log in"** button in the
+top-right corner. After logging in, the **"Interact"** button will let you join the town.
 
 ### Deploy the frontend to Vercel
 
