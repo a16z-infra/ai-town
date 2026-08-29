@@ -19,7 +19,14 @@ export default defineSchema({
     worldId: v.optional(v.id('worlds')),
   })
     .index('conversationId', ['worldId', 'conversationId'])
-    .index('messageUuid', ['conversationId', 'messageUuid']),
+    .index('messageUuid', ['conversationId', 'messageUuid'])
+    // Convex appends `_creationTime` to every index, so an index on `worldId` alone
+    // yields a town-wide message feed in chronological order (used by the analytics live tail).
+    .index('worldId', ['worldId'])
+    .searchIndex('text', {
+      searchField: 'text',
+      filterFields: ['worldId', 'author'],
+    }),
 
   ...agentTables,
   ...aiTownTables,

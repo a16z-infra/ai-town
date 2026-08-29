@@ -26,6 +26,7 @@ above) are written in Python.
 - 💻️ [Windows Pre-requisites](#windows-installation)
 - 🤖 [Configure your LLM of choice](#connect-an-llm) (Ollama, OpenAI, Together.ai, ...)
 - 👤 [Customize - YOUR OWN simulated world](#customize-your-own-simulation)
+- 📊 [Reading conversations with the analytics client](#analytics-client)
 - 👩‍💻 [Deploying to production](#deploy-the-app-to-production)
 - 🐛 [Troubleshooting](#troubleshooting)
 
@@ -320,6 +321,33 @@ all of your data.
    - Change the background music by modifying the prompt in `convex/music.ts`
    - Change how often to generate new music at `convex/crons.ts` by modifying the
      `generate new background music` job
+
+## Analytics client
+
+The game window shows the conversation a character is having *right now*, and drops it as soon as
+they walk away. To read conversations properly there's a separate, read-only analytics client that
+keeps everything:
+
+```sh
+npm run analytics
+```
+
+It runs on the same Vite dev server as the game (`npm run dev` serves it too, at
+[/ai-town/analytics.html](http://localhost:5173/ai-town/analytics.html)) and talks to the same
+Convex deployment. Four views:
+
+- **Conversations** — every conversation ever recorded, filterable by character, with full
+  transcripts that stay put while you read them. In-progress conversations are pinned to the top and
+  keep streaming. The search box runs full-text search over every message in the world.
+- **Live** — a town-wide feed of messages as they're sent, plus who is talking to whom right now.
+- **Memories** — what a character remembers: the summary written after each conversation, their
+  opinions of other characters, and their reflections. This is the material an agent retrieves when
+  deciding what to say, so it explains a lot of otherwise puzzling behaviour.
+- **Stats** — totals, messages and conversations per day, and a who-talks-to-whom matrix.
+
+The queries live in [convex/analytics.ts](./convex/analytics.ts) and only read — the client never
+writes to the database or submits inputs, so it can't perturb the simulation. The UI is in
+[src/analytics](./src/analytics).
 
 ## Commands to run / test / debug
 
