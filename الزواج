@@ -1,0 +1,96 @@
+-- ========================================================
+-- ملف: MatingAndJealousy.lua
+-- نظام التزاوج والغيرة للذكاء الاصطناعي (Mating & Jealousy System)
+-- ========================================================
+
+local MatingAndJealousy = {}
+MatingAndJealousy.__index = MatingAndJealousy
+
+-- إنشاء كائن جديد للكيان (Entity/NPC)
+function MatingAndJealousy.new(id, name, gender)
+    local self = setmetatable({}, MatingAndJealousy)
+    self.id = id
+    self.name = name
+    self.gender = gender               -- "male" أو "female"
+    self.partner = nil                 -- الشريك الحالي
+    self.jealousyLevel = 0             -- مستوى الغيرة (من 0 إلى 100)
+    self.attractionThreshold = 50      -- حد التجاذب المطلوب للتزاوج
+    self.relationships = {}            -- قائمة العلاقات مع الكيانات الأخرى {entityId = value}
+    return self
+end
+
+-- تحديث مستوى العلاقة/التجاذب مع كيان آخر
+function MatingAndJealousy:updateRelationship(targetEntityId, value)
+    self.relationships[targetEntityId] = (self.relationships[targetEntityId] or 0) + value
+    -- تقييد القيمة بين -100 و 100
+    self.relationships[targetEntityId] = math.max(-100, math.min(100, self.relationships[targetEntityId]))
+end
+
+-- محاولة التزاوج / الارتباط بشريك
+function MatingAndJealousy:tryMating(targetEntity)
+    if self.partner ~= nil then
+        print(self.name .. " مرتبط بالفعل بـ " .. self.partner.name)
+        return false
+    end
+
+    if targetEntity.partner ~= nil then
+        print(targetEntity.name .. " مرتبط شخص آخر!")
+        return false
+    end
+
+    if self.gender == targetEntity.gender then
+        print("التزاوج يتطلب جنسين مختلفين.")
+        return false
+    end
+
+    local attraction = self.relationships[targetEntity.id] or 0
+    if attraction >= self.attractionThreshold then
+        self.partner = targetEntity
+        targetEntity.partner = self
+        print("تم التزاوج بنجاح بين " .. self.name .. " و " .. targetEntity.name)
+        return true
+    else
+        print("مستوى التجاذب غير كافٍ للتزاوج بين " .. self.name .. " و " .. targetEntity.name)
+        return false
+    end
+end
+
+-- مراقبة الغيرة عند تفاعل الشريك مع كيان آخر
+function MatingAndJealousy:checkJealousy(thirdEntity, interactionType)
+    if not self.partner then return end
+
+    -- إذا كان التفاعل مع الشريك من قِبل شخص غريب
+    if thirdEntity.id ~= self.id then
+        local jealousyIncrease = 0
+
+        if interactionType == "flirt" then
+            jealousyIncrease = 40
+        elseif interactionType == "talk" then
+            jealousyIncrease = 10
+        elseif interactionType == "gift" then
+            jealousyIncrease = 25
+        end
+
+        self.jealousyLevel = math.min(100, self.jealousyLevel + jealousyIncrease)
+        print("ارتفعت الغيرة لدى " .. self.name .. " إلى: " .. self.jealousyLevel)
+
+        -- استجابة سلوكية عند ارتفاع الغيرة
+        if self.jealousyLevel >= 80 then
+            self:reactToHighJealousy(thirdEntity)
+        end
+    end
+end
+
+-- رد الفعل عند وصول الغيرة لمستوى مرتفع
+function MatingAndJealousy:reactToHighJealousy(rivalEntity)
+    print(self.name .. " غاضب جداً بسبب الغيرة من " .. rivalEntity.name .. "!")
+    -- تقليل العلاقة مع المنافس
+    self:updateRelationship(rivalEntity.id, -30)
+end
+
+-- تقليل الغيرة تدريجياً مع الوقت
+function MatingAndJealousy:coolDown(amount)
+    self.jealousyLevel = math.max(0, self.jealousyLevel - (amount or 5))
+end
+
+return MatingAndJealousy
