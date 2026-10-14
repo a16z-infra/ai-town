@@ -562,7 +562,17 @@ Docker.
 If you're using Docker, see the [next section](#docker-to-ollama-connection-issues) for Docker
 troubleshooting.
 
-For running directly on Windows, you can try the following:
+First, check where Ollama is running:
+
+- **Ollama installed inside WSL** (e.g. via `curl -fsSL https://ollama.com/install.sh | sh`): you
+  don't need the steps below. Ollama is already listening on `127.0.0.1:11434` inside WSL, so the
+  backend can reach it directly. Running `socat` on port 11434 as well will fail, since both
+  processes would try to listen on the same port.
+- **Ollama installed on Windows** and AI Town running inside WSL: WSL can't reach Windows on
+  `localhost` by default, so bridge the port with `socat` as below. If `ollama serve` is also
+  running inside WSL, stop it first, or `socat` won't be able to listen on port 11434.
+
+To bridge to Ollama running on Windows:
 
 1. Install `unzip` and `socat`:
 
