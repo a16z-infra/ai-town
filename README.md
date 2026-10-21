@@ -405,10 +405,10 @@ Steps:
 
 4. Install Python and Pip
 
-   Python is required for some dependencies. Install Python and Pip:
+   Python is required for some dependencies. Install Python, Pip, and the `python` command alias:
 
    ```sh
-   sudo apt-get install python3 python3-pip sudo ln -s /usr/bin/python3 /usr/bin/python
+   sudo apt-get install python3 python3-pip python-is-python3
    ```
 
 At this point, you can follow the instructions [above](#installation).
