@@ -22,6 +22,7 @@ import { distance } from '../util/geometry';
 import { internal } from '../_generated/api';
 import { movePlayer } from './movement';
 import { insertInput } from './insertInput';
+import { SerializedJob, serializedJob, tickJob } from './jobs';
 
 export class Agent {
   id: GameId<'agents'>;
@@ -34,6 +35,7 @@ export class Agent {
     operationId: string;
     started: number;
   };
+  job?: SerializedJob;
 
   constructor(serialized: SerializedAgent) {
     const { id, lastConversation, lastInviteAttempt, inProgressOperation } = serialized;
@@ -47,6 +49,7 @@ export class Agent {
     this.lastConversation = lastConversation;
     this.lastInviteAttempt = lastInviteAttempt;
     this.inProgressOperation = inProgressOperation;
+    this.job = serialized.job && { ...serialized.job };
   }
 
   tick(game: Game, now: number) {
@@ -70,6 +73,12 @@ export class Agent {
     const doingActivity = player.activity && player.activity.until > now;
     if (doingActivity && (conversation || player.pathfinding)) {
       player.activity!.until = now;
+    }
+    // Scripted job routine (M2). Runs entirely in the engine with no LLM call.
+    // Skipped while in a conversation, and while a finished conversation is
+    // waiting to be remembered, so memory formation isn't starved during shifts.
+    if (!conversation && this.job && !this.toRemember && tickJob(game, now, this.job, player)) {
+      return;
     }
     // If we're not in a conversation, do something.
     // If we aren't doing an activity or moving, do something.
@@ -264,6 +273,7 @@ export class Agent {
       lastConversation: this.lastConversation,
       lastInviteAttempt: this.lastInviteAttempt,
       inProgressOperation: this.inProgressOperation,
+      job: this.job && { ...this.job },
     };
   }
 }
@@ -281,6 +291,7 @@ export const serializedAgent = {
       started: v.number(),
     }),
   ),
+  job: v.optional(v.object(serializedJob)),
 };
 export type SerializedAgent = ObjectType<typeof serializedAgent>;
 

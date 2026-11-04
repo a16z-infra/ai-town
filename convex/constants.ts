@@ -76,3 +76,7 @@ export const ENGINE_ACTION_DURATION = 30000;
 export const MAX_PATHFINDS_PER_STEP = 16;
 
 export const DEFAULT_NAME = 'Me';
+
+// Length of one in-game day in real milliseconds (see aiTown/clock.ts).
+// 20 min/day => one game hour is 50 s. Shorten for testing, lengthen for studies.
+export const GAME_DAY_LENGTH = 20 * 60 * 1000;

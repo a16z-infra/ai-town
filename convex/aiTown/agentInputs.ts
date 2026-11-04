@@ -8,6 +8,7 @@ import { point } from '../util/types';
 import { Descriptions } from '../../data/characters';
 import { AgentDescription } from './agentDescription';
 import { Agent } from './agent';
+import { isJobKind, jobKind, newJob } from './jobs';
 
 export const agentInputs = {
   finishRememberConversation: inputHandler({
@@ -116,6 +117,23 @@ export const agentInputs = {
       return null;
     },
   }),
+  // Give an agent a scripted job, or remove it with `job: null`. Assigning
+  // resets progress; any in-progress task activity is left to expire.
+  assignJob: inputHandler({
+    args: {
+      agentId,
+      job: v.union(jobKind, v.null()),
+    },
+    handler: (game, now, args) => {
+      const agentId = parseGameId('agents', args.agentId);
+      const agent = game.world.agents.get(agentId);
+      if (!agent) {
+        throw new Error(`Couldn't find agent: ${agentId}`);
+      }
+      agent.job = args.job === null ? undefined : newJob(args.job);
+      return null;
+    },
+  }),
   createAgent: inputHandler({
     args: {
       descriptionIndex: v.number(),
@@ -139,6 +157,10 @@ export const agentInputs = {
           lastConversation: undefined,
           lastInviteAttempt: undefined,
           toRemember: undefined,
+          job:
+            'job' in description && isJobKind(description.job)
+              ? newJob(description.job)
+              : undefined,
         }),
       );
       game.agentDescriptions.set(

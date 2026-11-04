@@ -28,6 +28,9 @@ export const Descriptions = [
     character: 'f4',
     identity: `Bob is always grumpy and he loves trees. He spends most of his time gardening by himself. When spoken to he'll respond but try and get out of the conversation as quickly as possible. Secretly he resents that he never went to college.`,
     plan: 'You want to avoid people as much as possible.',
+    // Scripted job (convex/aiTown/jobs.ts). Applies to newly created worlds;
+    // for an existing world use `npx convex run testing:assignJob`.
+    job: 'farmer',
   },
   {
     name: 'Stella',

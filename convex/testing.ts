@@ -4,6 +4,7 @@ import {
   DatabaseReader,
   internalAction,
   internalMutation,
+  internalQuery,
   mutation,
   query,
 } from './_generated/server';
@@ -16,6 +17,8 @@ import { fetchEmbedding } from './util/llm';
 import { chatCompletion } from './util/llm';
 import { startConversationMessage } from './agent/conversation';
 import { GameId } from './aiTown/ids';
+import { jobKind } from './aiTown/jobs';
+import { gameHour } from './aiTown/clock';
 
 // Clear all of the tables except for the embeddings cache.
 const excludedTables: Array<TableNames> = ['embeddingsCache'];
@@ -125,6 +128,71 @@ async function getDefaultWorld(db: DatabaseReader) {
   }
   return { worldStatus, engine };
 }
+
+// Assign or remove a scripted job by NPC name on the default world.
+//   npx convex run testing:assignJob '{"name":"Bob","job":"farmer"}'
+//   npx convex run testing:assignJob '{"name":"Bob","job":null}'
+export const assignJob = internalMutation({
+  args: {
+    name: v.string(),
+    job: v.union(jobKind, v.null()),
+  },
+  handler: async (ctx, args) => {
+    const { worldStatus } = await getDefaultWorld(ctx.db);
+    const world = await ctx.db.get(worldStatus.worldId);
+    if (!world) {
+      throw new Error(`World ${worldStatus.worldId} not found`);
+    }
+    const descriptions = await ctx.db
+      .query('playerDescriptions')
+      .withIndex('worldId', (q) => q.eq('worldId', worldStatus.worldId))
+      .collect();
+    const playerIds = descriptions.filter((d) => d.name === args.name).map((d) => d.playerId);
+    const agent = world.agents.find((a) => playerIds.includes(a.playerId));
+    if (!agent) {
+      throw new Error(`No agent named ${args.name} in the default world`);
+    }
+    return await insertInput(ctx, worldStatus.worldId, 'assignJob', {
+      agentId: agent.id,
+      job: args.job,
+    });
+  },
+});
+
+// Snapshot of every agent's job state plus the current game hour.
+//   npx convex run testing:jobStatus
+export const jobStatus = internalQuery({
+  handler: async (ctx) => {
+    const { worldStatus } = await getDefaultWorld(ctx.db);
+    const world = await ctx.db.get(worldStatus.worldId);
+    if (!world) {
+      throw new Error(`World ${worldStatus.worldId} not found`);
+    }
+    const descriptions = await ctx.db
+      .query('playerDescriptions')
+      .withIndex('worldId', (q) => q.eq('worldId', worldStatus.worldId))
+      .collect();
+    const now = Date.now();
+    return {
+      worldStatus: worldStatus.status,
+      gameHour: Number(gameHour(now).toFixed(2)),
+      agents: world.agents.map((a) => {
+        const player = world.players.find((p) => p.id === a.playerId);
+        return {
+          name: descriptions.find((d) => d.playerId === a.playerId)?.name,
+          job: a.job ?? null,
+          position: player && {
+            x: Number(player.position.x.toFixed(1)),
+            y: Number(player.position.y.toFixed(1)),
+          },
+          activity:
+            player?.activity && player.activity.until > now ? player.activity.description : null,
+          operation: a.inProgressOperation?.name ?? null,
+        };
+      }),
+    };
+  },
+});
 
 export const debugCreatePlayers = internalMutation({
   args: {
