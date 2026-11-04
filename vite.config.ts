@@ -8,4 +8,7 @@ export default defineConfig({
   server: {
     allowedHosts: ['ai-town-your-app-name.fly.dev', 'localhost', '127.0.0.1'],
   },
+  define: {
+    'process.env': {},
+  },
 });
