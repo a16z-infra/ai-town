@@ -117,7 +117,9 @@ async function getDefaultWorld(db: DatabaseReader) {
     .filter((q) => q.eq(q.field('isDefault'), true))
     .first();
   if (!worldStatus) {
-    throw new Error('No default world found');
+    throw new Error(
+      'No default world found. Initialize one with `npx convex run init` (or `npm run predev`).',
+    );
   }
   const engine = await db.get(worldStatus.engineId);
   if (!engine) {
