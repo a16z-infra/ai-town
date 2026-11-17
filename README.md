@@ -290,6 +290,9 @@ all of your data.
 3. Update the Background (Environment): The map gets loaded in `convex/init.ts` from
    `data/gentle.js`. To update the map, follow these steps:
 
+   - To edit the existing map, use the built-in [level editor](src/editor/README.md). Its guide also
+     covers installing the exported map and creating a fresh world without wiping all tables.
+
    - Use [Tiled](https://www.mapeditor.org/) to export tilemaps as a JSON file (2 layers named
      bgtiles and objmap)
    - Use the `convertMap.js` script to convert the JSON to a format that the engine can use.
