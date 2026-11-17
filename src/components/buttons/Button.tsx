@@ -4,6 +4,7 @@ import { MouseEventHandler, ReactNode } from 'react';
 export default function Button(props: {
   className?: string;
   href?: string;
+  target?: string;
   imgUrl: string;
   onClick?: MouseEventHandler;
   title?: string;
@@ -16,6 +17,9 @@ export default function Button(props: {
         props.className,
       )}
       href={props.href}
+      target={props.target}
+      // Opening in a new tab without this leaves the new page able to reach back via `opener`.
+      rel={props.target === '_blank' ? 'noopener noreferrer' : undefined}
       title={props.title}
       onClick={props.onClick}
     >

@@ -227,6 +227,18 @@ time and returns it for you to pass down into components.
 We also provide a `useSendInput` hook that wraps `useMutation` and automatically sends inputs to the server and
 waits for the engine to process them and return their outcome.
 
+### Analytics client (`src/analytics`)
+
+A second Vite entry point (`analytics.html`) serves a read-only client for browsing the town's
+history: conversation transcripts, a live message feed, agent memories, and aggregate stats. It is
+deliberately separate from the game UI — it renders no map, so it doesn't pull in Pixi, and it
+shares only the Convex provider.
+
+Its queries live in `convex/analytics.ts` and are strictly observers: they never write or submit
+inputs, so the client cannot perturb the simulation. They read the archive tables described above
+(`archivedConversations`, `participatedTogether`, `messages`, `memories`) and merge in the live
+conversations from the world document, since in-progress conversations are not archived yet.
+
 ## Agent architecture (`convex/agent`)
 
 ### The agent loop (`convex/game/agents.ts`)
