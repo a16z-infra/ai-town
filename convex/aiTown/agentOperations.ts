@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { internalAction } from '../_generated/server';
+import { internalAction, internalMutation, internalQuery } from '../_generated/server';
 import { WorldMap, serializedWorldMap } from './worldMap';
 import { rememberConversation } from '../agent/memory';
 import { GameId, agentId, conversationId, playerId } from './ids';
@@ -10,7 +10,14 @@ import {
 } from '../agent/conversation';
 import { assertNever } from '../util/assertNever';
 import { serializedAgent } from './agent';
-import { ACTIVITIES, ACTIVITY_COOLDOWN, CONVERSATION_COOLDOWN } from '../constants';
+import {
+  ACTIVITIES,
+  ACTIVITY_COOLDOWN,
+  CONVERSATION_COOLDOWN,
+  PLAYER_CONVERSATION_COOLDOWN,
+} from '../constants';
+import { distance } from '../util/geometry';
+import { insertInput } from './insertInput';
 import { api, internal } from '../_generated/api';
 import { sleep } from '../util/sleep';
 import { serializedPlayer } from './player';
@@ -77,7 +84,7 @@ export const agentGenerateMessage = internalAction({
       args.otherPlayerId as GameId<'players'>,
     );
 
-    await ctx.runMutation(internal.aiTown.agent.agentSendMessage, {
+    await ctx.runMutation(internal.aiTown.agentOperations.agentSendMessage, {
       worldId: args.worldId,
       conversationId: args.conversationId,
       agentId: args.agentId,
@@ -147,7 +154,7 @@ export const agentDoSomething = internalAction({
     const invitee =
       justLeftConversation || recentlyAttemptedInvite
         ? undefined
-        : await ctx.runQuery(internal.aiTown.agent.findConversationCandidate, {
+        : await ctx.runQuery(internal.aiTown.agentOperations.findConversationCandidate, {
             now,
             worldId: args.worldId,
             player: args.player,
@@ -176,3 +183,68 @@ function wanderDestination(worldMap: WorldMap) {
     y: 1 + Math.floor(Math.random() * (worldMap.height - 2)),
   };
 }
+
+// These live here rather than in agent.ts so the browser can import the
+// Agent class (through world.ts) without pulling in convex/_generated/server.
+export const agentSendMessage = internalMutation({
+  args: {
+    worldId: v.id('worlds'),
+    conversationId,
+    agentId,
+    playerId,
+    text: v.string(),
+    messageUuid: v.string(),
+    leaveConversation: v.boolean(),
+    operationId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert('messages', {
+      conversationId: args.conversationId,
+      author: args.playerId,
+      text: args.text,
+      messageUuid: args.messageUuid,
+      worldId: args.worldId,
+    });
+    await insertInput(ctx, args.worldId, 'agentFinishSendingMessage', {
+      conversationId: args.conversationId,
+      agentId: args.agentId,
+      timestamp: Date.now(),
+      leaveConversation: args.leaveConversation,
+      operationId: args.operationId,
+    });
+  },
+});
+
+export const findConversationCandidate = internalQuery({
+  args: {
+    now: v.number(),
+    worldId: v.id('worlds'),
+    player: v.object(serializedPlayer),
+    otherFreePlayers: v.array(v.object(serializedPlayer)),
+  },
+  handler: async (ctx, { now, worldId, player, otherFreePlayers }) => {
+    const { position } = player;
+    const candidates = [];
+
+    for (const otherPlayer of otherFreePlayers) {
+      // Find the latest conversation we're both members of.
+      const lastMember = await ctx.db
+        .query('participatedTogether')
+        .withIndex('edge', (q) =>
+          q.eq('worldId', worldId).eq('player1', player.id).eq('player2', otherPlayer.id),
+        )
+        .order('desc')
+        .first();
+      if (lastMember) {
+        if (now < lastMember.ended + PLAYER_CONVERSATION_COOLDOWN) {
+          continue;
+        }
+      }
+      candidates.push({ id: otherPlayer.id, position });
+    }
+
+    // Sort by distance and take the nearest candidate.
+    candidates.sort((a, b) => distance(a.position, position) - distance(b.position, position));
+    return candidates[0]?.id;
+  },
+});
