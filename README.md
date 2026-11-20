@@ -259,6 +259,19 @@ embeddings used for memory are based on the embedding model you choose, and the 
 vector database must match the embedding model's dimension. See
 [below](#wiping-the-database-and-starting-over) for how to do that.
 
+### Debugging LLM requests
+
+`chatCompletion` does not log request bodies or successful response content by default. To enable
+these logs while debugging, set the Convex environment variable:
+
+```sh
+npx convex env set DEBUG_LLM true
+```
+
+This includes prompts, player messages, and recalled memories in request bodies, plus non-streaming
+response content. Set `DEBUG_LLM` to `false` or remove it to disable these logs again. Error and retry
+logs are unaffected; this flag does not control logging elsewhere in the application.
+
 ## Customize your own simulation
 
 NOTE: every time you change character data, you should re-run `npx convex run testing:wipeAllTables`
