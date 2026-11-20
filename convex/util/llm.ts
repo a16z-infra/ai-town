@@ -658,18 +658,20 @@ export class ChatCompletionContent {
 
   async *splitStream(stream: ReadableStream<Uint8Array>) {
     const reader = stream.getReader();
+    const decoder = new TextDecoder();
     let lastFragment = '';
     try {
       while (true) {
         const { value, done } = await reader.read();
         if (done) {
+          lastFragment += decoder.decode();
           // Flush the last fragment now that we're done
           if (lastFragment !== '') {
             yield lastFragment;
           }
           break;
         }
-        const data = new TextDecoder().decode(value);
+        const data = decoder.decode(value, { stream: true });
         lastFragment += data;
         const parts = lastFragment.split('\n\n');
         // Yield all except for the last part
