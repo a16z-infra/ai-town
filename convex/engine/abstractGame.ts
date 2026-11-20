@@ -1,6 +1,6 @@
 import { ConvexError, Infer, Value, v } from 'convex/values';
 import { Doc, Id } from '../_generated/dataModel';
-import { ActionCtx, DatabaseReader, MutationCtx, internalQuery } from '../_generated/server';
+import { ActionCtx, DatabaseReader, MutationCtx } from '../_generated/server';
 import { engine } from '../engine/schema';
 import { internal } from '../_generated/api';
 
@@ -20,7 +20,7 @@ export abstract class AbstractGame {
   abstract saveStep(ctx: ActionCtx, engineUpdate: EngineUpdate): Promise<void>;
 
   async runStep(ctx: ActionCtx, now: number) {
-    const inputs = await ctx.runQuery(internal.engine.abstractGame.loadInputs, {
+    const inputs = await ctx.runQuery(internal.engine.queries.loadInputs, {
       engineId: this.engine._id,
       processedInputNumber: this.engine.processedInputNumber,
       max: this.maxInputsPerStep,
@@ -152,23 +152,6 @@ export async function engineInsertInput(
   });
   return inputId;
 }
-
-export const loadInputs = internalQuery({
-  args: {
-    engineId: v.id('engines'),
-    processedInputNumber: v.optional(v.number()),
-    max: v.number(),
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query('inputs')
-      .withIndex('byInputNumber', (q) =>
-        q.eq('engineId', args.engineId).gt('number', args.processedInputNumber ?? -1),
-      )
-      .order('asc')
-      .take(args.max);
-  },
-});
 
 export async function applyEngineUpdate(
   ctx: MutationCtx,
