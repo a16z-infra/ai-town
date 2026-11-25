@@ -157,7 +157,6 @@ export class Conversation {
       if (this.isTyping.playerId !== player.id) {
         throw new Error(`Player ${this.isTyping.playerId} is already typing in ${this.id}`);
       }
-      return;
     }
     this.isTyping = { playerId: player.id, messageUuid, since: now };
   }
@@ -308,6 +307,7 @@ export const conversationInputs = {
       playerId,
       conversationId,
       timestamp: v.number(),
+      messageUuid: v.optional(v.string()),
     },
     handler: (game: Game, now: number, args): null => {
       const playerId = parseGameId('players', args.playerId);
@@ -316,7 +316,11 @@ export const conversationInputs = {
       if (!conversation) {
         throw new Error(`Invalid conversation ID: ${conversationId}`);
       }
-      if (conversation.isTyping && conversation.isTyping.playerId === playerId) {
+      if (
+        conversation.isTyping &&
+        conversation.isTyping.playerId === playerId &&
+        (args.messageUuid === undefined || conversation.isTyping.messageUuid === args.messageUuid)
+      ) {
         delete conversation.isTyping;
       }
       conversation.lastMessage = { author: playerId, timestamp: args.timestamp };

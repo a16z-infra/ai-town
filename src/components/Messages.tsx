@@ -155,6 +155,7 @@ export function Messages({
         )}
         {humanPlayer && inConversationWithMe && conversation.kind === 'active' && (
           <MessageInput
+            key={JSON.stringify([worldId, conversation.doc.id, humanPlayer.id])}
             worldId={worldId}
             engineId={engineId}
             conversation={conversation.doc}

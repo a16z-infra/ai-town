@@ -81,6 +81,7 @@ export const agentInputs = {
       timestamp: v.number(),
       operationId: v.string(),
       leaveConversation: v.boolean(),
+      messageUuid: v.optional(v.string()),
     },
     handler: (game, now, args) => {
       const agentId = parseGameId('agents', args.agentId);
@@ -109,6 +110,7 @@ export const agentInputs = {
         playerId: agent.playerId,
         conversationId: args.conversationId,
         timestamp: args.timestamp,
+        messageUuid: args.messageUuid,
       });
       if (args.leaveConversation) {
         conversation.leave(game, now, player);
