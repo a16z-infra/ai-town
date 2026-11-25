@@ -1,3 +1,4 @@
+import { removeIndexedMemory } from './agent/memoryIndex';
 import { Id, TableNames } from './_generated/dataModel';
 import { internal } from './_generated/api';
 import {
@@ -42,8 +43,12 @@ export const deletePage = internalMutation({
   handler: async (ctx, args) => {
     const results = await ctx.db
       .query(args.tableName as TableNames)
-      .paginate({ cursor: args.cursor, numItems: DELETE_BATCH_SIZE });
+      .paginate({
+        cursor: args.cursor,
+        numItems: args.tableName === 'memories' ? 8 : DELETE_BATCH_SIZE,
+      });
     for (const row of results.page) {
+      if ('ragEntryId' in row && row.ragEntryId) await removeIndexedMemory(ctx, row.ragEntryId);
       await ctx.db.delete(row._id);
     }
     if (!results.isDone) {

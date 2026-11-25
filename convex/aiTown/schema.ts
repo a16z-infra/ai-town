@@ -60,7 +60,9 @@ export const aiTownTables = {
     lastMessage: serializedConversation.lastMessage,
     numMessages: serializedConversation.numMessages,
     participants: v.array(playerId),
-  }).index('worldId', ['worldId', 'id']),
+  })
+    .index('worldId', ['worldId', 'id'])
+    .index('conversationId', ['id']),
   archivedAgents: defineTable({ worldId: v.id('worlds'), ...serializedAgent }).index('worldId', [
     'worldId',
     'id',

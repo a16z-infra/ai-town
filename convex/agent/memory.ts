@@ -1,11 +1,18 @@
 import { v } from 'convex/values';
-import { ActionCtx, DatabaseReader, internalMutation, internalQuery } from '../_generated/server';
+import {
+  ActionCtx,
+  MutationCtx,
+  DatabaseReader,
+  internalMutation,
+  internalQuery,
+} from '../_generated/server';
 import { Doc, Id } from '../_generated/dataModel';
 import { internal } from '../_generated/api';
 import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/llm';
 import { asyncMap } from '../util/asyncMap';
 import { GameId, agentId, conversationId, playerId } from '../aiTown/ids';
 import { SerializedPlayer } from '../aiTown/player';
+import { indexMemory, memoryIndex, memoryNamespace } from './memoryIndex';
 import { memoryFields } from './schema';
 
 // How long to wait before updating a memory's last access time.
@@ -70,6 +77,7 @@ export async function rememberConversation(
   authors.delete(player.id as GameId<'players'>);
   await ctx.runMutation(selfInternal.insertMemory, {
     agentId,
+    worldId,
     playerId: player.id,
     description,
     importance,
@@ -157,21 +165,81 @@ export const loadConversation = internalQuery({
 
 export async function searchMemories(
   ctx: ActionCtx,
+  worldId: Id<'worlds'>,
   playerId: GameId<'players'>,
   searchEmbedding: number[],
-  n: number = 3,
-) {
-  const candidates = await ctx.vectorSearch('memoryEmbeddings', 'embedding', {
-    vector: searchEmbedding,
-    filter: (q) => q.eq('playerId', playerId),
-    limit: n * MEMORY_OVERFETCH,
+  n = 3,
+): Promise<Memory[]> {
+  const count = Math.min(256, Math.max(0, Math.floor(n)));
+  if (!count) return [];
+  const namespace = memoryNamespace(worldId, playerId);
+  const limit = Math.min(256, count * MEMORY_OVERFETCH);
+  if (process.env.AI_TOWN_MEMORY_SEARCH === 'legacy') {
+    const candidates = await ctx.vectorSearch('memoryEmbeddings', 'embedding', {
+      vector: searchEmbedding,
+      limit,
+      filter: (q) => q.eq('namespace', namespace),
+    });
+    const ranked = await ctx.runMutation(selfInternal.rankAndTouchMemories, {
+      candidates,
+      n: count,
+      owner: { worldId, playerId },
+    });
+    return ranked.map(({ memory }) => memory);
+  }
+  const { entries, results } = await memoryIndex.search(ctx, {
+    namespace,
+    query: searchEmbedding,
+    limit,
   });
-  const rankedMemories = await ctx.runMutation(selfInternal.rankAndTouchMemories, {
-    candidates,
-    n,
+  const keys = new Map(entries.map((entry) => [entry.entryId, entry.key]));
+  const candidates = results.flatMap((result) => {
+    const key = keys.get(result.entryId);
+    return key ? [{ key, entryId: result.entryId, score: result.score }] : [];
   });
-  return rankedMemories.map(({ memory }) => memory);
+  return ctx.runMutation(selfInternal.rankRagMemories, { worldId, playerId, candidates, n: count });
 }
+
+export const rankRagMemories = internalMutation({
+  args: {
+    worldId: v.id('worlds'),
+    playerId,
+    n: v.number(),
+    candidates: v.array(
+      v.object({
+        key: v.string(),
+        entryId: v.string(),
+        score: v.number(),
+      }),
+    ),
+  },
+  handler: async (ctx, { worldId, playerId, candidates, n }): Promise<Memory[]> => {
+    const now = Date.now();
+    const ranked = [];
+    for (const candidate of candidates) {
+      const id = ctx.db.normalizeId('memories', candidate.key);
+      const memory = id && (await ctx.db.get(id));
+      if (
+        !memory ||
+        memory.worldId !== worldId ||
+        memory.playerId !== playerId ||
+        memory.ragEntryId !== candidate.entryId
+      )
+        continue;
+      const recency = 0.99 ** Math.max(0, (now - memory.lastAccess) / 3_600_000);
+      ranked.push({ memory, score: 0.9 * candidate.score + 0.1 * recency });
+    }
+    const selected = ranked
+      .sort((a, b) => b.score - a.score)
+      .slice(0, n)
+      .map((r) => r.memory);
+    for (const memory of selected) {
+      if (now - memory.lastAccess > MEMORY_ACCESS_THROTTLE)
+        await ctx.db.patch(memory._id, { lastAccess: now });
+    }
+    return selected;
+  },
+});
 
 function makeRange(values: number[]) {
   const min = Math.min(...values);
@@ -181,38 +249,44 @@ function makeRange(values: number[]) {
 
 function normalize(value: number, range: readonly [number, number]) {
   const [min, max] = range;
-  return (value - min) / (max - min);
+  return max === min ? 0 : (value - min) / (max - min);
 }
 
 export const rankAndTouchMemories = internalMutation({
   args: {
+    owner: v.optional(v.object({ worldId: v.id('worlds'), playerId })),
     candidates: v.array(v.object({ _id: v.id('memoryEmbeddings'), _score: v.number() })),
     n: v.number(),
   },
   handler: async (ctx, args) => {
     const ts = Date.now();
-    const relatedMemories = await asyncMap(args.candidates, async ({ _id }) => {
+    const matches = await asyncMap(args.candidates, async ({ _id, _score }) => {
       const memory = await ctx.db
         .query('memories')
         .withIndex('embeddingId', (q) => q.eq('embeddingId', _id))
         .first();
-      if (!memory) throw new Error(`Memory for embedding ${_id} not found`);
-      return memory;
+      if (
+        !memory ||
+        (args.owner &&
+          (memory.worldId !== args.owner.worldId || memory.playerId !== args.owner.playerId))
+      )
+        return [];
+      return [{ memory, score: _score }];
     });
 
-    // TODO: fetch <count> recent memories and <count> important memories
-    // so we don't miss them in case they were a little less relevant.
+    const eligible = matches.flat();
+    const relatedMemories = eligible.map((m) => m.memory);
     const recencyScore = relatedMemories.map((memory) => {
       const hoursSinceAccess = (ts - memory.lastAccess) / 1000 / 60 / 60;
       return 0.99 ** Math.floor(hoursSinceAccess);
     });
-    const relevanceRange = makeRange(args.candidates.map((c) => c._score));
+    const relevanceRange = makeRange(eligible.map((c) => c.score));
     const importanceRange = makeRange(relatedMemories.map((m) => m.importance));
     const recencyRange = makeRange(recencyScore);
     const memoryScores = relatedMemories.map((memory, idx) => ({
       memory,
       overallScore:
-        normalize(args.candidates[idx]._score, relevanceRange) +
+        normalize(eligible[idx].score, relevanceRange) +
         normalize(memory.importance, importanceRange) +
         normalize(recencyScore[idx], recencyRange),
     }));
@@ -265,26 +339,35 @@ async function calculateImportance(description: string) {
     console.debug('Could not parse memory importance from: ', importanceRaw);
     importance = 5;
   }
-  return importance;
+  return Number.isFinite(importance) ? Math.max(0, Math.min(9, importance)) : 5;
 }
 
 const { embeddingId: _embeddingId, ...memoryFieldsWithoutEmbeddingId } = memoryFields;
 
+async function saveMemory(
+  ctx: MutationCtx,
+  worldId: Id<'worlds'> | undefined,
+  memory: Omit<Memory, '_id' | '_creationTime' | 'embeddingId' | 'ragEntryId' | 'worldId'>,
+  embedding: number[],
+) {
+  const embeddingId = await ctx.db.insert('memoryEmbeddings', {
+    playerId: memory.playerId,
+    embedding,
+    namespace: worldId && memoryNamespace(worldId, memory.playerId),
+  });
+  const id = await ctx.db.insert('memories', { ...memory, worldId, embeddingId });
+  if (worldId) await indexMemory(ctx, worldId, (await ctx.db.get(id))!, embedding);
+}
+
 export const insertMemory = internalMutation({
   args: {
     agentId,
+    worldId: v.optional(v.id('worlds')),
     embedding: v.array(v.float64()),
     ...memoryFieldsWithoutEmbeddingId,
   },
-  handler: async (ctx, { agentId: _, embedding, ...memory }): Promise<void> => {
-    const embeddingId = await ctx.db.insert('memoryEmbeddings', {
-      playerId: memory.playerId,
-      embedding,
-    });
-    await ctx.db.insert('memories', {
-      ...memory,
-      embeddingId,
-    });
+  handler: async (ctx, { agentId: _, worldId, embedding, ...memory }) => {
+    await saveMemory(ctx, worldId, memory, embedding);
   },
 });
 
@@ -301,23 +384,20 @@ export const insertReflectionMemories = internalMutation({
       }),
     ),
   },
-  handler: async (ctx, { playerId, reflections }) => {
+  handler: async (ctx, { worldId, playerId, reflections }) => {
     const lastAccess = Date.now();
     for (const { embedding, relatedMemoryIds, ...rest } of reflections) {
-      const embeddingId = await ctx.db.insert('memoryEmbeddings', {
-        playerId,
+      for (const id of relatedMemoryIds) {
+        const source = await ctx.db.get(id);
+        if (!source || source.worldId !== worldId || source.playerId !== playerId)
+          throw new Error('Invalid reflection source');
+      }
+      await saveMemory(
+        ctx,
+        worldId,
+        { playerId, lastAccess, ...rest, data: { type: 'reflection', relatedMemoryIds } },
         embedding,
-      });
-      await ctx.db.insert('memories', {
-        playerId,
-        embeddingId,
-        lastAccess,
-        ...rest,
-        data: {
-          type: 'reflection',
-          relatedMemoryIds,
-        },
-      });
+      );
     }
   },
 });
@@ -415,14 +495,14 @@ export const getReflectionMemories = internalQuery({
     }
     const memories = await ctx.db
       .query('memories')
-      .withIndex('playerId', (q) => q.eq('playerId', player.id))
+      .withIndex('worldPlayer', (q) => q.eq('worldId', args.worldId).eq('playerId', player.id))
       .order('desc')
       .take(args.numberOfItems);
 
     const lastReflection = await ctx.db
       .query('memories')
-      .withIndex('playerId_type', (q) =>
-        q.eq('playerId', args.playerId).eq('data.type', 'reflection'),
+      .withIndex('worldPlayerType', (q) =>
+        q.eq('worldId', args.worldId).eq('playerId', args.playerId).eq('data.type', 'reflection'),
       )
       .order('desc')
       .first();
@@ -437,12 +517,15 @@ export const getReflectionMemories = internalQuery({
 
 export async function latestMemoryOfType<T extends MemoryType>(
   db: DatabaseReader,
+  worldId: Id<'worlds'>,
   playerId: GameId<'players'>,
   type: T,
 ) {
   const entry = await db
     .query('memories')
-    .withIndex('playerId_type', (q) => q.eq('playerId', playerId).eq('data.type', type))
+    .withIndex('worldPlayerType', (q) =>
+      q.eq('worldId', worldId).eq('playerId', playerId).eq('data.type', type),
+    )
     .order('desc')
     .first();
   if (!entry) return null;

@@ -22,6 +22,17 @@ import {
 import type { DataModel } from "./dataModel.js";
 
 /**
+ * Typesafe environment variables.
+ *
+ * This includes platform-provided env vars and any variables declared in
+ * `convex.config.ts`.
+ */
+type Env = {
+  readonly CONVEX_CLOUD_URL: string;
+  readonly CONVEX_SITE_URL: string;
+};
+
+/**
  * Define a query in this Convex app's public API.
  *
  * This function will be allowed to read your Convex database and will be accessible from the client.
@@ -85,14 +96,23 @@ export declare const internalAction: ActionBuilder<DataModel, "internal">;
 /**
  * Define an HTTP action.
  *
- * This function will be used to respond to HTTP requests received by a Convex
- * deployment if the requests matches the path and method where this action
- * is routed. Be sure to route your action in `convex/http.js`.
+ * The wrapped function will be used to respond to HTTP requests received
+ * by a Convex deployment if the requests matches the path and method where
+ * this action is routed. Be sure to route your httpAction in `convex/http.js`.
  *
- * @param func - The function. It receives an {@link ActionCtx} as its first argument.
+ * @param func - The function. It receives an {@link ActionCtx} as its first argument
+ * and a Fetch API `Request` object as its second.
  * @returns The wrapped function. Import this function from `convex/http.js` and route it to hook it up.
  */
 export declare const httpAction: HttpActionBuilder;
+
+/**
+ * Typesafe environment variables.
+ *
+ * This includes platform-provided env vars and any variables declared in
+ * `convex.config.ts`.
+ */
+export declare const env: Env;
 
 /**
  * A set of services for use within Convex query functions.

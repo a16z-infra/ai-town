@@ -1,3 +1,4 @@
+import { removeIndexedMemory } from './agent/memoryIndex';
 import { cronJobs } from 'convex/server';
 import { DELETE_BATCH_SIZE, IDLE_WORLD_TIMEOUT, VACUUM_MAX_AGE } from './constants';
 import { internal } from './_generated/api';
@@ -78,11 +79,12 @@ export const vacuumTable = internalMutation({
     const results = await ctx.db
       .query(tableName as TableNames)
       .withIndex('by_creation_time', (q) => q.lt('_creationTime', before))
-      .paginate({ cursor, numItems: DELETE_BATCH_SIZE });
+      .paginate({ cursor, numItems: tableName === 'memories' ? 8 : DELETE_BATCH_SIZE });
     let deleted = 0;
     for (const row of results.page) {
       // Queued work remains live even if the world was paused past retention.
       if (tableName === 'inputs' && !('returnValue' in row && row.returnValue)) continue;
+      if ('ragEntryId' in row && row.ragEntryId) await removeIndexedMemory(ctx, row.ragEntryId);
       await ctx.db.delete(row._id);
       deleted++;
     }

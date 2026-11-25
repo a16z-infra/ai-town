@@ -30,16 +30,23 @@ export const memoryFields = {
   ),
 };
 export const memoryTables = {
-  memories: defineTable(memoryFields)
+  memories: defineTable({
+    ...memoryFields,
+    worldId: v.optional(v.id('worlds')),
+    ragEntryId: v.optional(v.string()),
+  })
+    .index('worldPlayer', ['worldId', 'playerId'])
+    .index('worldPlayerType', ['worldId', 'playerId', 'data.type'])
     .index('embeddingId', ['embeddingId'])
     .index('playerId_type', ['playerId', 'data.type'])
     .index('playerId', ['playerId']),
   memoryEmbeddings: defineTable({
     playerId,
+    namespace: v.optional(v.string()),
     embedding: v.array(v.float64()),
   }).vectorIndex('embedding', {
     vectorField: 'embedding',
-    filterFields: ['playerId'],
+    filterFields: ['playerId', 'namespace'],
     dimensions: EMBEDDING_DIMENSION,
   }),
 };
