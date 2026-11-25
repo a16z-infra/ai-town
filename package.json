@@ -17,6 +17,8 @@
   },
   "dependencies": {
     "@clerk/clerk-react": "^4.27.0",
+    "@convex-dev/ai-budget": "^1.1.3",
+    "@convex-dev/ai-sdk-provider": "^0.3.0",
     "@convex-dev/rag": "^0.7.9",
     "@pixi/react": "^7.1.0",
     "@pixi/sound": "^5.2.0",

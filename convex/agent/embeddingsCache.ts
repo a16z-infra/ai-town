@@ -6,12 +6,12 @@ import { fetchEmbeddingBatch } from '../util/llm';
 
 const selfInternal = internal.agent.embeddingsCache;
 
-export async function fetch(ctx: ActionCtx, text: string) {
-  const result = await fetchBatch(ctx, [text]);
+export async function fetch(ctx: ActionCtx, worldId: Id<'worlds'>, text: string) {
+  const result = await fetchBatch(ctx, [text], worldId);
   return result.embeddings[0];
 }
 
-export async function fetchBatch(ctx: ActionCtx, texts: string[]) {
+export async function fetchBatch(ctx: ActionCtx, texts: string[], worldId: Id<'worlds'>) {
   const start = Date.now();
 
   const textHashes = await Promise.all(texts.map((text) => hashText(text)));
@@ -26,7 +26,7 @@ export async function fetchBatch(ctx: ActionCtx, texts: string[]) {
   if (cacheResults.length < texts.length) {
     const missingIndexes = [...results.keys()].filter((i) => !results[i]);
     const missingTexts = missingIndexes.map((i) => texts[i]);
-    const response = await fetchEmbeddingBatch(missingTexts);
+    const response = await fetchEmbeddingBatch(missingTexts, { ctx, worldId, feature: 'dialogue' });
     if (response.embeddings.length !== missingIndexes.length) {
       throw new Error(
         `Expected ${missingIndexes.length} embeddings, got ${response.embeddings.length}`,

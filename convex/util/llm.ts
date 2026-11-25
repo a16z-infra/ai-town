@@ -1,3 +1,4 @@
+import { readProviderJson, type Attribution } from './budget';
 import { getServiceToken } from 'convex/server';
 
 const OPENAI_EMBEDDING_DIMENSION = 1536;
@@ -134,6 +135,7 @@ export async function chatCompletion(
   } & {
     stream?: false | null | undefined;
   },
+  attribution?: Attribution,
 ): Promise<{ content: string; retries: number; ms: number }>;
 // Overload for streaming
 export async function chatCompletion(
@@ -142,11 +144,13 @@ export async function chatCompletion(
   } & {
     stream?: true;
   },
+  attribution?: Attribution,
 ): Promise<{ content: ChatCompletionContent; retries: number; ms: number }>;
 export async function chatCompletion(
   body: Omit<CreateChatCompletionRequest, 'model'> & {
     model?: CreateChatCompletionRequest['model'];
   },
+  attribution?: Attribution,
 ) {
   const config = getLLMConfig();
   body.model = body.model ?? config.chatModel;
@@ -158,34 +162,41 @@ export async function chatCompletion(
     retries,
     ms,
   } = await retryWithBackoff(async () => {
-    const result = await fetch(config.url + '/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(await authHeaders(config)),
-      },
+    const request = async () => {
+      const result = await fetch(config.url + '/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await authHeaders(config)),
+        },
 
-      body: JSON.stringify(
-        config.provider === 'convex' && body.model === 'openai/gpt-6-luna'
-          ? { ...body, reasoning: { effort: 'none' } }
-          : body,
-      ),
-    });
-    if (!result.ok) {
-      const error = await result.text();
-      console.error({ error });
-      if (result.status === 404 && config.provider === 'ollama') {
-        await tryPullOllama(body.model!, error);
+        body: JSON.stringify(
+          config.provider === 'convex' && body.model === 'openai/gpt-6-luna'
+            ? { ...body, reasoning: { effort: 'none' } }
+            : body,
+        ),
+      });
+      if (!result.ok) {
+        const error = await result.text();
+        console.error({ error });
+        if (result.status === 404 && config.provider === 'ollama') {
+          await tryPullOllama(body.model!, error);
+        }
+        throw {
+          retry: result.status === 429 || result.status >= 500,
+          error: new Error(`Chat completion failed with code ${result.status}: ${error}`),
+        };
       }
-      throw {
-        retry: result.status === 429 || result.status >= 500,
-        error: new Error(`Chat completion failed with code ${result.status}: ${error}`),
-      };
-    }
+      return result;
+    };
     if (body.stream) {
-      return new ChatCompletionContent(result.body!, stopWords);
+      return new ChatCompletionContent((await request()).body!, stopWords);
     } else {
-      const json = (await result.json()) as CreateChatCompletionResponse;
+      const json = await readProviderJson<CreateChatCompletionResponse>(
+        request,
+        body.model!,
+        config.provider === 'convex' ? attribution : undefined,
+      );
       const content = json.choices[0].message?.content;
       if (content === undefined) {
         throw new Error('Unexpected result from OpenAI: ' + JSON.stringify(json));
@@ -217,7 +228,7 @@ export async function tryPullOllama(model: string, error: string) {
   }
 }
 
-export async function fetchEmbeddingBatch(texts: string[]) {
+export async function fetchEmbeddingBatch(texts: string[], attribution?: Attribution) {
   const config = getLLMConfig();
   if (config.provider === 'ollama') {
     return {
@@ -232,25 +243,32 @@ export async function fetchEmbeddingBatch(texts: string[]) {
     retries,
     ms,
   } = await retryWithBackoff(async () => {
-    const result = await fetch(config.url + '/v1/embeddings', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(await authHeaders(config)),
-      },
+    const request = async () => {
+      const result = await fetch(config.url + '/v1/embeddings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await authHeaders(config)),
+        },
 
-      body: JSON.stringify({
-        model: config.embeddingModel,
-        input: texts.map((text) => text.replace(/\n/g, ' ')),
-      }),
-    });
-    if (!result.ok) {
-      throw {
-        retry: result.status === 429 || result.status >= 500,
-        error: new Error(`Embedding failed with code ${result.status}: ${await result.text()}`),
-      };
-    }
-    return (await result.json()) as CreateEmbeddingResponse;
+        body: JSON.stringify({
+          model: config.embeddingModel,
+          input: texts.map((text) => text.replace(/\n/g, ' ')),
+        }),
+      });
+      if (!result.ok) {
+        throw {
+          retry: result.status === 429 || result.status >= 500,
+          error: new Error(`Embedding failed with code ${result.status}: ${await result.text()}`),
+        };
+      }
+      return result;
+    };
+    return readProviderJson<CreateEmbeddingResponse>(
+      request,
+      config.embeddingModel,
+      config.provider === 'convex' ? attribution : undefined,
+    );
   });
   if (json.data.length !== texts.length) {
     console.error(json);
@@ -267,8 +285,8 @@ export async function fetchEmbeddingBatch(texts: string[]) {
   };
 }
 
-export async function fetchEmbedding(text: string) {
-  const { embeddings, ...stats } = await fetchEmbeddingBatch([text]);
+export async function fetchEmbedding(text: string, attribution?: Attribution) {
+  const { embeddings, ...stats } = await fetchEmbeddingBatch([text], attribution);
   return { embedding: embeddings[0], ...stats };
 }
 

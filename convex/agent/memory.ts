@@ -65,15 +65,18 @@ export async function rememberConversation(
     });
   }
   llmMessages.push({ role: 'user', content: 'Summary:' });
-  const { content } = await chatCompletion({
-    messages: llmMessages,
-    max_tokens: 500,
-  });
+  const { content } = await chatCompletion(
+    {
+      messages: llmMessages,
+      max_tokens: 500,
+    },
+    { ctx, worldId, feature: 'summary' },
+  );
   const description = `Conversation with ${otherPlayer.name} at ${new Date(
     data.conversation._creationTime,
   ).toLocaleString()}: ${content}`;
-  const importance = await calculateImportance(description);
-  const { embedding } = await fetchEmbedding(description);
+  const importance = await calculateImportance(ctx, worldId, description);
+  const { embedding } = await fetchEmbedding(description, { ctx, worldId, feature: 'summary' });
   authors.delete(player.id as GameId<'players'>);
   await ctx.runMutation(selfInternal.insertMemory, {
     agentId,
@@ -317,19 +320,22 @@ export const loadMessages = internalQuery({
   },
 });
 
-async function calculateImportance(description: string) {
-  const { content: importanceRaw } = await chatCompletion({
-    messages: [
-      {
-        role: 'user',
-        content: `On the scale of 0 to 9, where 0 is purely mundane (e.g., brushing teeth, making bed) and 9 is extremely poignant (e.g., a break up, college acceptance), rate the likely poignancy of the following piece of memory.
+async function calculateImportance(ctx: ActionCtx, worldId: Id<'worlds'>, description: string) {
+  const { content: importanceRaw } = await chatCompletion(
+    {
+      messages: [
+        {
+          role: 'user',
+          content: `On the scale of 0 to 9, where 0 is purely mundane (e.g., brushing teeth, making bed) and 9 is extremely poignant (e.g., a break up, college acceptance), rate the likely poignancy of the following piece of memory.
       Memory: ${description}
       Answer on a scale of 0 to 9. Respond with number only, e.g. "5"`,
-      },
-    ],
-    temperature: 0.0,
-    max_tokens: 1,
-  });
+        },
+      ],
+      temperature: 0.0,
+      max_tokens: 1,
+    },
+    { ctx, worldId, feature: 'importance' },
+  );
 
   let importance = parseFloat(importanceRaw);
   if (isNaN(importance)) {
@@ -439,21 +445,28 @@ async function reflectOnMemories(
     'Example: [{insight: "...", statementIds: [1,2]}, {insight: "...", statementIds: [1]}, ...]',
   );
 
-  const { content: reflection } = await chatCompletion({
-    messages: [
-      {
-        role: 'user',
-        content: prompt.join('\n'),
-      },
-    ],
-  });
+  const { content: reflection } = await chatCompletion(
+    {
+      messages: [
+        {
+          role: 'user',
+          content: prompt.join('\n'),
+        },
+      ],
+    },
+    { ctx, worldId, feature: 'reflection' },
+  );
 
   try {
     const insights = JSON.parse(reflection) as { insight: string; statementIds: number[] }[];
     const memoriesToSave = await asyncMap(insights, async (item) => {
       const relatedMemoryIds = item.statementIds.map((idx: number) => memories[idx]._id);
-      const importance = await calculateImportance(item.insight);
-      const { embedding } = await fetchEmbedding(item.insight);
+      const importance = await calculateImportance(ctx, worldId, item.insight);
+      const { embedding } = await fetchEmbedding(item.insight, {
+        ctx,
+        worldId,
+        feature: 'reflection',
+      });
       console.debug('adding reflection memory...', item.insight);
       return {
         description: item.insight,
