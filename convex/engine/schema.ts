@@ -1,12 +1,9 @@
 import { defineTable } from 'convex/server';
 import { Infer, v } from 'convex/values';
 
-const input = v.object({
+const inputFields = {
   // Inputs are scoped to a single engine.
   engineId: v.id('engines'),
-
-  // Monotonically increasing input number within a world starting at 0.
-  number: v.number(),
 
   // Name of the input handler to run.
   name: v.string(),
@@ -30,7 +27,12 @@ const input = v.object({
   // since we don't guarantee strict monotonicity here. So, an input may not get
   // assigned to the engine step whose time interval contains this timestamp.
   received: v.number(),
-});
+};
+
+const input = v.union(
+  v.object({ ...inputFields, number: v.number() }),
+  v.object({ ...inputFields, enqueueCommitTs: v.commitTs() }),
+);
 
 export const engine = v.object({
   // What is the current simulation time for the engine? Monotonically increasing.
@@ -38,7 +40,7 @@ export const engine = v.object({
   // What was `currentTime` for the preceding step of the engine?
   lastStepTs: v.optional(v.number()),
 
-  // How far has the engine processed in the input queue?
+  // High-water mark for legacy numbered inputs. Commit-ordered inputs use their result.
   processedInputNumber: v.optional(v.number()),
 
   running: v.boolean(),
@@ -51,6 +53,8 @@ export const engine = v.object({
 export type Engine = Infer<typeof engine>;
 
 export const engineTables = {
-  inputs: defineTable(input).index('byInputNumber', ['engineId', 'number']),
+  inputs: defineTable(input)
+    .index('byInputNumber', ['engineId', 'number'])
+    .index('byPendingCommit', ['engineId', 'returnValue.kind', 'enqueueCommitTs']),
   engines: defineTable(engine),
 };

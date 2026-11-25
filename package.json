@@ -10,9 +10,10 @@
     "dev:backend": "convex dev --tail-logs",
     "dev:frontend": "vite",
     "dashboard": "convex dashboard",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest --verbose",
+    "test": "npm run test:queue && NODE_OPTIONS=--experimental-vm-modules jest --verbose",
     "level-editor": "vite src/editor/",
-    "le": "vite src/editor/"
+    "le": "vite src/editor/",
+    "test:queue": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
     "@clerk/clerk-react": "^4.27.0",
@@ -51,6 +52,7 @@
     "@vitejs/plugin-react": "^4.0.4",
     "autoprefixer": "^10.4.15",
     "concurrently": "^8.2.0",
+    "convex-test": "^0.0.75",
     "jest": "^29.7.0",
     "npm-run-all": "^4.1.5",
     "postcss": "^8.4.28",
@@ -58,7 +60,13 @@
     "tailwindcss": "^3.3.3",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.1",
-    "vite": "^4.4.9"
+    "vite": "^4.4.9",
+    "vitest": "3.2.7"
   },
-  "type": "module"
+  "type": "module",
+  "overrides": {
+    "vitest": {
+      "tinypool": "2.2.0"
+    }
+  }
 }

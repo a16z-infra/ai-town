@@ -20,9 +20,9 @@ export abstract class AbstractGame {
   abstract saveStep(ctx: ActionCtx, engineUpdate: EngineUpdate): Promise<void>;
 
   async runStep(ctx: ActionCtx, now: number) {
-    const inputs = await ctx.runQuery(internal.engine.abstractGame.loadInputs, {
+    const inputs = await ctx.runQuery(internal.engine.abstractGame.loadPendingInputs, {
       engineId: this.engine._id,
-      processedInputNumber: this.engine.processedInputNumber,
+      generationNumber: this.engine.generationNumber,
       max: this.maxInputsPerStep,
     });
 
@@ -47,7 +47,7 @@ export abstract class AbstractGame {
           break;
         }
         inputIndex += 1;
-        processedInputNumber = input.number;
+        if ('number' in input) processedInputNumber = input.number;
         tickInputs.push(input);
       }
 
@@ -139,10 +139,15 @@ export async function engineInsertInput(
   const now = Date.now();
   const prevInput = await ctx.db
     .query('inputs')
-    .withIndex('byInputNumber', (q) => q.eq('engineId', engineId))
+    .withIndex('byInputNumber', (q) => q.eq('engineId', engineId).gt('number', -1))
     .order('desc')
     .first();
-  const number = prevInput ? prevInput.number + 1 : 0;
+  // Vacuum may have removed the numbered tail while the engine was idle.
+  const previousNumber =
+    prevInput && 'number' in prevInput
+      ? prevInput.number
+      : ((await ctx.db.get(engineId))?.processedInputNumber ?? -1);
+  const number = previousNumber + 1;
   const inputId = await ctx.db.insert('inputs', {
     engineId,
     number,
@@ -153,20 +158,56 @@ export async function engineInsertInput(
   return inputId;
 }
 
+const loadInputArgs = {
+  engineId: v.id('engines'),
+  processedInputNumber: v.optional(v.number()),
+  max: v.number(),
+};
+
+function loadNumberedInputs(
+  db: DatabaseReader,
+  args: { engineId: Id<'engines'>; processedInputNumber?: number; max: number },
+) {
+  return db
+    .query('inputs')
+    .withIndex('byInputNumber', (q) =>
+      q.eq('engineId', args.engineId).gt('number', args.processedInputNumber ?? -1),
+    )
+    .take(args.max);
+}
+
+// In-flight engine actions from before this deployment still use this endpoint.
 export const loadInputs = internalQuery({
-  args: {
-    engineId: v.id('engines'),
-    processedInputNumber: v.optional(v.number()),
-    max: v.number(),
-  },
+  args: loadInputArgs,
+  handler: (ctx, args) => loadNumberedInputs(ctx.db, args),
+});
+
+export const loadPendingInputs = internalQuery({
+  args: { engineId: v.id('engines'), generationNumber: v.number(), max: v.number() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    // A bounded index read can stay cached through a later append. Each engine
+    // generation needs its own snapshot, even when the preceding page was empty.
+    const engine = await loadEngine(ctx.db, args.engineId, args.generationNumber);
+    const numbered = await loadNumberedInputs(ctx.db, {
+      ...args,
+      processedInputNumber: engine.processedInputNumber,
+    });
+    if (numbered.length === args.max) return numbered;
+
+    // Acknowledgement moves a row out of the pending range in saveWorld.
+    // An interrupted batch can resume even if all its inputs share a commit.
+    const snapshot = ctx.meta.getSnapshotTs();
+    const committed = await ctx.db
       .query('inputs')
-      .withIndex('byInputNumber', (q) =>
-        q.eq('engineId', args.engineId).gt('number', args.processedInputNumber ?? -1),
+      .withIndex('byPendingCommit', (q) =>
+        q
+          .eq('engineId', args.engineId)
+          .eq('returnValue.kind', undefined)
+          .gt('enqueueCommitTs', undefined)
+          .lte('enqueueCommitTs', snapshot),
       )
-      .order('asc')
-      .take(args.max);
+      .take(args.max - numbered.length);
+    return [...numbered, ...committed];
   },
 });
 
