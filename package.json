@@ -61,7 +61,7 @@
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.1",
     "vite": "^4.4.9",
-    "vitest": "^3.2.4"
+    "vitest": "4.0.18"
   },
   "type": "module"
 }
