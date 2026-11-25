@@ -309,9 +309,10 @@ RAG weights cosine similarity during candidate retrieval. AI Town maps the 0–9
 On an existing deployment, historical memories become eligible as the ownership backfill progresses. Run the following against the intended deployment after deploying the component and schema.
 
 ```sh
-npx convex run agent/migrateMemories:backfill '{"cursor":null,"runToEnd":true}'
+npx convex run agent/migrateMemories:run
+npx convex run --component migrations lib:getStatus
 ```
 
-The mutation schedules the remaining pages and logs cumulative indexed, unresolved, and missing-vector counts on completion. For a single page omit `runToEnd` and use the returned cursor for the next page. A pass can be restarted safely. An archived conversation must establish a unique world and match the participants. A reflection inherits ownership only if its source memories agree. Unresolved rows remain available for inspection and stay out of prompts.
+The Migrations component saves a cursor and progress after each batch of eight. To pause, run `npx convex run --component migrations lib:cancel '{"name":"agent/migrateMemories:indexLegacyMemories"}'`. Run the same runner again to resume. Inspect skipped memories using the `migrationIssue` index for `unresolved` or `missingVector`. After repairing the source data, pass `{"reset":true}` to the runner to revisit skipped rows. Already indexed memories retain their existing RAG entries. An archived conversation must establish a unique world and match the participants. A reflection inherits ownership only if its source memories agree. Unresolved rows remain available for inspection and stay out of prompts.
 
 The default reader uses RAG. Set `AI_TOWN_MEMORY_SEARCH=legacy` on the intended deployment to switch reads back to the scoped native index while continuing to index new memories in both stores. Both readers require the backfill for historical data.

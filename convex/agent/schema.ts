@@ -34,7 +34,9 @@ export const memoryTables = {
     ...memoryFields,
     worldId: v.optional(v.id('worlds')),
     ragEntryId: v.optional(v.string()),
+    migrationIssue: v.optional(v.union(v.literal('unresolved'), v.literal('missingVector'))),
   })
+    .index('migrationIssue', ['migrationIssue'])
     .index('worldPlayer', ['worldId', 'playerId'])
     .index('worldPlayerType', ['worldId', 'playerId', 'data.type'])
     .index('embeddingId', ['embeddingId'])

@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@clerk/clerk-react": "^4.27.0",
+    "@convex-dev/migrations": "^0.3.9",
     "@convex-dev/rag": "^0.7.9",
     "@pixi/react": "^7.1.0",
     "@pixi/sound": "^5.2.0",

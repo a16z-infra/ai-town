@@ -167,3 +167,35 @@ test('backfill carries provenance to a reflection on a later page and counts mis
   });
   expect((await t.run(({ db }) => db.get(ids.missing)))?.ragEntryId).toBeUndefined();
 });
+
+test('the component migration records and clears an issue when ownership becomes known', async () => {
+  const { t, a } = await setup();
+  await t.mutation(internal.agent.memory.insertMemory, memory);
+  const batch = () =>
+    t.mutation(internal.agent.migrateMemories.indexLegacyMemories, {
+      oneBatchOnly: true,
+      dryRun: false,
+      cursor: null,
+    });
+  const get = () => t.run(({ db }) => db.query('memories').unique());
+  await batch();
+  expect((await get())?.migrationIssue).toBe('unresolved');
+  await t.run(({ db }) =>
+    db.insert('archivedConversations', {
+      worldId: a,
+      id: 'c:3',
+      creator: player,
+      created: 0,
+      ended: 1,
+      numMessages: 1,
+      participants: [player, 'p:4'],
+    }),
+  );
+  await batch();
+  const indexed = await get();
+  expect(indexed?.worldId).toBe(a);
+  expect(indexed?.migrationIssue).toBeUndefined();
+  expect(indexed?.ragEntryId).toEqual(expect.any(String));
+  await batch();
+  expect((await get())?.ragEntryId).toBe(indexed?.ragEntryId);
+});
