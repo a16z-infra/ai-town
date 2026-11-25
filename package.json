@@ -61,7 +61,12 @@
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.1",
     "vite": "^4.4.9",
-    "vitest": "4.0.18"
+    "vitest": "3.2.7"
   },
-  "type": "module"
+  "type": "module",
+  "overrides": {
+    "vitest": {
+      "tinypool": "2.1.1"
+    }
+  }
 }
