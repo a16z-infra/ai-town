@@ -195,6 +195,11 @@ function agentPrompts(
   if (otherAgent) {
     prompt.push(`About ${otherPlayer.name}: ${otherAgent.identity}`);
   }
+  if (process.env.LLM_PROVIDER === 'convex') {
+    prompt.push(
+      'Speak only as your character in one or two short spoken sentences. Let what you want shape your reply to the last thing they said. You can dodge, disagree, or change the subject. Skip polite recaps and offers of help unless they fit your character.',
+    );
+  }
   return prompt;
 }
 

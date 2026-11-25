@@ -1,4 +1,4 @@
-// That's right! No imports and no dependencies 🤯
+import { getServiceToken } from 'convex/server';
 
 const OPENAI_EMBEDDING_DIMENSION = 1536;
 const TOGETHER_EMBEDDING_DIMENSION = 768;
@@ -9,7 +9,7 @@ export const EMBEDDING_DIMENSION: number = OPENAI_EMBEDDING_DIMENSION;
 export function detectMismatchedLLMProvider() {
   switch (EMBEDDING_DIMENSION) {
     case OPENAI_EMBEDDING_DIMENSION:
-      if (!process.env.OPENAI_API_KEY) {
+      if (process.env.LLM_PROVIDER !== 'convex' && !process.env.OPENAI_API_KEY) {
         throw new Error(
           "Are you trying to use OpenAI? If so, run: npx convex env set OPENAI_API_KEY 'your-key'",
         );
@@ -35,7 +35,7 @@ export function detectMismatchedLLMProvider() {
 }
 
 export interface LLMConfig {
-  provider: 'openai' | 'together' | 'ollama' | 'custom';
+  provider: 'convex' | 'openai' | 'together' | 'ollama' | 'custom';
   url: string; // Should not have a trailing slash
   chatModel: string;
   embeddingModel: string;
@@ -44,7 +44,20 @@ export interface LLMConfig {
 }
 
 export function getLLMConfig(): LLMConfig {
-  let provider = process.env.LLM_PROVIDER;
+  const provider = process.env.LLM_PROVIDER;
+  if (provider === 'convex') {
+    if (EMBEDDING_DIMENSION !== OPENAI_EMBEDDING_DIMENSION) {
+      throw new Error('Convex AI Gateway must use the existing 1536-dimensional memory embeddings');
+    }
+    return {
+      provider,
+      url: 'https://ai-gateway.convex.dev',
+      chatModel: process.env.GATEWAY_CHAT_MODEL ?? 'openai/gpt-6-luna',
+      embeddingModel: 'openai/text-embedding-ada-002',
+      stopWords: [],
+      apiKey: undefined,
+    };
+  }
   if (provider ? provider === 'openai' : process.env.OPENAI_API_KEY) {
     if (EMBEDDING_DIMENSION !== OPENAI_EMBEDDING_DIMENSION) {
       throw new Error('EMBEDDING_DIMENSION must be 1536 for OpenAI');
@@ -109,12 +122,10 @@ export function getLLMConfig(): LLMConfig {
   };
 }
 
-const AuthHeaders = (): Record<string, string> =>
-  getLLMConfig().apiKey
-    ? {
-        Authorization: 'Bearer ' + getLLMConfig().apiKey,
-      }
-    : {};
+async function authHeaders(config: LLMConfig): Promise<Record<string, string>> {
+  const key = config.provider === 'convex' ? await getServiceToken('ai-gateway') : config.apiKey;
+  return key ? { Authorization: 'Bearer ' + key } : {};
+}
 
 // Overload for non-streaming
 export async function chatCompletion(
@@ -151,10 +162,14 @@ export async function chatCompletion(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...AuthHeaders(),
+        ...(await authHeaders(config)),
       },
 
-      body: JSON.stringify(body),
+      body: JSON.stringify(
+        config.provider === 'convex' && body.model === 'openai/gpt-6-luna'
+          ? { ...body, reasoning: { effort: 'none' } }
+          : body,
+      ),
     });
     if (!result.ok) {
       const error = await result.text();
@@ -221,7 +236,7 @@ export async function fetchEmbeddingBatch(texts: string[]) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...AuthHeaders(),
+        ...(await authHeaders(config)),
       },
 
       body: JSON.stringify({
@@ -258,12 +273,23 @@ export async function fetchEmbedding(text: string) {
 }
 
 export async function fetchModeration(content: string) {
+  const config = getLLMConfig();
+  // The gateway does not expose the OpenAI moderations endpoint.
+  const moderationConfig =
+    config.provider === 'convex'
+      ? {
+          ...config,
+          provider: 'openai' as const,
+          url: 'https://api.openai.com',
+          apiKey: process.env.OPENAI_API_KEY,
+        }
+      : config;
   const { result: flagged } = await retryWithBackoff(async () => {
-    const result = await fetch(getLLMConfig().url + '/v1/moderations', {
+    const result = await fetch(moderationConfig.url + '/v1/moderations', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...AuthHeaders(),
+        ...(await authHeaders(moderationConfig)),
       },
 
       body: JSON.stringify({

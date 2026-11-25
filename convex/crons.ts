@@ -59,7 +59,7 @@ export const vacuumOldEntries = internalMutation({
     }
     const inactivePlayerDescriptions = await ctx.db
       .query('playerDescriptions')
-      .withIndex('active_worldId', (q) => q.eq('active', false))
+      .withIndex('active_worldId', (q) => q.lt('active', true))
       .collect();
     for (const playerDescription of inactivePlayerDescriptions) {
       await ctx.db.delete(playerDescription._id);

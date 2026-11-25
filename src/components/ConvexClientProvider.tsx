@@ -19,10 +19,15 @@ function convexUrl(): string {
 
 const convex = new ConvexReactClient(convexUrl(), { unsavedChangesWarning: false });
 
+// Clerk v4 uses the Convex JWT template and does not expose session claims.
+function useClerkAuth() {
+  return { ...useAuth(), sessionClaims: undefined };
+}
+
 export default function ConvexClientProvider({ children }: { children: ReactNode }) {
   return (
     <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string}>
-      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+      <ConvexProviderWithClerk client={convex} useAuth={useClerkAuth}>
         {children}
       </ConvexProviderWithClerk>
     </ClerkProvider>
