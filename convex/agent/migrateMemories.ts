@@ -1,6 +1,8 @@
-import { internal } from '../_generated/api';
+import { Migrations } from '@convex-dev/migrations';
+import type { DataModel } from '../_generated/dataModel';
+import { components, internal } from '../_generated/api';
 import { v } from 'convex/values';
-import { internalMutation, type DatabaseReader } from '../_generated/server';
+import { internalMutation, type MutationCtx, type DatabaseReader } from '../_generated/server';
 import type { Doc, Id } from '../_generated/dataModel';
 import { indexMemory, memoryNamespace } from './memoryIndex';
 
@@ -40,6 +42,33 @@ async function resolveWorld(
   }
 }
 
+async function migrateMemory(ctx: MutationCtx, memory: Doc<'memories'>) {
+  if (memory.ragEntryId) return;
+  const worldId = await resolveWorld(ctx.db, memory);
+  const vector = worldId && (await ctx.db.get(memory.embeddingId));
+  if (!worldId || !vector || vector.playerId !== memory.playerId) {
+    const reason = worldId ? 'missingVector' : 'unresolved';
+    if (reason !== memory.migrationIssue)
+      await ctx.db.patch(memory._id, { migrationIssue: reason });
+    return reason;
+  }
+  await indexMemory(ctx, worldId, memory, vector.embedding);
+  await ctx.db.patch(vector._id, { namespace: memoryNamespace(worldId, memory.playerId) });
+  if (memory.migrationIssue) await ctx.db.patch(memory._id, { migrationIssue: undefined });
+  return 'indexed';
+}
+
+const migrations = new Migrations<DataModel>(components.migrations);
+export const indexLegacyMemories = migrations.define({
+  table: 'memories',
+  batchSize: 8,
+  migrateOne: async (ctx, memory) => {
+    await migrateMemory(ctx, memory);
+  },
+});
+export const run = migrations.runner(internal.agent.migrateMemories.indexLegacyMemories);
+
+// Compatibility for cursors and scheduled continuations issued by the RAG rollout.
 // Advance with the returned cursor. Chronological order visits source memories
 // before reflections. A fresh pass safely retries previously unresolved rows.
 export const backfill = internalMutation({
@@ -58,20 +87,10 @@ export const backfill = internalMutation({
       missingVector: 0,
     };
     for (const memory of page.page) {
-      if (memory.ragEntryId) continue;
-      const worldId = await resolveWorld(ctx.db, memory);
-      if (!worldId) {
-        unresolved++;
-        continue;
-      }
-      const vector = await ctx.db.get(memory.embeddingId);
-      if (!vector || vector.playerId !== memory.playerId) {
-        missingVector++;
-        continue;
-      }
-      await indexMemory(ctx, worldId, memory, vector.embedding);
-      await ctx.db.patch(vector._id, { namespace: memoryNamespace(worldId, memory.playerId) });
-      indexed++;
+      const outcome = await migrateMemory(ctx, memory);
+      if (outcome === 'indexed') indexed++;
+      if (outcome === 'unresolved') unresolved++;
+      if (outcome === 'missingVector') missingVector++;
     }
     const counts = { indexed, unresolved, missingVector };
     if (runToEnd) {
