@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import { useMutation, useQuery } from 'convex/react';
+import { toast } from 'react-toastify';
 import { KeyboardEvent, useRef, useState } from 'react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
@@ -19,10 +20,15 @@ export function MessageInput({
   conversation: Conversation;
 }) {
   const descriptions = useQuery(api.world.gameDescriptions, { worldId });
-  const humanName = descriptions?.playerDescriptions.find((p) => p.playerId === humanPlayer.id)
-    ?.name;
+  const humanName = descriptions?.playerDescriptions.find(
+    (p) => p.playerId === humanPlayer.id,
+  )?.name;
   const inputRef = useRef<HTMLParagraphElement>(null);
-  const inflightUuid = useRef<string | undefined>();
+  const draftUuid = useRef<string>();
+  const typingRequest = useRef<string>();
+  const lastAttemptText = useRef<string>();
+  const sending = useRef(false);
+  const [isSending, setIsSending] = useState(false);
   const writeMessage = useMutation(api.messages.writeMessage);
   const startTyping = useSendInput(engineId, 'startTyping');
   const currentlyTyping = conversation.isTyping;
@@ -30,48 +36,53 @@ export function MessageInput({
   const onKeyDown = async (e: KeyboardEvent) => {
     e.stopPropagation();
 
-    // Set the typing indicator if we're not submitting.
-    if (e.key !== 'Enter') {
-      console.log(inflightUuid.current);
-      if (currentlyTyping || inflightUuid.current !== undefined) {
-        return;
-      }
-      inflightUuid.current = crypto.randomUUID();
-      try {
-        // Don't show a toast on error.
-        await startTyping({
-          playerId: humanPlayer.id,
-          conversationId: conversation.id,
-          messageUuid: inflightUuid.current,
-        });
-      } finally {
-        inflightUuid.current = undefined;
-      }
-      return;
-    }
-
-    // Send the current message.
+    if (e.key !== 'Enter') return;
     e.preventDefault();
-    if (!inputRef.current) {
-      return;
+    const input = inputRef.current;
+    if (sending.current || !input?.innerText) return;
+
+    const messageUuid = (draftUuid.current ??= crypto.randomUUID());
+    lastAttemptText.current = input.innerText;
+    sending.current = true;
+    setIsSending(true);
+    try {
+      await writeMessage({
+        worldId,
+        playerId: humanPlayer.id,
+        conversationId: conversation.id,
+        text: input.innerText,
+        messageUuid,
+      });
+      input.innerText = '';
+      lastAttemptText.current = undefined;
+      draftUuid.current = undefined;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Message could not be sent');
+    } finally {
+      sending.current = false;
+      setIsSending(false);
     }
-    const text = inputRef.current.innerText;
-    inputRef.current.innerText = '';
-    if (!text) {
-      return;
+  };
+
+  const onInput = async () => {
+    if (
+      lastAttemptText.current !== undefined &&
+      lastAttemptText.current !== inputRef.current?.innerText
+    ) {
+      // An edited submission is a new message. An unchanged retry keeps its UUID.
+      draftUuid.current = undefined;
+      lastAttemptText.current = undefined;
     }
-    let messageUuid = inflightUuid.current;
-    if (currentlyTyping && currentlyTyping.playerId === humanPlayer.id) {
-      messageUuid = currentlyTyping.messageUuid;
+    const messageUuid = (draftUuid.current ??= crypto.randomUUID());
+    if (currentlyTyping || typingRequest.current === messageUuid) return;
+    typingRequest.current = messageUuid;
+    try {
+      await startTyping({ playerId: humanPlayer.id, conversationId: conversation.id, messageUuid });
+    } catch {
+      // Typing is advisory. The other speaker may have acquired it first.
+    } finally {
+      if (typingRequest.current === messageUuid) typingRequest.current = undefined;
     }
-    messageUuid = messageUuid || crypto.randomUUID();
-    await writeMessage({
-      worldId,
-      playerId: humanPlayer.id,
-      conversationId: conversation.id,
-      text,
-      messageUuid,
-    });
   };
   return (
     <div className="leading-tight mb-6">
@@ -82,7 +93,8 @@ export function MessageInput({
         <p
           className="bg-white -mx-3 -my-1"
           ref={inputRef}
-          contentEditable
+          contentEditable={!isSending}
+          onInput={onInput}
           style={{ outline: 'none' }}
           tabIndex={0}
           placeholder="Type here"

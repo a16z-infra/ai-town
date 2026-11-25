@@ -171,6 +171,9 @@ export const sendWorldInput = mutation({
     if (!identity) {
       throw new Error(`Not logged in`);
     }
+    if (args.name === 'finishSendingMessage' || args.name === 'agentFinishSendingMessage') {
+      throw new Error('Message completions are queued by the publisher');
+    }
     return await engineInsertInput(ctx, args.engineId, args.name as any, args.args);
   },
 });

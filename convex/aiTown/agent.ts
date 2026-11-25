@@ -21,7 +21,7 @@ import { MutationCtx, internalMutation, internalQuery } from '../_generated/serv
 import { distance } from '../util/geometry';
 import { internal } from '../_generated/api';
 import { movePlayer } from './movement';
-import { insertInput } from './insertInput';
+import { publishMessage } from '../messages';
 
 export class Agent {
   id: GameId<'agents'>;
@@ -33,6 +33,7 @@ export class Agent {
     name: string;
     operationId: string;
     started: number;
+    messageUuid?: string;
   };
 
   constructor(serialized: SerializedAgent) {
@@ -253,6 +254,9 @@ export class Agent {
       name,
       operationId,
       started: now,
+      ...('messageUuid' in args && typeof args.messageUuid === 'string'
+        ? { messageUuid: args.messageUuid }
+        : {}),
     };
   }
 
@@ -279,6 +283,7 @@ export const serializedAgent = {
       name: v.string(),
       operationId: v.string(),
       started: v.number(),
+      messageUuid: v.optional(v.string()),
     }),
   ),
 };
@@ -316,19 +321,11 @@ export const agentSendMessage = internalMutation({
     operationId: v.string(),
   },
   handler: async (ctx, args) => {
-    await ctx.db.insert('messages', {
-      conversationId: args.conversationId,
-      author: args.playerId,
-      text: args.text,
-      messageUuid: args.messageUuid,
-      worldId: args.worldId,
-    });
-    await insertInput(ctx, args.worldId, 'agentFinishSendingMessage', {
-      conversationId: args.conversationId,
+    await publishMessage(ctx, args, {
+      kind: 'agent',
       agentId: args.agentId,
-      timestamp: Date.now(),
-      leaveConversation: args.leaveConversation,
       operationId: args.operationId,
+      leaveConversation: args.leaveConversation,
     });
   },
 });
