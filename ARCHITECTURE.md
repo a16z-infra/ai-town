@@ -299,3 +299,19 @@ These design goals imply some inherent limitations:
 - The game engine is designed to be single threaded. JavaScript operating over plain objects
   in-memory can be surprisingly fast, but if your simulation is very computationally expensive, it
   may not be a good fit on AI Town's engine today.
+
+### Character memory retrieval
+
+Each memory has one RAG entry under its world and player, keyed by the memory document ID. Both RAG and the native fallback receive the existing embedding in the same mutation as the memory write. Conversation prompts reuse the existing query embedding cache. Reflection generation and memory lookup use the same ownership boundary.
+
+RAG weights cosine similarity during candidate retrieval. AI Town maps the 0–9 importance rating linearly to 0.9–1.0, requests up to ten candidates per requested memory, and ranks them by `0.9 × weighted similarity + 0.1 × 0.99^hoursSinceLastAccess`. Reading the selected memories refreshes their access timestamps at most once every five minutes. Vacuum and test-world resets delete their component entries.
+
+On an existing deployment, historical memories become eligible as the ownership backfill progresses. Run the following against the intended deployment after deploying the component and schema.
+
+```sh
+npx convex run agent/migrateMemories:backfill '{"cursor":null,"runToEnd":true}'
+```
+
+The mutation schedules the remaining pages and logs cumulative indexed, unresolved, and missing-vector counts on completion. For a single page omit `runToEnd` and use the returned cursor for the next page. A pass can be restarted safely. An archived conversation must establish a unique world and match the participants. A reflection inherits ownership only if its source memories agree. Unresolved rows remain available for inspection and stay out of prompts.
+
+The default reader uses RAG. Set `AI_TOWN_MEMORY_SEARCH=legacy` on the intended deployment to switch reads back to the scoped native index while continuing to index new memories in both stores. Both readers require the backfill for historical data.
