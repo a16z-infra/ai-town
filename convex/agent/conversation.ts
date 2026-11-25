@@ -28,6 +28,7 @@ export async function startConversationMessage(
   );
   const embedding = await embeddingsCache.fetch(
     ctx,
+    worldId,
     `${player.name} is talking to ${otherPlayer.name}`,
   );
 
@@ -56,16 +57,19 @@ export async function startConversationMessage(
   const lastPrompt = `${player.name} to ${otherPlayer.name}:`;
   prompt.push(lastPrompt);
 
-  const { content } = await chatCompletion({
-    messages: [
-      {
-        role: 'system',
-        content: prompt.join('\n'),
-      },
-    ],
-    max_tokens: 300,
-    stop: stopWords(otherPlayer.name, player.name),
-  });
+  const { content } = await chatCompletion(
+    {
+      messages: [
+        {
+          role: 'system',
+          content: prompt.join('\n'),
+        },
+      ],
+      max_tokens: 300,
+      stop: stopWords(otherPlayer.name, player.name),
+    },
+    { ctx, worldId, feature: 'dialogue' },
+  );
   return trimContentPrefx(content, lastPrompt);
 }
 
@@ -96,9 +100,16 @@ export async function continueConversationMessage(
   const started = new Date(conversation.created);
   const embedding = await embeddingsCache.fetch(
     ctx,
+    worldId,
     `What do you think about ${otherPlayer.name}?`,
   );
-  const memories = await memory.searchMemories(ctx, worldId, player.id as GameId<'players'>, embedding, 3);
+  const memories = await memory.searchMemories(
+    ctx,
+    worldId,
+    player.id as GameId<'players'>,
+    embedding,
+    3,
+  );
   const prompt = [
     `You are ${player.name}, and you're currently in a conversation with ${otherPlayer.name}.`,
     `The conversation started at ${started.toLocaleString()}. It's now ${now.toLocaleString()}.`,
@@ -126,11 +137,14 @@ export async function continueConversationMessage(
   const lastPrompt = `${player.name} to ${otherPlayer.name}:`;
   llmMessages.push({ role: 'user', content: lastPrompt });
 
-  const { content } = await chatCompletion({
-    messages: llmMessages,
-    max_tokens: 300,
-    stop: stopWords(otherPlayer.name, player.name),
-  });
+  const { content } = await chatCompletion(
+    {
+      messages: llmMessages,
+      max_tokens: 300,
+      stop: stopWords(otherPlayer.name, player.name),
+    },
+    { ctx, worldId, feature: 'dialogue' },
+  );
   return trimContentPrefx(content, lastPrompt);
 }
 
@@ -175,11 +189,14 @@ export async function leaveConversationMessage(
   const lastPrompt = `${player.name} to ${otherPlayer.name}:`;
   llmMessages.push({ role: 'user', content: lastPrompt });
 
-  const { content } = await chatCompletion({
-    messages: llmMessages,
-    max_tokens: 300,
-    stop: stopWords(otherPlayer.name, player.name),
-  });
+  const { content } = await chatCompletion(
+    {
+      messages: llmMessages,
+      max_tokens: 300,
+      stop: stopWords(otherPlayer.name, player.name),
+    },
+    { ctx, worldId, feature: 'dialogue' },
+  );
   return trimContentPrefx(content, lastPrompt);
 }
 

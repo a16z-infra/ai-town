@@ -315,3 +315,17 @@ npx convex run agent/migrateMemories:backfill '{"cursor":null,"runToEnd":true}'
 The mutation schedules the remaining pages and logs cumulative indexed, unresolved, and missing-vector counts on completion. For a single page omit `runToEnd` and use the returned cursor for the next page. A pass can be restarted safely. An archived conversation must establish a unique world and match the participants. A reflection inherits ownership only if its source memories agree. Unresolved rows remain available for inspection and stay out of prompts.
 
 The default reader uses RAG. Set `AI_TOWN_MEMORY_SEARCH=legacy` on the intended deployment to switch reads back to the scoped native index while continuing to index new memories in both stores. Both readers require the backfill for historical data.
+
+### Gateway usage and cost
+
+AI Budget accounts for gateway chat completions and embeddings used by agents. Each provider attempt is attributed to its world and to dialogue, summary, importance, or reflection. An embedding cache hit makes no provider request. Diagnostic actions have a separate bucket. The component stores token counts, model, latency and cost. AI Town omits prompts and generated text from its request records.
+
+Inspect costs on the intended deployment with the component CLI:
+
+```sh
+npx convex run --component aiBudget lib:getBucket '{"dimension":"action","value":"dialogue"}'
+npx convex run --component aiBudget lib:getBucket '{"dimension":"world","value":"WORLD_ID"}'
+npx convex run --component aiBudget lib:listRequests '{"dimension":"action","value":"summary","limit":10}'
+```
+
+Costs are in nanodollars. Settlement uses the gateway's reported cost when available and component token pricing otherwise. Request rows have the component's default one-hour retention, with durable aggregate history. The integration starts without configured caps. An operator-configured block rejects a request before the gateway call. Metering covers the non-streaming gateway paths AI Town uses today.

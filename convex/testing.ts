@@ -41,12 +41,10 @@ export const deletePage = internalMutation({
     cursor: v.union(v.string(), v.null()),
   },
   handler: async (ctx, args) => {
-    const results = await ctx.db
-      .query(args.tableName as TableNames)
-      .paginate({
-        cursor: args.cursor,
-        numItems: args.tableName === 'memories' ? 8 : DELETE_BATCH_SIZE,
-      });
+    const results = await ctx.db.query(args.tableName as TableNames).paginate({
+      cursor: args.cursor,
+      numItems: args.tableName === 'memories' ? 8 : DELETE_BATCH_SIZE,
+    });
     for (const row of results.page) {
       if ('ragEntryId' in row && row.ragEntryId) await removeIndexedMemory(ctx, row.ragEntryId);
       await ctx.db.delete(row._id);
@@ -178,20 +176,23 @@ export const randomPositions = internalMutation({
 
 export const testEmbedding = internalAction({
   args: { input: v.string() },
-  handler: async (_ctx, args) => {
-    return await fetchEmbedding(args.input);
+  handler: async (ctx, args) => {
+    return await fetchEmbedding(args.input, { ctx, feature: 'diagnostic' });
   },
 });
 
 export const testCompletion = internalAction({
   args: {},
   handler: async (ctx, args) => {
-    return await chatCompletion({
-      messages: [
-        { content: 'You are helpful', role: 'system' },
-        { content: 'Where is pizza?', role: 'user' },
-      ],
-    });
+    return await chatCompletion(
+      {
+        messages: [
+          { content: 'You are helpful', role: 'system' },
+          { content: 'Where is pizza?', role: 'user' },
+        ],
+      },
+      { ctx, feature: 'diagnostic' },
+    );
   },
 });
 
