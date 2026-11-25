@@ -119,7 +119,7 @@ export function DebugTimeManager(props: {
     statusNode = (
       <div style={{ fontSize: '12px', paddingTop: '8px' }}>
         <p>Generation number: {status.generationNumber}</p>
-        <p>Input number: {status.processedInputNumber}</p>
+        <p>Last numbered input: {status.processedInputNumber}</p>
         <p>Status: {statusMsg}</p>
         <p>Client skew: {toSeconds(timeManager.clockSkew())}s</p>
       </div>

@@ -79,18 +79,22 @@ export const vacuumTable = internalMutation({
       .query(tableName as TableNames)
       .withIndex('by_creation_time', (q) => q.lt('_creationTime', before))
       .paginate({ cursor, numItems: DELETE_BATCH_SIZE });
+    let deleted = 0;
     for (const row of results.page) {
+      // Queued work remains live even if the world was paused past retention.
+      if (tableName === 'inputs' && !('returnValue' in row && row.returnValue)) continue;
       await ctx.db.delete(row._id);
+      deleted++;
     }
     if (!results.isDone) {
       await ctx.scheduler.runAfter(0, internal.crons.vacuumTable, {
         tableName,
         before,
-        soFar: results.page.length + soFar,
+        soFar: soFar + deleted,
         cursor: results.continueCursor,
       });
     } else {
-      console.log(`Vacuumed ${soFar + results.page.length} entries from ${tableName}`);
+      console.log(`Vacuumed ${soFar + deleted} entries from ${tableName}`);
     }
   },
 });
